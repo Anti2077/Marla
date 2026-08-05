@@ -1,0 +1,3 @@
+[workspace]
+members = ["rust/marla-core"]
+resolver = "3"

@@ -1,0 +1,106 @@
+# Architecture
+
+## Status
+
+0.1.0 target architecture accepted; implementation remains in the technical-foundation phase.
+
+## Platform
+
+- Swift 6 for the native application layer
+- SwiftUI for settings and durable content surfaces
+- AppKit for menu-bar integration, non-activating panels, focus, and screen-level interaction
+- Rust 2024 edition for the embedded business core
+- A versioned C ABI and static library for Swift/Rust integration
+- macOS 14 or later
+- Apple Silicon is the first performance target
+
+## High-level flow
+
+```text
+Trigger Provider
+  -> Intent Router
+  -> Selection Reader / Screen Capture / Quick Input
+  -> Context Engine
+  -> OCR Provider when required
+  -> Translation Provider
+  -> Translation Session
+  -> Overlay Presenter
+```
+
+Platform acquisition and presentation nodes run in Swift/AppKit. Provider orchestration, normalized processing, context classification, caching, and translation-session logic move through the Rust core. Swift-facing models remain at the bridge boundary until their Rust equivalents and ABI contracts are implemented.
+
+For 0.1.0, contextual window collection and persistent caches are disabled. Rust owns translation prompt construction, OpenAI-compatible HTTP/SSE, timeout, cancellation, and session state.
+
+## Runtime boundary
+
+```text
+SwiftUI / AppKit
+  -> Swift bridge types
+  -> versioned C ABI
+  -> embedded Rust static library
+```
+
+The bridge is in-process. Marla does not start a localhost backend or a separate always-running Rust service. The first working bridge exposes its API version and classifies an application's surface from its Bundle ID; that classification is technical groundwork and is not sent as translation context in 0.1.0.
+
+## Core boundaries
+
+### Trigger providers
+
+The default global shortcuts are `⌃⌥D` for selection, `⌃⌥S` for screenshot, and `⌃⌥Space` for quick input. All are configurable. Force Touch is an off-by-default experimental provider behind the same selection intent, uses public APIs only, and has no unique downstream behavior.
+
+### Selection reader
+
+Uses macOS Accessibility APIs to obtain selected text, selection bounds, and focused application identity. Version 0.1.0 does not read bounded surrounding text and does not simulate Copy as a clipboard fallback.
+
+The first implementation reads `AXSelectedText`, requests `AXBoundsForRange` when the focused element supports it, and treats missing geometry as a supported degradation rather than a failed text acquisition. Nearby context and clipboard compatibility are not implemented yet.
+
+### Screenshot capture
+
+Uses ScreenCaptureKit. Captures remain in memory and only the selected crop enters macOS Vision. Version 0.1.0 sends no image pixels across FFI or to a cloud provider.
+
+### OCR provider
+
+macOS Vision is the only 0.1.0 OCR provider. It normalizes recognized lines into stable plain-text blocks and reading order. Cloud GLM-OCR and layout-aware blocks remain post-0.1.0 under ADR-0002 and ADR-0005.
+
+### Context engine
+
+The accepted future engine may build bounded context only when translation is triggered. Version 0.1.0 does not send application identity, surface classification, window title, nearby text, or terminology. Existing surface classification remains local groundwork only.
+
+### Translation providers
+
+Version 0.1.0 exposes one configurable OpenAI-compatible Chat Completions streaming endpoint. Users supply Base URL, model, and optional API Key. Rust owns request prompting, SSE parsing, timeouts, explicit retry, cancellation, and normalized events; no default vendor is selected.
+
+### Presentation
+
+Selection and screenshot translation use the same nearby non-activating result card in 0.1.0. Pixel-covering in-place presentation and live-image rewriting are deferred. Quick input uses an activatable version of the same surface near the pointer.
+
+## State machine
+
+```text
+idle
+  -> acquiring
+  -> recognizing (screenshot only)
+  -> awaitingFirstToken
+  -> streaming
+  -> completed / failed / cancelled
+```
+
+Cancellation propagates to OCR and translation network work. A translation failure must not discard successfully recognized source content.
+
+## Storage
+
+- API credentials: Keychain
+- screenshots: memory-only by default
+- contextual window cache: disabled in 0.1.0
+- persistent history: not present in 0.1.0
+- durable terminology: explicit user approval required
+
+## Current packaging boundary
+
+The repository currently uses Swift Package Manager for fast core compilation and tests. Full Xcode 26.5 is installed and is selected per command through `DEVELOPER_DIR`, without changing the machine-wide `xcode-select` setting.
+
+SwiftPM currently emits a bare Mach-O executable, not a stable macOS `.app`. A real Xcode application target remains required before validating TCC permission persistence, entitlements, privacy usage descriptions, signing, notarization, and distribution.
+
+Cargo currently emits `libmarla_core.a`; SwiftPM links it through `MarlaRustFFI`. The unified verification script builds Cargo first. The future Xcode target must preserve the same order with a deterministic Rust build phase or an XCFramework artifact.
+
+The 0.1.0 target uses Bundle ID `com.marla.app`, macOS 14+, and Apple Silicon. Test artifacts use development or ad-hoc signing and the external name `Marla_test_yyyyMMddHHmm.app`; DMG, notarization, updater, and public distribution are deferred.

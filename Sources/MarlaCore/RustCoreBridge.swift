@@ -1,4 +1,6 @@
+#if !MARLA_XCODE_APP
 import MarlaRustFFI
+#endif
 
 public enum RustCoreBridge {
     public static var apiVersion: UInt32 {

@@ -29,7 +29,7 @@ Translate selected text in a nearby anchored card without unnecessarily activati
 - Captures the frontmost application's display name and Bundle ID.
 - Exposes a temporary menu-bar probe for technical validation.
 
-The current Swift Package executable is not a stable application bundle, so the implementation is compile- and unit-tested but not yet accepted as cross-application verified.
+A stable Xcode application bundle now exists and has passed build, signature, and launch checks. Selection acquisition remains compile- and unit-tested only; real Accessibility permission persistence, cross-application acquisition, and nearby-card behavior are not yet accepted.
 
 ## Degradation
 

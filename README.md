@@ -13,7 +13,7 @@ The active 0.1.0 Alpha scope is:
 
 0.1.0 does not upload screenshot pixels, collect contextual window text, save translation history, cover source text in place, or provide cloud structured OCR. See [`docs/versions/0.1.0/SPEC.md`](docs/versions/0.1.0/SPEC.md) for the complete bilingual release contract.
 
-The repository is currently in the technical-foundation phase. Start with [`docs/development/STATUS.md`](docs/development/STATUS.md) for verified progress and next steps.
+The native Xcode application foundation is in place, and implementation is now entering the translation-core phase. Start with [`docs/development/STATUS.md`](docs/development/STATUS.md) for verified progress and next steps.
 
 ## Development prerequisites
 
@@ -22,10 +22,18 @@ The repository is currently in the technical-foundation phase. Start with [`docs
 - Swift 6.2 or later
 - Rust 1.85 or later
 
-The current Swift Package foundation can be checked with:
+The Swift Package foundation and Debug Xcode app can be checked together with:
 
 ```sh
 ./scripts/check.sh
 ```
 
-This formats, builds, and tests both the Rust core and Swift layer, then produces a command-line SwiftPM executable. A proper Xcode `.app` target with a stable Bundle ID is the next packaging step and is required before permission persistence, signing, or distribution can be validated.
+This formats, builds, and tests the Rust core and Swift layer, then builds the native Debug `.app` with the Cargo debug library. It selects full Xcode only for the command and does not change machine-wide `xcode-select`.
+
+Build and verify an ad-hoc-signed timestamped Release test app with:
+
+```sh
+./scripts/build-test-app.sh
+```
+
+The artifact is written under `artifacts/` as `Marla_test_yyyyMMddHHmm.app`. DMG packaging, notarization, automatic updates, and public distribution remain outside 0.1.0.

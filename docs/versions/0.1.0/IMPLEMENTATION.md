@@ -1,6 +1,6 @@
 # Marla 0.1.0 实施规格 / Implementation Specification
 
-状态 / Status: Planned
+状态 / Status: In Progress
 
 架构 / Architecture: SwiftUI/AppKit host + embedded Rust static library
 
@@ -10,13 +10,13 @@
 
 ### 中文
 
-仓库当前是可构建的 Swift Package 骨架：SwiftUI 菜单栏壳层、Accessibility 选区读取、基础领域模型、Rust `staticlib`、C ABI 和 Bundle ID 表面分类桥接已经存在并通过测试。它尚未生成稳定 `.app`，没有真实翻译网络管线、Vision 截图流程、全局快捷键或结果卡片。
+仓库当前同时包含可构建的 Swift Package 骨架和原生 Xcode macOS App target。SwiftUI 菜单栏壳层、Accessibility 选区读取、基础领域模型、Rust `staticlib`、C ABI 和 Bundle ID 表面分类桥接已经存在并通过测试。Xcode target 已使用稳定 `com.marla.app` 生成并验证临时签名的 arm64 `.app`，Debug 和 Release 分别链接 Cargo 的 debug 与 release 产物。真实翻译网络管线、Vision 截图流程、全局快捷键和结果卡片仍未实现。
 
 部分占位设置仍显示云端结构化 OCR；这是当前代码与 0.1.0 目标的已知差异，实施时必须删除，而不是把占位 UI 当作已接受行为。
 
 ### English
 
-The repository is currently a buildable Swift Package skeleton. A SwiftUI menu-bar shell, Accessibility selection reader, foundational domain models, Rust `staticlib`, C ABI, and Bundle-ID surface-classification bridge exist and pass tests. It does not yet produce a stable `.app` and has no real translation network pipeline, Vision screenshot flow, global shortcuts, or result card.
+The repository now contains both the buildable Swift Package foundation and a native Xcode macOS App target. A SwiftUI menu-bar shell, Accessibility selection reader, foundational domain models, Rust `staticlib`, C ABI, and Bundle-ID surface-classification bridge exist and pass tests. The Xcode target has produced and verified an ad-hoc-signed arm64 `.app` with stable identity `com.marla.app`; Debug and Release link the matching Cargo debug and release products. The real translation network pipeline, Vision screenshot flow, global shortcuts, and result card remain unimplemented.
 
 Some placeholder Settings still expose cloud structured OCR. This is a known discrepancy between current code and the 0.1.0 target and must be removed during implementation rather than treated as accepted behavior.
 
@@ -316,7 +316,7 @@ Each card owns a unique request ID. Every event first checks request ID; stale-r
 
 ### 中文
 
-1. **App 基础**：建立 Xcode App target、稳定 Bundle ID、权限声明、Rust Debug/Release 构建阶段和时间戳测试包脚本。
+1. **App 基础（2026-08-05 已验证）**：建立 Xcode App target、稳定 Bundle ID、权限声明、Rust Debug/Release 构建阶段和时间戳测试包脚本。
 2. **翻译核心**：实现 JSON schema、FFI 句柄、异步运行时、OpenAI-compatible SSE、Keychain 设置桥和模拟服务器测试。
 3. **划词垂直切片**：全局快捷键、选区获取、非激活结果卡片、流式状态、复制/重试/关闭。
 4. **截图垂直切片**：跨屏框选、ScreenCaptureKit、Vision、纯文本归一化和同一结果卡片。
@@ -327,7 +327,7 @@ Each card owns a unique request ID. Every event first checks request ID; stale-r
 
 ### English
 
-1. **App foundation**: create Xcode App target, stable Bundle ID, permission declarations, Rust Debug/Release build phase, and timestamped test-app script.
+1. **App foundation (verified 2026-08-05)**: create Xcode App target, stable Bundle ID, permission declarations, Rust Debug/Release build phase, and timestamped test-app script.
 2. **Translation core**: implement JSON schema, FFI handles, async runtime, OpenAI-compatible SSE, Keychain settings bridge, and mock-server tests.
 3. **Selection vertical slice**: global shortcut, selection acquisition, non-activating result card, streaming state, copy/retry/close.
 4. **Screenshot vertical slice**: cross-display selection, ScreenCaptureKit, Vision, plain-text normalization, and the same result card.

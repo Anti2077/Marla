@@ -2,13 +2,13 @@
 
 Last updated: 2026-08-05
 
-Current milestone: 0.1.0 Alpha — Phase 1 App foundation
+Current milestone: 0.1.0 Alpha — Phase 2 Translation core
 
 Overall state: In Progress
 
 ## Current objective
 
-Deliver the bilingual 0.1.0 contract, then build a stable native macOS `.app` with deterministic Rust linking as the foundation for the three accepted translation entry points.
+Implement the version 1 JSON/FFI translation contract, cancellation-safe request handles, and the OpenAI-compatible streaming provider on top of the verified native `.app` foundation.
 
 ## Completed
 
@@ -27,21 +27,23 @@ Deliver the bilingual 0.1.0 contract, then build a stable native macOS `.app` wi
 - The Rust static library, versioned C ABI, C header, Swift wrapper, and application-surface classifier are linked and tested end to end.
 - The selection probe consumes Rust surface classification from the source application's Bundle ID.
 - A repeatable `scripts/check.sh` verification entry point is available for agents and local development.
+- A native Xcode macOS application target now produces a stable `com.marla.app` menu-bar bundle with version `0.1.0`, macOS 14 deployment, and arm64-only builds.
+- The Xcode build phase compiles Cargo before linking and selects `target/debug` for Debug and `target/release` for Release.
+- `scripts/build-test-app.sh` builds, ad-hoc signs, copies without resource forks, and verifies a non-overwriting Asia/Shanghai timestamped test app.
+- `Marla_test_202608051934.app` was built from Release, verified for Bundle ID, version, minimum system, architecture, executable, and signature, and launch-tested as a running LSUIElement process.
 
 ## In progress
 
-- Creating a proper Xcode macOS App target with Bundle ID `com.marla.app`, permission declarations, and deterministic Debug/Release Rust build phases.
 - Replacing temporary technical-probe UI and outdated cloud-OCR settings with the accepted 0.1.0 surfaces.
 - Preparing versioned JSON/FFI translation handles and an OpenAI-compatible streaming provider in Rust.
 
 ## Next
 
-1. Introduce the Xcode app target, stable Bundle ID, permissions, Rust configuration-aware build phase, and timestamped test-app packaging.
-2. Implement the version 1 JSON/FFI contract, request handles, cancellation, SSE parsing, Keychain-backed settings, and mock-provider tests.
-3. Deliver the `⌃⌥D` selection-translation vertical slice with a nearby non-activating result card.
-4. Deliver `⌃⌥S` cross-display capture, Vision OCR, and text-only translation.
-5. Deliver `⌃⌥Space` quick input, comparison, copy, retry, system speech, pinning, language switching, and shortcut recording.
-6. Run Force Touch feasibility, compatibility, performance, memory, privacy, and real-app visual acceptance; package a verified timestamped `.app`.
+1. Implement the version 1 JSON/FFI contract, request handles, cancellation, SSE parsing, Keychain-backed settings, and mock-provider tests.
+2. Deliver the `⌃⌥D` selection-translation vertical slice with a nearby non-activating result card.
+3. Deliver `⌃⌥S` cross-display capture, Vision OCR, and text-only translation.
+4. Deliver `⌃⌥Space` quick input, comparison, copy, retry, system speech, pinning, language switching, and shortcut recording.
+5. Run Force Touch feasibility, compatibility, performance, memory, privacy, and real-app visual acceptance; package a verified timestamped `.app`.
 
 ## Pending decisions
 
@@ -51,7 +53,7 @@ Deliver the bilingual 0.1.0 contract, then build a stable native macOS `.app` wi
 ## Risks and validation gaps
 
 - Full Xcode 26.5 is installed and works when selected through project-local `DEVELOPER_DIR`; the system-wide active developer directory remains Command Line Tools.
-- The repository does not yet contain an Xcode application project. SwiftPM currently produces a bare Mach-O executable rather than a stable `.app`, so TCC persistence, entitlements, signing, and real permission onboarding are not yet validated.
+- The stable application bundle and ad-hoc signature are verified, but Accessibility and Screen Recording permission persistence, onboarding, and cross-application behavior remain manually unverified.
 - The current FFI only covers API versioning and surface classification. Async request handles, cancellation, callback threading, and payload ownership remain to be implemented and tested before network providers cross the boundary.
 - Current placeholder Settings still expose cloud structured OCR and do not implement the accepted API, shortcuts, or permission groups. This is a recorded implementation gap, not accepted 0.1.0 behavior.
 - Cross-application Force Touch may not be supported reliably by public global event APIs.
@@ -66,9 +68,13 @@ Deliver the bilingual 0.1.0 contract, then build a stable native macOS `.app` wi
 - `cargo build --workspace`: passed; Rust static library produced.
 - `swift build --disable-sandbox`: passed using Xcode 26.5 / Swift 6.3.2.
 - `swift test --disable-sandbox`: 7 tests passed, 0 failures, including the linked Rust bridge.
+- Xcode Debug app build: passed for arm64 with the Cargo debug static library.
+- Xcode Release app build: passed for arm64 and linked only from `target/release`.
+- `scripts/build-test-app.sh`: produced and verified `artifacts/Marla_test_202608051934.app` with ad-hoc signing.
+- Real launch check: the timestamped LSUIElement test app launched and remained running until the verification process was intentionally ended.
 - `git diff --check`: passed.
 - 0.1.0 bilingual document structure, required-file presence, contradiction search, and source whitespace checks: passed on 2026-08-05.
-- Manual Accessibility permission, cross-application selection, bounds accuracy, and UI interaction: pending until a stable `.app` target exists.
+- Manual Accessibility permission persistence, cross-application selection, bounds accuracy, and UI interaction: pending against the new stable `.app` bundle.
 
 ## Required reading
 

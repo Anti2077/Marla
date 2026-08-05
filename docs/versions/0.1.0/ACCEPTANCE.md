@@ -16,8 +16,8 @@
 - [ ] Rust workspace 全部测试通过，包含 JSON、FFI、SSE、超时、取消和 panic 隔离。
 - [ ] Swift build 和全部测试通过，包含桥接、状态隔离、快捷键和输入归一化。
 - [ ] 模拟 SSE 覆盖单帧、多帧、跨 UTF-8 分片、角色空帧、`[DONE]`、非法 JSON 和中途断线。
-- [ ] `git diff --check` 和源文件尾随空格检查通过。
-- [ ] Release 配置链接 Cargo release 静态库，不含 debug Rust 产物。
+- [x] `git diff --check` 和源文件尾随空格检查通过。
+- [x] Release 配置链接 Cargo release 静态库，不含 debug Rust 产物。
 
 ### English
 
@@ -25,8 +25,8 @@
 - [ ] All Rust workspace tests pass, including JSON, FFI, SSE, timeout, cancellation, and panic isolation.
 - [ ] Swift build and all tests pass, including bridge, stale-state isolation, shortcuts, and input normalization.
 - [ ] Mock SSE covers single frame, multiple frames, split UTF-8, empty role frame, `[DONE]`, invalid JSON, and interrupted stream.
-- [ ] `git diff --check` and source trailing-whitespace checks pass.
-- [ ] Release links the Cargo release static library and contains no debug Rust artifact.
+- [x] `git diff --check` and source trailing-whitespace checks pass.
+- [x] Release links the Cargo release static library and contains no debug Rust artifact.
 
 ## 2. 划词翻译 / Selection Translation
 
@@ -199,20 +199,24 @@
 - [ ] 没有历史数据库、截图文件、原文文件或译文文件。
 - [ ] 不采集或发送附近文字、窗口标题、应用分类、分析事件或崩溃正文。
 - [ ] 设置准确说明 Vision 本地 OCR 和文字云端翻译的区别。
-- [ ] `.app` 内部版本为 0.1.0、Bundle ID 为 `com.marla.app`、架构为 arm64、最低系统为 macOS 14。
-- [ ] 产物使用开发或临时签名，签名状态和可执行文件通过检查。
-- [ ] 产物名严格为当前上海时间的 `Marla_test_yyyyMMddHHmm.app`，且不会覆盖先前测试包。
-- [ ] 未把 DMG、公证、自动更新或公开发布误报为完成。
+- [x] `.app` 内部版本为 0.1.0、Bundle ID 为 `com.marla.app`、架构为 arm64、最低系统为 macOS 14。
+- [x] 产物使用开发或临时签名，签名状态和可执行文件通过检查。
+- [x] 产物名严格为当前上海时间的 `Marla_test_yyyyMMddHHmm.app`，且不会覆盖先前测试包。
+- [x] 未把 DMG、公证、自动更新或公开发布误报为完成。
 
 ### English
 
 - [ ] No history database, screenshot file, source file, or translation file exists.
 - [ ] Nearby text, window titles, app classification, analytics, and crash content are neither collected nor sent.
 - [ ] Settings accurately distinguish local Vision OCR from cloud text translation.
-- [ ] `.app` internal version is 0.1.0, Bundle ID is `com.marla.app`, architecture is arm64, and minimum system is macOS 14.
-- [ ] Artifact uses development or ad-hoc signing and passes signing/executable checks.
-- [ ] Artifact name exactly matches current Shanghai time as `Marla_test_yyyyMMddHHmm.app` and does not overwrite prior test apps.
-- [ ] DMG, notarization, auto-update, and public release are not falsely reported complete.
+- [x] `.app` internal version is 0.1.0, Bundle ID is `com.marla.app`, architecture is arm64, and minimum system is macOS 14.
+- [x] Artifact uses development or ad-hoc signing and passes signing/executable checks.
+- [x] Artifact name exactly matches current Shanghai time as `Marla_test_yyyyMMddHHmm.app` and does not overwrite prior test apps.
+- [x] DMG, notarization, auto-update, and public release are not falsely reported complete.
+
+阶段 1 证据：`scripts/build-test-app.sh` 在 2026-08-05 生成并验证了 `Marla_test_202608051934.app`；Release 构建设置和最终链接命令只引用 `target/release`。
+
+Phase 1 evidence: `scripts/build-test-app.sh` produced and verified `Marla_test_202608051934.app` on 2026-08-05; Release build settings and the final link command reference only `target/release`.
 
 ## 11. 发布判定 / Release Decision
 

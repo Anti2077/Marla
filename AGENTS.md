@@ -44,15 +44,21 @@ Before implementing or materially changing 0.1.0 SwiftUI surfaces, read and use 
 
 ## Verification
 
-For the current Swift Package phase, normally run:
+For the current hybrid Swift Package and Xcode phase, normally run:
 
 ```sh
 ./scripts/check.sh
 ```
 
-This wrapper runs Rust formatting/tests/build first, selects the installed full Xcode for the Swift commands, uses writable project-specific temporary module caches, runs Swift build/tests, validates source whitespace, and runs `git diff --check`. It does not change the machine-wide `xcode-select` setting.
+This wrapper runs Rust formatting/tests/build first, selects the installed full Xcode for the Swift and Xcode commands, uses writable project-specific temporary caches, runs Swift build/tests, builds the Debug macOS app with the Cargo debug library, validates source whitespace, and runs `git diff --check`. It does not change the machine-wide `xcode-select` setting.
 
-When a full Xcode application project is introduced, update this section with the required Xcode build and test commands.
+For a verified ad-hoc-signed Release test app, run:
+
+```sh
+./scripts/build-test-app.sh
+```
+
+The packaging script verifies that Release resolves only `target/release`, then checks the timestamped artifact's Bundle ID, version, minimum system, architecture, executable, LSUIElement setting, and signature.
 
 ## Source-of-truth order
 

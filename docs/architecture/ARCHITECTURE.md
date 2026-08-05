@@ -97,10 +97,10 @@ Cancellation propagates to OCR and translation network work. A translation failu
 
 ## Current packaging boundary
 
-The repository currently uses Swift Package Manager for fast core compilation and tests. Full Xcode 26.5 is installed and is selected per command through `DEVELOPER_DIR`, without changing the machine-wide `xcode-select` setting.
+The repository retains Swift Package Manager for fast core compilation and tests and now also contains a native Xcode application target. Full Xcode 26.5 is selected per command through `DEVELOPER_DIR`, without changing the machine-wide `xcode-select` setting.
 
-SwiftPM currently emits a bare Mach-O executable, not a stable macOS `.app`. A real Xcode application target remains required before validating TCC permission persistence, entitlements, privacy usage descriptions, signing, notarization, and distribution.
+The Xcode target emits a stable macOS `.app` with Bundle ID `com.marla.app`, macOS 14 deployment, LSUIElement behavior, version `0.1.0`, and arm64 architecture. Ad-hoc signing and process launch are verified; TCC permission persistence and real Accessibility and Screen Recording onboarding remain manual validation gaps.
 
-Cargo currently emits `libmarla_core.a`; SwiftPM links it through `MarlaRustFFI`. The unified verification script builds Cargo first. The future Xcode target must preserve the same order with a deterministic Rust build phase or an XCFramework artifact.
+Cargo emits `libmarla_core.a`; SwiftPM links it through `MarlaRustFFI`. The Xcode target uses a configuration-aware build phase and library search path so Debug links `target/debug` and Release links `target/release`. The unified verification script builds both the Swift Package foundation and the Debug Xcode app target.
 
-The 0.1.0 target uses Bundle ID `com.marla.app`, macOS 14+, and Apple Silicon. Test artifacts use development or ad-hoc signing and the external name `Marla_test_yyyyMMddHHmm.app`; DMG, notarization, updater, and public distribution are deferred.
+Timestamped Release packaging is implemented through `scripts/build-test-app.sh`, which validates the bundle and refuses to overwrite an existing minute-named artifact. DMG, notarization, updater, and public distribution remain deferred.

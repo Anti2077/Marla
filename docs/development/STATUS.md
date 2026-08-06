@@ -21,6 +21,9 @@ Finish 0.1.0 through small, owner-selected Tasks without expanding the release s
 - Embedded Rust static library with versioned C ABI, shared async runtime, generic OpenAI-compatible SSE, Qwen-MT adaptation, timeouts, cancellation, and stale-event isolation.
 - Grouped Settings, Carbon shortcuts, Keychain credential storage, permission guidance, light/dark appearance, Reduce Motion, and verified test-app packaging.
 - Xcode SwiftUI previews for the main menu, Settings, translation-card states, and quick input, with preview-safe fixtures that avoid system integrations.
+- Menu setup status that automatically yields to three bounded in-memory recent translations once API, Accessibility, and Screen Recording are ready; selecting a recent result performs no network request and quitting clears the list.
+- Single-layer macOS 26 Liquid Glass with a macOS 14–25 system-material fallback across the menu, Settings, result card, quick input, and screenshot-selection labels; screenshot entry icons use the available `viewfinder` symbol.
+- Fixed-path Release development packaging that stages, stable-signs, and verifies a new `artifacts/Marla_dev.app` before replacing the previous App; missing stable identities fail instead of falling back to ad-hoc signing.
 
 Implementation baseline commit: `88954bb`.
 
@@ -50,14 +53,17 @@ Before implementation, select exactly one item and create a `Ready` then `Active
 
 ## Latest verification
 
-- `./scripts/check.sh` passed on 2026-08-06.
+- `./scripts/check.sh` passed on 2026-08-06 after TASK-004.
 - Rust: 16 tests passed.
-- Swift: 18 tests passed.
+- Swift: 22 tests passed.
 - Xcode Debug application build passed.
 - SwiftUI preview support compiled in the Swift Package and Xcode Debug build.
 - Xcode Preview launched and loaded `__preview.dylib` while the fixed-path development app remained running; Debug allows the Preview host instance while Release remains single-instance.
 - `Marla_test_202608060135.app` passed Bundle ID, version, deployment target, arm64, executable, and signature checks.
 - Real-app visual scenarios passed the five-dimension SwiftUI review with every dimension at least 7/10.
+- TASK-003 menu-recents, Settings, quick-input, comparison-card, and screenshot-selection captures passed the five-dimension rescore at 8/8/8/8/7; evidence is under `artifacts/ui-review/task-003/`.
+- `Marla_test_202608061928.app` passed Bundle ID, version, deployment target, arm64, executable, and signature checks.
+- `artifacts/Marla_dev.app` was replaced by a no-argument Release build and passed Bundle ID, version, deployment target, arm64, executable, stable-signature, and designated-requirement checks; no timestamped App or staging residue was added.
 - A real DashScope `qwen-mt-turbo` request translated `Hello` to “你好”; the credential remained in Keychain.
 
 ## Pending product decisions

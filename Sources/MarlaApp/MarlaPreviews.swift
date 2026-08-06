@@ -67,6 +67,24 @@ private enum MarlaPreviewFixtures {
         )
         return store
     }
+
+    static func modelWithRecents() -> MarlaApplicationModel {
+        let model = model()
+        let fixtures: [(TranslationSurface, String, String)] = [
+            (.selection, "Hello", "你好"),
+            (.screenshot, "Build succeeded with no warnings.", "构建成功，没有警告。"),
+            (.quickInput, "保持专注，不要离开当前窗口。", "Stay focused without leaving the current window.")
+        ]
+        fixtures.forEach { surface, source, translation in
+            model.sessionStore.installUIAutomationFixture(
+                surface: surface,
+                sourceText: source,
+                translation: translation,
+                state: .completed
+            )
+        }
+        return model
+    }
 }
 
 private struct PreviewPanel<Content: View>: View {
@@ -83,6 +101,10 @@ private struct PreviewPanel<Content: View>: View {
 
 #Preview("Menu Bar - Ready") {
     MenuBarView(model: MarlaPreviewFixtures.model())
+}
+
+#Preview("Menu Bar - Recents") {
+    MenuBarView(model: MarlaPreviewFixtures.modelWithRecents())
 }
 
 #Preview("Menu Bar - Setup") {

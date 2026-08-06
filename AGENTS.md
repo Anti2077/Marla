@@ -59,13 +59,13 @@ For the current hybrid Swift Package and Xcode phase, normally run:
 
 This wrapper runs Rust formatting/tests/build first, selects the installed full Xcode for the Swift and Xcode commands, uses writable project-specific temporary caches, runs Swift build/tests, builds the Debug macOS app with the Cargo debug library, validates source whitespace, and runs `git diff --check`. It does not change the machine-wide `xcode-select` setting.
 
-For a verified ad-hoc-signed Release test app, run:
+For a verified, stable-signed Release development app, run:
 
 ```sh
 ./scripts/build-test-app.sh
 ```
 
-The packaging script verifies that Release resolves only `target/release`, then checks the timestamped artifact's Bundle ID, version, minimum system, architecture, executable, LSUIElement setting, and signature.
+The packaging script verifies that Release resolves only `target/release`, stages and signs the build with the existing stable local identity, then safely replaces only `artifacts/Marla_dev.app`. It checks the fixed artifact's Bundle ID, version, minimum system, architecture, executable, LSUIElement setting, signature, and designated requirement. The first build requires an explicit `MARLA_CODE_SIGN_IDENTITY`; later builds recover it from the existing fixed App and never silently fall back to ad-hoc signing.
 
 ## Source-of-truth order
 

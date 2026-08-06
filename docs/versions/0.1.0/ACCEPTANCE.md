@@ -2,7 +2,7 @@
 
 状态 / Status: Verification in progress — Alpha not yet accepted
 
-适用产物 / Artifact: `Marla_test_yyyyMMddHHmm.app`
+适用产物 / Artifact: `artifacts/Marla_dev.app`
 
 > `[ ]` 表示未验证，`[x]` 只允许在当前代码和真实产物上取得证据后填写。中文为规范文本，英文为同步镜像。
 >
@@ -123,6 +123,8 @@
 - [ ] `Esc` 和外部点击关闭临时卡片并取消请求。
 - [ ] 长文本在卡片内部滚动，卡片锚点不因 delta 跳动。
 - [ ] 所有图标有 Tooltip、无障碍标签和键盘焦点。
+- [x] 三项准备完成后菜单隐藏权限状态条，并展示最多三条只在内存保留的最近完成翻译。
+- [x] 最近翻译排除失败、取消和空结果；点击恢复完成态卡片且不发起新请求。
 
 ### English
 
@@ -133,6 +135,8 @@
 - [ ] `Esc` and outside click close transient card and cancel the request.
 - [ ] Long text scrolls inside the card and streaming does not move the anchor.
 - [ ] Every icon has tooltip, accessibility label, and keyboard focus.
+- [x] Once all three setup items are ready, the menu hides permission status and shows up to three recent completed translations retained in memory only.
+- [x] Recents exclude failed, cancelled, and empty results; selecting one restores a completed card without a new request.
 
 ## 7. 快捷键与 Force Touch / Shortcuts and Force Touch
 
@@ -162,6 +166,8 @@
 - [x] 无紫蓝渐变、霓虹、Emoji 图标、AI SVG、随机间距和模板左边框卡片。
 - [x] `swiftui-design-skill` 五维审查每项至少 7/10，并记录问题与复评结果。
 - [x] 流式游标、截图角点和语言路由胶囊是克制的状态细节，不遮挡正文。
+- [x] 菜单、设置、结果卡、快速输入和截图框选提示使用 macOS 26 Liquid Glass，并为 macOS 14–25 提供单层材质回退。
+- [x] 菜单和设置中的截图翻译使用目标系统可用且可见的 SF Symbol。
 
 ### English
 
@@ -171,6 +177,8 @@
 - [x] No purple-blue gradient, neon, emoji icon, AI SVG, random spacing, or templated left-rail card.
 - [x] `swiftui-design-skill` five-dimension review scores at least 7/10 in every dimension, with issues and rescore recorded.
 - [x] Streaming caret, screenshot corners, and language-route capsule remain restrained state details and never obscure content.
+- [x] The menu, Settings, result card, quick input, and screenshot-selection labels use macOS 26 Liquid Glass with a single material fallback on macOS 14–25.
+- [x] Screenshot translation uses an available and visible SF Symbol in both the menu and Settings.
 
 ## 9. 性能与内存 / Performance and Memory
 
@@ -197,33 +205,43 @@
 ### 中文
 
 - [ ] 没有历史数据库、截图文件、原文文件或译文文件。
+- [x] 最近三条翻译只存在于有界内存数组，退出清空，不写入 UserDefaults、数据库或文件。
 - [ ] 不采集或发送附近文字、窗口标题、应用分类、分析事件或崩溃正文。
 - [ ] 设置准确说明 Vision 本地 OCR 和文字云端翻译的区别。
 - [x] `.app` 内部版本为 0.1.0、Bundle ID 为 `com.marla.app`、架构为 arm64、最低系统为 macOS 14。
-- [x] 产物使用开发或临时签名，签名状态和可执行文件通过检查。
-- [x] 产物名严格为当前上海时间的 `Marla_test_yyyyMMddHHmm.app`，且不会覆盖先前测试包。
+- [x] 产物复用固定 App 的稳定本地签名身份，签名、可执行文件和 designated requirement 通过检查。
+- [x] 默认产物严格为 `artifacts/Marla_dev.app`，成功验证后覆盖上一份测试包且不新增时间戳 App。
 - [x] 未把 DMG、公证、自动更新或公开发布误报为完成。
 
 ### English
 
 - [ ] No history database, screenshot file, source file, or translation file exists.
+- [x] The three recent translations exist only in a bounded in-memory array, clear on termination, and never enter UserDefaults, a database, or a file.
 - [ ] Nearby text, window titles, app classification, analytics, and crash content are neither collected nor sent.
 - [ ] Settings accurately distinguish local Vision OCR from cloud text translation.
 - [x] `.app` internal version is 0.1.0, Bundle ID is `com.marla.app`, architecture is arm64, and minimum system is macOS 14.
-- [x] Artifact uses development or ad-hoc signing and passes signing/executable checks.
-- [x] Artifact name exactly matches current Shanghai time as `Marla_test_yyyyMMddHHmm.app` and does not overwrite prior test apps.
+- [x] Artifact reuses the fixed App's stable local signing identity and passes signature, executable, and designated-requirement checks.
+- [x] The default artifact is exactly `artifacts/Marla_dev.app`; it replaces the previous test App only after successful verification and creates no timestamped App.
 - [x] DMG, notarization, auto-update, and public release are not falsely reported complete.
 
 自动化与视觉证据：`./scripts/check.sh` 在 2026-08-06 最终源码上通过（Rust 16 项、Swift 18 项、Xcode Debug、格式/空白/diff 检查）；`scripts/build-test-app.sh` 生成并验证了 `Marla_test_202608060135.app`。Cargo 固定 macOS 14 deployment target 后，Rust/native 依赖不再出现更高系统目标的链接警告；Release 构建设置和最终链接命令只引用 `target/release`。真实 App 场景 PNG 位于 `artifacts/ui-review/`。macOS 26 使用 Liquid Glass，macOS 14–25 使用材质回退；自动化离屏渲染显式使用回退以避免系统玻璃无法栅格化。包含 Qwen-MT、扩展 Web Text Marker 遍历和截图坐标修复的固定路径 `Marla_dev.app` 已使用持久本地身份重新签名并通过完整包验证。真实 DashScope `qwen-mt-turbo` 翻译返回“你好”，但 Mac 在最新 VSCodium 复测前锁定，真实截图裁剪也仍待验证，因此相关条目保持未勾选。
 
 Automation and visual evidence: `./scripts/check.sh` passed on the final 2026-08-06 source (16 Rust tests, 18 Swift tests, Xcode Debug, format/whitespace/diff checks); `scripts/build-test-app.sh` produced and verified `Marla_test_202608060135.app`. After Cargo fixed the macOS 14 deployment target, Rust/native dependencies no longer emit newer-target linker warnings; Release build settings and the final link command reference only `target/release`. Real-app scenario PNGs are under `artifacts/ui-review/`. macOS 26 uses Liquid Glass and macOS 14–25 uses the material fallback; explicit off-screen automation selects the fallback because the system glass cannot be reliably rasterized there. The fixed-path `Marla_dev.app`, including Qwen-MT, expanded Web Text Marker traversal, and screenshot-coordinate fixes, was re-signed with the persistent local identity and passed complete bundle verification. A real DashScope `qwen-mt-turbo` translation returned “你好”, but the Mac locked before the latest VSCodium retest and a real screenshot crop is still pending, so their acceptance items stay unchecked.
 
+TASK-003 自动化与视觉证据：`./scripts/check.sh` 通过（Rust 16 项、Swift 22 项、Swift/Xcode Debug 构建、格式/空白/diff 检查）；Swift 测试新增最近翻译容量/去重、失败排除、无网络恢复和截图 SF Symbol 覆盖；`Marla_test_202608061928.app` 通过 Release 包验证。菜单浅色/深色、设置、快速输入、对照卡和截图框选 PNG 位于 `artifacts/ui-review/task-003/`。离屏截图显式验证材质回退；macOS 26 生产代码路径编译并调用 SwiftUI `glassEffect`。`computer-use` 无法枚举这个无主窗口的 LSUIElement 菜单栏 App，因此未把该工具的超时误报成视觉证据。
+
+TASK-003 automation and visual evidence: `./scripts/check.sh` passed (16 Rust tests, 22 Swift tests, Swift/Xcode Debug builds, formatting/whitespace/diff checks); Swift tests add coverage for recent capacity/deduplication, failed-result exclusion, restoration without networking, and screenshot SF Symbol availability; `Marla_test_202608061928.app` passed Release bundle verification. Menu light/dark, Settings, quick input, comparison-card, and screenshot-selection PNGs are under `artifacts/ui-review/task-003/`. Off-screen captures explicitly verify the material fallback; the macOS 26 production path compiles and invokes SwiftUI `glassEffect`. `computer-use` could not enumerate this no-main-window LSUIElement menu-bar app, so its timeout is not misreported as visual evidence.
+
+TASK-004 自动化与产物证据：`zsh -n scripts/build-test-app.sh`、ad-hoc 拒绝门禁、自定义已有路径覆盖保护和 `./scripts/check.sh` 通过（Rust 16 项、Swift 22 项、Swift/Xcode Debug 构建、格式/空白/diff 检查）。无参数 `./scripts/build-test-app.sh` 成功覆盖并验证 `artifacts/Marla_dev.app`；Bundle ID 为 `com.marla.app`、版本 0.1.0、最低 macOS 14、arm64，签名 Authority 为 `API Usage Monitor Dev`。覆盖前后的 designated requirement 均绑定同一证书，已有时间戳 App 数量保持 17，且没有遗留 staging 目录。TCC 重启持久性仍属于 BL-002 的真实验收。
+
+TASK-004 automation and artifact evidence: `zsh -n scripts/build-test-app.sh`, the ad-hoc rejection gate, the existing-custom-path overwrite guard, and `./scripts/check.sh` passed (16 Rust tests, 22 Swift tests, Swift/Xcode Debug builds, formatting/whitespace/diff checks). A no-argument `./scripts/build-test-app.sh` run successfully replaced and verified `artifacts/Marla_dev.app`; its Bundle ID is `com.marla.app`, version 0.1.0, minimum macOS 14, architecture arm64, and signing Authority `API Usage Monitor Dev`. The designated requirement remained bound to the same certificate before and after replacement, the existing timestamped-App count remained 17, and no staging directory remained. TCC persistence across restart remains real acceptance work under BL-002.
+
 ## 11. 发布判定 / Release Decision
 
 ### 中文
 
-0.1.0 只有在所有非 Force Touch 条目通过、没有 P0 崩溃/数据泄漏/焦点破坏问题、五维视觉审查全部至少 7/10、内存硬上限满足，并交付经过检查的时间戳 `.app` 后才能标记完成。任何未验证项必须留为 `[ ]` 并在 `STATUS.md` 中列为阻塞或风险。
+0.1.0 只有在所有非 Force Touch 条目通过、没有 P0 崩溃/数据泄漏/焦点破坏问题、五维视觉审查全部至少 7/10、内存硬上限满足，并交付经过检查的固定路径 `.app` 后才能标记完成。任何未验证项必须留为 `[ ]` 并在 `STATUS.md` 中列为阻塞或风险。
 
 ### English
 
-0.1.0 may be marked complete only when every non-Force-Touch item passes, no P0 crash/data leak/focus-destruction issue remains, every visual dimension scores at least 7/10, memory hard limit passes, and a verified timestamped `.app` is delivered. Any unverified item remains `[ ]` and is recorded as a blocker or risk in `STATUS.md`.
+0.1.0 may be marked complete only when every non-Force-Touch item passes, no P0 crash/data leak/focus-destruction issue remains, every visual dimension scores at least 7/10, memory hard limit passes, and a verified fixed-path `.app` is delivered. Any unverified item remains `[ ]` and is recorded as a blocker or risk in `STATUS.md`.

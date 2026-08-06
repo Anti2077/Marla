@@ -143,6 +143,10 @@ struct MenuBarView: View {
         shortcuts = model.shortcutManager
     }
 
+    private var setupReady: Bool {
+        settings.hasAPIConfiguration && model.accessibilityTrusted && model.screenRecordingAuthorized
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: DesignTokens.spaceL) {
             HStack(alignment: .firstTextBaseline) {
@@ -179,7 +183,7 @@ struct MenuBarView: View {
                 EntryButton(
                     title: "截图翻译",
                     shortcut: shortcuts.bindings[.screenshot]?.displayName ?? "⌃⌥S",
-                    symbol: "rectangle.dashed.and.magnifyingglass"
+                    symbol: TranslationSurface.screenshot.symbolName
                 ) {
                     model.translateScreenshot()
                 }
@@ -192,19 +196,25 @@ struct MenuBarView: View {
                 }
             }
 
-            HStack(spacing: DesignTokens.spaceS) {
-                PermissionChip(title: "API", isReady: settings.hasAPIConfiguration) {
-                    model.openSettings()
+            if setupReady {
+                RecentTranslationsSection(store: model.sessionStore) { id in
+                    model.showRecentTranslation(id: id)
                 }
-                PermissionChip(title: "辅助功能", isReady: model.accessibilityTrusted) {
-                    model.requestAccessibilityAccess()
-                }
-                PermissionChip(title: "屏幕录制", isReady: model.screenRecordingAuthorized) {
-                    model.requestScreenRecordingAccess()
+            } else {
+                HStack(spacing: DesignTokens.spaceS) {
+                    PermissionChip(title: "API", isReady: settings.hasAPIConfiguration) {
+                        model.openSettings()
+                    }
+                    PermissionChip(title: "辅助功能", isReady: model.accessibilityTrusted) {
+                        model.requestAccessibilityAccess()
+                    }
+                    PermissionChip(title: "屏幕录制", isReady: model.screenRecordingAuthorized) {
+                        model.requestScreenRecordingAccess()
+                    }
                 }
             }
 
-            if let session = model.sessionStore.session {
+            if let session = model.sessionStore.session, !session.state.isCompleted {
                 SessionSummary(session: session)
             }
 
@@ -229,7 +239,7 @@ struct MenuBarView: View {
         }
         .padding(DesignTokens.spaceL)
         .frame(width: 330)
-        .background(DesignTokens.background)
+        .marlaGlassSurface(cornerRadius: 20)
         .onAppear { model.refreshPermissions() }
     }
 }
@@ -257,12 +267,81 @@ struct EntryButton: View {
             }
             .padding(.horizontal, DesignTokens.spaceM)
             .frame(height: 44)
-            .background(DesignTokens.surface)
+            .background(DesignTokens.secondarySurface)
             .clipShape(RoundedRectangle(cornerRadius: DesignTokens.radiusM))
         }
         .buttonStyle(.plain)
         .contentShape(Rectangle())
         .accessibilityLabel("\(title)，快捷键 \(shortcut)")
+    }
+}
+
+struct RecentTranslationsSection: View {
+    @ObservedObject var store: TranslationSessionStore
+    let onSelect: (UUID) -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: DesignTokens.spaceS) {
+            HStack(alignment: .firstTextBaseline) {
+                Text("最近翻译")
+                    .font(AppFont.caption)
+                    .foregroundStyle(DesignTokens.secondaryText)
+                Spacer()
+                Text("退出即清空")
+                    .font(AppFont.micro)
+                    .foregroundStyle(DesignTokens.tertiaryText)
+            }
+
+            if store.recentTranslations.isEmpty {
+                HStack(spacing: DesignTokens.spaceS) {
+                    Image(systemName: "clock.arrow.circlepath")
+                        .foregroundStyle(DesignTokens.secondaryText)
+                    Text("完成翻译后会显示在这里")
+                        .font(AppFont.caption)
+                        .foregroundStyle(DesignTokens.secondaryText)
+                    Spacer()
+                }
+                .padding(.horizontal, DesignTokens.spaceM)
+                .frame(minHeight: 44)
+                .background(DesignTokens.secondarySurface)
+                .clipShape(RoundedRectangle(cornerRadius: DesignTokens.radiusS))
+            } else {
+                ForEach(store.recentTranslations) { recent in
+                    Button {
+                        onSelect(recent.id)
+                    } label: {
+                        HStack(spacing: DesignTokens.spaceS) {
+                            Image(systemName: recent.surface.symbolName)
+                                .font(.system(size: 13, weight: .medium))
+                                .foregroundStyle(DesignTokens.accent)
+                                .frame(width: 18)
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(recent.translation)
+                                    .font(AppFont.caption)
+                                    .foregroundStyle(DesignTokens.primaryText)
+                                    .lineLimit(1)
+                                Text(recent.sourceText)
+                                    .font(AppFont.micro)
+                                    .foregroundStyle(DesignTokens.secondaryText)
+                                    .lineLimit(1)
+                            }
+                            Spacer(minLength: DesignTokens.spaceS)
+                            Image(systemName: "chevron.right")
+                                .font(.system(size: 9, weight: .semibold))
+                                .foregroundStyle(DesignTokens.tertiaryText)
+                        }
+                        .padding(.horizontal, DesignTokens.spaceM)
+                        .frame(minHeight: 44)
+                        .background(DesignTokens.secondarySurface)
+                        .clipShape(RoundedRectangle(cornerRadius: DesignTokens.radiusS))
+                        .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                    .help("重新打开这条译文")
+                    .accessibilityLabel("最近翻译：\(recent.translation)")
+                }
+            }
+        }
     }
 }
 
@@ -336,7 +415,7 @@ struct OnboardingChecklistView: View {
             .foregroundStyle(DesignTokens.secondaryText)
         }
         .padding(DesignTokens.spaceM)
-        .background(DesignTokens.surface)
+        .background(DesignTokens.secondarySurface)
         .clipShape(RoundedRectangle(cornerRadius: DesignTokens.radiusL))
     }
 }
@@ -372,6 +451,11 @@ struct ChecklistRow: View {
 extension TranslationSessionState {
     var isFailure: Bool {
         if case .failed = self { return true }
+        return false
+    }
+
+    var isCompleted: Bool {
+        if case .completed = self { return true }
         return false
     }
 }

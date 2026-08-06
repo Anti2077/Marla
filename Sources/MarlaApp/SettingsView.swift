@@ -17,8 +17,10 @@ struct SettingsView: View {
             experimentSection
         }
         .formStyle(.grouped)
+        .scrollContentBackground(.hidden)
         .frame(width: 620, height: 560)
         .padding(DesignTokens.spaceM)
+        .marlaGlassSurface(cornerRadius: 0)
         .onAppear {
             apiKeyDraft = ""
         }
@@ -65,7 +67,7 @@ struct SettingsView: View {
                     .font(AppFont.caption)
                     .foregroundStyle(connectionTester.didSucceed ? DesignTokens.success : DesignTokens.secondaryText)
             }
-            Text("Vision 在本机识别截图；只有识别出的文字会发送到你配置的翻译 API。Marla 不保存历史、截图或译文。")
+            Text("Vision 在本机识别截图；只有识别出的文字会发送到你配置的翻译 API。最近三条译文只在本次运行的内存中保留，退出即清空，不写入磁盘。")
                 .font(AppFont.caption)
                 .foregroundStyle(DesignTokens.secondaryText)
         } header: {
@@ -273,7 +275,7 @@ struct ShortcutRecorderRow: View {
 
     var body: some View {
         HStack {
-            Image(systemName: action == .selection ? "text.viewfinder" : action == .screenshot ? "rectangle.dashed.and.magnifyingglass" : "keyboard")
+            Image(systemName: action.symbolName)
                 .foregroundStyle(DesignTokens.accent)
             Text(action.title)
                 .font(AppFont.body)

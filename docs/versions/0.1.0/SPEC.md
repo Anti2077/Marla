@@ -192,7 +192,7 @@ The prompt must clearly delimit source text as data rather than instructions and
 
 Marla 在规范化 Base URL 后追加 `/chat/completions`。如果 API Key 非空，则使用 `Authorization: Bearer <key>`；空 Key 允许兼容不要求认证的本地或代理端点。Key 只保存在 macOS Keychain，Base URL、模型名和非敏感偏好保存在应用偏好。0.1.0 不支持自定义 Header、厂商专属请求参数、账号系统或 Marla 代理服务。
 
-首次启动以紧凑清单引导配置 API、辅助功能权限和屏幕录制权限。快速输入本身不应因缺少辅助功能或屏幕录制权限而不可使用。
+首次启动以紧凑清单引导配置 API、辅助功能权限和屏幕录制权限。快速输入本身不应因缺少辅助功能或屏幕录制权限而不可使用。菜单在任一准备项未完成时显示可操作状态；三项全部完成后自动隐藏该状态条，并在原区域展示最多三条仅本次运行保留的最近完成翻译。点击最近翻译只重新打开完成态结果，不重复网络请求。
 
 ### English
 
@@ -208,7 +208,7 @@ Marla 在规范化 Base URL 后追加 `/chat/completions`。如果 API Key 非�
 
 Marla normalizes the Base URL and appends `/chat/completions`. A non-empty API Key produces `Authorization: Bearer <key>`; an empty key supports local or proxy endpoints that require no authentication. The key is stored only in macOS Keychain. Base URL, model, and non-sensitive preferences use application preferences. Custom headers, vendor-specific request options, accounts, and a Marla proxy service are not supported in 0.1.0.
 
-First launch uses a compact checklist for API configuration, Accessibility permission, and Screen Recording permission. Quick input must remain usable when Accessibility or Screen Recording permission is absent.
+First launch uses a compact checklist for API configuration, Accessibility permission, and Screen Recording permission. Quick input must remain usable when Accessibility or Screen Recording permission is absent. The menu shows actionable status while any setup item is incomplete. Once all three are ready, that status row hides automatically and its region shows up to three recent completed translations retained for the current run only. Selecting a recent translation reopens the completed result without repeating a network request.
 
 ## 10. 错误与恢复 / Errors and Recovery
 
@@ -249,7 +249,7 @@ No failure may discard completed Vision recognition. 0.1.0 performs no unbounded
 - 截图只存在于内存，Vision 完成或会话取消后释放；
 - 只有用户明确触发的源文本发送到配置的翻译端点；
 - 不发送窗口标题、附近文字、应用分类或完整屏幕；
-- 不保存翻译历史、截图、原文或译文；
+- 不把翻译历史、截图、原文或译文写入磁盘；菜单最多保留三条内存最近翻译并在退出时清空；
 - API Key 不写入日志、UserDefaults、错误消息或诊断文件；
 - 退出应用后，除 Keychain 凭证和非敏感设置外不保留会话内容。
 
@@ -260,7 +260,7 @@ No failure may discard completed Vision recognition. 0.1.0 performs no unbounded
 - screenshots exist in memory only and are released after Vision completes or the session is cancelled;
 - only source text from an explicit user action is sent to the configured translation endpoint;
 - window titles, nearby text, application classification, and full-screen imagery are not sent;
-- translation history, screenshots, source, and translation are not persisted;
+- translation history, screenshots, source, and translation are never written to disk; the menu keeps at most three in-memory recent translations and clears them on termination;
 - API Keys never enter logs, UserDefaults, error messages, or diagnostic files;
 - after app termination, no session content remains except Keychain credentials and non-sensitive settings.
 
@@ -296,20 +296,20 @@ The UI must distinguish “local recognition with Vision” from “recognized t
 
 ### 中文
 
-应用内部版本为 `0.1.0`，Bundle Identifier 固定为 `com.marla.app`，最低系统为 macOS 14，首版只构建 Apple Silicon。测试 App 使用开发签名或临时签名，并按 Asia/Shanghai 构建时间命名：
+应用内部版本为 `0.1.0`，Bundle Identifier 固定为 `com.marla.app`，最低系统为 macOS 14，首版只构建 Apple Silicon。日常测试 App 使用钥匙串中的稳定本地开发签名，并固定为：
 
 ```text
-Marla_test_yyyyMMddHHmm.app
+artifacts/Marla_dev.app
 ```
 
-例如 2026-08-05 17:51 构建的产物为 `Marla_test_202608051751.app`。重命名只影响外部产物名，内部 Bundle ID 和版本保持稳定。
+每次成功构建先在同目录完成复制、签名、包验证和 designated requirement 核对，再覆盖该固定路径，不保留上一份测试二进制。首次没有固定 App 时必须显式提供稳定签名身份；后续构建默认复用现有 App 的证书身份。身份不可用时构建失败，不退回 ad-hoc 签名。固定路径、Bundle ID 与稳定签名用于降低重复授权概率，但不构成 TCC 权限持久性的验收结论。
 
 ### English
 
-The internal version is `0.1.0`, Bundle Identifier is fixed at `com.marla.app`, minimum system is macOS 14, and the first build supports Apple Silicon only. The test app uses development or ad-hoc signing and is named from its Asia/Shanghai build time:
+The internal version is `0.1.0`, Bundle Identifier is fixed at `com.marla.app`, minimum system is macOS 14, and the first build supports Apple Silicon only. The daily test App uses a stable local development identity from the keychain and has the fixed path:
 
 ```text
-Marla_test_yyyyMMddHHmm.app
+artifacts/Marla_dev.app
 ```
 
-For example, a build at 2026-08-05 17:51 is `Marla_test_202608051751.app`. Renaming affects only the external artifact name; internal Bundle ID and version remain stable.
+Each successful build completes copying, signing, bundle verification, and designated-requirement comparison in a sibling staging directory before replacing that fixed path; the previous test binary is not retained. The first build without an existing fixed App requires an explicit stable signing identity. Later builds reuse the certificate identity from the existing App by default. An unavailable identity fails the build rather than falling back to ad-hoc signing. A fixed path, Bundle ID, and stable signature reduce repeated authorization risk but do not by themselves prove TCC permission persistence.

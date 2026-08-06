@@ -172,6 +172,8 @@ final class MarlaSettingsWindowCoordinator: NSObject, NSWindowDelegate {
         window.title = "Marla 设置"
         window.isReleasedWhenClosed = false
         window.minSize = NSSize(width: 644, height: 584)
+        window.isOpaque = false
+        window.backgroundColor = .clear
         window.contentView = NSHostingView(
             rootView: SettingsView(settings: settings, appModel: appModel)
         )
@@ -247,9 +249,20 @@ struct CardSession: Identifiable, Equatable {
     }
 }
 
+struct RecentTranslation: Identifiable, Equatable {
+    let id: UUID
+    let surface: TranslationSurface
+    let sourceText: String
+    let translation: String
+    let target: TranslationTarget
+}
+
 @MainActor
 final class TranslationSessionStore: ObservableObject {
     @Published private(set) var session: CardSession?
+    @Published private(set) var recentTranslations: [RecentTranslation] = []
+
+    static let recentTranslationLimit = 3
 
     private let settings: MarlaSettingsStore
     private let client = RustTranslationClient()
@@ -313,6 +326,7 @@ final class TranslationSessionStore: ObservableObject {
         lastSource = sourceText
         lastSurface = surface
         lastPointer = NSEvent.mouseLocation
+        recordRecentTranslationIfEligible(session)
     }
 
     func submitRecognizedText(_ text: String, for id: UUID) {
@@ -411,6 +425,7 @@ final class TranslationSessionStore: ObservableObject {
             handle = nil
         }
         session = current
+        recordRecentTranslationIfEligible(current)
     }
 
     func retry() {
@@ -473,6 +488,31 @@ final class TranslationSessionStore: ObservableObject {
         session = nil
     }
 
+    @discardableResult
+    func restoreRecentTranslation(id: UUID) -> CardSession? {
+        guard let index = recentTranslations.firstIndex(where: { $0.id == id }) else { return nil }
+        let recent = recentTranslations.remove(at: index)
+        recentTranslations.insert(recent, at: 0)
+        cancelCurrentRequest()
+        let restored = CardSession(
+            id: UUID(),
+            surface: recent.surface,
+            sourceText: recent.sourceText,
+            translation: recent.translation,
+            target: recent.target,
+            state: .completed,
+            anchor: nil,
+            pointer: NSEvent.mouseLocation,
+            isActivating: true
+        )
+        session = restored
+        lastSource = restored.sourceText
+        lastSurface = restored.surface
+        lastAnchor = nil
+        lastPointer = restored.pointer
+        return restored
+    }
+
     func fail(
         _ message: String,
         code: TranslationErrorCode,
@@ -495,6 +535,33 @@ final class TranslationSessionStore: ObservableObject {
             retryable ? .retry : nil
         case nil:
             retryable ? .retry : nil
+        }
+    }
+
+    private func recordRecentTranslationIfEligible(_ candidate: CardSession?) {
+        guard let candidate,
+              case .completed = candidate.state,
+              !candidate.sourceText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+              !candidate.translation.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            return
+        }
+        recentTranslations.removeAll {
+            $0.sourceText == candidate.sourceText &&
+                $0.translation == candidate.translation &&
+                $0.target == candidate.target
+        }
+        recentTranslations.insert(
+            RecentTranslation(
+                id: UUID(),
+                surface: candidate.surface,
+                sourceText: candidate.sourceText,
+                translation: candidate.translation,
+                target: candidate.target
+            ),
+            at: 0
+        )
+        if recentTranslations.count > Self.recentTranslationLimit {
+            recentTranslations.removeLast(recentTranslations.count - Self.recentTranslationLimit)
         }
     }
 }
@@ -688,6 +755,14 @@ enum GlobalShortcutAction: String, CaseIterable, Codable, Sendable {
         case .selection: "划词翻译"
         case .screenshot: "截图翻译"
         case .quickInput: "快速输入"
+        }
+    }
+
+    var symbolName: String {
+        switch self {
+        case .selection: "text.viewfinder"
+        case .screenshot: "viewfinder"
+        case .quickInput: "keyboard"
         }
     }
 
@@ -1178,11 +1253,25 @@ final class ScreenshotSelectionSession {
 @MainActor
 final class ScreenshotSelectionView: NSView {
     private let session: ScreenshotSelectionSession
+    private let hintView: NSHostingView<ScreenshotGlassLabel>
+    private let sizeView: NSHostingView<ScreenshotGlassLabel>
 
     init(session: ScreenshotSelectionSession) {
         self.session = session
+        hintView = NSHostingView(
+            rootView: ScreenshotGlassLabel(
+                text: "拖动框选要翻译的区域 · Esc 取消",
+                usesMonospacedDigits: false
+            )
+        )
+        sizeView = NSHostingView(
+            rootView: ScreenshotGlassLabel(text: "0 × 0", usesMonospacedDigits: true)
+        )
         super.init(frame: .zero)
         wantsLayer = true
+        addSubview(hintView)
+        addSubview(sizeView)
+        sizeView.isHidden = true
         session.attach(self)
     }
 
@@ -1223,23 +1312,18 @@ final class ScreenshotSelectionView: NSView {
         guard let window else { return }
         let rect = window.convertFromScreen(session.selectionRect)
         if rect.width <= 0 || rect.height <= 0 {
-            let hint = "拖动框选要翻译的区域 · Esc 取消"
-            let attributes: [NSAttributedString.Key: Any] = [
-                .font: NSFont.systemFont(ofSize: 13, weight: .medium),
-                .foregroundColor: NSColor.white
-            ]
-            let size = hint.size(withAttributes: attributes)
-            let hintRect = NSRect(
-                x: bounds.midX - (size.width + 24) / 2,
-                y: bounds.maxY - size.height - 28,
-                width: size.width + 24,
-                height: size.height + 12
+            hintView.isHidden = false
+            sizeView.isHidden = true
+            let size = hintView.fittingSize
+            hintView.frame = NSRect(
+                x: bounds.midX - size.width / 2,
+                y: bounds.maxY - size.height - 16,
+                width: size.width,
+                height: size.height
             )
-            NSColor.black.withAlphaComponent(0.72).setFill()
-            NSBezierPath(roundedRect: hintRect, xRadius: 8, yRadius: 8).fill()
-            hint.draw(in: hintRect.insetBy(dx: 12, dy: 6), withAttributes: attributes)
         }
         guard rect.width > 0, rect.height > 0 else { return }
+        hintView.isHidden = true
         NSGraphicsContext.current?.compositingOperation = .clear
         rect.fill()
         NSGraphicsContext.current?.compositingOperation = .sourceOver
@@ -1260,12 +1344,40 @@ final class ScreenshotSelectionView: NSView {
             path.lineWidth = 2
             path.stroke()
         }
-        let label = "\(Int(rect.width)) × \(Int(rect.height))"
-        let attributes: [NSAttributedString.Key: Any] = [.font: NSFont.monospacedDigitSystemFont(ofSize: 11, weight: .medium), .foregroundColor: NSColor.white]
-        let size = label.size(withAttributes: attributes)
-        let labelRect = NSRect(x: rect.minX, y: max(bounds.minY + 8, rect.minY - size.height - 8), width: size.width + 12, height: size.height + 6)
-        NSColor.black.withAlphaComponent(0.72).setFill(); NSBezierPath(roundedRect: labelRect, xRadius: 6, yRadius: 6).fill()
-        label.draw(in: labelRect.insetBy(dx: 6, dy: 3), withAttributes: attributes)
+        sizeView.rootView = ScreenshotGlassLabel(
+            text: "\(Int(rect.width)) × \(Int(rect.height))",
+            usesMonospacedDigits: true
+        )
+        let labelSize = sizeView.fittingSize
+        sizeView.frame = NSRect(
+            x: rect.minX,
+            y: max(bounds.minY + 8, rect.minY - labelSize.height - 6),
+            width: labelSize.width,
+            height: labelSize.height
+        )
+        sizeView.isHidden = false
+    }
+}
+
+private struct ScreenshotGlassLabel: View {
+    let text: String
+    let usesMonospacedDigits: Bool
+
+    var body: some View {
+        Group {
+            if usesMonospacedDigits {
+                Text(text)
+                    .font(AppFont.micro.monospacedDigit().weight(.medium))
+            } else {
+                Text(text)
+                    .font(AppFont.caption.weight(.medium))
+            }
+        }
+        .foregroundStyle(.white)
+        .padding(.horizontal, usesMonospacedDigits ? 8 : 12)
+        .padding(.vertical, usesMonospacedDigits ? 5 : 7)
+        .marlaGlassSurface(cornerRadius: usesMonospacedDigits ? 6 : 8)
+        .fixedSize()
     }
 }
 
@@ -1504,6 +1616,20 @@ final class MarlaApplicationModel: ObservableObject {
         case "menu":
             settings.exposeOnboardingForUIAutomation()
             panelCoordinator.showMenuAutomationSurface(model: self)
+        case "menu-recents":
+            [
+                (TranslationSurface.selection, "Hello", "你好"),
+                (.screenshot, "Build succeeded with no warnings.", "构建成功，没有警告。"),
+                (.quickInput, "保持专注，不要离开当前窗口。", "Stay focused without leaving the current window.")
+            ].forEach { surface, source, translation in
+                sessionStore.installUIAutomationFixture(
+                    surface: surface,
+                    sourceText: source,
+                    translation: translation,
+                    state: .completed
+                )
+            }
+            panelCoordinator.showMenuAutomationSurface(model: self)
         case "quick-input":
             showQuickInput()
         case "awaiting":
@@ -1637,6 +1763,16 @@ final class MarlaApplicationModel: ObservableObject {
 
     func openSettings() {
         settingsWindowCoordinator.present(settings: settings, appModel: self)
+    }
+
+    func showRecentTranslation(id: UUID) {
+        guard let session = sessionStore.restoreRecentTranslation(id: id) else { return }
+        panelCoordinator.showResult(
+            store: sessionStore,
+            at: nil,
+            pointer: session.pointer,
+            activate: true
+        )
     }
 
     func performRecovery(_ action: CardRecoveryAction) {

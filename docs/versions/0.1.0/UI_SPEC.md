@@ -93,7 +93,7 @@ Icons use SF Symbols at a consistent weight. Until a final app icon exists, use 
 
 - 交互强调色使用 `Color.accentColor`，尊重系统或用户选择；同一视图不增加第二品牌强调色；
 - 背景、文字、分隔和语义状态使用适配浅色/深色的系统语义色；
-- 结果表面使用单层 macOS HUD/Popover 类材质，避免叠加多层模糊；
+- 菜单、设置、结果卡、快速输入和截图框选提示各自使用单层 macOS HUD/Popover 类材质，避免叠加多层模糊；macOS 26+ 使用系统 Liquid Glass，macOS 14–25 使用 `regularMaterial` 或等价系统材质回退；
 - 正文对比度至少 4.5:1，大号文字至少 3:1；
 - 成功、警告和错误颜色只表达状态，不承担装饰作用。
 
@@ -134,7 +134,7 @@ All other spacing follows a 4pt grid. Pointer controls may retain compact macOS 
 
 - interactive emphasis uses `Color.accentColor`, respecting the system or user choice; a view adds no second brand accent;
 - background, text, divider, and semantic states use adaptive system semantic colors;
-- results use one macOS HUD/Popover-class material without stacked blur layers;
+- the menu, Settings, result card, quick input, and screenshot-selection labels each use one macOS HUD/Popover-class material without stacked blur layers; macOS 26+ uses system Liquid Glass, while macOS 14–25 uses `regularMaterial` or an equivalent system-material fallback;
 - body contrast is at least 4.5:1 and large text at least 3:1;
 - success, warning, and error colors communicate state only and are not decoration.
 
@@ -206,11 +206,15 @@ Its signature detail is the language-route capsule: before submission it reads �
 
 首次启动不显示大幅欢迎页，而是直接显示三项可完成清单：配置翻译 API、授予辅助功能、授予屏幕录制。每项解释它影响哪个入口，并允许暂时跳过；快速输入始终可用于验证 API。
 
+菜单的准备状态只在任一项未完成时存在。全部完成后，同一区域切换为“最近翻译”：最多三行，每行显示入口图标、单行译文、单行原文和进入箭头；无结果时显示克制空状态，并始终标注“退出即清空”。截图翻译统一使用目标系统可用的 `viewfinder` SF Symbol。
+
 ### English
 
 Settings uses a native macOS sidebar or grouped Form rather than a card grid. 0.1.0 has four groups: Translation API, Shortcuts, Permissions, and Experiments. API Key uses secure input with replace, delete, and connection-test actions; the full key is never echoed.
 
 First launch does not show a large welcome hero. It directly presents a three-item completion list: configure translation API, grant Accessibility, and grant Screen Recording. Each item explains the affected entry and may be skipped; quick input remains available to validate the API.
+
+The menu's setup status exists only while any item is incomplete. Once all are ready, the same region becomes Recent Translations: up to three rows, each showing an entry-point icon, one translation line, one source line, and a disclosure chevron. An empty state remains restrained and the section always states that quitting clears it. Screenshot translation consistently uses the `viewfinder` SF Symbol available on the target systems.
 
 ## 8. 状态、主题与无障碍 / States, Themes, and Accessibility
 
@@ -248,6 +252,8 @@ With Reduce Motion, positional springs, corner convergence, and breathing scale 
 
 2026-08-06 真实 Release App 复评：菜单、快速输入、等待/流式/完成/部分失败/长文/对照固定卡片、设置和截图框选场景均已从实际 `Marla_test_202608060135.app` 渲染并检查。五维评分为：哲学一致性 8/10、视觉层级 8/10、工艺质量 7/10、功能性 8/10、原创性 7/10；所有项目达到门槛。PNG 证据位于 `artifacts/ui-review/`，仅由显式 UI 自动化场景写入。macOS 26+ 的生产卡片使用 Liquid Glass，旧系统使用材质回退。后续 Qwen-MT、Web Text Marker 和截图坐标修复未改变 UI 表面；最终源码也已重新构建到固定签名的 `Marla_dev.app`。
 
+TASK-003 复评：`Marla_test_202608061928.app` 的菜单最近翻译浅色/深色、设置、快速输入、对照卡和截图框选场景均已检查，证据位于 `artifacts/ui-review/task-003/`。首次检查发现设置透明标题栏在浅色离屏渲染中出现黑条，恢复系统标题栏材质后复评通过。评分为：哲学一致性 8/10、视觉层级 8/10、工艺质量 8/10、功能性 8/10、原创性 7/10。自动化截图显式渲染材质回退；生产路径在 macOS 26+ 调用 SwiftUI `glassEffect`，旧系统保持单层材质回退。
+
 ### English
 
 After implementation, invoke the `swiftui-design-skill` five-dimension review and retain real-app screenshot evidence for:
@@ -263,3 +269,5 @@ After implementation, invoke the `swiftui-design-skill` five-dimension review an
 Philosophy alignment, visual hierarchy, craft quality, functionality, and originality must each score at least 7/10. Any lower dimension is fixed and rescored. Source code alone cannot prove UI acceptance.
 
 2026-08-06 real Release App rescore: menu, quick input, awaiting/streaming/completed/partial-failure/long-text/comparison-pinned card, Settings, and screenshot-selection scenarios were rendered and inspected from `Marla_test_202608060135.app`. Scores are Philosophy Alignment 8/10, Visual Hierarchy 8/10, Craft Quality 7/10, Functionality 8/10, and Originality 7/10; every dimension meets the threshold. PNG evidence is under `artifacts/ui-review/` and is written only by explicit UI automation scenarios. Production cards use Liquid Glass on macOS 26+ and the material fallback on earlier supported systems. The later Qwen-MT, Web Text Marker, and screenshot-coordinate fixes do not change UI surfaces; the final source was also rebuilt into the fixed-path signed `Marla_dev.app`.
+
+TASK-003 rescore: the recent-translations menu in light and dark appearance, Settings, quick input, comparison card, and screenshot-selection scenes from `Marla_test_202608061928.app` were inspected, with evidence under `artifacts/ui-review/task-003/`. The first pass found a black strip from the transparent Settings title bar in light off-screen rendering; restoring the system title-bar material passed the rescore. Scores are Philosophy Alignment 8/10, Visual Hierarchy 8/10, Craft Quality 8/10, Functionality 8/10, and Originality 7/10. Automation screenshots explicitly render the material fallback; production invokes SwiftUI `glassEffect` on macOS 26+ and retains a single-layer material fallback on older systems.

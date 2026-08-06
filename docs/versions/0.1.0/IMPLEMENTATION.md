@@ -10,13 +10,13 @@
 
 ### 中文
 
-仓库当前包含可构建的 Swift Package、原生 Xcode macOS App target、真实 Rust 流式翻译核心和完整的 0.1.0 UI 壳层。菜单栏、首次启动清单、划词/截图/快速输入入口、非激活结果卡片、跨屏 ScreenCaptureKit 框选、Vision `OCRDocument`、Carbon 快捷键、Keychain 设置、权限引导、错误恢复、朗读、固定、对照和 Reduce Motion 都已接入并通过当前自动化测试。macOS 26+ 的结果卡片和快速输入卡片使用 SwiftUI Liquid Glass，macOS 14–25 使用材质回退。Xcode target 已使用稳定 `com.marla.app` 生成并验证临时签名的 arm64 `.app`，Debug 和 Release 分别链接 Cargo 的 debug 与 release 产物；打包脚本也支持用本机稳定签名身份更新固定路径的开发测试包，以降低 TCC 因 ad-hoc 代码哈希变化而重复授权的频率。
+仓库当前包含可构建的 Swift Package、原生 Xcode macOS App target、真实 Rust 流式翻译核心和完整的 0.1.0 UI 壳层。菜单栏、首次启动清单、会话内最近三条翻译、划词/截图/快速输入入口、非激活结果卡片、跨屏 ScreenCaptureKit 框选、Vision `OCRDocument`、Carbon 快捷键、Keychain 设置、权限引导、错误恢复、朗读、固定、对照和 Reduce Motion 都已接入并通过当前自动化测试。最近翻译只由 Swift `TranslationSessionStore` 在完成事件后写入有界数组，失败、取消和空结果不进入；点击条目构造完成态卡片而不发起网络请求，数组不接触任何持久化 API。macOS 26+ 的菜单、设置、结果卡片、快速输入和截图框选提示使用 SwiftUI Liquid Glass，macOS 14–25 使用单层材质回退。Xcode target 已使用稳定 `com.marla.app` 生成并验证 arm64 `.app`，Debug 和 Release 分别链接 Cargo 的 debug 与 release 产物；打包脚本默认用现有固定 App 的本机稳定签名身份安全覆盖 `artifacts/Marla_dev.app`，以降低 TCC 因路径或签名身份变化而重复授权的频率。
 
 云端结构化 OCR 开关已删除。生产截图入口只在内存中经 Vision 生成带稳定行 ID 的文字文档，并且只把纯文字发送到 Rust；显式 UI 自动化夹具不改变生产入口。
 
 ### English
 
-The repository now contains a buildable Swift Package, a native Xcode macOS App target, the real Rust streaming translation core, and the complete 0.1.0 UI shell. The menu bar, onboarding checklist, selection/screenshot/quick-input entries, non-activating result card, cross-display ScreenCaptureKit selection, Vision `OCRDocument`, Carbon shortcuts, Keychain settings, permission guidance, error recovery, speech, pinning, comparison, and Reduce Motion handling are wired and covered by the current automated tests. Result and quick-input cards use SwiftUI Liquid Glass on macOS 26+ and the material fallback on macOS 14–25. The Xcode target has produced and verified an ad-hoc-signed arm64 `.app` with stable identity `com.marla.app`; Debug and Release link the matching Cargo debug and release products. The packaging script also supports updating a fixed-path development app with a stable local signing identity, reducing repeated TCC prompts caused by changing ad-hoc code hashes.
+The repository now contains a buildable Swift Package, a native Xcode macOS App target, the real Rust streaming translation core, and the complete 0.1.0 UI shell. The menu bar, onboarding checklist, three in-session recent translations, selection/screenshot/quick-input entries, non-activating result card, cross-display ScreenCaptureKit selection, Vision `OCRDocument`, Carbon shortcuts, Keychain settings, permission guidance, error recovery, speech, pinning, comparison, and Reduce Motion handling are wired and covered by the current automated tests. Recent translations are appended only by Swift's `TranslationSessionStore` after completion into a bounded array; failed, cancelled, and empty results are excluded. Selecting an item constructs a completed card without a network request, and the array touches no persistence API. The menu, Settings, result card, quick input, and screenshot-selection labels use SwiftUI Liquid Glass on macOS 26+ and a single material fallback on macOS 14–25. The Xcode target has produced and verified an arm64 `.app` with stable identity `com.marla.app`; Debug and Release link the matching Cargo debug and release products. By default, the packaging script safely replaces `artifacts/Marla_dev.app` using the existing fixed App's stable local signing identity, reducing repeated TCC prompts caused by path or signing-identity changes.
 
 The cloud structured OCR switch has been removed. Production screenshot entry keeps the in-memory Vision document with stable line IDs and sends text only to Rust; explicit UI automation fixtures do not alter production entry points.
 
@@ -67,7 +67,7 @@ Swift never passes `AXUIElement`, `NSWindow`, `CGImage`, or Objective-C object p
 
 Xcode 构建阶段必须先以对应配置编译 Rust 静态库，再链接 Swift App。Debug/测试使用 Cargo debug 产物，Release/测试 App 使用 Cargo release 产物，禁止让 Release App 意外链接 `target/debug`。Rust Header、ABI 版本和 Swift Wrapper 在同一变更中更新。
 
-打包脚本复制构建成功且验证过的 `.app`，按 Asia/Shanghai 当前时间生成 `Marla_test_yyyyMMddHHmm.app`。脚本不得修改内部 Bundle ID；产物至少验证架构、版本、签名状态和可执行文件存在。
+打包脚本默认输出并覆盖唯一的 `artifacts/Marla_dev.app`。它从现有固定 App 的 designated requirement 提取证书哈希，确认该稳定身份在钥匙串中有效，再把 Release 产物复制到同目录临时位置完成签名与验证；只有 Bundle ID、版本、架构、可执行文件、签名和 designated requirement 全部通过后才替换旧 App。首次构建允许显式提供 `MARLA_CODE_SIGN_IDENTITY`；缺少稳定身份时失败，不使用 ad-hoc。自定义的已有路径只有设置 `MARLA_ALLOW_ARTIFACT_REPLACE=1` 才允许覆盖。
 
 ### English
 
@@ -82,7 +82,7 @@ Create a native macOS App target fixed to:
 
 The Xcode build phase compiles the Rust static library for the matching configuration before linking Swift. Debug/testing uses Cargo debug output; Release/test-app uses Cargo release output. A Release app may never accidentally link `target/debug`. Rust header, ABI version, and Swift wrapper change together.
 
-The packaging script copies a successfully built and verified `.app`, naming it `Marla_test_yyyyMMddHHmm.app` from current Asia/Shanghai time. It does not change the internal Bundle ID and verifies at least architecture, version, signing state, and executable presence.
+The packaging script outputs and replaces only `artifacts/Marla_dev.app` by default. It extracts the certificate hash from the existing fixed App's designated requirement, confirms that stable identity remains valid in the keychain, then copies the Release product to a sibling staging location for signing and verification. It replaces the old App only after Bundle ID, version, architecture, executable, signature, and designated requirement all pass. The first build may provide `MARLA_CODE_SIGN_IDENTITY` explicitly; a missing stable identity fails rather than using ad-hoc signing. An existing custom path may be overwritten only with `MARLA_ALLOW_ARTIFACT_REPLACE=1`.
 
 ## 4. FFI 公共接口 / Public FFI Interface
 
@@ -320,7 +320,7 @@ Each card owns a unique request ID. Every event first checks request ID; stale-r
 
 ### 中文
 
-1. **App 基础（已验证）**：Xcode App target、稳定 Bundle ID、权限声明、Rust Debug/Release 构建阶段和时间戳测试包脚本。
+1. **App 基础（已验证）**：Xcode App target、稳定 Bundle ID、权限声明、Rust Debug/Release 构建阶段和固定路径稳定签名测试包脚本。
 2. **翻译核心（已实现）**：JSON schema、FFI 句柄、异步运行时、OpenAI-compatible SSE、Keychain 设置桥和 mock-provider 测试。
 3. **划词垂直切片（已实现）**：Carbon 全局快捷键、选区获取、非激活结果卡片、流式状态、复制/重试/关闭。
 4. **截图垂直切片（已实现）**：跨屏框选、ScreenCaptureKit、Vision `OCRDocument`、纯文本归一化和同一结果卡片。
@@ -331,7 +331,7 @@ Each card owns a unique request ID. Every event first checks request ID; stale-r
 
 ### English
 
-1. **App foundation (verified)**: Xcode App target, stable Bundle ID, permission declarations, Rust Debug/Release build phase, and timestamped test-app script.
+1. **App foundation (verified)**: Xcode App target, stable Bundle ID, permission declarations, Rust Debug/Release build phase, and fixed-path stable-signing test-app script.
 2. **Translation core (implemented)**: JSON schema, FFI handles, async runtime, OpenAI-compatible SSE, Keychain settings bridge, and mock-provider tests.
 3. **Selection vertical slice (implemented)**: Carbon global shortcuts, selection acquisition, non-activating result card, streaming state, copy/retry/close.
 4. **Screenshot vertical slice (implemented)**: cross-display selection, ScreenCaptureKit, Vision `OCRDocument`, plain-text normalization, and the same result card.

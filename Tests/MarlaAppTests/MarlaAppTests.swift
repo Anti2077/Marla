@@ -25,6 +25,81 @@ final class MarlaAppTests: XCTestCase {
         XCTAssertEqual(source, "  Hello\nworld  ")
     }
 
+    func testScreenshotShortcutUsesAnAvailableSystemSymbol() {
+        XCTAssertEqual(GlobalShortcutAction.screenshot.symbolName, "viewfinder")
+        XCTAssertNotNil(
+            NSImage(systemSymbolName: GlobalShortcutAction.screenshot.symbolName, accessibilityDescription: nil)
+        )
+    }
+
+    @MainActor
+    func testRecentTranslationsKeepOnlyThreeCompletedUniqueResults() {
+        let store = makeSessionStore()
+        for index in 1 ... 4 {
+            store.installUIAutomationFixture(
+                surface: .selection,
+                sourceText: "source-\(index)",
+                translation: "translation-\(index)",
+                state: .completed
+            )
+        }
+
+        XCTAssertEqual(store.recentTranslations.count, TranslationSessionStore.recentTranslationLimit)
+        XCTAssertEqual(store.recentTranslations.map(\.translation), ["translation-4", "translation-3", "translation-2"])
+
+        store.installUIAutomationFixture(
+            surface: .selection,
+            sourceText: "source-3",
+            translation: "translation-3",
+            state: .completed
+        )
+        XCTAssertEqual(store.recentTranslations.map(\.translation), ["translation-3", "translation-4", "translation-2"])
+    }
+
+    @MainActor
+    func testRecentTranslationsExcludeFailedCancelledAndEmptyResults() {
+        let store = makeSessionStore()
+        store.installUIAutomationFixture(
+            surface: .selection,
+            sourceText: "source",
+            translation: "partial",
+            state: .failed(message: "network")
+        )
+        store.installUIAutomationFixture(
+            surface: .quickInput,
+            sourceText: "source",
+            translation: "",
+            state: .completed
+        )
+        store.installUIAutomationFixture(
+            surface: .screenshot,
+            sourceText: "source",
+            translation: "cancelled",
+            state: .cancelled
+        )
+
+        XCTAssertTrue(store.recentTranslations.isEmpty)
+    }
+
+    @MainActor
+    func testRestoringRecentTranslationDoesNotStartANewRequest() {
+        let store = makeSessionStore()
+        store.installUIAutomationFixture(
+            surface: .screenshot,
+            sourceText: "Hello",
+            translation: "你好",
+            state: .completed
+        )
+        let recentID = try! XCTUnwrap(store.recentTranslations.first?.id)
+
+        let restored = store.restoreRecentTranslation(id: recentID)
+
+        XCTAssertEqual(restored?.state, .completed)
+        XCTAssertEqual(restored?.sourceText, "Hello")
+        XCTAssertEqual(restored?.translation, "你好")
+        XCTAssertEqual(store.recentTranslations.count, 1)
+    }
+
     func testPanelPlacementClampsToNegativeCoordinateDisplay() {
         let visible = NSRect(x: -1920, y: -120, width: 1920, height: 1080)
         let anchor = ScreenRect(x: -80, y: 700, width: 60, height: 22)
@@ -89,6 +164,22 @@ final class MarlaAppTests: XCTestCase {
         )
         XCTAssertNil(
             AccessibilitySelectionReader.substring(in: value, range: CFRange(location: 20, length: 1))
+        )
+    }
+
+    @MainActor
+    private func makeSessionStore() -> TranslationSessionStore {
+        let suite = "com.marla.tests.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suite)!
+        defaults.removePersistentDomain(forName: suite)
+        return TranslationSessionStore(
+            settings: MarlaSettingsStore(
+                defaults: defaults,
+                keychain: KeychainCredentialStore(
+                    service: "com.marla.tests",
+                    account: UUID().uuidString
+                )
+            )
         )
     }
 }

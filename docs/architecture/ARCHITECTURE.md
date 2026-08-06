@@ -103,4 +103,4 @@ The Xcode target emits a stable macOS `.app` with Bundle ID `com.marla.app`, mac
 
 Cargo emits `libmarla_core.a`; SwiftPM links it through `MarlaRustFFI`. The Xcode target uses a configuration-aware build phase and library search path so Debug links `target/debug` and Release links `target/release`. The unified verification script builds both the Swift Package foundation and the Debug Xcode app target.
 
-Timestamped Release packaging is implemented through `scripts/build-test-app.sh`, which validates the bundle and refuses to overwrite an existing minute-named artifact. DMG, notarization, updater, and public distribution remain deferred.
+Fixed-path Release development packaging is implemented through `scripts/build-test-app.sh`. It stages the new bundle beside `artifacts/Marla_dev.app`, signs and validates it with the existing stable local certificate, verifies the designated requirement, and only then replaces the previous App. A custom existing path retains an explicit overwrite guard, and the script fails instead of falling back to ad-hoc signing when no stable identity is available. DMG, notarization, updater, and public distribution remain deferred.

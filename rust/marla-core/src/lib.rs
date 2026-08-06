@@ -11,7 +11,7 @@ use tokio::runtime::Runtime;
 use tokio::task::JoinHandle;
 use tokio::time::Instant;
 
-pub const API_VERSION: u32 = 1;
+pub const API_VERSION: u32 = 2;
 
 const CONNECT_TIMEOUT_SECONDS: u64 = 10;
 const FIRST_TOKEN_TIMEOUT_SECONDS: u64 = 30;
@@ -124,9 +124,39 @@ struct Target {
 struct Endpoint {
     #[serde(rename = "baseURL")]
     base_url: String,
+    #[serde(default)]
+    url_mode: EndpointURLMode,
     model: String,
     #[serde(default)]
     api_key: Option<String>,
+}
+
+#[derive(Clone, Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct ModelListRequest {
+    schema_version: u32,
+    #[serde(rename = "requestID")]
+    request_id: String,
+    endpoint: Endpoint,
+}
+
+#[derive(Debug, Deserialize)]
+struct ModelListResponse {
+    data: Vec<ModelListItem>,
+}
+
+#[derive(Debug, Deserialize)]
+struct ModelListItem {
+    id: String,
+}
+
+#[derive(Clone, Copy, Debug, Default, Deserialize, Eq, PartialEq)]
+enum EndpointURLMode {
+    #[default]
+    #[serde(rename = "baseURL")]
+    BaseURL,
+    #[serde(rename = "completeURL")]
+    CompleteURL,
 }
 
 #[derive(Clone, Debug, Deserialize)]
@@ -178,6 +208,22 @@ struct TranslationEvent<'a> {
     retryable: Option<bool>,
 }
 
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct ModelListEvent<'a> {
+    schema_version: u32,
+    #[serde(rename = "requestID")]
+    request_id: &'a str,
+    #[serde(rename = "type")]
+    event_type: &'a str,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    models: Option<&'a [String]>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    code: Option<&'a str>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    message: Option<&'a str>,
+}
+
 pub struct MarlaTranslationHandle {
     cancelled: Arc<AtomicBool>,
     join: Option<JoinHandle<()>>,
@@ -208,8 +254,8 @@ fn emit(
     unsafe { callback(bytes.as_ptr(), bytes.len(), context) };
 }
 
-fn endpoint_url(base_url: &str) -> Option<String> {
-    let trimmed = base_url.trim().trim_end_matches('/');
+fn endpoint_url(endpoint: &Endpoint) -> Option<String> {
+    let trimmed = endpoint.base_url.trim();
     let mut url = reqwest::Url::parse(trimmed).ok()?;
     if !matches!(url.scheme(), "http" | "https")
         || url.host_str().is_none()
@@ -218,9 +264,64 @@ fn endpoint_url(base_url: &str) -> Option<String> {
     {
         return None;
     }
+    if endpoint.url_mode == EndpointURLMode::CompleteURL {
+        return Some(trimmed.to_owned());
+    }
     let path = format!("{}/chat/completions", url.path().trim_end_matches('/'));
     url.set_path(&path);
     Some(url.into())
+}
+
+fn model_list_url(endpoint: &Endpoint) -> Option<String> {
+    let trimmed = endpoint.base_url.trim();
+    let mut url = reqwest::Url::parse(trimmed).ok()?;
+    if !matches!(url.scheme(), "http" | "https")
+        || url.host_str().is_none()
+        || url.query().is_some()
+        || url.fragment().is_some()
+    {
+        return None;
+    }
+    let path = url.path().trim_end_matches('/');
+    let base_path = match endpoint.url_mode {
+        EndpointURLMode::BaseURL => path,
+        EndpointURLMode::CompleteURL => path.strip_suffix("/chat/completions")?,
+    };
+    url.set_path(&format!("{}/models", base_path.trim_end_matches('/')));
+    Some(url.into())
+}
+
+fn emit_model_list(
+    callback: MarlaTranslationEventCallback,
+    context: *mut std::ffi::c_void,
+    event: ModelListEvent<'_>,
+) {
+    let Ok(bytes) = serde_json::to_vec(&event) else {
+        return;
+    };
+    // SAFETY: This follows the same callback lifetime contract as translation events.
+    unsafe { callback(bytes.as_ptr(), bytes.len(), context) };
+}
+
+fn emit_model_list_failed(
+    callback: MarlaTranslationEventCallback,
+    context: *mut std::ffi::c_void,
+    request_id: &str,
+    code: &'static str,
+    message: &'static str,
+) {
+    emit_model_list(
+        callback,
+        context,
+        ModelListEvent {
+            schema_version: 1,
+            request_id,
+            event_type: "failed",
+            models: None,
+            code: Some(code),
+            message: Some(message),
+        },
+    );
 }
 
 #[derive(Debug, Eq, PartialEq)]
@@ -403,7 +504,7 @@ fn validate_request(request: &TranslationRequest) -> Result<String, (&'static st
     if request.endpoint.model.trim().is_empty() {
         return Err(("invalid_configuration", "请先配置模型名称。"));
     }
-    endpoint_url(&request.endpoint.base_url).ok_or((
+    endpoint_url(&request.endpoint).ok_or((
         "invalid_configuration",
         "Base URL 必须是有效的 http 或 https 地址。",
     ))
@@ -729,6 +830,177 @@ async fn run_translation(
     );
 }
 
+async fn run_model_list(
+    request: ModelListRequest,
+    cancelled: Arc<AtomicBool>,
+    callback: MarlaTranslationEventCallback,
+    context_value: usize,
+) {
+    let context = || context_value as *mut std::ffi::c_void;
+    let request_id = request.request_id.clone();
+    if request.schema_version != 1 || request_id.is_empty() {
+        emit_model_list_failed(
+            callback,
+            context(),
+            &request_id,
+            "invalid_configuration",
+            "模型列表请求配置无效。",
+        );
+        return;
+    }
+    let Some(url) = model_list_url(&request.endpoint) else {
+        emit_model_list_failed(
+            callback,
+            context(),
+            &request_id,
+            "invalid_configuration",
+            "无法从当前 URL 推导模型列表地址。",
+        );
+        return;
+    };
+    let Some(client) = http_client() else {
+        emit_model_list_failed(
+            callback,
+            context(),
+            &request_id,
+            "internal",
+            "无法创建网络客户端。",
+        );
+        return;
+    };
+    let mut builder = client.get(url);
+    if let Some(key) = request
+        .endpoint
+        .api_key
+        .as_deref()
+        .filter(|key| !key.trim().is_empty())
+    {
+        builder = builder.header(AUTHORIZATION, format!("Bearer {key}"));
+    }
+    let response = tokio::select! {
+        _ = wait_for_cancellation(&cancelled) => {
+            emit_model_list(
+                callback,
+                context(),
+                ModelListEvent {
+                    schema_version: 1,
+                    request_id: &request_id,
+                    event_type: "cancelled",
+                    models: None,
+                    code: None,
+                    message: None,
+                },
+            );
+            return;
+        }
+        result = tokio::time::timeout(Duration::from_secs(30), builder.send()) => match result {
+            Ok(Ok(response)) => response,
+            Ok(Err(_)) => {
+                emit_model_list_failed(callback, context(), &request_id, "network", "无法连接模型列表端点。");
+                return;
+            }
+            Err(_) => {
+                emit_model_list_failed(callback, context(), &request_id, "timeout", "获取模型列表超时。");
+                return;
+            }
+        }
+    };
+    if cancelled.load(Ordering::Acquire) {
+        emit_model_list(
+            callback,
+            context(),
+            ModelListEvent {
+                schema_version: 1,
+                request_id: &request_id,
+                event_type: "cancelled",
+                models: None,
+                code: None,
+                message: None,
+            },
+        );
+        return;
+    }
+    let status = response.status();
+    if status == reqwest::StatusCode::UNAUTHORIZED || status == reqwest::StatusCode::FORBIDDEN {
+        emit_model_list_failed(
+            callback,
+            context(),
+            &request_id,
+            "unauthorized",
+            "API Key 或模型列表端点未授权。",
+        );
+        return;
+    }
+    if status == reqwest::StatusCode::TOO_MANY_REQUESTS {
+        emit_model_list_failed(
+            callback,
+            context(),
+            &request_id,
+            "rate_limited",
+            "模型列表端点暂时限流，请稍后重试。",
+        );
+        return;
+    }
+    if !status.is_success() {
+        emit_model_list_failed(
+            callback,
+            context(),
+            &request_id,
+            "provider",
+            "模型列表端点返回了错误。",
+        );
+        return;
+    }
+    let decoded = tokio::select! {
+        _ = wait_for_cancellation(&cancelled) => {
+            emit_model_list(
+                callback,
+                context(),
+                ModelListEvent {
+                    schema_version: 1,
+                    request_id: &request_id,
+                    event_type: "cancelled",
+                    models: None,
+                    code: None,
+                    message: None,
+                },
+            );
+            return;
+        }
+        result = tokio::time::timeout(Duration::from_secs(30), response.json::<ModelListResponse>()) => match result {
+            Ok(Ok(decoded)) => decoded,
+            Ok(Err(_)) => {
+                emit_model_list_failed(callback, context(), &request_id, "invalid_response", "模型列表响应格式无效。");
+                return;
+            }
+            Err(_) => {
+                emit_model_list_failed(callback, context(), &request_id, "timeout", "读取模型列表超时。");
+                return;
+            }
+        }
+    };
+    let mut models = decoded
+        .data
+        .into_iter()
+        .map(|item| item.id.trim().to_owned())
+        .filter(|id| !id.is_empty())
+        .collect::<Vec<_>>();
+    models.sort_unstable();
+    models.dedup();
+    emit_model_list(
+        callback,
+        context(),
+        ModelListEvent {
+            schema_version: 1,
+            request_id: &request_id,
+            event_type: "completed",
+            models: Some(&models),
+            code: None,
+            message: None,
+        },
+    );
+}
+
 /// Starts one request. The caller owns the returned handle and must release it exactly once.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn marla_translation_start(
@@ -783,6 +1055,59 @@ pub unsafe extern "C" fn marla_translation_start(
     result.unwrap_or(std::ptr::null_mut())
 }
 
+/// Starts one model-list request. The returned handle uses the shared cancel/release functions.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn marla_model_list_start(
+    request_json: *const u8,
+    request_json_length: usize,
+    callback: Option<MarlaTranslationEventCallback>,
+    context: *mut std::ffi::c_void,
+) -> *mut MarlaTranslationHandle {
+    let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+        if request_json.is_null() || request_json_length == 0 {
+            return std::ptr::null_mut();
+        }
+        let Some(callback) = callback else {
+            return std::ptr::null_mut();
+        };
+        // SAFETY: The caller promises a readable request byte slice for this synchronous call.
+        let bytes =
+            unsafe { std::slice::from_raw_parts(request_json, request_json_length) }.to_vec();
+        let Ok(request) = serde_json::from_slice::<ModelListRequest>(&bytes) else {
+            emit_model_list_failed(
+                callback,
+                context,
+                "invalid-request",
+                "invalid_configuration",
+                "模型列表请求 JSON 无效。",
+            );
+            return std::ptr::null_mut();
+        };
+        let cancelled = Arc::new(AtomicBool::new(false));
+        let thread_cancelled = Arc::clone(&cancelled);
+        let context_value = context as usize;
+        let request_id = request.request_id.clone();
+        let Some(runtime) = runtime() else {
+            emit_model_list_failed(
+                callback,
+                context,
+                &request_id,
+                "internal",
+                "无法启动模型列表运行时。",
+            );
+            return std::ptr::null_mut();
+        };
+        let join = runtime.spawn(async move {
+            run_model_list(request, thread_cancelled, callback, context_value).await;
+        });
+        Box::into_raw(Box::new(MarlaTranslationHandle {
+            cancelled,
+            join: Some(join),
+        }))
+    }));
+    result.unwrap_or(std::ptr::null_mut())
+}
+
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn marla_translation_cancel(handle: *mut MarlaTranslationHandle) {
     let _ = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
@@ -818,9 +1143,10 @@ pub unsafe extern "C" fn marla_translation_release(handle: *mut MarlaTranslation
 #[cfg(test)]
 mod tests {
     use super::{
-        Endpoint, MarlaTranslationEventCallback, SseDecoder, SseEvent, StreamContentMode, Surface,
-        Target, Timeouts, TranslationEvent, TranslationRequest, classify_surface, endpoint_url,
-        marla_translation_cancel, marla_translation_release, marla_translation_start,
+        Endpoint, EndpointURLMode, MarlaTranslationEventCallback, SseDecoder, SseEvent,
+        StreamContentMode, Surface, Target, Timeouts, TranslationEvent, TranslationRequest,
+        classify_surface, endpoint_url, marla_model_list_start, marla_translation_cancel,
+        marla_translation_release, marla_translation_start, model_list_url,
         normalized_stream_delta, request_json, system_prompt, validate_request,
     };
     use std::io::{Read, Write};
@@ -851,11 +1177,38 @@ mod tests {
 
     #[test]
     fn normalizes_translation_endpoint_and_delimits_source_prompt() {
+        let mut endpoint = Endpoint {
+            base_url: "https://example.com/v1/".to_string(),
+            url_mode: EndpointURLMode::BaseURL,
+            model: "test".to_string(),
+            api_key: None,
+        };
         assert_eq!(
-            endpoint_url("https://example.com/v1/"),
+            endpoint_url(&endpoint),
             Some("https://example.com/v1/chat/completions".to_string())
         );
-        assert!(endpoint_url("example.com").is_none());
+        endpoint.base_url = "example.com".to_string();
+        assert!(endpoint_url(&endpoint).is_none());
+        endpoint.base_url = "https://example.com/custom/chat".to_string();
+        endpoint.url_mode = EndpointURLMode::CompleteURL;
+        assert_eq!(
+            endpoint_url(&endpoint),
+            Some("https://example.com/custom/chat".to_string())
+        );
+        endpoint.base_url = "https://example.com/v1".to_string();
+        endpoint.url_mode = EndpointURLMode::BaseURL;
+        assert_eq!(
+            model_list_url(&endpoint),
+            Some("https://example.com/v1/models".to_string())
+        );
+        endpoint.base_url = "https://example.com/v1/chat/completions".to_string();
+        endpoint.url_mode = EndpointURLMode::CompleteURL;
+        assert_eq!(
+            model_list_url(&endpoint),
+            Some("https://example.com/v1/models".to_string())
+        );
+        endpoint.base_url = "https://example.com/custom".to_string();
+        assert!(model_list_url(&endpoint).is_none());
         let target = Target {
             mode: "explicit".to_string(),
             language: Some("zh-Hans".to_string()),
@@ -883,7 +1236,8 @@ mod tests {
         request = valid_request();
         request.schema_version = 2;
         assert!(validate_request(&request).is_err());
-        assert!(endpoint_url("https://example.com/v1?secret=no").is_none());
+        request.endpoint.base_url = "https://example.com/v1?secret=no".to_string();
+        assert!(endpoint_url(&request.endpoint).is_none());
     }
 
     #[test]
@@ -1109,6 +1463,28 @@ mod tests {
     }
 
     #[test]
+    fn model_list_request_uses_derived_url_and_returns_sorted_unique_ids() {
+        let body = r#"{"data":[{"id":"gpt-z"},{"id":"gpt-a"},{"id":"gpt-z"}]}"#;
+        let (base_url, captured_request) = spawn_http_server("200 OK", body);
+        let events = run_model_list_ffi(&base_url);
+        let request = captured_request
+            .recv_timeout(Duration::from_secs(2))
+            .unwrap();
+
+        assert!(request.starts_with("GET /v1/models HTTP/1.1"));
+        assert!(
+            request
+                .to_ascii_lowercase()
+                .contains("authorization: bearer test-secret")
+        );
+        assert_eq!(events.last().unwrap()["type"], "completed");
+        assert_eq!(
+            events.last().unwrap()["models"],
+            serde_json::json!(["gpt-a", "gpt-z"])
+        );
+    }
+
+    #[test]
     fn qwen_mt_request_normalizes_cumulative_chunks_without_done_marker() {
         let body = concat!(
             "data: {\"choices\":[{\"delta\":{\"role\":\"assistant\",\"content\":\"\"},\"finish_reason\":null}]}\n\n",
@@ -1246,6 +1622,39 @@ mod tests {
         events
     }
 
+    fn run_model_list_ffi(base_url: &str) -> Vec<serde_json::Value> {
+        let request = serde_json::to_vec(&serde_json::json!({
+            "schemaVersion": 1,
+            "requestID": "00000000-0000-0000-0000-000000000030",
+            "endpoint": {
+                "baseURL": base_url,
+                "urlMode": "baseURL",
+                "model": "",
+                "apiKey": "test-secret"
+            }
+        }))
+        .unwrap();
+        let (sender, receiver) = mpsc::channel();
+        let context = CallbackContext {
+            sender: Mutex::new(sender),
+        };
+        // SAFETY: Request bytes and callback context remain alive through the matching release.
+        let handle = unsafe {
+            marla_model_list_start(
+                request.as_ptr(),
+                request.len(),
+                Some(collect_event as MarlaTranslationEventCallback),
+                &context as *const CallbackContext as *mut std::ffi::c_void,
+            )
+        };
+        assert!(!handle.is_null());
+
+        let event = receiver.recv_timeout(Duration::from_secs(3)).unwrap();
+        // SAFETY: The non-null handle is released exactly once after its terminal callback.
+        unsafe { marla_translation_release(handle) };
+        vec![event]
+    }
+
     fn spawn_http_server(
         status: &'static str,
         body: &'static str,
@@ -1340,6 +1749,7 @@ mod tests {
             },
             endpoint: Endpoint {
                 base_url: "https://example.com/v1".to_string(),
+                url_mode: EndpointURLMode::BaseURL,
                 model: "test".to_string(),
                 api_key: None,
             },

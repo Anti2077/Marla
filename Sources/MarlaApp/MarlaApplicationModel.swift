@@ -83,20 +83,53 @@ struct TranslationAPIProfile: Identifiable, Codable, Equatable, Sendable {
     let id: UUID
     var name: String
     var baseURL: String
+    var urlMode: TranslationEndpointURLMode
     var modelName: String
 
-    init(id: UUID = UUID(), name: String = "新配置", baseURL: String = "", modelName: String = "") {
+    init(
+        id: UUID = UUID(),
+        name: String = "新配置",
+        baseURL: String = "",
+        urlMode: TranslationEndpointURLMode = .baseURL,
+        modelName: String = ""
+    ) {
         self.id = id
         self.name = name
         self.baseURL = baseURL
+        self.urlMode = urlMode
         self.modelName = modelName
     }
 
     var isConfigured: Bool {
-        guard let url = URL(string: baseURL.trimmingCharacters(in: .whitespacesAndNewlines)) else { return false }
+        Self.isValidEndpointURL(baseURL) &&
+            !modelName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
+
+    static func isValidEndpointURL(_ value: String) -> Bool {
+        guard let url = URL(string: value.trimmingCharacters(in: .whitespacesAndNewlines)) else {
+            return false
+        }
         return ["http", "https"].contains(url.scheme?.lowercased() ?? "") &&
             url.host != nil &&
-            !modelName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            url.query == nil &&
+            url.fragment == nil
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case id
+        case name
+        case baseURL
+        case urlMode
+        case modelName
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decode(UUID.self, forKey: .id)
+        name = try container.decode(String.self, forKey: .name)
+        baseURL = try container.decode(String.self, forKey: .baseURL)
+        urlMode = try container.decodeIfPresent(TranslationEndpointURLMode.self, forKey: .urlMode) ?? .baseURL
+        modelName = try container.decode(String.self, forKey: .modelName)
     }
 }
 
@@ -200,6 +233,7 @@ final class MarlaSettingsStore: ObservableObject {
         guard let profile = profile(id: profileID), profile.isConfigured else { return nil }
         return TranslationEndpointConfiguration(
             baseURL: profile.baseURL,
+            urlMode: profile.urlMode,
             model: profile.modelName,
             apiKey: apiKey(for: profile.id)
         )
@@ -213,11 +247,18 @@ final class MarlaSettingsStore: ObservableObject {
         return profile.id
     }
 
-    func updateProfile(id: UUID?, name: String? = nil, baseURL: String? = nil, modelName: String? = nil) {
+    func updateProfile(
+        id: UUID?,
+        name: String? = nil,
+        baseURL: String? = nil,
+        urlMode: TranslationEndpointURLMode? = nil,
+        modelName: String? = nil
+    ) {
         let targetID = id ?? defaultProfileID ?? profiles.first?.id ?? addProfile()
         guard let index = profiles.firstIndex(where: { $0.id == targetID }) else { return }
         if let name { profiles[index].name = name }
         if let baseURL { profiles[index].baseURL = baseURL }
+        if let urlMode { profiles[index].urlMode = urlMode }
         if let modelName { profiles[index].modelName = modelName }
         if defaultProfileID == nil { defaultProfileID = targetID }
         saveProfiles()

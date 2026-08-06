@@ -65,8 +65,65 @@ final class MarlaAppTests: XCTestCase {
         XCTAssertEqual(settings.profiles.count, 1)
         XCTAssertEqual(settings.defaultProfile?.name, "默认配置")
         XCTAssertEqual(settings.baseURL, "https://legacy.example/v1")
+        XCTAssertEqual(settings.defaultProfile?.urlMode, .baseURL)
         XCTAssertEqual(settings.modelName, "legacy-model")
         XCTAssertNotNil(defaults.data(forKey: "translationAPIProfiles.v1"))
+    }
+
+    @MainActor
+    func testStoredProfileWithoutURLModeMigratesToBaseURL() throws {
+        let suite = "com.marla.tests.url-mode-migration.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suite)!
+        defaults.removePersistentDomain(forName: suite)
+        let profileID = UUID()
+        let legacyJSON = """
+        [{"id":"\(profileID.uuidString)","name":"旧配置","baseURL":"https://legacy.example/v1","modelName":"legacy-model"}]
+        """
+        defaults.set(try XCTUnwrap(legacyJSON.data(using: .utf8)), forKey: "translationAPIProfiles.v1")
+
+        let settings = MarlaSettingsStore(
+            defaults: defaults,
+            keychain: KeychainCredentialStore(service: "com.marla.tests", account: UUID().uuidString)
+        )
+
+        XCTAssertEqual(settings.defaultProfile?.id, profileID)
+        XCTAssertEqual(settings.defaultProfile?.urlMode, .baseURL)
+        XCTAssertEqual(settings.defaultProfile?.baseURL, "https://legacy.example/v1")
+    }
+
+    @MainActor
+    func testCompleteURLModePersistsAndReachesEndpointConfiguration() {
+        let suite = "com.marla.tests.complete-url-mode.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suite)!
+        defaults.removePersistentDomain(forName: suite)
+        let settings = MarlaSettingsStore(
+            defaults: defaults,
+            keychain: KeychainCredentialStore(service: "com.marla.tests", account: UUID().uuidString)
+        )
+        let profileID = settings.addProfile()
+        settings.updateProfile(
+            id: profileID,
+            baseURL: "https://example.com/custom/chat/completions",
+            urlMode: .completeURL,
+            modelName: "demo"
+        )
+
+        XCTAssertEqual(settings.profile(id: profileID)?.urlMode, .completeURL)
+        XCTAssertEqual(settings.endpoint(for: profileID)?.urlMode, .completeURL)
+        XCTAssertEqual(settings.endpoint(for: profileID)?.baseURL, "https://example.com/custom/chat/completions")
+
+        let restored = MarlaSettingsStore(
+            defaults: defaults,
+            keychain: KeychainCredentialStore(service: "com.marla.tests", account: UUID().uuidString)
+        )
+        XCTAssertEqual(restored.profile(id: profileID)?.urlMode, .completeURL)
+    }
+
+    func testAPIProfileRejectsQueryAndFragmentURLs() {
+        XCTAssertTrue(TranslationAPIProfile.isValidEndpointURL("https://example.com/v1"))
+        XCTAssertFalse(TranslationAPIProfile.isValidEndpointURL("https://example.com/v1?key=value"))
+        XCTAssertFalse(TranslationAPIProfile.isValidEndpointURL("https://example.com/v1#fragment"))
+        XCTAssertFalse(TranslationAPIProfile.isValidEndpointURL("example.com/v1"))
     }
 
     @MainActor

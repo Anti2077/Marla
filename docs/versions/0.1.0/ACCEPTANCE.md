@@ -96,7 +96,9 @@
 
 ### 中文
 
-- [ ] Base URL、模型和空/非空 Key 都按协议构造请求；Key 只在非空时加入 Header。
+- [x] Base URL 模式追加 `/chat/completions`，完整 URL 模式原样使用地址；两种模式拒绝 query/fragment，并由测试连接和真实翻译共用。
+- [x] 模型获取由 Rust 根据 URL 模式推导 `/models`，携带当前配置 Key，返回排序去重列表；编辑器可展开并选择模型。
+- [ ] 模型和空/非空 Key 都按协议构造请求；Key 只在非空时加入 Header。
 - [ ] API Key 存在 Keychain，不出现在 UserDefaults、日志、错误或诊断输出。
 - [ ] 首字前显示等待状态，delta 增量显示，完成后内容与 Provider 一致。
 - [ ] 401/403、429、网络、首字超时、总超时、非法响应和断流显示对应恢复动作。
@@ -106,7 +108,9 @@
 
 ### English
 
-- [ ] Base URL, model, and empty/non-empty key build the specified request; Header is added only for non-empty key.
+- [x] Base URL mode appends `/chat/completions`; Complete URL mode uses the address unchanged. Both reject query/fragment and are shared by connection testing and real translation.
+- [x] Rust derives `/models` from the URL mode, uses the current profile key, and returns sorted unique IDs; the editor expands and selects a model.
+- [ ] Model and empty/non-empty key build the specified request; Header is added only for non-empty key.
 - [ ] API Key lives in Keychain and never appears in UserDefaults, logs, errors, or diagnostics.
 - [ ] Waiting appears before first token, deltas render incrementally, and completion matches provider output.
 - [ ] 401/403, 429, network, first-token timeout, total timeout, invalid response, and stream interruption show matching recovery actions.
@@ -170,6 +174,7 @@
 - [x] 流式游标、截图角点和语言路由胶囊是克制的状态细节，不遮挡正文。
 - [x] 菜单、设置、结果卡、快速输入和截图框选提示使用 macOS 26 Liquid Glass，并为 macOS 14–25 提供单层材质回退。
 - [x] 菜单和设置中的截图翻译使用目标系统可用且可见的 SF Symbol。
+- [x] API 编辑器首行获得焦点时，系统 Focus Ring 四边完整，不被滚动视口顶部裁切。
 
 ### English
 
@@ -181,6 +186,7 @@
 - [x] Streaming caret, screenshot corners, and language-route capsule remain restrained state details and never obscure content.
 - [x] The menu, Settings, result card, quick input, and screenshot-selection labels use macOS 26 Liquid Glass with a single material fallback on macOS 14–25.
 - [x] Screenshot translation uses an available and visible SF Symbol in both the menu and Settings.
+- [x] When the API editor's first row is focused, all four sides of the system Focus Ring remain visible instead of clipping at the scroll viewport's top edge.
 
 ## 9. 性能与内存 / Performance and Memory
 
@@ -245,6 +251,14 @@ TASK-008 automation and visual evidence: `./scripts/check.sh` passed (16 Rust te
 TASK-009 真实键盘与自动化证据：截图取消已提升为会话级本地/全局按键监听，原有 View 路径继续保留；结束时立即移除监听，迟到事件不能取消后续会话。`./scripts/check.sh` 通过（Rust 16 项、Swift 37 项、Swift/Xcode Debug 构建、格式/空白/diff 检查）。关闭固定路径的全部旧实例后，Computer Use 在唯一运行的 Release `artifacts/Marla_dev.app` 中发送真实 `Escape`，普通截图场景和“设置已打开后进入截图”场景的覆盖层均消失，未出现 OCR/翻译结果卡。固定 App 再次覆盖构建并保持 Bundle ID `com.marla.app`、arm64、Authority `API Usage Monitor Dev` 和既有 designated requirement。验收前截图与记录位于 `artifacts/ui-review/task-009/`；保存最后一张桌面截图时 Mac 自动锁定，但锁定前两次退出结果均已通过 Computer Use 的桌面状态重新读取确认。
 
 TASK-009 real-keyboard and automation evidence: screenshot cancellation now uses session-scoped local/global key monitors while retaining the original view route; monitors are removed immediately on finish, and a late event cannot cancel a later session. `./scripts/check.sh` passed (16 Rust tests, 37 Swift tests, Swift/Xcode Debug builds, formatting/whitespace/diff checks). After every old fixed-path process was stopped, Computer Use sent a real `Escape` to the sole running Release `artifacts/Marla_dev.app`. The overlay disappeared in both the ordinary screenshot scenario and the open-Settings screenshot scenario, with no OCR/translation result card. The fixed App was rebuilt again while preserving Bundle ID `com.marla.app`, arm64, Authority `API Usage Monitor Dev`, and the existing designated requirement. The pre-cancellation capture and verification record are under `artifacts/ui-review/task-009/`; the Mac auto-locked while the final desktop capture was being saved, after Computer Use had already re-read and confirmed both successful exits.
+
+TASK-010 自动化、真实 API 与视觉证据：每个 profile 新增显式 Base URL/完整 URL 模式；URL 行左侧使用 `Base [滑块] 完整`，模型字段移动到最下面，并通过刷新图标调用 Rust `/models` 请求后展开选择列表。C ABI 升级到 v2；旧配置仍迁移为 Base URL，Keychain account 和 profile UUID 不变。`./scripts/check.sh` 通过（Rust 17 项、Swift 41 项、Swift/Xcode Debug 构建、格式/空白/diff 检查）。项目所有者提供的完整端点使用 `gpt-5.6-luna` 返回 HTTP 200 `text/event-stream`、“你好”、`finish_reason: stop` 和 `[DONE]`；其 `/v1/models` 返回 20 个模型且包含 `gpt-5.6-luna`，凭据未打印或持久化。固定 App 重新构建并保持 Bundle ID `com.marla.app`、arm64、Authority `API Usage Monitor Dev` 和既有 designated requirement。浅色/深色行内滑块与展开模型列表证据位于 `artifacts/ui-review/task-010/`，五维评分为 8/8/8/8/7。
+
+TASK-010 automation, real-API, and visual evidence: every profile now has explicit Base URL/Complete URL semantics. The URL row uses `Base [switch] Complete`; Model Name is last, and its refresh icon invokes Rust `/models` discovery before revealing a selectable list. The C ABI is v2; legacy profiles still migrate to Base URL without changing Keychain accounts or profile UUIDs. `./scripts/check.sh` passed (17 Rust tests, 41 Swift tests, Swift/Xcode Debug builds, formatting/whitespace/diff checks). The project-owner-supplied Complete URL returned HTTP 200 `text/event-stream` with `gpt-5.6-luna`, “你好”, `finish_reason: stop`, and `[DONE]`. Its `/v1/models` endpoint returned 20 models including `gpt-5.6-luna`; the credential was neither printed nor persisted. The fixed App was rebuilt while preserving Bundle ID `com.marla.app`, arm64, Authority `API Usage Monitor Dev`, and the existing designated requirement. Light/dark inline-switch and expanded-model-list evidence is under `artifacts/ui-review/task-010/`, with five-dimension scores of 8/8/8/8/7.
+
+TASK-011 自动化与视觉证据：API 编辑器滚动内容顶部增加 8pt Focus Ring 安全边距，并提供只由 UI 验收环境变量启用的确定性首行聚焦。`./scripts/check.sh` 通过（Rust 17 项、Swift 41 项、Swift/Xcode Debug 构建、格式/空白/diff 检查）。固定 `artifacts/Marla_dev.app` 重新构建并保持 Bundle ID `com.marla.app`、arm64、Authority `API Usage Monitor Dev` 和既有 designated requirement。前台浅色/深色 Release 窗口按 Core Graphics Window ID 捕获，蓝色 Focus Ring 四边完整；证据位于 `artifacts/ui-review/task-011/`，五维评分为 8/8/9/8/7。
+
+TASK-011 automation and visual evidence: the API editor now gives its scroll content an 8pt top safety inset for the Focus Ring and exposes deterministic first-row focus only through the UI-acceptance environment. `./scripts/check.sh` passed (17 Rust tests, 41 Swift tests, Swift/Xcode Debug builds, formatting/whitespace/diff checks). The fixed `artifacts/Marla_dev.app` was rebuilt while preserving Bundle ID `com.marla.app`, arm64, Authority `API Usage Monitor Dev`, and the existing designated requirement. Frontmost light/dark Release windows captured by verified Core Graphics Window ID show all four sides of the blue Focus Ring; evidence is under `artifacts/ui-review/task-011/`, with five-dimension scores of 8/8/9/8/7.
 
 ## 11. 发布判定 / Release Decision
 

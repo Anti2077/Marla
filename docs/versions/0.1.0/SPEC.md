@@ -180,33 +180,35 @@ The prompt must clearly delimit source text as data rather than instructions and
 
 ### 中文
 
-0.1.0 支持一个可配置的 OpenAI-compatible Chat Completions 流式端点，不绑定默认厂商。设置包括：
+0.1.0 支持多个命名的 OpenAI-compatible Chat Completions 流式配置，不绑定默认厂商。每个配置包括：
 
-- Base URL，例如 `https://example.com/v1`；
-- 模型名；
+- URL 模式：Base URL 或完整 URL；
+- 对应地址，例如 Base URL `https://example.com/v1`，或完整 URL `https://example.com/v1/chat/completions`；
+- 模型名，可手工填写或从当前配置获取可用模型；
 - 可选 API Key；
 - 连接测试；
 - 三个快捷键开关与录制器；
 - Force Touch 实验开关；
 - 快捷键恢复默认值。
 
-Marla 在规范化 Base URL 后追加 `/chat/completions`。如果 API Key 非空，则使用 `Authorization: Bearer <key>`；空 Key 允许兼容不要求认证的本地或代理端点。Key 只保存在 macOS Keychain，Base URL、模型名和非敏感偏好保存在应用偏好。0.1.0 不支持自定义 Header、厂商专属请求参数、账号系统或 Marla 代理服务。
+Base URL 模式会在规范化地址后追加 `/chat/completions`；完整 URL 模式严格使用填写地址，不追加或删除路径。两种模式都要求 HTTP(S) host，且拒绝 query 和 fragment。测试连接与真实翻译共用同一解析规则。获取模型时，Base URL 追加 `/models`；完整 URL 只在尾部为 `/chat/completions` 时替换为 `/models`，不能安全推导则显示错误。模型列表网络请求由 Rust 核心执行，使用当前配置的 Key，不创建新的凭据副本。如果 API Key 非空，则使用 `Authorization: Bearer <key>`；空 Key 允许兼容不要求认证的本地或代理端点。每个配置的 Key 只保存在其独立 macOS Keychain account 中；URL、模式、模型名和非敏感偏好保存在应用偏好。0.1.0 不支持自定义 Header、厂商专属请求参数、账号系统或 Marla 代理服务。
 
 首次启动以紧凑清单引导配置 API、辅助功能权限和屏幕录制权限。快速输入本身不应因缺少辅助功能或屏幕录制权限而不可使用。菜单在任一准备项未完成时显示可操作状态；三项全部完成后自动隐藏该状态条，并在原区域展示最多三条仅本次运行保留的最近完成翻译。点击最近翻译只重新打开完成态结果，不重复网络请求。
 
 ### English
 
-0.1.0 supports one configurable OpenAI-compatible streaming Chat Completions endpoint and binds to no default vendor. Settings include:
+0.1.0 supports multiple named OpenAI-compatible streaming Chat Completions profiles and binds to no default vendor. Each profile includes:
 
-- Base URL, for example `https://example.com/v1`;
-- model name;
+- URL mode: Base URL or Complete URL;
+- its corresponding address, for example Base URL `https://example.com/v1` or Complete URL `https://example.com/v1/chat/completions`;
+- model name, entered manually or selected from models fetched for the current profile;
 - optional API Key;
 - connection test;
 - three shortcut switches and recorders;
 - experimental Force Touch toggle;
 - restore-default-shortcuts action.
 
-Marla normalizes the Base URL and appends `/chat/completions`. A non-empty API Key produces `Authorization: Bearer <key>`; an empty key supports local or proxy endpoints that require no authentication. The key is stored only in macOS Keychain. Base URL, model, and non-sensitive preferences use application preferences. Custom headers, vendor-specific request options, accounts, and a Marla proxy service are not supported in 0.1.0.
+Base URL mode normalizes the address and appends `/chat/completions`; Complete URL mode uses the entered address exactly without adding or removing path components. Both modes require an HTTP(S) host and reject query or fragment components. Connection testing and real translation share the same resolution rule. For model discovery, Base URL appends `/models`; Complete URL replaces a trailing `/chat/completions` with `/models` and reports an error when the address cannot be derived safely. Rust performs the model-list request with the current profile key and creates no second credential copy. A non-empty API Key produces `Authorization: Bearer <key>`; an empty key supports local or proxy endpoints that require no authentication. Each profile's key is stored only in its independent macOS Keychain account. URL, mode, model, and non-sensitive preferences use application preferences. Custom headers, vendor-specific request options, accounts, and a Marla proxy service are not supported in 0.1.0.
 
 First launch uses a compact checklist for API configuration, Accessibility permission, and Screen Recording permission. Quick input must remain usable when Accessibility or Screen Recording permission is absent. The menu shows actionable status while any setup item is incomplete. Once all three are ready, that status row hides automatically and its region shows up to three recent completed translations retained for the current run only. Selecting a recent translation reopens the completed result without repeating a network request.
 

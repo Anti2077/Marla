@@ -177,13 +177,25 @@ public struct CardPresentation: Equatable, Sendable {
     }
 }
 
+public enum TranslationEndpointURLMode: String, Codable, CaseIterable, Sendable {
+    case baseURL
+    case completeURL
+}
+
 public struct TranslationEndpointConfiguration: Codable, Equatable, Sendable {
     public var baseURL: String
+    public var urlMode: TranslationEndpointURLMode
     public var model: String
     public var apiKey: String?
 
-    public init(baseURL: String = "", model: String = "", apiKey: String? = nil) {
+    public init(
+        baseURL: String = "",
+        urlMode: TranslationEndpointURLMode = .baseURL,
+        model: String = "",
+        apiKey: String? = nil
+    ) {
         self.baseURL = baseURL
+        self.urlMode = urlMode
         self.model = model
         self.apiKey = apiKey
     }
@@ -225,6 +237,43 @@ public struct TranslationTimeouts: Codable, Equatable, Sendable {
     }
 
     public static let `default` = TranslationTimeouts()
+}
+
+public struct ModelListFFIRequest: Codable, Equatable, Sendable {
+    public let schemaVersion: Int
+    public let requestID: UUID
+    public let endpoint: TranslationEndpointConfiguration
+
+    public init(requestID: UUID, endpoint: TranslationEndpointConfiguration) {
+        self.schemaVersion = 1
+        self.requestID = requestID
+        self.endpoint = endpoint
+    }
+}
+
+public struct ModelListFFIEvent: Codable, Equatable, Sendable {
+    public let schemaVersion: Int
+    public let requestID: UUID
+    public let type: String
+    public let models: [String]?
+    public let code: TranslationErrorCode?
+    public let message: String?
+
+    public init(
+        schemaVersion: Int,
+        requestID: UUID,
+        type: String,
+        models: [String]? = nil,
+        code: TranslationErrorCode? = nil,
+        message: String? = nil
+    ) {
+        self.schemaVersion = schemaVersion
+        self.requestID = requestID
+        self.type = type
+        self.models = models
+        self.code = code
+        self.message = message
+    }
 }
 
 public struct TranslationFFIEvent: Codable, Equatable, Sendable {

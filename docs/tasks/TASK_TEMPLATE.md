@@ -10,6 +10,12 @@ Updated: YYYY-MM-DD
 
 Origin: BL-XXX / direct request / defect
 
+Conversation: 当前开发对话的标题、日期或可识别说明
+
+## Initial request
+
+记录项目所有者开启本次开发对话时的原始目标。后续追加内容不改写这里，而是进入 Scope changes。
+
 ## Outcome
 
 用一两句话描述任务完成后用户能够做什么，或我们将获得什么确定证据。
@@ -20,13 +26,21 @@ Origin: BL-XXX / direct request / defect
 
 ## In Scope
 
-- 本任务必须完成的行为或修改。
+- 当前对话累计要求完成的行为或修改，包括后续明确追加的内容。
 - 必须同步的测试和文档。
 
 ## Out of Scope
 
 - 容易被顺手加入、但本任务明确不做的内容。
 - 已记录到 Ideas 或 Backlog 的后续工作。
+
+## Scope changes during the conversation
+
+每次追加、移除或改变需求时增加一行；不要只修改 In Scope 而丢失变化来源。
+
+| Date | Requested by | Change | Acceptance / verification impact | Status |
+| --- | --- | --- | --- | --- |
+| YYYY-MM-DD | Project owner / necessary support | 增加、调整或移除的内容 | 新增或修改哪些验收与验证 | Pending / Verified / Removed |
 
 ## Current evidence
 
@@ -40,6 +54,7 @@ Origin: BL-XXX / direct request / defect
 
 ## Acceptance criteria
 
+- [ ] 初始请求和 Scope changes 中所有仍有效的要求都有对应验收项。
 - [ ] 用户可观察的完成条件。
 - [ ] 关键错误或降级路径。
 - [ ] 相关自动化测试通过。
@@ -84,3 +99,4 @@ Origin: BL-XXX / direct request / defect
 - Manual evidence:
 - Documentation updated:
 - Remaining work promoted to:
+- Scope changes closed:

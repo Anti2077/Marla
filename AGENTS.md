@@ -14,6 +14,8 @@ Then inspect the live code and tests. Do not assume that a chat transcript refle
 
 If `STATUS.md` says there is no active task, do not choose an implementation item from the roadmap, backlog, or idea pool. Help the project owner clarify one task first, then create or activate its task document.
 
+Each implementation-focused development conversation maps to one Task. Keep using and updating that Task for the lifetime of the conversation, including requirements the project owner adds while work is in progress. Idea capture, explanation, review, and planning-only conversations do not require an implementation Task unless they turn into authorized project changes.
+
 ## Project boundaries
 
 - Marla is a native macOS instantaneous translation layer.
@@ -26,7 +28,9 @@ If `STATUS.md` says there is no active task, do not choose an implementation ite
 
 - At the start of every task, compare `STATUS.md`, relevant specifications, code, and tests.
 - If they disagree, report and resolve the mismatch instead of silently choosing one source.
-- Keep at most one task under `docs/tasks/` in `Active` state. A task is the Agent's immediate implementation contract and must have explicit in-scope, out-of-scope, and acceptance sections.
+- Treat the current development conversation and its Task as one evolving unit of work. In the shared worktree, normally keep at most one Task in `Active` state unless separate branches or worktrees were explicitly arranged.
+- A Task must have explicit current scope, exclusions, acceptance criteria, and a scope-change record. When the project owner adds work in the same conversation, update those sections and continue in the same Task instead of creating a new Task for every addition.
+- Do not expand a Task merely because an extra feature is convenient. Agent-discovered supporting work may be added only when it is necessary for the requested outcome and is reported. Unrelated suggestions remain in Ideas or Backlog unless the project owner explicitly brings them into the current conversation's scope.
 - Keep `STATUS.md` current-state only. Git history is the historical log.
 - Record uncommitted future possibilities in `docs/backlog/IDEAS.md` with their context, tradeoffs, risks, and open questions. Discussion does not authorize implementation.
 - Move an idea to `docs/backlog/BACKLOG.md` only after the project owner confirms it should be done or an accepted ADR requires it. Move a backlog item into a Task only when it is selected for work.

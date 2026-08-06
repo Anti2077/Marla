@@ -91,7 +91,7 @@ final class MarlaCoreTests: XCTestCase {
     }
 
     func testRustCoreBridgeVersionAndSurfaceClassification() {
-        XCTAssertEqual(RustCoreBridge.apiVersion, 1)
+        XCTAssertEqual(RustCoreBridge.apiVersion, 2)
         XCTAssertEqual(
             RustCoreBridge.classifySurface(applicationBundleID: "com.apple.Terminal"),
             .terminal
@@ -109,6 +109,7 @@ final class MarlaCoreTests: XCTestCase {
             target: .english,
             endpoint: TranslationEndpointConfiguration(
                 baseURL: "https://example.com/v1",
+                urlMode: .completeURL,
                 model: "demo",
                 apiKey: "secret"
             )
@@ -123,11 +124,31 @@ final class MarlaCoreTests: XCTestCase {
         XCTAssertNil(object["requestId"])
         let endpoint = try XCTUnwrap(object["endpoint"] as? [String: Any])
         XCTAssertEqual(endpoint["baseURL"] as? String, "https://example.com/v1")
+        XCTAssertEqual(endpoint["urlMode"] as? String, "completeURL")
         XCTAssertNil(endpoint["baseUrl"])
         XCTAssertEqual(endpoint["apiKey"] as? String, "secret")
         let target = try XCTUnwrap(object["target"] as? [String: Any])
         XCTAssertEqual(target["mode"] as? String, "explicit")
         XCTAssertEqual(target["language"] as? String, "en")
+    }
+
+    func testModelListRequestEncodesCurrentURLModeAndCredential() throws {
+        let request = ModelListFFIRequest(
+            requestID: UUID(uuidString: "00000000-0000-0000-0000-000000000003")!,
+            endpoint: TranslationEndpointConfiguration(
+                baseURL: "https://example.com/v1/chat/completions",
+                urlMode: .completeURL,
+                model: "",
+                apiKey: "secret"
+            )
+        )
+        let data = try JSONEncoder().encode(request)
+        let object = try XCTUnwrap(JSONSerialization.jsonObject(with: data) as? [String: Any])
+        XCTAssertEqual(object["schemaVersion"] as? Int, 1)
+        let endpoint = try XCTUnwrap(object["endpoint"] as? [String: Any])
+        XCTAssertEqual(endpoint["baseURL"] as? String, "https://example.com/v1/chat/completions")
+        XCTAssertEqual(endpoint["urlMode"] as? String, "completeURL")
+        XCTAssertEqual(endpoint["apiKey"] as? String, "secret")
     }
 
     func testTranslationEventsDecodeStableFailureAndDelta() throws {

@@ -25,6 +25,13 @@ MarlaTranslationHandle *marla_translation_start(
     void *context
 );
 
+MarlaTranslationHandle *marla_model_list_start(
+    const uint8_t *request_json,
+    size_t request_json_length,
+    MarlaTranslationEventCallback callback,
+    void *context
+);
+
 void marla_translation_cancel(MarlaTranslationHandle *handle);
 void marla_translation_release(MarlaTranslationHandle *handle);
 

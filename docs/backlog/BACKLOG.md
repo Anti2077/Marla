@@ -25,6 +25,8 @@ Backlog 只收录已经确认需要完成、但尚未成为当前 Task 的工作
 | BL-009 | 设置与浮层交互细节修正 | Complete: TASK-007 | 0.1.0 Alpha UX 修复 | None |
 | BL-010 | 设置窗口一体化与截图焦点修正 | Complete: TASK-008 | 0.1.0 Alpha UX 修复 | None |
 | BL-011 | 可靠取消截图框选 | Complete: TASK-009 | 0.1.0 Alpha 真实缺陷 | None |
+| BL-012 | API Base URL、完整 URL 与模型获取 | Complete: TASK-010 | 0.1.0 Alpha 兼容性修复 | None |
+| BL-013 | API 编辑器顶部聚焦边框完整显示 | Complete: TASK-011 | 0.1.0 Alpha 视觉缺陷 | None |
 
 ## 条目详情
 
@@ -87,7 +89,7 @@ Backlog 只收录已经确认需要完成、但尚未成为当前 Task 的工作
 将 Backlog 条目提升为 Task 时：
 
 1. 复制 `tasks/TASK_TEMPLATE.md`，分配下一个连续编号。
-2. 把范围缩小到一个可验证结果，不直接把整个 Backlog 条目原样搬过去。
+2. 用本次开发对话的初始目标创建 Task，不必把整个 Backlog 条目原样搬过去；对话中项目所有者追加的内容继续更新同一个 Task。
 3. 在本文件把状态改成 `Active task: TASK-xxx` 并链接施工单。
 4. 在 `development/STATUS.md` 中设置同一个活动 Task。
 5. 任务完成后根据剩余工作关闭、拆分或保留 Backlog 条目。

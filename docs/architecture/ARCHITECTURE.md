@@ -68,7 +68,7 @@ The accepted future engine may build bounded context only when translation is tr
 
 ### Translation providers
 
-Version 0.1.0 exposes one configurable OpenAI-compatible Chat Completions streaming endpoint. Users supply Base URL, model, and optional API Key. Rust owns request prompting, SSE parsing, timeouts, explicit retry, cancellation, and normalized events; no default vendor is selected.
+Version 0.1.0 exposes multiple named OpenAI-compatible Chat Completions streaming profiles, with one default profile for new sessions and explicit switching on result cards. Each profile supplies a URL mode, address, model, and optional API Key. Base URL mode appends `/chat/completions`; Complete URL mode preserves the supplied request URL. Rust also derives and requests the standard `/models` endpoint for the current URL mode, returning provider-independent model IDs through the versioned asynchronous C ABI. Swift persists non-sensitive profile data and independent Keychain accounts, while Rust owns URL resolution, model discovery, request prompting, SSE parsing, timeouts, explicit retry, cancellation, and normalized events. No default vendor is selected.
 
 ### Presentation
 

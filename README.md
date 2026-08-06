@@ -13,7 +13,7 @@ The active 0.1.0 Alpha scope is:
 
 0.1.0 does not upload screenshot pixels, collect contextual window text, save translation history, cover source text in place, or provide cloud structured OCR. See [`docs/versions/0.1.0/SPEC.md`](docs/versions/0.1.0/SPEC.md) for the complete bilingual release contract.
 
-The native Xcode application, translation core, and 0.1.0 UI vertical slices are implemented. Start with [`docs/development/STATUS.md`](docs/development/STATUS.md) for verified progress and remaining manual checks.
+The native Xcode application, translation core, and 0.1.0 UI vertical slices are implemented. Start with [`docs/README.md`](docs/README.md) for the documentation map and [`docs/development/STATUS.md`](docs/development/STATUS.md) for verified progress. Daily work uses one focused Task; confirmed future work and uncommitted ideas are kept separate.
 
 ## Development prerequisites
 

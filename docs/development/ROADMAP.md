@@ -1,55 +1,34 @@
 # Roadmap
 
-## Active release: 0.1.0 Alpha
+The roadmap describes broad capability order. It is not a daily checklist and does not authorize an Agent to begin work. Current execution lives in `STATUS.md` and one active Task; confirmed work lives in Backlog; uncommitted possibilities live in Ideas.
 
-0.1.0 takes a deliberately bounded path through M1-M4:
+## Now: 0.1.0 Alpha acceptance
 
-1. Stable Xcode macOS app target, Bundle ID, permissions, Rust build integration, and timestamped test-app packaging.
-2. OpenAI-compatible streaming translation through the versioned Rust FFI.
-3. Selection translation in a nearby non-activating card; in-place source covering is deferred.
-4. Vision-only local screenshot OCR; cloud structured OCR is deferred until after 0.1.0.
-5. Quick input, comparison, copy, retry, system speech, pinning, configurable shortcuts, and permission onboarding.
-6. Compatibility, performance, memory, privacy, and real-app visual acceptance.
+The native application and three vertical slices are implemented. The remaining phase is evidence, not feature expansion:
 
-The complete release contract is under `docs/versions/0.1.0/`.
+- representative cross-application selection compatibility;
+- real screenshot crop and permission persistence;
+- latency and memory measurement;
+- all remaining non-Force-Touch acceptance checks.
 
-## M0: Product planning and durable documentation
+The complete contract is under `docs/versions/0.1.0/`; executable candidates are listed as BL-001 through BL-004.
 
-- Define initial scope, architecture, feature specifications, and decisions.
-- Establish the Agent reading and documentation-update workflow.
+## Next: strengthen the instantaneous translation layer
 
-## M1: Technical feasibility
+Potential directions after 0.1.0, subject to separate Tasks and product decisions:
 
-- Build a native menu-bar application skeleton.
-- Establish and validate the embedded Rust static-library bridge.
-- Validate Accessibility selected-text and bounds behavior.
-- Validate non-activating inline presentation.
-- Test whether global Force Touch is reliable enough to ship as an optional trigger.
-- Validate ScreenCaptureKit across displays and scale factors.
-- Measure OCR and translation latency with representative samples.
+- bounded on-demand context and user-controlled terminology;
+- optional cloud structured OCR with explicit image-upload consent;
+- compatibility and interaction improvements to current entry points;
+- investigation of precise in-place presentation with honest fallback;
+- Provider capability and configuration evolution.
 
-## M2: Inline translation vertical slice
+Accepted architectural directions appear in ADRs. Open questions and promotion conditions are in `docs/backlog/IDEAS.md`.
 
-- Reliable keyboard trigger.
-- Selection acquisition without contextual window data in 0.1.0.
-- Streaming translation provider.
-- Nearby non-activating result card for 0.1.0; in-place overlay remains future work.
-- Translation-first and comparison presentation.
+## Later: universal translation workspace
 
-## M3: Screenshot translation vertical slice
+After the instantaneous layer is reliable, evaluate a separate main workspace for one document format at a time. PDF, Office, multipage OCR, batch processing, persistent jobs, and layout-preserving export require their own product and storage decisions.
 
-- Region-selection experience.
-- Vision-only local OCR and plain-text rendering for 0.1.0.
-- Cloud structured OCR and layout-aware rendering after 0.1.0.
+## Release engineering
 
-## M4: Productization
-
-- Permission onboarding.
-- Settings, Keychain credentials, privacy controls, and optional history.
-- Compatibility, performance, accessibility, signing, notarization, and update strategy.
-
-## M5: Universal translation workspace
-
-- Main document interface.
-- PDF and common document formats.
-- Re-evaluate local structured OCR and document models.
+Developer ID signing, notarization, DMG packaging, updates, Intel support, and public distribution are considered only when an owner-selected release Task brings them into scope.

@@ -11,8 +11,13 @@ import Vision
 
 @MainActor
 final class KeychainCredentialStore: @unchecked Sendable {
-    private let service = "com.marla.app"
-    private let account = "translation-api-key"
+    private let service: String
+    private let account: String
+
+    init(service: String = "com.marla.app", account: String = "translation-api-key") {
+        self.service = service
+        self.account = account
+    }
 
     var hasCredential: Bool { read() != nil }
 
@@ -90,8 +95,8 @@ final class MarlaSettingsStore: ObservableObject {
     @Published private(set) var credentialRevision = 0
     @Published private(set) var onboardingSkipped: Bool
 
-    let keychain = KeychainCredentialStore()
-    private let defaults = UserDefaults.standard
+    let keychain: KeychainCredentialStore
+    private let defaults: UserDefaults
 
     private enum Keys {
         static let baseURL = "translationBaseURL"
@@ -102,7 +107,9 @@ final class MarlaSettingsStore: ObservableObject {
         static let onboardingSkipped = "onboardingSkipped"
     }
 
-    init() {
+    init(defaults: UserDefaults = .standard, keychain: KeychainCredentialStore = KeychainCredentialStore()) {
+        self.defaults = defaults
+        self.keychain = keychain
         baseURL = defaults.string(forKey: Keys.baseURL) ?? ""
         modelName = defaults.string(forKey: Keys.modelName) ?? ""
         let mode = TranslationTargetMode(rawValue: defaults.string(forKey: Keys.targetMode) ?? "automatic") ?? .automatic
@@ -534,9 +541,10 @@ final class FloatingPanelCoordinator: NSObject, NSWindowDelegate {
     private var globalMonitor: Any?
     private var localMonitor: Any?
 
-    init(model: MarlaApplicationModel? = nil) {
+    init(model: MarlaApplicationModel? = nil, installEventMonitors: Bool = true) {
         self.model = model
         super.init()
+        guard installEventMonitors else { return }
         globalMonitor = NSEvent.addGlobalMonitorForEvents(matching: [.leftMouseDown, .rightMouseDown, .keyDown]) { [weak self] event in
             Task { @MainActor [weak self] in
                 guard let self else { return }
@@ -790,6 +798,12 @@ protocol GlobalShortcutManaging: AnyObject {
 
 private let marlaHotKeySignature: OSType = 0x4D52_4C41 // MRLA
 
+enum MarlaRuntime {
+    static var isXcodePreview: Bool {
+        ProcessInfo.processInfo.environment["XCODE_RUNNING_FOR_PREVIEWS"] == "1"
+    }
+}
+
 private func handleMarlaHotKeyEvent(
     _ nextHandler: EventHandlerCallRef?,
     _ event: EventRef?,
@@ -820,8 +834,9 @@ final class GlobalShortcutManager: ObservableObject, GlobalShortcutManaging {
     private var eventHandler: EventHandlerRef?
     private var registeredHotKeys: [GlobalShortcutAction: EventHotKeyRef] = [:]
 
-    init() {
+    init(registerHotKeys: Bool = !MarlaRuntime.isXcodePreview) {
         load()
+        guard registerHotKeys else { return }
         var eventType = EventTypeSpec(
             eventClass: OSType(kEventClassKeyboard),
             eventKind: UInt32(kEventHotKeyPressed)
@@ -1326,18 +1341,33 @@ final class MarlaApplicationModel: ObservableObject {
     let panelCoordinator: FloatingPanelCoordinator
     let screenshotCoordinator = ScreenshotCaptureCoordinator()
     let visionOCR = VisionOCRService()
-    let shortcutManager = GlobalShortcutManager()
+    let shortcutManager: GlobalShortcutManager
     let settingsWindowCoordinator = MarlaSettingsWindowCoordinator()
 
     private let selectionReader: AccessibilitySelectionReader
 
-    init(selectionReader: AccessibilitySelectionReader = AccessibilitySelectionReader()) {
+    init(
+        selectionReader: AccessibilitySelectionReader = AccessibilitySelectionReader(),
+        settings: MarlaSettingsStore = MarlaSettingsStore(),
+        enableSystemIntegrations: Bool = !MarlaRuntime.isXcodePreview,
+        accessibilityTrusted: Bool? = nil,
+        screenRecordingAuthorized: Bool? = nil
+    ) {
         self.selectionReader = selectionReader
-        settings = MarlaSettingsStore()
+        self.settings = settings
         sessionStore = TranslationSessionStore(settings: settings)
-        panelCoordinator = FloatingPanelCoordinator()
+        panelCoordinator = FloatingPanelCoordinator(installEventMonitors: enableSystemIntegrations)
+        shortcutManager = GlobalShortcutManager(registerHotKeys: enableSystemIntegrations)
         panelCoordinator.attach(model: self)
-        refreshPermissions()
+        if enableSystemIntegrations {
+            refreshPermissions()
+        }
+        if let accessibilityTrusted {
+            self.accessibilityTrusted = accessibilityTrusted
+        }
+        if let screenRecordingAuthorized {
+            self.screenRecordingAuthorized = screenRecordingAuthorized
+        }
         shortcutManager.onAction = { [weak self] action in
             switch action {
             case .selection: self?.translateSelection()

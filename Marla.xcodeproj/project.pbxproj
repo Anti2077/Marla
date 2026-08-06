@@ -11,6 +11,7 @@
 		A10000000000000000000002 /* MarlaApplicationModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000002 /* MarlaApplicationModel.swift */; };
 		A10000000000000000000003 /* AccessibilitySelectionReader.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000003 /* AccessibilitySelectionReader.swift */; };
 		A10000000000000000000004 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000004 /* SettingsView.swift */; };
+		A1000000000000000000000E /* MarlaPreviews.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000011 /* MarlaPreviews.swift */; };
 		A10000000000000000000005 /* ContentModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000005 /* ContentModels.swift */; };
 		A10000000000000000000006 /* ContextModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000006 /* ContextModels.swift */; };
 		A10000000000000000000007 /* Geometry.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000007 /* Geometry.swift */; };
@@ -37,6 +38,7 @@
 		A20000000000000000000002 /* MarlaApplicationModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MarlaApplicationModel.swift; sourceTree = "<group>"; };
 		A20000000000000000000003 /* AccessibilitySelectionReader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccessibilitySelectionReader.swift; sourceTree = "<group>"; };
 		A20000000000000000000004 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+		A20000000000000000000011 /* MarlaPreviews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MarlaPreviews.swift; sourceTree = "<group>"; };
 		A20000000000000000000005 /* ContentModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentModels.swift; sourceTree = "<group>"; };
 		A20000000000000000000006 /* ContextModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContextModels.swift; sourceTree = "<group>"; };
 		A20000000000000000000007 /* Geometry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Geometry.swift; sourceTree = "<group>"; };
@@ -47,6 +49,7 @@
 		A2000000000000000000000C /* MarlaRustFFI.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = MarlaRustFFI.c; sourceTree = "<group>"; };
 		A2000000000000000000000D /* MarlaRustFFI.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = MarlaRustFFI.h; sourceTree = "<group>"; };
 		A2000000000000000000000E /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		A20000000000000000000012 /* Info-Debug.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "Info-Debug.plist"; sourceTree = "<group>"; };
 		A2000000000000000000000F /* libMarlaCore.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = libMarlaCore.a; sourceTree = BUILT_PRODUCTS_DIR; };
 		A20000000000000000000010 /* Marla.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Marla.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
@@ -95,6 +98,7 @@
 				A20000000000000000000003 /* AccessibilitySelectionReader.swift */,
 				A20000000000000000000002 /* MarlaApplicationModel.swift */,
 				A20000000000000000000001 /* MarlaApp.swift */,
+				A20000000000000000000011 /* MarlaPreviews.swift */,
 				A20000000000000000000004 /* SettingsView.swift */,
 			);
 			path = MarlaApp;
@@ -126,6 +130,7 @@
 		A70000000000000000000006 /* Resources */ = {
 			isa = PBXGroup;
 			children = (
+				A20000000000000000000012 /* Info-Debug.plist */,
 				A2000000000000000000000E /* Info.plist */,
 			);
 			path = Resources;
@@ -256,6 +261,7 @@
 				A10000000000000000000003 /* AccessibilitySelectionReader.swift in Sources */,
 				A10000000000000000000002 /* MarlaApplicationModel.swift in Sources */,
 				A10000000000000000000001 /* MarlaApp.swift in Sources */,
+				A1000000000000000000000E /* MarlaPreviews.swift in Sources */,
 				A10000000000000000000004 /* SettingsView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -400,7 +406,7 @@
 				ENABLE_APP_SANDBOX = NO;
 				ENABLE_HARDENED_RUNTIME = YES;
 				GENERATE_INFOPLIST_FILE = NO;
-				INFOPLIST_FILE = Resources/Info.plist;
+				INFOPLIST_FILE = "Resources/Info-Debug.plist";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",

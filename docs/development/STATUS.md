@@ -20,6 +20,7 @@ Finish 0.1.0 through small, owner-selected Tasks without expanding the release s
 - Cross-display ScreenCaptureKit selection, in-memory Vision OCR, stable line order, and text-only translation requests.
 - Embedded Rust static library with versioned C ABI, shared async runtime, generic OpenAI-compatible SSE, Qwen-MT adaptation, timeouts, cancellation, and stale-event isolation.
 - Grouped Settings, Carbon shortcuts, Keychain credential storage, permission guidance, light/dark appearance, Reduce Motion, and verified test-app packaging.
+- Xcode SwiftUI previews for the main menu, Settings, translation-card states, and quick input, with preview-safe fixtures that avoid system integrations.
 
 Implementation baseline commit: `88954bb`.
 
@@ -53,6 +54,8 @@ Before implementation, select exactly one item and create a `Ready` then `Active
 - Rust: 16 tests passed.
 - Swift: 18 tests passed.
 - Xcode Debug application build passed.
+- SwiftUI preview support compiled in the Swift Package and Xcode Debug build.
+- Xcode Preview launched and loaded `__preview.dylib` while the fixed-path development app remained running; Debug allows the Preview host instance while Release remains single-instance.
 - `Marla_test_202608060135.app` passed Bundle ID, version, deployment target, arm64, executable, and signature checks.
 - Real-app visual scenarios passed the five-dimension SwiftUI review with every dimension at least 7/10.
 - A real DashScope `qwen-mt-turbo` request translated `Hello` to “你好”; the credential remained in Keychain.

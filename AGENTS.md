@@ -17,11 +17,8 @@ If `STATUS.md` says there is no active task, do not choose an implementation ite
 ## Project boundaries
 
 - Marla is a native macOS instantaneous translation layer.
-- Marla 0.1.0 focuses on selection translation in a nearby card, Vision-only screenshot translation, and quick input.
+- The currently implemented behavior and the active Task define what may be changed in this worktree. Do not infer new scope from an old release discussion.
 - Use Swift 6, SwiftUI, and AppKit for presentation and macOS integration. Use the embedded Rust core for business logic according to ADR-0004. Do not introduce Tauri, Python, a localhost sidecar, or a bundled local VLM without an accepted ADR.
-- macOS Vision is the only OCR provider in 0.1.0. Cloud GLM-OCR remains a post-0.1.0 plan and must not appear in active 0.1.0 UI or network flows.
-- 0.1.0 does not send contextual window data, keep translation history, or cover source text in place.
-- PDF, Office documents, batch processing, and a full document workspace are deferred.
 - Screenshots are ephemeral by default and must not be persisted without an explicit product decision.
 - Do not add unrelated features merely because they are convenient to implement.
 
@@ -36,14 +33,14 @@ If `STATUS.md` says there is no active task, do not choose an implementation ite
 - Update a feature specification when its behavior or acceptance criteria change.
 - Create an ADR only for a durable architectural or product decision.
 - Update `ROADMAP.md` only when broad capability order changes. Do not use it as a task checklist.
-- Treat `docs/versions/0.1.0/` as the active release contract and acceptance target, not as the daily task tracker.
-- Keep the Chinese and English portions of every 0.1.0 version document synchronized in the same change. Chinese is normative if they disagree.
+- Treat the release contract linked from `STATUS.md` as a target and acceptance reference, not as the daily task tracker.
+- When the active release contract has bilingual sections, keep both languages synchronized in the same change; the contract defines which language is normative.
 - A task is not complete until relevant tests pass and documentation reflects the verified state.
 - Preserve user changes and keep edits focused.
 
 ## UI design requirement
 
-Before implementing or materially changing 0.1.0 SwiftUI surfaces, read and use the installed `swiftui-design-skill`. If it is unavailable, install `wholiver/swiftui-design-skill@swiftui-design-skill` before UI work. After implementation, run its five-dimension review against real app screenshots; every dimension must score at least 7/10.
+Before implementing or materially changing SwiftUI surfaces, read and use the installed `swiftui-design-skill`. If it is unavailable, install `wholiver/swiftui-design-skill@swiftui-design-skill` before UI work. After implementation, run its five-dimension review against real app screenshots; every dimension must score at least 7/10.
 
 ## Command teaching
 
@@ -71,10 +68,10 @@ The packaging script verifies that Release resolves only `target/release`, stage
 
 1. Live code and automated tests describe current behavior.
 2. The active Task describes the current authorized work and its acceptance criteria.
-3. Active version specifications describe the accepted release target.
-4. Accepted ADRs describe durable intent.
-5. Architecture and feature specifications describe the broader design.
-6. `STATUS.md` describes current execution state and known gaps.
+3. `STATUS.md` describes the verified development state and known gaps.
+4. Architecture and feature specifications describe the broader design.
+5. Accepted ADRs describe durable intent.
+6. The release contract linked from `STATUS.md` describes the current target, not necessarily implemented behavior.
 7. Backlog, ideas, and roadmap describe future possibilities or ordering; they do not prove implementation.
 
 If code contradicts an accepted ADR, record the discrepancy in `STATUS.md` and resolve it deliberately.

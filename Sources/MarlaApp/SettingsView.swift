@@ -2,165 +2,618 @@ import AppKit
 import MarlaCore
 import SwiftUI
 
+private enum SettingsPage: String, CaseIterable, Identifiable {
+    case general
+    case api
+    case shortcuts
+    case ocr
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .general: "通用"
+        case .api: "翻译 API"
+        case .shortcuts: "快捷键"
+        case .ocr: "OCR"
+        }
+    }
+
+    var symbolName: String {
+        switch self {
+        case .general: "slider.horizontal.3"
+        case .api: "network"
+        case .shortcuts: "command"
+        case .ocr: "text.viewfinder"
+        }
+    }
+}
+
+struct APIProfileEditorPresentation: Identifiable, Equatable {
+    let profileID: UUID
+    let isNew: Bool
+
+    var id: UUID { profileID }
+}
+
 struct SettingsView: View {
     @ObservedObject var settings: MarlaSettingsStore
     @ObservedObject var appModel: MarlaApplicationModel
-    @State private var apiKeyDraft = ""
-    @State private var connectionMessage: String?
-    @StateObject private var connectionTester = TranslationConnectionTester()
+    @State private var selectedPage: SettingsPage = .general
+    @State private var editorPresentation: APIProfileEditorPresentation?
+    @State private var pendingNewProfileID: UUID?
 
     var body: some View {
-        Form {
-            apiSection
-            shortcutSection
-            permissionSection
-            experimentSection
+        HStack(spacing: 0) {
+            settingsSidebar
+            Divider()
+                .padding(.vertical, DesignTokens.radiusM)
+            Group {
+                switch selectedPage {
+                case .general: generalPage
+                case .api: apiPage
+                case .shortcuts: shortcutsPage
+                case .ocr: ocrPage
+                }
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         }
-        .formStyle(.grouped)
-        .scrollContentBackground(.hidden)
-        .frame(width: 620, height: 560)
-        .padding(DesignTokens.spaceM)
-        .marlaGlassSurface(cornerRadius: 0)
+        .frame(minWidth: 820, minHeight: 560)
+        .marlaGlassSurface(cornerRadius: DesignTokens.radiusL)
+        .ignoresSafeArea(.container, edges: .top)
         .onAppear {
-            apiKeyDraft = ""
+            if let rawPage = ProcessInfo.processInfo.environment["MARLA_UI_TEST_SETTINGS_PAGE"],
+               let page = SettingsPage(rawValue: rawPage) {
+                selectedPage = page
+                if ProcessInfo.processInfo.environment["MARLA_UI_TEST_SETTINGS_EDITOR"] == "1" {
+                    DispatchQueue.main.async {
+                        editorPresentation = settings.profiles.first.map {
+                            APIProfileEditorPresentation(profileID: $0.id, isNew: false)
+                        }
+                    }
+                }
+            }
         }
-        .onDisappear { connectionTester.cancel() }
+        .sheet(item: $editorPresentation, onDismiss: discardAbandonedNewProfile) { presentation in
+            if let profile = settings.profile(id: presentation.profileID) {
+                APIProfileEditorView(
+                    settings: settings,
+                    profile: profile,
+                    isNew: presentation.isNew,
+                    onCancel: { cancelEditor(presentation) },
+                    onClose: completeEditor
+                )
+                .frame(width: 660, height: 500)
+                // SwiftUI's sheet host can keep a rectangular AppKit backing
+                // surface behind the rounded content. Configure that host as
+                // transparent and clipped so all four corners (including the
+                // right edge) follow the editor surface.
+                .background {
+                    SheetWindowCornerConfigurator(cornerRadius: DesignTokens.radiusL)
+                        .frame(width: 1, height: 1)
+                }
+            } else {
+                ContentUnavailableView("配置已删除", systemImage: "network.slash")
+                    .frame(width: 420, height: 220)
+            }
+        }
     }
 
-    private var apiSection: some View {
-        Section {
-            TextField("Base URL", text: $settings.baseURL)
-                .textFieldStyle(.roundedBorder)
-            TextField("模型名称", text: $settings.modelName)
-                .textFieldStyle(.roundedBorder)
-            SecureField(settings.keychain.hasCredential ? "输入新 Key 以替换已保存内容" : "API Key（可选）", text: $apiKeyDraft)
-                .textFieldStyle(.roundedBorder)
-                .onSubmit { saveKey() }
-            if settings.keychain.hasCredential {
-                Label("API Key 已安全保存在 macOS Keychain", systemImage: "checkmark.shield")
+    private var settingsSidebar: some View {
+        VStack(alignment: .leading, spacing: DesignTokens.spaceXS) {
+            Text("设置")
+                .font(AppFont.caption.weight(.semibold))
+                .foregroundStyle(DesignTokens.secondaryText)
+                .padding(.horizontal, DesignTokens.spaceM)
+                .padding(.top, 36)
+                .padding(.bottom, DesignTokens.spaceXS)
+            ForEach(SettingsPage.allCases) { page in
+                Button {
+                    selectedPage = page
+                } label: {
+                    Label(page.title, systemImage: page.symbolName)
+                        .font(AppFont.body)
+                        .foregroundStyle(selectedPage == page ? DesignTokens.primaryText : DesignTokens.secondaryText)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.horizontal, DesignTokens.spaceM)
+                        .padding(.vertical, DesignTokens.spaceS)
+                        .background(selectedPage == page ? DesignTokens.accent.opacity(0.16) : .clear)
+                        .clipShape(RoundedRectangle(cornerRadius: DesignTokens.radiusS))
+                }
+                .buttonStyle(.plain)
+                .accessibilityAddTraits(selectedPage == page ? .isSelected : [])
+            }
+            Spacer()
+        }
+        .padding(.horizontal, DesignTokens.spaceS)
+        .frame(width: 180, alignment: .topLeading)
+        .frame(maxHeight: .infinity, alignment: .topLeading)
+        .background(DesignTokens.secondarySurface.opacity(0.7))
+    }
+
+    private var generalPage: some View {
+        SettingsPageShell(
+            title: "通用",
+            subtitle: "权限与 Marla 的基础行为"
+        ) {
+            SettingsSection(title: "权限", systemImage: "lock.shield") {
+                PermissionSettingRow(
+                    title: "辅助功能",
+                    detail: "划词翻译需要读取当前应用明确选中的文字。",
+                    isReady: appModel.accessibilityTrusted
+                ) { appModel.requestAccessibilityAccess() }
+                PermissionSettingRow(
+                    title: "屏幕录制",
+                    detail: "截图翻译只捕获你拖动框选的区域。",
+                    isReady: appModel.screenRecordingAuthorized
+                ) { appModel.requestScreenRecordingAccess() }
+                HStack {
+                    Spacer()
+                    Button("打开系统设置") { openPrivacySettings() }
+                        .buttonStyle(.bordered)
+                }
+            }
+
+            SettingsSection(title: "实验功能", systemImage: "flask") {
+                Toggle("重按触控板触发划词翻译", isOn: $settings.forceTouchExperimental)
+                Text("实验功能默认关闭，只使用公开 API；键盘快捷键始终保留。")
                     .font(AppFont.caption)
                     .foregroundStyle(DesignTokens.secondaryText)
             }
-            HStack {
-                Button("保存 Key") { saveKey() }
-                    .buttonStyle(.borderedProminent)
-                    .tint(DesignTokens.accent)
-                Button("删除 Key") {
-                    settings.removeAPIKey()
-                    apiKeyDraft = ""
-                }
-                .buttonStyle(.borderless)
-                Spacer()
-                Button("测试连接") { testConnection() }
-                    .buttonStyle(.bordered)
-                    .disabled(connectionTester.isTesting)
-            }
-            if connectionTester.isTesting {
-                HStack(spacing: DesignTokens.spaceS) {
-                    ProgressView().controlSize(.small)
-                    Text("正在通过 Rust 核心发起真实流式请求…")
-                }
-                .font(AppFont.caption)
-                .foregroundStyle(DesignTokens.secondaryText)
-            } else if let message = connectionTester.message ?? connectionMessage {
-                Text(message)
-                    .font(AppFont.caption)
-                    .foregroundStyle(connectionTester.didSucceed ? DesignTokens.success : DesignTokens.secondaryText)
-            }
-            Text("Vision 在本机识别截图；只有识别出的文字会发送到你配置的翻译 API。最近三条译文只在本次运行的内存中保留，退出即清空，不写入磁盘。")
-                .font(AppFont.caption)
-                .foregroundStyle(DesignTokens.secondaryText)
-        } header: {
-            Label("翻译 API", systemImage: "network")
-        } footer: {
-            Text("支持 OpenAI-compatible Chat Completions 流式端点。Base URL 不要包含 /chat/completions。")
-        }
-    }
 
-    private var shortcutSection: some View {
-        Section {
-            ForEach(GlobalShortcutAction.allCases, id: \.self) { action in
-                ShortcutRecorderRow(action: action, binding: appModel.shortcutManager.bindings[action] ?? .defaults[action]!) { binding in
-                    appModel.shortcutManager.set(binding, for: action)
-                }
-            }
-            HStack {
-                Text("应用内冲突与已占用的系统组合键都会立即提示。")
-                    .font(AppFont.caption)
+            SettingsSection(title: "隐私边界", systemImage: "hand.raised") {
+                Text("截图只在本机通过 Vision 识别。只有识别出的文字会发送到当前翻译 API，截图像素不会上传；最近三条译文只保留在本次运行内存中，退出即清空。")
+                    .font(AppFont.body)
                     .foregroundStyle(DesignTokens.secondaryText)
-                Spacer()
-                Button("恢复默认") { appModel.shortcutManager.restoreDefaults() }
-                    .buttonStyle(.borderless)
+                    .fixedSize(horizontal: false, vertical: true)
             }
-            if let conflictMessage = appModel.shortcutManager.conflictMessage {
-                Text(conflictMessage)
-                    .font(AppFont.caption)
-                    .foregroundStyle(DesignTokens.warning)
-            }
-        } header: {
-            Label("快捷键", systemImage: "command")
         }
     }
 
-    private var permissionSection: some View {
-        Section {
-            PermissionSettingRow(title: "辅助功能", detail: "划词翻译需要读取当前应用明确选中的文字。", isReady: appModel.accessibilityTrusted) {
-                appModel.requestAccessibilityAccess()
-            }
-            PermissionSettingRow(title: "屏幕录制", detail: "截图翻译只捕获你拖动框选的区域。", isReady: appModel.screenRecordingAuthorized) {
-                appModel.requestScreenRecordingAccess()
-            }
-            HStack {
+    private var apiPage: some View {
+        SettingsPageShell(
+            title: "翻译 API",
+            subtitle: "选择一个配置开始新的翻译会话"
+        ) {
+            HStack(alignment: .firstTextBaseline) {
+                Text("已保存配置")
+                    .font(AppFont.bodyEmphasis)
                 Spacer()
-                Button("打开系统设置") { openPrivacySettings() }
-                    .buttonStyle(.bordered)
+                Button {
+                    beginAddingProfile()
+                } label: {
+                    Label("添加配置", systemImage: "plus")
+                }
+                .buttonStyle(.borderedProminent)
+                .tint(DesignTokens.accent)
             }
-        } header: {
-            Label("权限", systemImage: "lock.shield")
-        }
-    }
 
-    private var experimentSection: some View {
-        Section {
-            Toggle("重按触控板触发划词翻译", isOn: $settings.forceTouchExperimental)
-            Text("实验功能默认关闭，只使用公开 API；键盘快捷键始终保留。")
+            if settings.profiles.isEmpty || ProcessInfo.processInfo.environment["MARLA_UI_TEST_SETTINGS_EMPTY"] == "1" {
+                ContentUnavailableView(
+                    "还没有翻译配置",
+                    systemImage: "network.slash",
+                    description: Text("添加一个 OpenAI-compatible 端点开始使用 Marla。")
+                )
+                .frame(maxWidth: .infinity, minHeight: 180)
+            } else {
+                VStack(spacing: 0) {
+                    ForEach(Array(settings.profiles.enumerated()), id: \.element.id) { index, profile in
+                        APIProfileSummaryRow(
+                            profile: profile,
+                            isDefault: settings.defaultProfileID == profile.id,
+                            onOpen: {
+                                editorPresentation = APIProfileEditorPresentation(
+                                    profileID: profile.id,
+                                    isNew: false
+                                )
+                            },
+                            onSetDefault: { settings.setDefaultProfile(profile.id) },
+                            onMoveUp: { settings.moveProfile(id: profile.id, by: -1) },
+                            onMoveDown: { settings.moveProfile(id: profile.id, by: 1) },
+                            onDelete: { removeProfile(profile.id) },
+                            canMoveUp: index > 0,
+                            canMoveDown: index < settings.profiles.count - 1
+                        )
+                        if index < settings.profiles.count - 1 { Divider() }
+                    }
+                }
+                .padding(.horizontal, DesignTokens.spaceM)
+                .marlaGlassSurface(cornerRadius: DesignTokens.radiusM)
+            }
+
+            Text("列表只显示摘要。点击配置后，在编辑窗口中管理 Base URL、模型、Key 和连接测试。")
                 .font(AppFont.caption)
                 .foregroundStyle(DesignTokens.secondaryText)
-        } header: {
-            Label("实验功能", systemImage: "flask")
         }
     }
 
-    private func saveKey() {
-        guard !apiKeyDraft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
-            connectionMessage = settings.keychain.hasCredential
-                ? "未输入新 Key，已保存的 Key 保持不变。"
-                : "当前端点将不携带 Authorization Header。"
-            return
-        }
-        do {
-            try settings.updateAPIKey(apiKeyDraft)
-            apiKeyDraft = ""
-            connectionMessage = "Key 已保存到 macOS Keychain。"
-        } catch {
-            connectionMessage = error.localizedDescription
+    private var shortcutsPage: some View {
+        SettingsPageShell(
+            title: "快捷键",
+            subtitle: "把翻译入口绑定到顺手的组合键"
+        ) {
+            SettingsSection(title: "全局入口", systemImage: "command") {
+                ForEach(GlobalShortcutAction.allCases, id: \.self) { action in
+                    ShortcutRecorderRow(
+                        action: action,
+                        binding: appModel.shortcutManager.bindings[action] ?? .defaults[action]!,
+                        isEnabled: appModel.shortcutManager.isEnabled(action),
+                        onEnabledChange: { appModel.shortcutManager.setEnabled($0, for: action) },
+                        onChange: { appModel.shortcutManager.set($0, for: action) }
+                    )
+                }
+                HStack(spacing: DesignTokens.spaceM) {
+                    Image(systemName: "escape")
+                        .foregroundStyle(DesignTokens.accent)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("取消截图框选")
+                            .font(AppFont.body)
+                        Text("截图界面始终保留此安全退出方式。")
+                            .font(AppFont.caption)
+                            .foregroundStyle(DesignTokens.secondaryText)
+                    }
+                    Spacer()
+                    Text("Esc")
+                        .font(AppFont.micro.monospacedDigit())
+                        .foregroundStyle(DesignTokens.secondaryText)
+                    Text("系统固定")
+                        .font(AppFont.micro)
+                        .foregroundStyle(DesignTokens.tertiaryText)
+                }
+                .frame(minHeight: 32)
+                HStack {
+                    Text("应用内冲突与已占用的系统组合键都会立即提示。")
+                        .font(AppFont.caption)
+                        .foregroundStyle(DesignTokens.secondaryText)
+                    Spacer()
+                    Button("恢复默认") { appModel.shortcutManager.restoreDefaults() }
+                        .buttonStyle(.borderless)
+                }
+                if let conflictMessage = appModel.shortcutManager.conflictMessage {
+                    Text(conflictMessage)
+                        .font(AppFont.caption)
+                        .foregroundStyle(DesignTokens.warning)
+                }
+            }
         }
     }
 
-    private func testConnection() {
-        connectionMessage = nil
-        connectionTester.test(
-            endpoint: TranslationEndpointConfiguration(
-                baseURL: settings.baseURL,
-                model: settings.modelName,
-                apiKey: settings.apiKey
-            )
-        )
+    private var ocrPage: some View {
+        SettingsPageShell(
+            title: "OCR",
+            subtitle: "截图文字识别的当前状态"
+        ) {
+            SettingsSection(title: "本机 Vision", systemImage: "text.viewfinder") {
+                StatusLine(icon: "checkmark.circle.fill", tint: DesignTokens.success, title: "当前使用 Vision", detail: "macOS Vision 在本机识别截图中的文字。")
+                StatusLine(icon: "lock.fill", tint: DesignTokens.accent, title: "截图不会上传", detail: "截图像素只在内存中处理；只有识别出的纯文本会进入当前翻译 API。")
+                StatusLine(icon: "text.alignleft", tint: DesignTokens.secondaryText, title: "识别范围", detail: "0.1.0 保留文字与行顺序，不承诺表格、公式或页面布局恢复。")
+            }
+            Text("此页面仅展示 0.1.0 的固定 OCR 路径，不提供云端 provider 或额外质量参数。")
+                .font(AppFont.caption)
+                .foregroundStyle(DesignTokens.secondaryText)
+        }
+    }
+
+    private func removeProfile(_ id: UUID) {
+        settings.removeProfile(id: id)
+        if editorPresentation?.profileID == id { completeEditor() }
+    }
+
+    private func beginAddingProfile() {
+        let id = settings.addProfile()
+        pendingNewProfileID = id
+        editorPresentation = APIProfileEditorPresentation(profileID: id, isNew: true)
+    }
+
+    private func cancelEditor(_ presentation: APIProfileEditorPresentation) {
+        if presentation.isNew {
+            settings.removeProfile(id: presentation.profileID)
+        }
+        pendingNewProfileID = nil
+        editorPresentation = nil
+    }
+
+    private func completeEditor() {
+        pendingNewProfileID = nil
+        editorPresentation = nil
+    }
+
+    private func discardAbandonedNewProfile() {
+        guard let pendingNewProfileID else { return }
+        settings.removeProfile(id: pendingNewProfileID)
+        self.pendingNewProfileID = nil
     }
 
     private func openPrivacySettings() {
         guard let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility") else { return }
         NSWorkspace.shared.open(url)
+    }
+}
+
+private struct SheetWindowCornerConfigurator: NSViewRepresentable {
+    let cornerRadius: CGFloat
+
+    func makeNSView(context: Context) -> NSView {
+        let view = NSView(frame: .zero)
+        view.alphaValue = 0
+        return view
+    }
+
+    func updateNSView(_ nsView: NSView, context: Context) {
+        configureWindow(for: nsView)
+        DispatchQueue.main.async {
+            configureWindow(for: nsView)
+        }
+    }
+
+    private func configureWindow(for view: NSView) {
+        guard let window = view.window else { return }
+        window.isOpaque = false
+        window.backgroundColor = .clear
+        window.hasShadow = true
+        window.contentView?.wantsLayer = true
+        window.contentView?.layer?.cornerRadius = cornerRadius
+        window.contentView?.layer?.cornerCurve = .continuous
+        window.contentView?.layer?.masksToBounds = true
+    }
+}
+
+private struct SettingsPageShell<Content: View>: View {
+    let title: String
+    let subtitle: String
+    @ViewBuilder let content: () -> Content
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: DesignTokens.spaceL) {
+                VStack(alignment: .leading, spacing: DesignTokens.spaceXS) {
+                    Text(title).font(AppFont.title)
+                    Text(subtitle).font(AppFont.body).foregroundStyle(DesignTokens.secondaryText)
+                }
+                content()
+            }
+            .frame(maxWidth: 650, alignment: .leading)
+            .padding(.horizontal, DesignTokens.spaceL)
+            .padding(.top, 36)
+            .padding(.bottom, DesignTokens.spaceM)
+        }
+        .scrollIndicators(.never)
+    }
+}
+
+private struct SettingsSection<Content: View>: View {
+    let title: String
+    let systemImage: String
+    @ViewBuilder let content: () -> Content
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: DesignTokens.spaceM) {
+            Label(title, systemImage: systemImage)
+                .font(AppFont.bodyEmphasis)
+                .foregroundStyle(DesignTokens.primaryText)
+            content()
+        }
+        .padding(DesignTokens.spaceL)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .marlaGlassSurface(cornerRadius: DesignTokens.radiusM)
+    }
+}
+
+private struct APIProfileSummaryRow: View {
+    let profile: TranslationAPIProfile
+    let isDefault: Bool
+    let onOpen: () -> Void
+    let onSetDefault: () -> Void
+    let onMoveUp: () -> Void
+    let onMoveDown: () -> Void
+    let onDelete: () -> Void
+    let canMoveUp: Bool
+    let canMoveDown: Bool
+
+    var body: some View {
+        HStack(spacing: DesignTokens.spaceM) {
+            Button(action: onOpen) {
+                HStack(spacing: DesignTokens.spaceM) {
+                    Image(systemName: isDefault ? "checkmark.circle.fill" : "circle")
+                        .foregroundStyle(isDefault ? DesignTokens.accent : DesignTokens.tertiaryText)
+                        .font(.system(size: 18))
+                    VStack(alignment: .leading, spacing: 4) {
+                        HStack(spacing: DesignTokens.spaceS) {
+                            Text(profile.name.isEmpty ? "未命名配置" : profile.name)
+                                .font(AppFont.bodyEmphasis)
+                            if isDefault {
+                                Text("默认")
+                                    .font(AppFont.micro)
+                                    .foregroundStyle(DesignTokens.accent)
+                                    .padding(.horizontal, 5)
+                                    .padding(.vertical, 2)
+                                    .background(DesignTokens.accent.opacity(0.12))
+                                    .clipShape(Capsule())
+                            }
+                        }
+                        Text(profile.modelName.isEmpty ? "尚未配置模型" : profile.modelName)
+                            .font(AppFont.micro)
+                            .foregroundStyle(DesignTokens.secondaryText)
+                    }
+                }
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            Spacer(minLength: DesignTokens.spaceM)
+            Label(profile.isConfigured ? "配置完整" : "需要完善", systemImage: profile.isConfigured ? "checkmark.shield" : "exclamationmark.triangle")
+                .font(AppFont.micro)
+                .foregroundStyle(profile.isConfigured ? DesignTokens.success : DesignTokens.warning)
+            Menu {
+                Button("设为默认", action: onSetDefault).disabled(isDefault)
+                Button("上移", action: onMoveUp).disabled(!canMoveUp)
+                Button("下移", action: onMoveDown).disabled(!canMoveDown)
+                Divider()
+                Button("删除配置", role: .destructive, action: onDelete)
+            } label: {
+                Image(systemName: "ellipsis.circle")
+                    .font(.system(size: 17))
+            }
+            .menuStyle(.borderlessButton)
+        }
+        .padding(.vertical, DesignTokens.spaceM)
+    }
+}
+
+private struct APIProfileEditorView: View {
+    @ObservedObject var settings: MarlaSettingsStore
+    let profile: TranslationAPIProfile
+    let isNew: Bool
+    let onCancel: () -> Void
+    let onClose: () -> Void
+    @State private var name: String
+    @State private var baseURL: String
+    @State private var modelName: String
+    @State private var apiKeyDraft = ""
+    @State private var message: String?
+    @StateObject private var connectionTester = TranslationConnectionTester()
+
+    init(
+        settings: MarlaSettingsStore,
+        profile: TranslationAPIProfile,
+        isNew: Bool,
+        onCancel: @escaping () -> Void,
+        onClose: @escaping () -> Void
+    ) {
+        self.settings = settings
+        self.profile = profile
+        self.isNew = isNew
+        self.onCancel = onCancel
+        self.onClose = onClose
+        _name = State(initialValue: profile.name)
+        _baseURL = State(initialValue: profile.baseURL)
+        _modelName = State(initialValue: profile.modelName)
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: DesignTokens.spaceL) {
+            VStack(alignment: .leading, spacing: DesignTokens.spaceXS) {
+                Text(isNew ? "新配置" : (profile.name.isEmpty ? "编辑翻译配置" : profile.name))
+                    .font(AppFont.title)
+                Text("详细信息只在此编辑窗口中展示，API Key 不会回显。")
+                    .font(AppFont.caption)
+                    .foregroundStyle(DesignTokens.secondaryText)
+            }
+
+            ScrollView {
+                VStack(alignment: .leading, spacing: DesignTokens.spaceM) {
+                    fixedField("配置名称", placeholder: "例如：Qwen 快速", text: $name)
+                    fixedField("Base URL", placeholder: "https://api.example.com/v1", text: $baseURL)
+                    fixedField("模型名称", placeholder: "例如：qwen-mt-turbo", text: $modelName)
+                    HStack(alignment: .center, spacing: DesignTokens.spaceM) {
+                        Text("API Key")
+                            .font(AppFont.caption)
+                            .foregroundStyle(DesignTokens.secondaryText)
+                            .frame(width: 120, alignment: .trailing)
+                        SecureField(settings.hasCredential(for: profile.id) ? "输入新 Key 以替换已保存内容" : "可选", text: $apiKeyDraft)
+                            .textFieldStyle(.roundedBorder)
+                            .frame(width: 360)
+                    }
+                    if settings.hasCredential(for: profile.id) {
+                        Label("API Key 已安全保存在 macOS Keychain", systemImage: "checkmark.shield")
+                            .font(AppFont.caption)
+                            .foregroundStyle(DesignTokens.secondaryText)
+                            .padding(.leading, 136)
+                    }
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+            }
+            .scrollIndicators(.never)
+
+            if connectionTester.isTesting {
+                HStack(spacing: DesignTokens.spaceS) {
+                    ProgressView().controlSize(.small)
+                    Text("正在通过 Rust 核心测试连接…")
+                }
+                .font(AppFont.caption)
+                .foregroundStyle(DesignTokens.secondaryText)
+            } else if let testerMessage = connectionTester.message ?? message {
+                Text(testerMessage)
+                    .font(AppFont.caption)
+                    .foregroundStyle(connectionTester.didSucceed ? DesignTokens.success : DesignTokens.secondaryText)
+            }
+
+            HStack(spacing: DesignTokens.spaceS) {
+                Button("取消", role: .cancel, action: onCancel)
+                    .buttonStyle(.bordered)
+                    .keyboardShortcut(.cancelAction)
+                Button("保存") { saveAndClose() }
+                    .buttonStyle(.borderedProminent)
+                    .tint(DesignTokens.accent)
+                Button("保存 Key") { saveKey() }
+                    .buttonStyle(.bordered)
+                Button("删除 Key") { deleteKey() }
+                    .buttonStyle(.borderless)
+                    .disabled(!settings.hasCredential(for: profile.id))
+                Spacer()
+                Button("设为默认") { settings.setDefaultProfile(profile.id) }
+                    .buttonStyle(.borderless)
+                    .disabled(settings.defaultProfileID == profile.id)
+                Button("测试连接") { testConnection() }
+                    .buttonStyle(.bordered)
+                    .disabled(connectionTester.isTesting)
+                Button("删除", role: .destructive) { deleteProfile() }
+                    .buttonStyle(.borderless)
+            }
+        }
+        .padding(DesignTokens.spaceXL)
+        .marlaGlassSurface(cornerRadius: DesignTokens.radiusL)
+        .onDisappear { connectionTester.cancel() }
+    }
+
+    private func fixedField(_ label: String, placeholder: String, text: Binding<String>) -> some View {
+        HStack(alignment: .center, spacing: DesignTokens.spaceM) {
+            Text(label)
+                .font(AppFont.caption)
+                .foregroundStyle(DesignTokens.secondaryText)
+                .frame(width: 120, alignment: .trailing)
+            TextField(placeholder, text: text)
+                .textFieldStyle(.roundedBorder)
+                .frame(width: 360)
+        }
+    }
+
+    private func saveAndClose() {
+        settings.updateProfile(id: profile.id, name: name, baseURL: baseURL, modelName: modelName)
+        saveKeyIfPresent()
+        onClose()
+    }
+
+    private func saveKeyIfPresent() {
+        guard !apiKeyDraft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
+        do {
+            try settings.updateAPIKey(apiKeyDraft, for: profile.id)
+            apiKeyDraft = ""
+            message = "Key 已保存到 macOS Keychain。"
+        } catch {
+            message = error.localizedDescription
+        }
+    }
+
+    private func saveKey() { saveKeyIfPresent() }
+
+    private func deleteKey() {
+        try? settings.updateAPIKey("", for: profile.id)
+        apiKeyDraft = ""
+        message = "已删除此配置的 Key。"
+    }
+
+    private func testConnection() {
+        message = nil
+        connectionTester.test(endpoint: TranslationEndpointConfiguration(
+            baseURL: baseURL,
+            model: modelName,
+            apiKey: settings.apiKey(for: profile.id)
+        ))
+    }
+
+    private func deleteProfile() {
+        settings.removeProfile(id: profile.id)
+        onClose()
     }
 }
 
@@ -219,14 +672,10 @@ final class TranslationConnectionTester: ObservableObject {
     private func apply(_ event: TranslationFFIEvent) {
         guard event.schemaVersion == 1, event.requestID == requestID else { return }
         switch event.type {
-        case "completed":
-            finish(message: "连接成功，端点已返回有效的流式译文。", succeeded: true)
-        case "failed":
-            finish(message: event.message ?? "连接测试失败。", succeeded: false)
-        case "cancelled":
-            finish(message: "连接测试已取消。", succeeded: false)
-        default:
-            break
+        case "completed": finish(message: "连接成功，端点已返回有效的流式译文。", succeeded: true)
+        case "failed": finish(message: event.message ?? "连接测试失败。", succeeded: false)
+        case "cancelled": finish(message: "连接测试已取消。", succeeded: false)
+        default: break
         }
     }
 
@@ -237,6 +686,24 @@ final class TranslationConnectionTester: ObservableObject {
         isTesting = false
         didSucceed = succeeded
         self.message = message
+    }
+}
+
+private struct StatusLine: View {
+    let icon: String
+    let tint: Color
+    let title: String
+    let detail: String
+
+    var body: some View {
+        HStack(alignment: .top, spacing: DesignTokens.spaceM) {
+            Image(systemName: icon).foregroundStyle(tint)
+            VStack(alignment: .leading, spacing: 3) {
+                Text(title).font(AppFont.bodyEmphasis)
+                Text(detail).font(AppFont.caption).foregroundStyle(DesignTokens.secondaryText)
+            }
+            Spacer()
+        }
     }
 }
 
@@ -262,39 +729,47 @@ struct PermissionSettingRow: View {
                     .controlSize(.small)
             }
         }
-        .padding(.vertical, 3)
     }
 }
 
 struct ShortcutRecorderRow: View {
     let action: GlobalShortcutAction
     let binding: ShortcutBinding
+    let isEnabled: Bool
+    let onEnabledChange: (Bool) -> Void
     let onChange: (ShortcutBinding) -> Void
     @State private var recording = false
     @State private var monitor: Any?
 
     var body: some View {
         HStack {
-            Image(systemName: action.symbolName)
-                .foregroundStyle(DesignTokens.accent)
-            Text(action.title)
-                .font(AppFont.body)
+            Image(systemName: action.symbolName).foregroundStyle(DesignTokens.accent)
+            Text(action.title).font(AppFont.body)
             Spacer()
             if recording {
-                Text("按下组合键…")
-                    .font(AppFont.caption)
-                    .foregroundStyle(DesignTokens.accent)
+                Text("按下组合键…").font(AppFont.caption).foregroundStyle(DesignTokens.accent)
             } else {
                 Text(binding.displayName)
                     .font(AppFont.micro.monospacedDigit())
-                    .foregroundStyle(DesignTokens.secondaryText)
+                    .foregroundStyle(isEnabled ? DesignTokens.secondaryText : DesignTokens.tertiaryText)
                 Button("录制") { recording = true }
                     .buttonStyle(.borderless)
+                    .disabled(!isEnabled)
             }
+            Toggle(
+                "启用\(action.title)快捷键",
+                isOn: Binding(get: { isEnabled }, set: { onEnabledChange($0) })
+            )
+            .labelsHidden()
+            .toggleStyle(.switch)
+            .controlSize(.small)
         }
         .frame(minHeight: 32)
         .onChange(of: recording) { _, isRecording in
             if isRecording { installRecorder() } else { removeRecorder() }
+        }
+        .onChange(of: isEnabled) { _, enabled in
+            if !enabled { recording = false }
         }
         .onDisappear { removeRecorder() }
     }

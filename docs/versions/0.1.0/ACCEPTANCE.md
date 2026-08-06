@@ -54,7 +54,8 @@
 
 - [ ] `⌃⌥S` 在单显示器、Retina 和多显示器环境进入正确框选层。
 - [ ] 跨屏坐标、负坐标原点和不同缩放比例下裁剪区域正确。
-- [ ] `Esc`、右键和无效区域取消，且不产生 OCR、网络请求或文件。
+- [x] 真实 `Esc` 在普通框选和设置已打开的焦点场景中取消，且不产生 OCR、网络请求或文件。
+- [ ] 右键和无效区域取消，且不产生 OCR、网络请求或文件。
 - [ ] Vision 对短句、多行和长截图文字输出稳定阅读顺序。
 - [ ] 空 OCR 显示重新框选操作，不发送空请求。
 - [ ] 翻译失败后仍保留 Vision 源文本。
@@ -64,7 +65,8 @@
 
 - [ ] `⌃⌥S` enters the correct selection layer on single-display, Retina, and multi-display setups.
 - [ ] Crop is correct with cross-screen coordinates, negative origins, and mixed scale factors.
-- [ ] `Esc`, right-click, and invalid regions cancel with no OCR, network request, or file.
+- [x] A real `Esc` cancels both ordinary selection and the open-Settings focus scenario, with no OCR, network request, or file.
+- [ ] Right-click and invalid regions cancel with no OCR, network request, or file.
 - [ ] Vision produces stable reading order for short, multiline, and long captured text.
 - [ ] Empty OCR offers reselect and sends no empty request.
 - [ ] Translation failure preserves Vision source text.
@@ -235,6 +237,14 @@ TASK-003 automation and visual evidence: `./scripts/check.sh` passed (16 Rust te
 TASK-004 自动化与产物证据：`zsh -n scripts/build-test-app.sh`、ad-hoc 拒绝门禁、自定义已有路径覆盖保护和 `./scripts/check.sh` 通过（Rust 16 项、Swift 22 项、Swift/Xcode Debug 构建、格式/空白/diff 检查）。无参数 `./scripts/build-test-app.sh` 成功覆盖并验证 `artifacts/Marla_dev.app`；Bundle ID 为 `com.marla.app`、版本 0.1.0、最低 macOS 14、arm64，签名 Authority 为 `API Usage Monitor Dev`。覆盖前后的 designated requirement 均绑定同一证书，已有时间戳 App 数量保持 17，且没有遗留 staging 目录。TCC 重启持久性仍属于 BL-002 的真实验收。
 
 TASK-004 automation and artifact evidence: `zsh -n scripts/build-test-app.sh`, the ad-hoc rejection gate, the existing-custom-path overwrite guard, and `./scripts/check.sh` passed (16 Rust tests, 22 Swift tests, Swift/Xcode Debug builds, formatting/whitespace/diff checks). A no-argument `./scripts/build-test-app.sh` run successfully replaced and verified `artifacts/Marla_dev.app`; its Bundle ID is `com.marla.app`, version 0.1.0, minimum macOS 14, architecture arm64, and signing Authority `API Usage Monitor Dev`. The designated requirement remained bound to the same certificate before and after replacement, the existing timestamped-App count remained 17, and no staging directory remained. TCC persistence across restart remains real acceptance work under BL-002.
+
+TASK-008 自动化与视觉证据：`./scripts/check.sh` 通过（Rust 16 项、Swift 34 项、Swift/Xcode Debug 构建、格式/空白/diff 检查）；新增测试覆盖设置全尺寸透明标题栏和连续四角、截图窗口 Key 能力、设置暂停/非 Key 恢复，以及 Escape `NSEvent` 的取消路径。固定 `artifacts/Marla_dev.app` 重新构建并保持 Bundle ID `com.marla.app`、arm64、签名 Authority `API Usage Monitor Dev` 和既有 designated requirement。浅色一体化设置、深色快捷键与“设置已打开后进入截图”证据位于 `artifacts/ui-review/task-008/`，五维评分为 8/8/8/8/7。由于机器上同时运行两个同路径 Marla 进程，Computer Use 无法把一次物理 Escape 唯一归属到验收进程；Agent 只停止了自己启动的进程，没有终止项目所有者原有实例。
+
+TASK-008 automation and visual evidence: `./scripts/check.sh` passed (16 Rust tests, 34 Swift tests, Swift/Xcode Debug builds, formatting/whitespace/diff checks). New tests cover the transparent full-size Settings title bar and continuous four-corner surface, screenshot-window key eligibility, Settings suspension/non-key restoration, and cancellation through an Escape `NSEvent`. The fixed `artifacts/Marla_dev.app` was rebuilt while preserving Bundle ID `com.marla.app`, arm64, signing Authority `API Usage Monitor Dev`, and the existing designated requirement. Unified Settings light, Shortcuts dark, and “enter screenshot while Settings is open” evidence is under `artifacts/ui-review/task-008/`, with five-dimension scores of 8/8/8/8/7. Because two same-path Marla processes were running, Computer Use could not uniquely attribute one physical Escape press to the acceptance process. The Agent stopped only the process it launched and did not terminate the project owner's existing instance.
+
+TASK-009 真实键盘与自动化证据：截图取消已提升为会话级本地/全局按键监听，原有 View 路径继续保留；结束时立即移除监听，迟到事件不能取消后续会话。`./scripts/check.sh` 通过（Rust 16 项、Swift 37 项、Swift/Xcode Debug 构建、格式/空白/diff 检查）。关闭固定路径的全部旧实例后，Computer Use 在唯一运行的 Release `artifacts/Marla_dev.app` 中发送真实 `Escape`，普通截图场景和“设置已打开后进入截图”场景的覆盖层均消失，未出现 OCR/翻译结果卡。固定 App 再次覆盖构建并保持 Bundle ID `com.marla.app`、arm64、Authority `API Usage Monitor Dev` 和既有 designated requirement。验收前截图与记录位于 `artifacts/ui-review/task-009/`；保存最后一张桌面截图时 Mac 自动锁定，但锁定前两次退出结果均已通过 Computer Use 的桌面状态重新读取确认。
+
+TASK-009 real-keyboard and automation evidence: screenshot cancellation now uses session-scoped local/global key monitors while retaining the original view route; monitors are removed immediately on finish, and a late event cannot cancel a later session. `./scripts/check.sh` passed (16 Rust tests, 37 Swift tests, Swift/Xcode Debug builds, formatting/whitespace/diff checks). After every old fixed-path process was stopped, Computer Use sent a real `Escape` to the sole running Release `artifacts/Marla_dev.app`. The overlay disappeared in both the ordinary screenshot scenario and the open-Settings screenshot scenario, with no OCR/translation result card. The fixed App was rebuilt again while preserving Bundle ID `com.marla.app`, arm64, Authority `API Usage Monitor Dev`, and the existing designated requirement. The pre-cancellation capture and verification record are under `artifacts/ui-review/task-009/`; the Mac auto-locked while the final desktop capture was being saved, after Computer Use had already re-read and confirmed both successful exits.
 
 ## 11. 发布判定 / Release Decision
 

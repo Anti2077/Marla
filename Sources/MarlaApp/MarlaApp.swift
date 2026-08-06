@@ -487,7 +487,6 @@ struct TranslationCardView: View {
                 .padding(DesignTokens.spaceL)
                 .frame(minWidth: 320, maxWidth: 520, minHeight: 160, maxHeight: .infinity, alignment: .topLeading)
                 .marlaGlassSurface()
-                .shadow(color: .black.opacity(0.16), radius: 18, y: 8)
                 .animation(reduceMotion ? nil : .easeOut(duration: 0.16), value: session.isPinned)
                 .onExitCommand(perform: onClose)
             }
@@ -503,6 +502,28 @@ struct TranslationCardView: View {
                 .font(AppFont.caption)
                 .foregroundStyle(DesignTokens.secondaryText)
             Spacer()
+            Menu {
+                ForEach(store.availableProfiles) { profile in
+                    Button {
+                        store.changeAPIProfile(profile.id)
+                    } label: {
+                        if profile.id == session.profileID {
+                            Label(profile.name, systemImage: "checkmark")
+                        } else {
+                            Text(profile.name)
+                        }
+                    }
+                    .disabled(!profile.isConfigured || profile.id == session.profileID)
+                }
+                Divider()
+                Button("管理翻译配置…") { onRecovery(.openSettings) }
+            } label: {
+                Label(session.profileName, systemImage: "server.rack")
+                    .font(AppFont.caption)
+                    .lineLimit(1)
+            }
+            .menuStyle(.borderlessButton)
+            .help("切换翻译配置")
             Menu {
                 Button("自动") { store.changeTarget(.automatic) }
                 Button("简体中文") { store.changeTarget(.simplifiedChinese) }
@@ -818,7 +839,6 @@ struct QuickInputView: View {
         .padding(DesignTokens.spaceL)
         .frame(width: 420)
         .marlaGlassSurface()
-        .shadow(color: .black.opacity(0.16), radius: 18, y: 8)
         .onAppear { isFocused = true }
         .onExitCommand(perform: onClose)
     }

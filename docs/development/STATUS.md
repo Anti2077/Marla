@@ -6,11 +6,11 @@ Release target: 0.1.0 Alpha
 
 Overall state: In Progress — implementation baseline exists; live acceptance remains incomplete
 
-Active task: None — awaiting the project owner's next single-task selection
+Active task: None
 
 ## Current objective
 
-Finish 0.1.0 through small, owner-selected Tasks without expanding the release scope. The next Task should be chosen from the verified gaps in `docs/backlog/BACKLOG.md`; future product ideas remain in `docs/backlog/IDEAS.md` until explicitly promoted.
+TASK-009 已完成。当前没有活动 Task；在项目所有者选择下一项工作前，不从 Backlog 或 Ideas 自动开始实现。
 
 ## Current implemented baseline
 
@@ -24,6 +24,9 @@ Finish 0.1.0 through small, owner-selected Tasks without expanding the release s
 - Menu setup status that automatically yields to three bounded in-memory recent translations once API, Accessibility, and Screen Recording are ready; selecting a recent result performs no network request and quitting clears the list.
 - Single-layer macOS 26 Liquid Glass with a macOS 14–25 system-material fallback across the menu, Settings, result card, quick input, and screenshot-selection labels; screenshot entry icons use the available `viewfinder` symbol.
 - Fixed-path Release development packaging that stages, stable-signs, and verifies a new `artifacts/Marla_dev.app` before replacing the previous App; missing stable identities fail instead of falling back to ad-hoc signing.
+- Multiple named OpenAI-compatible API profiles with per-profile Keychain credentials, legacy single-endpoint migration, default selection, settings CRUD/reordering, and explicit result-card switching are implemented under TASK-005.
+- Settings use a four-page native sidebar, summary-only API list and independently clipped editor sheet; global shortcuts have persistent switches, result cards support background dragging, and screenshot selection includes an in-memory 6× pointer magnifier.
+- Settings use a transparent full-size title bar with traffic lights inside one continuous four-corner surface, hidden scroll indicators, and a fixed `Esc` screenshot-cancellation row. Screenshot selection temporarily suspends an open Settings window and restores it without activating it; `Esc` cancellation is owned by the active selection session rather than a single view's first-responder state.
 
 Implementation baseline commit: `88954bb`.
 
@@ -42,6 +45,8 @@ Implementation baseline commit: `88954bb`.
 3. `BL-003` — latency and memory measurement.
 4. `BL-004` — optional Force Touch feasibility evidence.
 
+TASK-005 was the owner-selected enhancement and is now complete; remaining 0.1.0 verification gaps stay separately selectable.
+
 Before implementation, select exactly one item and create a `Ready` then `Active` file from `docs/tasks/TASK_TEMPLATE.md`.
 
 ## Current risks
@@ -53,9 +58,9 @@ Before implementation, select exactly one item and create a `Ready` then `Active
 
 ## Latest verification
 
-- `./scripts/check.sh` passed on 2026-08-06 after TASK-004.
+- `./scripts/check.sh` passed on 2026-08-06 after TASK-009.
 - Rust: 16 tests passed.
-- Swift: 22 tests passed.
+- Swift: 37 tests passed.
 - Xcode Debug application build passed.
 - SwiftUI preview support compiled in the Swift Package and Xcode Debug build.
 - Xcode Preview launched and loaded `__preview.dylib` while the fixed-path development app remained running; Debug allows the Preview host instance while Release remains single-instance.
@@ -63,7 +68,12 @@ Before implementation, select exactly one item and create a `Ready` then `Active
 - Real-app visual scenarios passed the five-dimension SwiftUI review with every dimension at least 7/10.
 - TASK-003 menu-recents, Settings, quick-input, comparison-card, and screenshot-selection captures passed the five-dimension rescore at 8/8/8/8/7; evidence is under `artifacts/ui-review/task-003/`.
 - `Marla_test_202608061928.app` passed Bundle ID, version, deployment target, arm64, executable, and signature checks.
+- TASK-005 settings and streaming-card screenshots passed the five-dimension SwiftUI review at 8/8/8/8/7; evidence is under `artifacts/ui-review/task-005/`.
 - `artifacts/Marla_dev.app` was replaced by a no-argument Release build and passed Bundle ID, version, deployment target, arm64, executable, stable-signature, and designated-requirement checks; no timestamped App or staging residue was added.
+- TASK-006 settings sidebar/API summary/editor/empty state, light/dark General, Shortcuts, and OCR screenshots passed the five-dimension SwiftUI review at 8/8/8/8/7; evidence is under `artifacts/ui-review/task-006/`.
+- TASK-007 API editor, shortcut light/dark, result-card and screenshot-magnifier captures passed the five-dimension SwiftUI review at 8/8/8/8/7; evidence is under `artifacts/ui-review/task-007/`. Direct pointer-drag automation was unavailable for this LSUIElement app, so dragging is verified by AppKit panel configuration and automated regression coverage rather than a simulated mouse gesture.
+- TASK-008 unified Settings light, Shortcuts dark, and screenshot-from-open-Settings captures passed the five-dimension SwiftUI review at 8/8/8/8/7; evidence is under `artifacts/ui-review/task-008/`.
+- TASK-009 added session-scoped local/global Escape monitors plus idempotent cancellation coverage. After all old fixed-path instances were closed, Computer Use sent real `Escape` events to the sole Release `artifacts/Marla_dev.app`; both ordinary and open-Settings screenshot overlays disappeared without a result card. Evidence and the lock-interrupted final capture note are under `artifacts/ui-review/task-009/`.
 - A real DashScope `qwen-mt-turbo` request translated `Hello` to “你好”; the credential remained in Keychain.
 
 ## Pending product decisions

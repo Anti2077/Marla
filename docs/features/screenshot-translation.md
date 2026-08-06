@@ -2,7 +2,7 @@
 
 ## Status
 
-Proposed for 0.1.0. Technical spike not yet implemented.
+Implemented for the 0.1.0 Alpha; end-to-end manual acceptance remains in progress.
 
 ## Goal
 
@@ -19,7 +19,9 @@ Translate text from a small user-selected screen region using local macOS Vision
 
 ## Acceptance criteria
 
-- Escape cancels without persistence or upload.
+- Escape cancellation belongs to the active screenshot session and does not depend on a selection view retaining keyboard focus. Session-scoped local and global monitors are removed as soon as the session finishes.
+- Escape cancels without OCR, translation, persistence, or upload.
+- An already-open Marla Settings window never covers the selection layer and is restored without stealing source-application focus.
 - No image crop is uploaded in 0.1.0.
 - OCR success is retained if translation fails.
 - Plain text and line breaks remain readable; table structure is not promised.

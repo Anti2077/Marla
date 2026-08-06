@@ -25,6 +25,129 @@ final class MarlaAppTests: XCTestCase {
         XCTAssertEqual(source, "  Hello\nworld  ")
     }
 
+    @MainActor
+    func testAPIProfilesSupportDefaultOrderingAndIndependentAccounts() {
+        let suite = "com.marla.tests.profiles.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suite)!
+        defaults.removePersistentDomain(forName: suite)
+        let keychain = KeychainCredentialStore(service: "com.marla.tests", account: UUID().uuidString)
+        let settings = MarlaSettingsStore(defaults: defaults, keychain: keychain)
+
+        let firstID = settings.addProfile()
+        settings.updateProfile(id: firstID, name: "Qwen 快速", baseURL: "https://qwen.example/v1", modelName: "qwen-mt-turbo")
+        let secondID = settings.addProfile()
+        settings.updateProfile(id: secondID, name: "本地代理", baseURL: "http://127.0.0.1:8080/v1", modelName: "local")
+        settings.setDefaultProfile(secondID)
+        settings.moveProfile(id: secondID, by: -1)
+
+        XCTAssertEqual(settings.defaultProfile?.id, secondID)
+        XCTAssertEqual(settings.profiles.map(\.name), ["本地代理", "Qwen 快速"])
+        XCTAssertTrue(settings.profile(id: firstID)?.isConfigured == true)
+        XCTAssertNotEqual(keychain.scoped(to: firstID).account, keychain.scoped(to: secondID).account)
+
+        settings.removeProfile(id: secondID)
+        XCTAssertNil(settings.profile(id: secondID))
+        XCTAssertEqual(settings.defaultProfile?.id, firstID)
+    }
+
+    @MainActor
+    func testLegacySingleAPIFieldsMigrateToNamedDefaultProfile() {
+        let suite = "com.marla.tests.migration.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suite)!
+        defaults.removePersistentDomain(forName: suite)
+        defaults.set("https://legacy.example/v1", forKey: "translationBaseURL")
+        defaults.set("legacy-model", forKey: "translationModelName")
+        let settings = MarlaSettingsStore(
+            defaults: defaults,
+            keychain: KeychainCredentialStore(service: "com.marla.tests", account: UUID().uuidString)
+        )
+
+        XCTAssertEqual(settings.profiles.count, 1)
+        XCTAssertEqual(settings.defaultProfile?.name, "默认配置")
+        XCTAssertEqual(settings.baseURL, "https://legacy.example/v1")
+        XCTAssertEqual(settings.modelName, "legacy-model")
+        XCTAssertNotNil(defaults.data(forKey: "translationAPIProfiles.v1"))
+    }
+
+    @MainActor
+    func testDeletingLastAPIProfileLeavesAnEmptyStoreWithoutImplicitDefault() {
+        let suite = "com.marla.tests.empty-profiles.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suite)!
+        defaults.removePersistentDomain(forName: suite)
+        let settings = MarlaSettingsStore(
+            defaults: defaults,
+            keychain: KeychainCredentialStore(service: "com.marla.tests", account: UUID().uuidString)
+        )
+
+        let profileID = settings.addProfile()
+        settings.removeProfile(id: profileID)
+
+        XCTAssertTrue(settings.profiles.isEmpty)
+        XCTAssertNil(settings.defaultProfileID)
+        XCTAssertNil(settings.defaultProfile)
+    }
+
+    @MainActor
+    func testProfileSummaryFieldsReflectEditsImmediately() {
+        let suite = "com.marla.tests.profile-summary.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suite)!
+        defaults.removePersistentDomain(forName: suite)
+        let settings = MarlaSettingsStore(
+            defaults: defaults,
+            keychain: KeychainCredentialStore(service: "com.marla.tests", account: UUID().uuidString)
+        )
+
+        let profileID = settings.addProfile()
+        settings.updateProfile(id: profileID, name: "新名称", modelName: "new-model")
+
+        let summary = try! XCTUnwrap(settings.profile(id: profileID))
+        XCTAssertEqual(summary.name, "新名称")
+        XCTAssertEqual(summary.modelName, "new-model")
+    }
+
+    @MainActor
+    func testCancellingNewAPIProfileRemovesPlaceholderAndScopedCredential() {
+        let suite = "com.marla.tests.cancel-profile.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suite)!
+        defaults.removePersistentDomain(forName: suite)
+        let keychain = KeychainCredentialStore(service: "com.marla.tests", account: UUID().uuidString)
+        let settings = MarlaSettingsStore(defaults: defaults, keychain: keychain)
+
+        let profileID = settings.addProfile()
+        let scopedAccount = keychain.scoped(to: profileID).account
+
+        settings.removeProfile(id: profileID)
+
+        XCTAssertNil(settings.profile(id: profileID))
+        XCTAssertNil(settings.defaultProfileID)
+        XCTAssertEqual(scopedAccount, "translation-api-key.\(profileID.uuidString)")
+        XCTAssertNil(keychain.scoped(to: profileID).read())
+    }
+
+    @MainActor
+    func testShortcutEnabledStatePersistsAndFiltersDispatch() {
+        let suite = "com.marla.tests.shortcuts.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suite)!
+        defaults.removePersistentDomain(forName: suite)
+        let manager = GlobalShortcutManager(registerHotKeys: false, defaults: defaults)
+        XCTAssertEqual(manager.enabledActions, Set(GlobalShortcutAction.allCases))
+
+        manager.setEnabled(false, for: .screenshot)
+        var dispatched: GlobalShortcutAction?
+        manager.onAction = { dispatched = $0 }
+        manager.handleHotKey(id: GlobalShortcutAction.screenshot.hotKeyID)
+
+        XCTAssertFalse(manager.isEnabled(.screenshot))
+        XCTAssertNil(dispatched)
+
+        let restored = GlobalShortcutManager(registerHotKeys: false, defaults: defaults)
+        XCTAssertFalse(restored.isEnabled(.screenshot))
+        XCTAssertTrue(restored.isEnabled(.selection))
+
+        restored.restoreDefaults()
+        XCTAssertEqual(restored.enabledActions, Set(GlobalShortcutAction.allCases))
+    }
+
     func testScreenshotShortcutUsesAnAvailableSystemSymbol() {
         XCTAssertEqual(GlobalShortcutAction.screenshot.symbolName, "viewfinder")
         XCTAssertNotNil(
@@ -154,6 +277,214 @@ final class MarlaAppTests: XCTestCase {
             ),
             CGRect(x: 200, y: 80, width: 600, height: 240)
         )
+    }
+
+    @MainActor
+    func testFloatingPanelStyleEnablesDraggingAndClipsHostedContent() {
+        let panel = MarlaPanel(
+            contentRect: NSRect(x: 0, y: 0, width: 380, height: 300),
+            styleMask: .borderless,
+            backing: .buffered,
+            defer: false
+        )
+        let contentView = NSView(frame: panel.contentView?.bounds ?? .zero)
+
+        FloatingPanelStyle.apply(to: panel)
+        FloatingPanelStyle.apply(to: contentView)
+
+        XCTAssertTrue(panel.isMovable)
+        XCTAssertTrue(panel.isMovableByWindowBackground)
+        XCTAssertTrue(panel.hasShadow)
+        XCTAssertEqual(contentView.layer?.cornerRadius, DesignTokens.radiusL)
+        XCTAssertTrue(contentView.layer?.masksToBounds == true)
+    }
+
+    @MainActor
+    func testSettingsWindowUsesOneFullSizeTransparentRoundedSurface() {
+        let window = NSWindow(
+            contentRect: NSRect(x: 0, y: 0, width: 820, height: 560),
+            styleMask: [.titled, .closable, .resizable],
+            backing: .buffered,
+            defer: false
+        )
+        let contentView = NSView(frame: window.contentView?.bounds ?? .zero)
+        window.contentView = contentView
+
+        SettingsWindowStyle.apply(to: window)
+
+        XCTAssertTrue(window.styleMask.contains(.fullSizeContentView))
+        XCTAssertTrue(window.titlebarAppearsTransparent)
+        XCTAssertEqual(window.titleVisibility, .hidden)
+        XCTAssertEqual(window.titlebarSeparatorStyle, .none)
+        XCTAssertFalse(window.isOpaque)
+        XCTAssertTrue(window.isMovableByWindowBackground)
+        XCTAssertEqual(contentView.layer?.cornerRadius, DesignTokens.radiusL)
+        XCTAssertEqual(contentView.layer?.cornerCurve, .continuous)
+        XCTAssertTrue(contentView.layer?.masksToBounds == true)
+    }
+
+    @MainActor
+    func testSettingsWindowCanSuspendForScreenshotWithoutRestoringAsKey() {
+        let window = NSWindow(
+            contentRect: NSRect(x: 0, y: 0, width: 820, height: 560),
+            styleMask: [.titled, .closable],
+            backing: .buffered,
+            defer: false
+        )
+        let coordinator = MarlaSettingsWindowCoordinator(window: window)
+        window.orderFront(nil)
+
+        XCTAssertTrue(coordinator.suspendForScreenshotSelection())
+        XCTAssertFalse(window.isVisible)
+
+        coordinator.restoreAfterScreenshotSelection(wasVisible: true)
+
+        XCTAssertTrue(window.isVisible)
+        XCTAssertFalse(window.isKeyWindow)
+        window.orderOut(nil)
+    }
+
+    @MainActor
+    func testScreenshotSelectionWindowCanBecomeKeyButNotMain() {
+        let window = ScreenshotSelectionWindow(
+            contentRect: NSRect(x: 0, y: 0, width: 100, height: 100),
+            styleMask: .borderless,
+            backing: .buffered,
+            defer: false
+        )
+
+        XCTAssertTrue(window.canBecomeKey)
+        XCTAssertFalse(window.canBecomeMain)
+    }
+
+    @MainActor
+    func testEscapeCancelsScreenshotSelection() {
+        XCTAssertTrue(ScreenshotSelectionView.isCancelKeyCode(53))
+        XCTAssertFalse(ScreenshotSelectionView.isCancelKeyCode(36))
+
+        var didCancel = false
+        let session = ScreenshotSelectionSession { _, cancelled in
+            didCancel = cancelled
+        }
+        let view = ScreenshotSelectionView(session: session)
+        let event = NSEvent.keyEvent(
+            with: .keyDown,
+            location: .zero,
+            modifierFlags: [],
+            timestamp: 0,
+            windowNumber: 0,
+            context: nil,
+            characters: "\u{1B}",
+            charactersIgnoringModifiers: "\u{1B}",
+            isARepeat: false,
+            keyCode: 53
+        )
+
+        view.keyDown(with: try! XCTUnwrap(event))
+        XCTAssertTrue(didCancel)
+    }
+
+    @MainActor
+    func testScreenshotEscapeMonitorRoutesOnlyEscapeAndConsumesLocalEvent() throws {
+        var cancellationCount = 0
+        let monitor = ScreenshotEscapeMonitor {
+            cancellationCount += 1
+        }
+        let escape = try XCTUnwrap(
+            NSEvent.keyEvent(
+                with: .keyDown,
+                location: .zero,
+                modifierFlags: [],
+                timestamp: 0,
+                windowNumber: 0,
+                context: nil,
+                characters: "\u{1B}",
+                charactersIgnoringModifiers: "\u{1B}",
+                isARepeat: false,
+                keyCode: 53
+            )
+        )
+        let returnKey = try XCTUnwrap(
+            NSEvent.keyEvent(
+                with: .keyDown,
+                location: .zero,
+                modifierFlags: [],
+                timestamp: 0,
+                windowNumber: 0,
+                context: nil,
+                characters: "\r",
+                charactersIgnoringModifiers: "\r",
+                isARepeat: false,
+                keyCode: 36
+            )
+        )
+
+        XCTAssertNil(monitor.handleLocal(escape))
+        XCTAssertTrue(monitor.handleLocal(returnKey) === returnKey)
+        monitor.handleGlobal(returnKey)
+        monitor.handleGlobal(escape)
+
+        XCTAssertEqual(cancellationCount, 2)
+    }
+
+    @MainActor
+    func testScreenshotEscapeMonitorInstallsAndRemovesSessionMonitors() {
+        let monitor = ScreenshotEscapeMonitor {}
+
+        XCTAssertFalse(monitor.isInstalled)
+        monitor.install()
+        XCTAssertTrue(monitor.isInstalled)
+        monitor.remove()
+        XCTAssertFalse(monitor.isInstalled)
+        monitor.remove()
+        XCTAssertFalse(monitor.isInstalled)
+    }
+
+    @MainActor
+    func testScreenshotSelectionCancellationIsIdempotent() {
+        var finishCount = 0
+        var wasCancelled = false
+        let session = ScreenshotSelectionSession { _, cancelled in
+            finishCount += 1
+            wasCancelled = cancelled
+        }
+
+        session.cancel()
+        session.cancel()
+
+        XCTAssertEqual(finishCount, 1)
+        XCTAssertTrue(wasCancelled)
+    }
+
+    func testScreenshotMagnifierFlipsAtEdgesAndClampsSampleRect() {
+        let bounds = NSRect(x: 0, y: 0, width: 500, height: 400)
+        let topRight = ScreenshotMagnifierGeometry.frame(pointer: NSPoint(x: 490, y: 390), in: bounds)
+        XCTAssertLessThan(topRight.maxX, 490)
+        XCTAssertLessThan(topRight.maxY, 390)
+        XCTAssertGreaterThanOrEqual(topRight.minX, bounds.minX + ScreenshotMagnifierGeometry.margin)
+        XCTAssertGreaterThanOrEqual(topRight.minY, bounds.minY + ScreenshotMagnifierGeometry.margin)
+
+        let lowerLeft = ScreenshotMagnifierGeometry.frame(pointer: NSPoint(x: 2, y: 2), in: bounds)
+        XCTAssertGreaterThan(lowerLeft.minX, 2)
+        XCTAssertGreaterThan(lowerLeft.minY, 2)
+
+        let sourceBounds = NSRect(x: 0, y: 0, width: 100, height: 80)
+        let lowSample = ScreenshotMagnifierGeometry.sourceRect(
+            pointer: NSPoint(x: 1, y: 1),
+            in: sourceBounds,
+            destinationSize: NSSize(width: 96, height: 96),
+            zoom: 6
+        )
+        let highSample = ScreenshotMagnifierGeometry.sourceRect(
+            pointer: NSPoint(x: 99, y: 79),
+            in: sourceBounds,
+            destinationSize: NSSize(width: 96, height: 96),
+            zoom: 6
+        )
+        XCTAssertEqual(lowSample.minX, sourceBounds.minX)
+        XCTAssertEqual(lowSample.minY, sourceBounds.minY)
+        XCTAssertEqual(highSample.maxX, sourceBounds.maxX)
+        XCTAssertEqual(highSample.maxY, sourceBounds.maxY)
     }
 
     func testAccessibilityRangeFallbackUsesUTF16Offsets() {

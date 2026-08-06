@@ -153,7 +153,7 @@ All other spacing follows a 4pt grid. Pointer controls may retain compact macOS 
 
 卡片的标志性细节是“稳定流式游标”：等待首字时在译文首行使用低对比度呼吸点；首个 delta 到达后转为克制的尾部插入游标；完成时在 120ms 内淡出。它只表达状态，不循环播放装饰动画。
 
-卡片出现前计算最终锚点，使用 160ms ease-out 的 4pt 位移与淡入。流式文本只改变内部内容，不重复执行出现动画。固定时使用 180ms 的轻弹性位置确认，不改变卡片尺寸。
+卡片出现前计算最终锚点，使用 160ms ease-out 的 4pt 位移与淡入。流式文本只改变内部内容，不重复执行出现动画。固定时使用 180ms 的轻弹性位置确认，不改变卡片尺寸。用户可从非控件区域拖动卡片；外层阴影只由 AppKit 面板绘制，SwiftUI 内容裁切到连续圆角，避免窗口底角出现矩形边缘。
 
 ### English
 
@@ -168,19 +168,19 @@ Top-to-bottom structure:
 
 The card's signature detail is a stable streaming caret. Before first token, a low-contrast breathing dot occupies the first translation line. After the first delta, it becomes a restrained trailing insertion caret and fades out within 120ms on completion. It communicates state and never loops as decoration.
 
-The final anchor is computed before presentation. Entry uses a 160ms ease-out fade with 4pt movement. Streamed text changes internal content only and never replays entry motion. Pinning uses a light 180ms positional confirmation without resizing the card.
+The final anchor is computed before presentation. Entry uses a 160ms ease-out fade with 4pt movement. Streamed text changes internal content only and never replays entry motion. Pinning uses a light 180ms positional confirmation without resizing the card. The card is draggable from non-control regions. AppKit alone owns the outer shadow, while SwiftUI content clips to continuous corners so no rectangular edge protrudes at the bottom.
 
 ## 5. 截图框选层 / Screenshot Selection Layer
 
 ### 中文
 
-非选中区域只做足以建立范围感的系统暗化，不使用彩色渐变。选区边界使用 1pt 高对比描边和四角短控制标记；拖动时在相邻位置显示紧凑尺寸标签。未开始拖动时在上方显示“拖动框选要翻译的区域 · Esc 取消”，光标使用系统十字样式。
+非选中区域只做足以建立范围感的系统暗化，不使用彩色渐变。选区边界使用 1pt 高对比描边和四角短控制标记；拖动时在相邻位置显示紧凑尺寸标签。未开始拖动时在上方显示“拖动框选要翻译的区域 · Esc 取消”，光标使用系统十字样式。指针旁显示 6× 像素放大镜、蓝色中心准星和紧凑坐标；放大镜与精确落点保持间距，在四边自动换位，并且只使用当前会话的内存屏幕快照。
 
 标志性细节是选区四角在确认瞬间进行一次 120ms 向内收束，随后立即退出并开始 Vision；Reduce Motion 下取消位移，只改变透明度。框选层不得显示营销文案、工具栏或与任务无关的品牌元素。
 
 ### English
 
-Unselected space receives only enough system dimming to establish scope, with no colored gradient. The region uses a 1pt high-contrast outline and short corner markers, with a compact adjacent size label during drag. Before dragging, it shows “Drag to select text to translate · Esc to cancel”; the pointer uses the system crosshair.
+Unselected space receives only enough system dimming to establish scope, with no colored gradient. The region uses a 1pt high-contrast outline and short corner markers, with a compact adjacent size label during drag. Before dragging, it shows “Drag to select text to translate · Esc to cancel”; the pointer uses the system crosshair. A 6× pixel loupe beside the pointer adds a blue center reticle and compact coordinates. It stays clear of the exact target, flips at all four edges, and uses only the active session's in-memory screen snapshot.
 
 Its signature detail is a single 120ms inward confirmation of the four corners before dismissal and Vision start. With Reduce Motion, movement is removed and opacity changes only. The selection layer contains no marketing copy, toolbar, or unrelated brand decoration.
 
@@ -202,7 +202,7 @@ Its signature detail is the language-route capsule: before submission it reads �
 
 ### 中文
 
-设置使用原生 macOS 分栏或分组 Form，不制造卡片网格。0.1.0 分为“翻译 API”“快捷键”“权限”“实验功能”四组。API Key 使用安全输入并提供替换、删除和连接测试；界面不回显完整 Key。
+设置使用原生 macOS 侧栏，不制造卡片网格。窗口使用透明全尺寸标题栏，原生红黄绿按钮位于与侧栏和内容连续的同一个四角圆角表面内；不得在标题栏下再叠放第二张圆角卡片，也不显示常驻滚动指示条。首期侧栏固定包含“通用”“翻译 API”“快捷键”“OCR”四项，默认打开“通用”。“翻译 API”页面只展示配置名称、模型、默认/完整状态和排序/删除操作；点击配置后才打开独立编辑窗口。API 编辑窗口使用固定标签列与统一输入宽度，保留足够焦点环边距，并提供取消、替换/删除 Key、连接测试、设为默认和删除配置；取消新增时不保留临时配置或 Key。快捷键页为每个全局监听提供原生 switch，并以不可关闭的固定行说明 `Esc` 用于取消截图框选。OCR 页面只读展示本机 Vision 和截图隐私边界。
 
 首次启动不显示大幅欢迎页，而是直接显示三项可完成清单：配置翻译 API、授予辅助功能、授予屏幕录制。每项解释它影响哪个入口，并允许暂时跳过；快速输入始终可用于验证 API。
 
@@ -210,7 +210,7 @@ Its signature detail is the language-route capsule: before submission it reads �
 
 ### English
 
-Settings uses a native macOS sidebar or grouped Form rather than a card grid. 0.1.0 has four groups: Translation API, Shortcuts, Permissions, and Experiments. API Key uses secure input with replace, delete, and connection-test actions; the full key is never echoed.
+Settings uses a native macOS sidebar rather than a card grid. The window has a transparent full-size title bar, placing the native traffic-light controls inside the same continuous four-corner surface as the sidebar and content. It may not stack a second rounded card below the title bar or show a persistent scroll indicator. The first sidebar has four items: General, Translation API, Shortcuts, and OCR, with General selected by default. The Translation API page shows only profile name, model, default/completeness state, and reorder/delete actions; clicking a profile opens a separate editor window. The API editor uses a fixed label column, uniform input width, and enough focus-ring inset. It provides Cancel, key replacement/deletion, connection testing, default selection, and profile deletion; cancelling a new profile leaves neither a placeholder nor its key. Each global listener has a native switch on the Shortcuts page, while a non-disableable fixed row explains that `Esc` cancels screenshot selection. The OCR page is read-only and explains local Vision and screenshot privacy boundaries.
 
 First launch does not show a large welcome hero. It directly presents a three-item completion list: configure translation API, grant Accessibility, and grant Screen Recording. Each item explains the affected entry and may be skipped; quick input remains available to validate the API.
 
@@ -254,6 +254,12 @@ With Reduce Motion, positional springs, corner convergence, and breathing scale 
 
 TASK-003 复评：`Marla_test_202608061928.app` 的菜单最近翻译浅色/深色、设置、快速输入、对照卡和截图框选场景均已检查，证据位于 `artifacts/ui-review/task-003/`。首次检查发现设置透明标题栏在浅色离屏渲染中出现黑条，恢复系统标题栏材质后复评通过。评分为：哲学一致性 8/10、视觉层级 8/10、工艺质量 8/10、功能性 8/10、原创性 7/10。自动化截图显式渲染材质回退；生产路径在 macOS 26+ 调用 SwiftUI `glassEffect`，旧系统保持单层材质回退。
 
+TASK-006 真实 Release App 验收：固定路径 `artifacts/Marla_dev.app` 生成通用浅色/深色、翻译 API 摘要列表、API 独立编辑器、快捷键和 OCR 状态页证据，位于 `artifacts/ui-review/task-006/`。侧栏宽度 180pt，编辑器标签列 120pt、输入框 360pt；五维评审为哲学一致性 8/10、视觉层级 8/10、工艺质量 8/10、功能性 8/10、原创性 7/10，全部达到 7/10 门槛。
+
+TASK-007 真实 Release App 验收：固定路径 `artifacts/Marla_dev.app` 生成 API 编辑器、快捷键浅色/深色、结果卡和截图放大镜证据，位于 `artifacts/ui-review/task-007/`。编辑器 AppKit 承载层与 SwiftUI 内容共同裁切四个连续圆角，侧栏分隔线避开上下圆角；三个快捷键 switch、结果卡底角和 6× 指针放大镜均已检查。五维评审为哲学一致性 8/10、视觉层级 8/10、工艺质量 8/10、功能性 8/10、原创性 7/10，全部达到门槛。
+
+TASK-008 真实 Release App 验收：固定路径 `artifacts/Marla_dev.app` 生成设置一体化浅色、快捷键深色和“设置已打开后进入截图”证据，位于 `artifacts/ui-review/task-008/`。透明全尺寸标题栏将交通灯纳入单一连续表面，左右四角共同裁切，右缘不再显示滚动白条；截图场景未出现设置窗口。五维评审为哲学一致性 8/10、视觉层级 8/10、工艺质量 8/10、功能性 8/10、原创性 7/10，全部达到门槛。
+
 ### English
 
 After implementation, invoke the `swiftui-design-skill` five-dimension review and retain real-app screenshot evidence for:
@@ -271,3 +277,9 @@ Philosophy alignment, visual hierarchy, craft quality, functionality, and origin
 2026-08-06 real Release App rescore: menu, quick input, awaiting/streaming/completed/partial-failure/long-text/comparison-pinned card, Settings, and screenshot-selection scenarios were rendered and inspected from `Marla_test_202608060135.app`. Scores are Philosophy Alignment 8/10, Visual Hierarchy 8/10, Craft Quality 7/10, Functionality 8/10, and Originality 7/10; every dimension meets the threshold. PNG evidence is under `artifacts/ui-review/` and is written only by explicit UI automation scenarios. Production cards use Liquid Glass on macOS 26+ and the material fallback on earlier supported systems. The later Qwen-MT, Web Text Marker, and screenshot-coordinate fixes do not change UI surfaces; the final source was also rebuilt into the fixed-path signed `Marla_dev.app`.
 
 TASK-003 rescore: the recent-translations menu in light and dark appearance, Settings, quick input, comparison card, and screenshot-selection scenes from `Marla_test_202608061928.app` were inspected, with evidence under `artifacts/ui-review/task-003/`. The first pass found a black strip from the transparent Settings title bar in light off-screen rendering; restoring the system title-bar material passed the rescore. Scores are Philosophy Alignment 8/10, Visual Hierarchy 8/10, Craft Quality 8/10, Functionality 8/10, and Originality 7/10. Automation screenshots explicitly render the material fallback; production invokes SwiftUI `glassEffect` on macOS 26+ and retains a single-layer material fallback on older systems.
+
+TASK-006 real Release App acceptance: the fixed `artifacts/Marla_dev.app` produced General light/dark, Translation API summary-list, separate API editor, Shortcuts, and OCR status-page evidence under `artifacts/ui-review/task-006/`. The sidebar is 180pt wide; the editor uses a 120pt label column and 360pt fields. Five-dimension scores are Philosophy Alignment 8/10, Visual Hierarchy 8/10, Craft Quality 8/10, Functionality 8/10, and Originality 7/10; every dimension meets the 7/10 threshold.
+
+TASK-007 real Release App acceptance: the fixed `artifacts/Marla_dev.app` produced API-editor, Shortcuts light/dark, result-card, and screenshot-magnifier evidence under `artifacts/ui-review/task-007/`. The editor's AppKit host and SwiftUI content jointly clip all four continuous corners, and the sidebar divider stops short of the upper and lower corners; the three shortcut switches, result-card bottom corners, and 6× pointer magnifier were inspected. Five-dimension scores are Philosophy Alignment 8/10, Visual Hierarchy 8/10, Craft Quality 8/10, Functionality 8/10, and Originality 7/10; every dimension meets the threshold.
+
+TASK-008 real Release App acceptance: the fixed `artifacts/Marla_dev.app` produced unified-Settings light, Shortcuts dark, and “enter screenshot while Settings is open” evidence under `artifacts/ui-review/task-008/`. The transparent full-size title bar places the traffic lights inside one continuous surface, both left and right corners share the same clipping, and the right-edge white scroll indicator is gone. The screenshot scene contains no Settings window. Five-dimension scores are Philosophy Alignment 8/10, Visual Hierarchy 8/10, Craft Quality 8/10, Functionality 8/10, and Originality 7/10; every dimension meets the threshold.

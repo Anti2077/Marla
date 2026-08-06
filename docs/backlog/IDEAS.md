@@ -26,7 +26,7 @@
 | IDEA-007 | 更可靠的 Force Touch 入口 | Exploring | 当前为非阻塞实验 |
 | IDEA-008 | 更多瞬时翻译入口 | Captured | 保持“不打断工作”原则 |
 | IDEA-009 | 本地 OCR / VLM 能力分档 | Captured | 截图与文档场景的未来选项 |
-| IDEA-010 | 多翻译 API 配置与窗口内切换 | Captured | 当前只支持一个端点 |
+| IDEA-010 | 多翻译 API 配置与窗口内切换 | Promoted | TASK-005 已实现核心行为；TASK-006 重构其设置入口 |
 
 ---
 
@@ -538,7 +538,7 @@ Marla 软件本体期望约 200MB，OCR 额外工作内存理想为 300–500MB�
 
 ## IDEA-010：多翻译 API 配置与窗口内切换
 
-Status: Captured
+Status: Promoted to BL-007 / TASK-005
 
 Priority: Unranked
 
@@ -617,7 +617,7 @@ Related: `IMPLEMENTATION.md`、Rust translation provider
 
 ### 下一步
 
-保持 `Captured`，不改变 0.1.0 单端点合同。项目所有者决定排期时，先确认旧译文处理和默认配置作用域，再提升到 Backlog。
+已由项目所有者明确要求实施，提升为 `BL-007`，当前施工单为 `TASK-005`。首期采用全局默认配置；结果卡片切换只影响当前卡片并立即重跑，同一份截图 OCR 文本不重新捕获。
 
 ---
 

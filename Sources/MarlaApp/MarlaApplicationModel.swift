@@ -11,12 +11,16 @@ import Vision
 
 @MainActor
 final class KeychainCredentialStore: @unchecked Sendable {
-    private let service: String
-    private let account: String
+    let service: String
+    let account: String
 
     init(service: String = "com.marla.app", account: String = "translation-api-key") {
         self.service = service
         self.account = account
+    }
+
+    func scoped(to profileID: UUID) -> KeychainCredentialStore {
+        KeychainCredentialStore(service: service, account: "translation-api-key.\(profileID.uuidString)")
     }
 
     var hasCredential: Bool { read() != nil }
@@ -75,13 +79,42 @@ enum KeychainError: LocalizedError {
     var errorDescription: String? { "无法保存 API Key。" }
 }
 
+struct TranslationAPIProfile: Identifiable, Codable, Equatable, Sendable {
+    let id: UUID
+    var name: String
+    var baseURL: String
+    var modelName: String
+
+    init(id: UUID = UUID(), name: String = "新配置", baseURL: String = "", modelName: String = "") {
+        self.id = id
+        self.name = name
+        self.baseURL = baseURL
+        self.modelName = modelName
+    }
+
+    var isConfigured: Bool {
+        guard let url = URL(string: baseURL.trimmingCharacters(in: .whitespacesAndNewlines)) else { return false }
+        return ["http", "https"].contains(url.scheme?.lowercased() ?? "") &&
+            url.host != nil &&
+            !modelName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
+}
+
 @MainActor
 final class MarlaSettingsStore: ObservableObject {
-    @Published var baseURL: String {
-        didSet { defaults.set(baseURL, forKey: Keys.baseURL) }
+    @Published var profiles: [TranslationAPIProfile] {
+        didSet { saveProfiles() }
     }
-    @Published var modelName: String {
-        didSet { defaults.set(modelName, forKey: Keys.modelName) }
+    @Published var defaultProfileID: UUID? {
+        didSet { defaults.set(defaultProfileID?.uuidString, forKey: Keys.defaultProfileID) }
+    }
+    var baseURL: String {
+        get { defaultProfile?.baseURL ?? "" }
+        set { updateProfile(id: defaultProfile?.id, baseURL: newValue) }
+    }
+    var modelName: String {
+        get { defaultProfile?.modelName ?? "" }
+        set { updateProfile(id: defaultProfile?.id, modelName: newValue) }
     }
     @Published var defaultTarget: TranslationTarget {
         didSet {
@@ -99,6 +132,8 @@ final class MarlaSettingsStore: ObservableObject {
     private let defaults: UserDefaults
 
     private enum Keys {
+        static let profiles = "translationAPIProfiles.v1"
+        static let defaultProfileID = "translationDefaultProfileID"
         static let baseURL = "translationBaseURL"
         static let modelName = "translationModelName"
         static let targetMode = "translationTargetMode"
@@ -110,31 +145,126 @@ final class MarlaSettingsStore: ObservableObject {
     init(defaults: UserDefaults = .standard, keychain: KeychainCredentialStore = KeychainCredentialStore()) {
         self.defaults = defaults
         self.keychain = keychain
-        baseURL = defaults.string(forKey: Keys.baseURL) ?? ""
-        modelName = defaults.string(forKey: Keys.modelName) ?? ""
+        if let data = defaults.data(forKey: Keys.profiles),
+           let decoded = try? JSONDecoder().decode([TranslationAPIProfile].self, from: data),
+           !decoded.isEmpty {
+            profiles = decoded
+            let storedID = defaults.string(forKey: Keys.defaultProfileID).flatMap(UUID.init(uuidString:))
+            defaultProfileID = decoded.contains(where: { $0.id == storedID }) ? storedID : decoded.first?.id
+        } else {
+            let legacyURL = defaults.string(forKey: Keys.baseURL) ?? ""
+            let legacyModel = defaults.string(forKey: Keys.modelName) ?? ""
+            if !legacyURL.isEmpty || !legacyModel.isEmpty || keychain.hasCredential {
+                let migrated = TranslationAPIProfile(name: "默认配置", baseURL: legacyURL, modelName: legacyModel)
+                profiles = [migrated]
+                defaultProfileID = migrated.id
+                if let legacyKey = keychain.read() {
+                    try? keychain.scoped(to: migrated.id).save(legacyKey)
+                }
+            } else {
+                profiles = []
+                defaultProfileID = nil
+            }
+        }
         let mode = TranslationTargetMode(rawValue: defaults.string(forKey: Keys.targetMode) ?? "automatic") ?? .automatic
         defaultTarget = TranslationTarget(mode: mode, language: defaults.string(forKey: Keys.targetLanguage))
         forceTouchExperimental = defaults.bool(forKey: Keys.forceTouch)
         onboardingSkipped = defaults.bool(forKey: Keys.onboardingSkipped)
+        saveProfiles()
     }
 
-    var apiKey: String? { keychain.read() }
-    var hasAPIConfiguration: Bool {
-        !baseURL.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
-            !modelName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    var defaultProfile: TranslationAPIProfile? {
+        guard let defaultProfileID else { return profiles.first }
+        return profiles.first(where: { $0.id == defaultProfileID }) ?? profiles.first
     }
+
+    var apiKey: String? { defaultProfile.flatMap { apiKey(for: $0.id) } }
+    var hasAPIConfiguration: Bool {
+        defaultProfile?.isConfigured == true
+    }
+
+    func profile(id: UUID?) -> TranslationAPIProfile? {
+        guard let id else { return defaultProfile }
+        return profiles.first(where: { $0.id == id })
+    }
+
+    func apiKey(for profileID: UUID) -> String? {
+        keychain.scoped(to: profileID).read()
+    }
+
+    func hasCredential(for profileID: UUID) -> Bool {
+        apiKey(for: profileID) != nil
+    }
+
+    func endpoint(for profileID: UUID?) -> TranslationEndpointConfiguration? {
+        guard let profile = profile(id: profileID), profile.isConfigured else { return nil }
+        return TranslationEndpointConfiguration(
+            baseURL: profile.baseURL,
+            model: profile.modelName,
+            apiKey: apiKey(for: profile.id)
+        )
+    }
+
+    @discardableResult
+    func addProfile() -> UUID {
+        let profile = TranslationAPIProfile(name: "新配置")
+        profiles.append(profile)
+        if defaultProfileID == nil { defaultProfileID = profile.id }
+        return profile.id
+    }
+
+    func updateProfile(id: UUID?, name: String? = nil, baseURL: String? = nil, modelName: String? = nil) {
+        let targetID = id ?? defaultProfileID ?? profiles.first?.id ?? addProfile()
+        guard let index = profiles.firstIndex(where: { $0.id == targetID }) else { return }
+        if let name { profiles[index].name = name }
+        if let baseURL { profiles[index].baseURL = baseURL }
+        if let modelName { profiles[index].modelName = modelName }
+        if defaultProfileID == nil { defaultProfileID = targetID }
+        saveProfiles()
+    }
+
+    func setDefaultProfile(_ id: UUID) {
+        guard profiles.contains(where: { $0.id == id }) else { return }
+        defaultProfileID = id
+    }
+
+    func moveProfile(id: UUID, by offset: Int) {
+        guard let index = profiles.firstIndex(where: { $0.id == id }) else { return }
+        let destination = index + offset
+        guard profiles.indices.contains(destination) else { return }
+        profiles.swapAt(index, destination)
+    }
+
+    func removeProfile(id: UUID) {
+        guard let index = profiles.firstIndex(where: { $0.id == id }) else { return }
+        keychain.scoped(to: id).remove()
+        profiles.remove(at: index)
+        if defaultProfileID == id { defaultProfileID = profiles.first?.id }
+    }
+
     func updateAPIKey(_ value: String) throws {
+        guard let profileID = defaultProfile?.id else { return }
+        try updateAPIKey(value, for: profileID)
+    }
+
+    func updateAPIKey(_ value: String, for profileID: UUID) throws {
         if value.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-            keychain.remove()
+            keychain.scoped(to: profileID).remove()
         } else {
-            try keychain.save(value)
+            try keychain.scoped(to: profileID).save(value)
         }
         credentialRevision += 1
     }
 
     func removeAPIKey() {
-        keychain.remove()
+        guard let profileID = defaultProfile?.id else { return }
+        keychain.scoped(to: profileID).remove()
         credentialRevision += 1
+    }
+
+    private func saveProfiles() {
+        guard let data = try? JSONEncoder().encode(profiles) else { return }
+        defaults.set(data, forKey: Keys.profiles)
     }
 
     func skipOnboarding() {
@@ -153,8 +283,36 @@ final class MarlaSettingsStore: ObservableObject {
 }
 
 @MainActor
+enum SettingsWindowStyle {
+    static func apply(to window: NSWindow) {
+        window.styleMask.insert(.fullSizeContentView)
+        window.titlebarAppearsTransparent = true
+        window.titleVisibility = .hidden
+        window.titlebarSeparatorStyle = .none
+        window.isOpaque = false
+        window.backgroundColor = .clear
+        window.hasShadow = true
+        window.isMovableByWindowBackground = true
+        apply(to: window.contentView)
+    }
+
+    static func apply(to contentView: NSView?) {
+        guard let contentView else { return }
+        contentView.wantsLayer = true
+        contentView.layer?.cornerRadius = DesignTokens.radiusL
+        contentView.layer?.cornerCurve = .continuous
+        contentView.layer?.masksToBounds = true
+    }
+}
+
+@MainActor
 final class MarlaSettingsWindowCoordinator: NSObject, NSWindowDelegate {
     private(set) var window: NSWindow?
+
+    init(window: NSWindow? = nil) {
+        self.window = window
+        super.init()
+    }
 
     func present(settings: MarlaSettingsStore, appModel: MarlaApplicationModel) {
         if let window {
@@ -164,24 +322,36 @@ final class MarlaSettingsWindowCoordinator: NSObject, NSWindowDelegate {
         }
 
         let window = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 644, height: 584),
+            contentRect: NSRect(x: 0, y: 0, width: 820, height: 560),
             styleMask: [.titled, .closable, .miniaturizable, .resizable],
             backing: .buffered,
             defer: false
         )
         window.title = "Marla 设置"
         window.isReleasedWhenClosed = false
-        window.minSize = NSSize(width: 644, height: 584)
+        window.minSize = NSSize(width: 820, height: 560)
         window.isOpaque = false
         window.backgroundColor = .clear
         window.contentView = NSHostingView(
             rootView: SettingsView(settings: settings, appModel: appModel)
         )
+        SettingsWindowStyle.apply(to: window)
         window.center()
         window.delegate = self
         self.window = window
         NSApp.activate(ignoringOtherApps: true)
         window.makeKeyAndOrderFront(nil)
+    }
+
+    func suspendForScreenshotSelection() -> Bool {
+        guard let window, window.isVisible else { return false }
+        window.orderOut(nil)
+        return true
+    }
+
+    func restoreAfterScreenshotSelection(wasVisible: Bool) {
+        guard wasVisible, let window else { return }
+        window.orderBack(nil)
     }
 
     func windowWillClose(_ notification: Notification) {
@@ -221,6 +391,8 @@ extension TranslationSurface {
 struct CardSession: Identifiable, Equatable {
     var id: UUID
     let surface: TranslationSurface
+    var profileID: UUID?
+    var profileName: String
     var sourceText: String
     var translation: String
     var target: TranslationTarget
@@ -252,6 +424,8 @@ struct CardSession: Identifiable, Equatable {
 struct RecentTranslation: Identifiable, Equatable {
     let id: UUID
     let surface: TranslationSurface
+    let profileID: UUID?
+    let profileName: String
     let sourceText: String
     let translation: String
     let target: TranslationTarget
@@ -276,12 +450,16 @@ final class TranslationSessionStore: ObservableObject {
         self.settings = settings
     }
 
+    var availableProfiles: [TranslationAPIProfile] { settings.profiles }
+
     func beginRecognizing(anchor: ScreenRect?, pointer: CGPoint?) -> UUID {
         cancelCurrentRequest()
         let id = UUID()
         session = CardSession(
             id: id,
             surface: .screenshot,
+            profileID: settings.defaultProfile?.id,
+            profileName: settings.defaultProfile?.name ?? "未配置",
             sourceText: "",
             translation: "",
             target: settings.defaultTarget,
@@ -310,6 +488,8 @@ final class TranslationSessionStore: ObservableObject {
         session = CardSession(
             id: id,
             surface: surface,
+            profileID: settings.defaultProfile?.id,
+            profileName: settings.defaultProfile?.name ?? "未配置",
             sourceText: sourceText,
             translation: translation,
             target: settings.defaultTarget,
@@ -342,7 +522,7 @@ final class TranslationSessionStore: ObservableObject {
         startRequest(for: id)
     }
 
-    func startText(_ text: String, surface: TranslationSurface, anchor: ScreenRect?, pointer: CGPoint?, activate: Bool = false, target: TranslationTarget? = nil) {
+    func startText(_ text: String, surface: TranslationSurface, anchor: ScreenRect?, pointer: CGPoint?, activate: Bool = false, target: TranslationTarget? = nil, profileID: UUID? = nil) {
         cancelCurrentRequest()
         let id = UUID()
         lastSource = text
@@ -352,6 +532,8 @@ final class TranslationSessionStore: ObservableObject {
         session = CardSession(
             id: id,
             surface: surface,
+            profileID: profileID ?? settings.defaultProfile?.id,
+            profileName: settings.profile(id: profileID ?? settings.defaultProfile?.id)?.name ?? "未配置",
             sourceText: text,
             translation: "",
             target: target ?? settings.defaultTarget,
@@ -374,7 +556,8 @@ final class TranslationSessionStore: ObservableObject {
         lastSurface = current.surface
         lastAnchor = current.anchor
         lastPointer = current.pointer
-        guard settings.hasAPIConfiguration else {
+        guard let profile = settings.profile(id: current.profileID),
+              let endpoint = settings.endpoint(for: profile.id) else {
             current.state = .failed(message: "请先在设置中配置翻译 API。")
             current.errorCode = .invalidConfiguration
             current.errorRetryable = false
@@ -386,12 +569,14 @@ final class TranslationSessionStore: ObservableObject {
         current.errorCode = nil
         current.errorRetryable = false
         current.recoveryAction = nil
+        current.profileID = profile.id
+        current.profileName = profile.name
         session = current
         let request = TranslationFFIRequest(
             requestID: current.id,
             sourceText: current.sourceText,
             target: current.target,
-            endpoint: TranslationEndpointConfiguration(baseURL: settings.baseURL, model: settings.modelName, apiKey: settings.apiKey)
+            endpoint: endpoint
         )
         do {
             handle = try client.start(request: request) { [weak self] event in
@@ -436,8 +621,27 @@ final class TranslationSessionStore: ObservableObject {
             anchor: current.anchor ?? lastAnchor,
             pointer: current.pointer ?? lastPointer,
             activate: current.isActivating,
-            target: current.target
+            target: current.target,
+            profileID: current.profileID
         )
+    }
+
+    func changeAPIProfile(_ profileID: UUID) {
+        guard var current = session,
+              !current.sourceText.isEmpty,
+              let profile = settings.profile(id: profileID),
+              profile.isConfigured else { return }
+        cancelCurrentRequest()
+        current.profileID = profile.id
+        current.profileName = profile.name
+        current.translation = ""
+        current.state = .acquiring
+        current.errorCode = nil
+        current.errorRetryable = false
+        current.recoveryAction = nil
+        current.id = UUID()
+        session = current
+        startRequest(for: current.id)
     }
 
     func changeTarget(_ target: TranslationTarget) {
@@ -497,6 +701,8 @@ final class TranslationSessionStore: ObservableObject {
         let restored = CardSession(
             id: UUID(),
             surface: recent.surface,
+            profileID: recent.profileID,
+            profileName: recent.profileName,
             sourceText: recent.sourceText,
             translation: recent.translation,
             target: recent.target,
@@ -554,6 +760,8 @@ final class TranslationSessionStore: ObservableObject {
             RecentTranslation(
                 id: UUID(),
                 surface: candidate.surface,
+                profileID: candidate.profileID,
+                profileName: candidate.profileName,
                 sourceText: candidate.sourceText,
                 translation: candidate.translation,
                 target: candidate.target
@@ -570,6 +778,24 @@ final class TranslationSessionStore: ObservableObject {
 final class MarlaPanel: NSPanel {
     override var canBecomeKey: Bool { true }
     override var canBecomeMain: Bool { true }
+}
+
+@MainActor
+enum FloatingPanelStyle {
+    static let cornerRadius = DesignTokens.radiusL
+
+    static func apply(to panel: NSPanel) {
+        panel.isMovable = true
+        panel.isMovableByWindowBackground = true
+        panel.hasShadow = true
+    }
+
+    static func apply(to contentView: NSView) {
+        contentView.wantsLayer = true
+        contentView.layer?.cornerRadius = cornerRadius
+        contentView.layer?.cornerCurve = .continuous
+        contentView.layer?.masksToBounds = true
+    }
 }
 
 struct PanelPlacementCalculator {
@@ -683,9 +909,11 @@ final class FloatingPanelCoordinator: NSObject, NSWindowDelegate {
     private func show(content: AnyView, width: CGFloat, height: CGFloat, anchor: ScreenRect?, pointer: CGPoint?, activate: Bool) {
         let panel = panel ?? makePanel()
         let forcedReduceMotion = ProcessInfo.processInfo.environment["MARLA_UI_TEST_REDUCE_MOTION"] == "1"
-        panel.contentView = NSHostingView(
+        let hostingView = NSHostingView(
             rootView: content.environment(\.marlaReduceMotionOverride, forcedReduceMotion)
         )
+        FloatingPanelStyle.apply(to: hostingView)
+        panel.contentView = hostingView
         let targetFrame = frame(width: width, height: height, anchor: anchor, pointer: pointer)
         let reduceMotion = forcedReduceMotion || NSWorkspace.shared.accessibilityDisplayShouldReduceMotion
         var entryFrame = targetFrame
@@ -717,7 +945,7 @@ final class FloatingPanelCoordinator: NSObject, NSWindowDelegate {
         panel.level = .statusBar
         panel.backgroundColor = .clear
         panel.isOpaque = false
-        panel.hasShadow = true
+        FloatingPanelStyle.apply(to: panel)
         panel.hidesOnDeactivate = false
         panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
         panel.delegate = self
@@ -865,7 +1093,10 @@ struct ShortcutBinding: Codable, Equatable, Sendable {
 @MainActor
 protocol GlobalShortcutManaging: AnyObject {
     var bindings: [GlobalShortcutAction: ShortcutBinding] { get }
+    var enabledActions: Set<GlobalShortcutAction> { get }
     var conflictMessage: String? { get }
+    func isEnabled(_ action: GlobalShortcutAction) -> Bool
+    func setEnabled(_ enabled: Bool, for action: GlobalShortcutAction)
     func set(_ binding: ShortcutBinding, for action: GlobalShortcutAction)
     func restoreDefaults()
     func conflict(for binding: ShortcutBinding, excluding action: GlobalShortcutAction) -> GlobalShortcutAction?
@@ -904,12 +1135,20 @@ private func handleMarlaHotKeyEvent(
 @MainActor
 final class GlobalShortcutManager: ObservableObject, GlobalShortcutManaging {
     @Published private(set) var bindings = ShortcutBinding.defaults
+    @Published private(set) var enabledActions = Set(GlobalShortcutAction.allCases)
     @Published private(set) var conflictMessage: String?
     var onAction: ((GlobalShortcutAction) -> Void)?
     private var eventHandler: EventHandlerRef?
     private var registeredHotKeys: [GlobalShortcutAction: EventHotKeyRef] = [:]
+    private let defaults: UserDefaults
+    private let shouldRegisterHotKeys: Bool
 
-    init(registerHotKeys: Bool = !MarlaRuntime.isXcodePreview) {
+    init(
+        registerHotKeys: Bool = !MarlaRuntime.isXcodePreview,
+        defaults: UserDefaults = .standard
+    ) {
+        self.defaults = defaults
+        shouldRegisterHotKeys = registerHotKeys
         load()
         guard registerHotKeys else { return }
         var eventType = EventTypeSpec(
@@ -926,9 +1165,31 @@ final class GlobalShortcutManager: ObservableObject, GlobalShortcutManaging {
         )
         if status != noErr {
             conflictMessage = "无法初始化全局快捷键服务（错误 \(status)）。"
-        } else if let action = register(bindings) {
+        } else if let action = register(bindings, enabledActions: enabledActions) {
             conflictMessage = "\(action.title)的快捷键已被系统或其他应用占用，请重新录制。"
         }
+    }
+
+    func isEnabled(_ action: GlobalShortcutAction) -> Bool {
+        enabledActions.contains(action)
+    }
+
+    func setEnabled(_ enabled: Bool, for action: GlobalShortcutAction) {
+        let previous = enabledActions
+        var candidate = enabledActions
+        if enabled {
+            candidate.insert(action)
+        } else {
+            candidate.remove(action)
+        }
+        if let unavailable = register(bindings, enabledActions: candidate) {
+            _ = register(bindings, enabledActions: previous)
+            conflictMessage = "\(unavailable.title)的快捷键已被系统或其他应用占用，请重新录制。"
+            return
+        }
+        enabledActions = candidate
+        conflictMessage = nil
+        save()
     }
 
     func set(_ binding: ShortcutBinding, for action: GlobalShortcutAction) {
@@ -943,8 +1204,8 @@ final class GlobalShortcutManager: ObservableObject, GlobalShortcutManaging {
         let previous = bindings
         var candidate = bindings
         candidate[action] = binding
-        if let unavailable = register(candidate) {
-            _ = register(previous)
+        if let unavailable = register(candidate, enabledActions: enabledActions) {
+            _ = register(previous, enabledActions: enabledActions)
             conflictMessage = "\(unavailable.title)的 \(binding.displayName) 已被占用，请使用其他组合键。"
             return
         }
@@ -955,12 +1216,15 @@ final class GlobalShortcutManager: ObservableObject, GlobalShortcutManaging {
 
     func restoreDefaults() {
         let previous = bindings
-        if let unavailable = register(ShortcutBinding.defaults) {
-            _ = register(previous)
+        let previousEnabled = enabledActions
+        let allEnabled = Set(GlobalShortcutAction.allCases)
+        if let unavailable = register(ShortcutBinding.defaults, enabledActions: allEnabled) {
+            _ = register(previous, enabledActions: previousEnabled)
             conflictMessage = "默认快捷键 \(unavailable.title) 已被占用，请保留当前设置或重新录制。"
             return
         }
         bindings = ShortcutBinding.defaults
+        enabledActions = allEnabled
         conflictMessage = nil
         save()
     }
@@ -970,13 +1234,18 @@ final class GlobalShortcutManager: ObservableObject, GlobalShortcutManaging {
     }
 
     func handleHotKey(id: UInt32) {
-        guard let action = GlobalShortcutAction(hotKeyID: id) else { return }
+        guard let action = GlobalShortcutAction(hotKeyID: id), isEnabled(action) else { return }
         onAction?(action)
     }
 
-    private func register(_ candidate: [GlobalShortcutAction: ShortcutBinding]) -> GlobalShortcutAction? {
+    private func register(
+        _ candidate: [GlobalShortcutAction: ShortcutBinding],
+        enabledActions: Set<GlobalShortcutAction>
+    ) -> GlobalShortcutAction? {
         unregisterAll()
+        guard shouldRegisterHotKeys else { return nil }
         for action in GlobalShortcutAction.allCases {
+            guard enabledActions.contains(action) else { continue }
             guard let binding = candidate[action] else { continue }
             var reference: EventHotKeyRef?
             let identifier = EventHotKeyID(signature: marlaHotKeySignature, id: action.hotKeyID)
@@ -1003,14 +1272,22 @@ final class GlobalShortcutManager: ObservableObject, GlobalShortcutManaging {
     }
 
     private func load() {
-        guard let data = UserDefaults.standard.data(forKey: "shortcutBindings"),
-              let decoded = try? JSONDecoder().decode([GlobalShortcutAction: ShortcutBinding].self, from: data) else { return }
-        bindings = decoded
+        if let data = defaults.data(forKey: "shortcutBindings"),
+           let decoded = try? JSONDecoder().decode([GlobalShortcutAction: ShortcutBinding].self, from: data) {
+            bindings = decoded
+        }
+        if let data = defaults.data(forKey: "shortcutEnabledActions.v1"),
+           let decoded = try? JSONDecoder().decode(Set<GlobalShortcutAction>.self, from: data) {
+            enabledActions = decoded
+        }
     }
 
     private func save() {
         if let data = try? JSONEncoder().encode(bindings) {
-            UserDefaults.standard.set(data, forKey: "shortcutBindings")
+            defaults.set(data, forKey: "shortcutBindings")
+        }
+        if let data = try? JSONEncoder().encode(enabledActions) {
+            defaults.set(data, forKey: "shortcutEnabledActions.v1")
         }
     }
 
@@ -1031,10 +1308,12 @@ final class ScreenshotCaptureCoordinator: ScreenshotCapturing {
     private var windows: [NSWindow] = []
     private var completion: ((Result<CapturedScreenshot, Error>) -> Void)?
     private var selectionSession: ScreenshotSelectionSession?
+    private var escapeMonitor: ScreenshotEscapeMonitor?
 
     func present(completion: @escaping (Result<CapturedScreenshot, Error>) -> Void) {
         self.completion = completion
-        let session = ScreenshotSelectionSession { [weak self] rect, cancelled in
+        let magnifierSources = NSScreen.screens.compactMap(ScreenshotMagnifierSource.init(screen:))
+        let session = ScreenshotSelectionSession(magnifierSources: magnifierSources) { [weak self] rect, cancelled in
             guard let self else { return }
             if cancelled {
                 self.finish(.failure(ScreenshotError.cancelled))
@@ -1043,8 +1322,19 @@ final class ScreenshotCaptureCoordinator: ScreenshotCapturing {
             }
         }
         selectionSession = session
+        let escapeMonitor = ScreenshotEscapeMonitor { [weak self, weak session] in
+            guard let self, let session, self.selectionSession === session else { return }
+            session.cancel()
+        }
+        self.escapeMonitor = escapeMonitor
+        escapeMonitor.install()
         windows = NSScreen.screens.map { screen in
-            let window = NSWindow(contentRect: screen.frame, styleMask: .borderless, backing: .buffered, defer: false)
+            let window = ScreenshotSelectionWindow(
+                contentRect: screen.frame,
+                styleMask: .borderless,
+                backing: .buffered,
+                defer: false
+            )
             window.isOpaque = false
             window.backgroundColor = .clear
             window.level = .screenSaver
@@ -1052,10 +1342,14 @@ final class ScreenshotCaptureCoordinator: ScreenshotCapturing {
             window.acceptsMouseMovedEvents = true
             window.contentView = ScreenshotSelectionView(session: session)
             window.makeFirstResponder(window.contentView)
-            window.makeKeyAndOrderFront(nil)
+            window.orderFrontRegardless()
             return window
         }
         NSApp.activate(ignoringOtherApps: true)
+        let pointer = NSEvent.mouseLocation
+        let keyWindow = windows.first(where: { $0.frame.contains(pointer) }) ?? windows.first
+        keyWindow?.makeKey()
+        keyWindow?.makeFirstResponder(keyWindow?.contentView)
     }
 
     func presentUIAutomationFixture() {
@@ -1146,6 +1440,8 @@ final class ScreenshotCaptureCoordinator: ScreenshotCapturing {
     }
 
     private func finish(_ result: Result<CapturedScreenshot, Error>) {
+        escapeMonitor?.remove()
+        escapeMonitor = nil
         windows.forEach { $0.orderOut(nil) }
         windows.removeAll()
         selectionSession = nil
@@ -1153,6 +1449,65 @@ final class ScreenshotCaptureCoordinator: ScreenshotCapturing {
         self.completion = nil
         completion?(result)
     }
+}
+
+@MainActor
+final class ScreenshotEscapeMonitor {
+    private var localMonitor: Any?
+    private var globalMonitor: Any?
+    private let onEscape: () -> Void
+
+    init(onEscape: @escaping () -> Void) {
+        self.onEscape = onEscape
+    }
+
+    var isInstalled: Bool {
+        localMonitor != nil || globalMonitor != nil
+    }
+
+    func install() {
+        remove()
+        localMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
+            self?.handleLocal(event) ?? event
+        }
+        globalMonitor = NSEvent.addGlobalMonitorForEvents(matching: .keyDown) { [weak self] event in
+            guard Self.isCancelKeyCode(event.keyCode) else { return }
+            Task { @MainActor [weak self] in
+                self?.onEscape()
+            }
+        }
+    }
+
+    func remove() {
+        if let localMonitor {
+            NSEvent.removeMonitor(localMonitor)
+            self.localMonitor = nil
+        }
+        if let globalMonitor {
+            NSEvent.removeMonitor(globalMonitor)
+            self.globalMonitor = nil
+        }
+    }
+
+    func handleLocal(_ event: NSEvent) -> NSEvent? {
+        guard Self.isCancelKeyCode(event.keyCode) else { return event }
+        onEscape()
+        return nil
+    }
+
+    func handleGlobal(_ event: NSEvent) {
+        guard Self.isCancelKeyCode(event.keyCode) else { return }
+        onEscape()
+    }
+
+    static func isCancelKeyCode(_ keyCode: UInt16) -> Bool {
+        keyCode == 53
+    }
+}
+
+final class ScreenshotSelectionWindow: NSWindow {
+    override var canBecomeKey: Bool { true }
+    override var canBecomeMain: Bool { false }
 }
 
 enum ScreenCaptureGeometry {
@@ -1191,15 +1546,79 @@ enum ScreenshotError: LocalizedError {
     }
 }
 
+struct ScreenshotMagnifierGeometry {
+    static let size = NSSize(width: 104, height: 128)
+    static let margin: CGFloat = 8
+    static let offset = NSSize(width: 18, height: 18)
+
+    static func frame(pointer: NSPoint, in bounds: NSRect) -> NSRect {
+        var origin = NSPoint(
+            x: pointer.x + offset.width,
+            y: pointer.y + offset.height
+        )
+        if origin.x + size.width > bounds.maxX - margin {
+            origin.x = pointer.x - offset.width - size.width
+        }
+        if origin.y + size.height > bounds.maxY - margin {
+            origin.y = pointer.y - offset.height - size.height
+        }
+        origin.x = min(max(origin.x, bounds.minX + margin), bounds.maxX - size.width - margin)
+        origin.y = min(max(origin.y, bounds.minY + margin), bounds.maxY - size.height - margin)
+        return NSRect(origin: origin, size: size)
+    }
+
+    static func sourceRect(
+        pointer: NSPoint,
+        in sourceBounds: NSRect,
+        destinationSize: NSSize,
+        zoom: CGFloat
+    ) -> NSRect {
+        let width = min(sourceBounds.width, destinationSize.width / zoom)
+        let height = min(sourceBounds.height, destinationSize.height / zoom)
+        let x = min(max(pointer.x - width / 2, sourceBounds.minX), sourceBounds.maxX - width)
+        let y = min(max(pointer.y - height / 2, sourceBounds.minY), sourceBounds.maxY - height)
+        return NSRect(x: x, y: y, width: width, height: height)
+    }
+}
+
+@MainActor
+struct ScreenshotMagnifierSource {
+    let screenFrame: NSRect
+    let image: NSImage
+
+    init?(screen: NSScreen) {
+        guard let screenNumber = screen.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? NSNumber,
+              let cgImage = CGDisplayCreateImage(CGDirectDisplayID(screenNumber.uint32Value)) else {
+            return nil
+        }
+        screenFrame = screen.frame
+        image = NSImage(cgImage: cgImage, size: screen.frame.size)
+    }
+
+    func contains(_ point: NSPoint) -> Bool {
+        screenFrame.contains(point)
+    }
+
+    func localPoint(for globalPoint: NSPoint) -> NSPoint {
+        NSPoint(x: globalPoint.x - screenFrame.minX, y: globalPoint.y - screenFrame.minY)
+    }
+}
+
 @MainActor
 final class ScreenshotSelectionSession {
     private(set) var startPoint: NSPoint?
     private(set) var currentPoint: NSPoint?
+    private(set) var pointerPoint: NSPoint?
+    let magnifierSources: [ScreenshotMagnifierSource]
     private var redrawCallbacks: [() -> Void] = []
     private var hasFinished = false
     private let onFinish: (NSRect, Bool) -> Void
 
-    init(onFinish: @escaping (NSRect, Bool) -> Void) {
+    init(
+        magnifierSources: [ScreenshotMagnifierSource] = [],
+        onFinish: @escaping (NSRect, Bool) -> Void
+    ) {
+        self.magnifierSources = magnifierSources
         self.onFinish = onFinish
     }
 
@@ -1219,6 +1638,7 @@ final class ScreenshotSelectionSession {
 
     func begin(at point: NSPoint) {
         guard !hasFinished else { return }
+        pointerPoint = point
         startPoint = point
         currentPoint = point
         redraw()
@@ -1226,7 +1646,14 @@ final class ScreenshotSelectionSession {
 
     func move(to point: NSPoint) {
         guard startPoint != nil, !hasFinished else { return }
+        pointerPoint = point
         currentPoint = point
+        redraw()
+    }
+
+    func hover(at point: NSPoint) {
+        guard !hasFinished else { return }
+        pointerPoint = point
         redraw()
     }
 
@@ -1281,6 +1708,11 @@ final class ScreenshotSelectionView: NSView {
         addCursorRect(bounds, cursor: .crosshair)
     }
 
+    override func mouseMoved(with event: NSEvent) {
+        guard let window else { return }
+        session.hover(at: window.convertPoint(toScreen: event.locationInWindow))
+    }
+
     override func mouseDown(with event: NSEvent) {
         guard let window else { return }
         session.begin(at: window.convertPoint(toScreen: event.locationInWindow))
@@ -1301,7 +1733,11 @@ final class ScreenshotSelectionView: NSView {
     }
 
     override func keyDown(with event: NSEvent) {
-        if event.keyCode == 53 { session.cancel() }
+        if Self.isCancelKeyCode(event.keyCode) { session.cancel() }
+    }
+
+    static func isCancelKeyCode(_ keyCode: UInt16) -> Bool {
+        keyCode == 53
     }
 
     override var acceptsFirstResponder: Bool { true }
@@ -1322,40 +1758,111 @@ final class ScreenshotSelectionView: NSView {
                 height: size.height
             )
         }
-        guard rect.width > 0, rect.height > 0 else { return }
-        hintView.isHidden = true
-        NSGraphicsContext.current?.compositingOperation = .clear
-        rect.fill()
-        NSGraphicsContext.current?.compositingOperation = .sourceOver
-        NSColor.white.setStroke()
-        let border = NSBezierPath(rect: rect)
-        border.lineWidth = 1
-        border.stroke()
-        let length: CGFloat = 10
-        let corners = [
-            (NSPoint(x: rect.minX, y: rect.minY), NSPoint(x: rect.minX + length, y: rect.minY), NSPoint(x: rect.minX, y: rect.minY + length)),
-            (NSPoint(x: rect.maxX, y: rect.minY), NSPoint(x: rect.maxX - length, y: rect.minY), NSPoint(x: rect.maxX, y: rect.minY + length)),
-            (NSPoint(x: rect.minX, y: rect.maxY), NSPoint(x: rect.minX + length, y: rect.maxY), NSPoint(x: rect.minX, y: rect.maxY - length)),
-            (NSPoint(x: rect.maxX, y: rect.maxY), NSPoint(x: rect.maxX - length, y: rect.maxY), NSPoint(x: rect.maxX, y: rect.maxY - length))
-        ]
-        corners.forEach { first, second, third in
-            let path = NSBezierPath()
-            path.move(to: first); path.line(to: second); path.move(to: first); path.line(to: third)
-            path.lineWidth = 2
-            path.stroke()
+        if rect.width > 0, rect.height > 0 {
+            hintView.isHidden = true
+            NSGraphicsContext.current?.compositingOperation = .clear
+            rect.fill()
+            NSGraphicsContext.current?.compositingOperation = .sourceOver
+            NSColor.white.setStroke()
+            let border = NSBezierPath(rect: rect)
+            border.lineWidth = 1
+            border.stroke()
+            let length: CGFloat = 10
+            let corners = [
+                (NSPoint(x: rect.minX, y: rect.minY), NSPoint(x: rect.minX + length, y: rect.minY), NSPoint(x: rect.minX, y: rect.minY + length)),
+                (NSPoint(x: rect.maxX, y: rect.minY), NSPoint(x: rect.maxX - length, y: rect.minY), NSPoint(x: rect.maxX, y: rect.minY + length)),
+                (NSPoint(x: rect.minX, y: rect.maxY), NSPoint(x: rect.minX + length, y: rect.maxY), NSPoint(x: rect.minX, y: rect.maxY - length)),
+                (NSPoint(x: rect.maxX, y: rect.maxY), NSPoint(x: rect.maxX - length, y: rect.maxY), NSPoint(x: rect.maxX, y: rect.maxY - length))
+            ]
+            corners.forEach { first, second, third in
+                let path = NSBezierPath()
+                path.move(to: first); path.line(to: second); path.move(to: first); path.line(to: third)
+                path.lineWidth = 2
+                path.stroke()
+            }
+            sizeView.rootView = ScreenshotGlassLabel(
+                text: "\(Int(rect.width)) × \(Int(rect.height))",
+                usesMonospacedDigits: true
+            )
+            let labelSize = sizeView.fittingSize
+            sizeView.frame = NSRect(
+                x: rect.minX,
+                y: max(bounds.minY + 8, rect.minY - labelSize.height - 6),
+                width: labelSize.width,
+                height: labelSize.height
+            )
+            sizeView.isHidden = false
         }
-        sizeView.rootView = ScreenshotGlassLabel(
-            text: "\(Int(rect.width)) × \(Int(rect.height))",
-            usesMonospacedDigits: true
+        drawMagnifier(in: window)
+    }
+
+    private func drawMagnifier(in window: NSWindow) {
+        guard let globalPoint = session.pointerPoint,
+              let source = session.magnifierSources.first(where: { $0.contains(globalPoint) }) else { return }
+        let localPoint = window.convertFromScreen(NSRect(origin: globalPoint, size: .zero)).origin
+        guard bounds.contains(localPoint) else { return }
+
+        let frame = ScreenshotMagnifierGeometry.frame(pointer: localPoint, in: bounds)
+        let outerPath = NSBezierPath(roundedRect: frame, xRadius: 14, yRadius: 14)
+        NSGraphicsContext.saveGraphicsState()
+        let shadow = NSShadow()
+        shadow.shadowColor = NSColor.black.withAlphaComponent(0.45)
+        shadow.shadowBlurRadius = 12
+        shadow.shadowOffset = NSSize(width: 0, height: -3)
+        shadow.set()
+        NSColor.windowBackgroundColor.withAlphaComponent(0.96).setFill()
+        outerPath.fill()
+        NSGraphicsContext.restoreGraphicsState()
+
+        let imageRect = NSRect(x: frame.minX + 4, y: frame.minY + 28, width: 96, height: 96)
+        let imagePath = NSBezierPath(roundedRect: imageRect, xRadius: 11, yRadius: 11)
+        NSGraphicsContext.saveGraphicsState()
+        imagePath.addClip()
+        let sourceBounds = NSRect(origin: .zero, size: source.image.size)
+        let sourceRect = ScreenshotMagnifierGeometry.sourceRect(
+            pointer: source.localPoint(for: globalPoint),
+            in: sourceBounds,
+            destinationSize: imageRect.size,
+            zoom: 6
         )
-        let labelSize = sizeView.fittingSize
-        sizeView.frame = NSRect(
-            x: rect.minX,
-            y: max(bounds.minY + 8, rect.minY - labelSize.height - 6),
-            width: labelSize.width,
-            height: labelSize.height
+        source.image.draw(
+            in: imageRect,
+            from: sourceRect,
+            operation: .copy,
+            fraction: 1,
+            respectFlipped: false,
+            hints: [.interpolation: NSImageInterpolation.none]
         )
-        sizeView.isHidden = false
+        NSGraphicsContext.restoreGraphicsState()
+
+        NSColor.white.withAlphaComponent(0.92).setStroke()
+        outerPath.lineWidth = 1.5
+        outerPath.stroke()
+        imagePath.lineWidth = 0.5
+        imagePath.stroke()
+
+        let center = NSPoint(x: imageRect.midX, y: imageRect.midY)
+        let crosshair = NSBezierPath()
+        crosshair.move(to: NSPoint(x: center.x - 10, y: center.y))
+        crosshair.line(to: NSPoint(x: center.x + 10, y: center.y))
+        crosshair.move(to: NSPoint(x: center.x, y: center.y - 10))
+        crosshair.line(to: NSPoint(x: center.x, y: center.y + 10))
+        NSColor.systemBlue.setStroke()
+        crosshair.lineWidth = 1
+        crosshair.stroke()
+        NSColor.white.setFill()
+        NSBezierPath(ovalIn: NSRect(x: center.x - 1.5, y: center.y - 1.5, width: 3, height: 3)).fill()
+
+        let coordinateText = "x \(Int(globalPoint.x))   y \(Int(globalPoint.y))" as NSString
+        let attributes: [NSAttributedString.Key: Any] = [
+            .font: NSFont.monospacedDigitSystemFont(ofSize: 10, weight: .medium),
+            .foregroundColor: NSColor.secondaryLabelColor
+        ]
+        let textSize = coordinateText.size(withAttributes: attributes)
+        coordinateText.draw(
+            at: NSPoint(x: frame.midX - textSize.width / 2, y: frame.minY + 7),
+            withAttributes: attributes
+        )
     }
 }
 
@@ -1551,9 +2058,13 @@ final class MarlaApplicationModel: ObservableObject {
             )
             return
         }
+        let originatingApplication = NSWorkspace.shared.frontmostApplication
+        let settingsWereVisible = settingsWindowCoordinator.suspendForScreenshotSelection()
         panelCoordinator.hide()
         screenshotCoordinator.present { [weak self] result in
             guard let self else { return }
+            settingsWindowCoordinator.restoreAfterScreenshotSelection(wasVisible: settingsWereVisible)
+            restoreFrontmostApplication(originatingApplication)
             switch result {
             case let .success(capture):
                 let anchor = ScreenRect(
@@ -1582,15 +2093,29 @@ final class MarlaApplicationModel: ObservableObject {
                 if case ScreenshotError.cancelled = error {
                     sessionStore.close()
                 } else {
-                    showPermissionError(
+                    sessionStore.startText("", surface: .screenshot, anchor: nil, pointer: pointer)
+                    sessionStore.fail(
                         error.localizedDescription,
-                        surface: .screenshot,
-                        pointer: pointer,
+                        code: .invalidConfiguration,
                         recovery: .openScreenRecordingSettings
+                    )
+                    panelCoordinator.showResult(
+                        store: sessionStore,
+                        at: nil,
+                        pointer: pointer,
+                        activate: false
                     )
                 }
             }
         }
+    }
+
+    private func restoreFrontmostApplication(_ application: NSRunningApplication?) {
+        guard let application,
+              application.processIdentifier != NSRunningApplication.current.processIdentifier else {
+            return
+        }
+        application.activate(options: [])
     }
 
     func showQuickInput() {
@@ -1677,8 +2202,31 @@ final class MarlaApplicationModel: ObservableObject {
             panelCoordinator.showResult(store: sessionStore, at: nil, pointer: NSEvent.mouseLocation, activate: true)
         case "settings":
             openSettings()
+        case "settings-api", "settings-editor":
+            if settings.profiles.isEmpty {
+                let firstID = settings.addProfile()
+                settings.updateProfile(
+                    id: firstID,
+                    name: "Qwen 快速",
+                    baseURL: "https://api.example.com/v1",
+                    modelName: "qwen-mt-turbo"
+                )
+                let secondID = settings.addProfile()
+                settings.updateProfile(
+                    id: secondID,
+                    name: "本地代理",
+                    baseURL: "http://127.0.0.1:8080/v1",
+                    modelName: "local-model"
+                )
+            }
+            openSettings()
         case "screenshot":
             screenshotCoordinator.presentUIAutomationFixture()
+        case "screenshot-from-settings":
+            openSettings()
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) { [weak self] in
+                self?.translateScreenshot()
+            }
         case "selection-live":
             let selectionDelay = ProcessInfo.processInfo.environment["MARLA_UI_TEST_SELECTION_DELAY"]
                 .flatMap(Double.init) ?? 0
@@ -1724,9 +2272,14 @@ final class MarlaApplicationModel: ObservableObject {
     }
 
     private static func captureFrontmostApplicationWindow(to path: String) throws {
-        let window = NSApp.windows
-            .filter(\.isVisible)
-            .max { lhs, rhs in
+        let visibleWindows = NSApp.windows.filter(\.isVisible)
+        let visibleSheet = visibleWindows
+            .lazy
+            .compactMap(\.attachedSheet)
+            .first(where: \.isVisible) ?? visibleWindows.first { $0.sheetParent != nil }
+        let window = visibleSheet
+            ?? (NSApp.keyWindow?.isVisible == true ? NSApp.keyWindow : nil)
+            ?? visibleWindows.max { lhs, rhs in
                 lhs.frame.width * lhs.frame.height < rhs.frame.width * rhs.frame.height
             }
         guard let window,

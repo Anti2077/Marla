@@ -66,7 +66,7 @@ The release succeeds only when all of the following are true:
 | 截图翻译 | `⌃⌥S` | 进入跨屏框选，使用 Vision 本地识别后翻译文字 |
 | 快速输入 | `⌃⌥Space` | 在指针附近打开可输入和粘贴的翻译卡片 |
 
-三个快捷键均可在设置中重新录制。录制时必须检测与 Marla 其他入口的内部冲突；如果系统或其他应用已经占用组合键但无法可靠检测，界面应明确提示用户实际试用并提供恢复默认值操作。
+三个快捷键均可在设置中独立关闭或重新录制；关闭只停止对应全局监听，不隐藏菜单入口。录制时必须检测与 Marla 其他入口的内部冲突；如果系统或其他应用已经占用组合键但无法可靠检测，界面应明确提示用户实际试用并提供恢复默认值操作。
 
 Force Touch 是默认关闭的实验入口。它只复用划词翻译意图，没有独立的后续行为，不使用私有 API，也不作为 0.1.0 发布阻塞项。
 
@@ -80,7 +80,7 @@ Force Touch 是默认关闭的实验入口。它只复用划词翻译意图，�
 | Screenshot translation | `⌃⌥S` | Enter cross-display region selection, recognize locally with Vision, then translate the text |
 | Quick input | `⌃⌥Space` | Open a paste-and-type translation card near the pointer |
 
-All shortcuts are recordable in Settings. Recording must detect conflicts among Marla actions. When reliable detection of a system or third-party conflict is impossible, the UI must ask the user to test the shortcut and provide a restore-defaults action.
+Each shortcut can be independently disabled or recorded in Settings. Disabling stops only that global listener and does not hide the menu entry. Recording must detect conflicts among Marla actions. When reliable detection of a system or third-party conflict is impossible, the UI must ask the user to test the shortcut and provide a restore-defaults action.
 
 Force Touch is an experimental entry point that is off by default. It only reuses the selection-translation intent, has no unique downstream behavior, uses no private API, and cannot block the 0.1.0 release.
 
@@ -102,7 +102,7 @@ When no text is selected, Marla does not silently use arbitrary clipboard conten
 
 ### 中文
 
-截图入口显示覆盖所有活动显示器的轻量框选层。拖动期间展示清晰边界和尺寸反馈；`Esc`、右键或未形成有效区域时取消，不进行 OCR、翻译或持久化。
+截图入口显示覆盖所有活动显示器的轻量框选层。系统十字光标旁显示短生命周期像素放大镜、中心准星和指针坐标，并在显示器边缘自动换位；拖动期间展示清晰边界和尺寸反馈。`Esc`、右键或未形成有效区域时取消，不进行 OCR、翻译或持久化。`Esc` 由当前截图会话统一处理，不依赖某一个框选 View 保持键盘焦点；会话结束后必须移除临时按键监听。放大镜采样只存在于当前框选会话内存中。进入框选时，Marla 临时隐藏自己已打开的设置窗口；框选结束后只恢复其原有可见状态，不得让设置窗口越过框选层或抢占源应用焦点。
 
 确认区域后只在内存中保留裁剪图像，并使用 macOS Vision `VNRecognizeTextRequest` 本地识别。0.1.0 只保留纯文本、行顺序和换行，不承诺表格、公式、代码块、Markdown 或页面布局恢复。识别出的文字进入与其他入口相同的翻译管线，截图像素不进入 Rust 网络请求，也不上传给翻译服务。
 
@@ -110,7 +110,7 @@ When no text is selected, Marla does not silently use arbitrary clipboard conten
 
 ### English
 
-The screenshot entry presents a lightweight selection layer across all active displays. Dragging shows a clear boundary and size feedback. `Esc`, right-click, or an invalid region cancels without OCR, translation, or persistence.
+The screenshot entry presents a lightweight selection layer across all active displays. A short-lived pixel loupe beside the system crosshair shows a center reticle and pointer coordinates, flipping sides near display edges. Dragging shows a clear boundary and size feedback. `Esc`, right-click, or an invalid region cancels without OCR, translation, or persistence. The active screenshot session owns `Esc` handling instead of relying on any one selection view to retain keyboard focus, and all temporary key monitors are removed when the session finishes. Loupe sampling exists only in memory for the active selection session. When selection starts, Marla temporarily hides any open Settings window of its own. After selection, it only restores the previous visibility state; Settings may not rise above the selection layer or steal focus from the source application.
 
 After confirmation, only the cropped image remains in memory and macOS Vision `VNRecognizeTextRequest` performs local recognition. 0.1.0 preserves plain text, line order, and line breaks only; it does not promise table, formula, code-block, Markdown, or page-layout recovery. Recognized text enters the same translation pipeline as other entries. Screenshot pixels never enter the Rust network request and are never uploaded to the translation service.
 
@@ -186,7 +186,7 @@ The prompt must clearly delimit source text as data rather than instructions and
 - 模型名；
 - 可选 API Key；
 - 连接测试；
-- 三个快捷键录制器；
+- 三个快捷键开关与录制器；
 - Force Touch 实验开关；
 - 快捷键恢复默认值。
 
@@ -202,7 +202,7 @@ Marla 在规范化 Base URL 后追加 `/chat/completions`。如果 API Key 非�
 - model name;
 - optional API Key;
 - connection test;
-- three shortcut recorders;
+- three shortcut switches and recorders;
 - experimental Force Touch toggle;
 - restore-default-shortcuts action.
 

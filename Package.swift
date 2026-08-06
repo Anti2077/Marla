@@ -35,6 +35,11 @@ let package = Package(
             name: "MarlaCoreTests",
             dependencies: ["MarlaCore"],
             path: "Tests/MarlaCoreTests"
+        ),
+        .testTarget(
+            name: "MarlaAppTests",
+            dependencies: ["MarlaApp"],
+            path: "Tests/MarlaAppTests"
         )
     ]
 )

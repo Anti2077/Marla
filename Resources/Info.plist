@@ -30,6 +30,8 @@
 	<true/>
 	<key>NSHighResolutionCapable</key>
 	<true/>
+	<key>NSScreenCaptureUsageDescription</key>
+	<string>Marla 只捕获你明确框选的屏幕区域，用于本地 Vision 文字识别。</string>
 	<key>NSPrincipalClass</key>
 	<string>NSApplication</string>
 </dict>

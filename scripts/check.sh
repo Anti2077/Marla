@@ -29,7 +29,7 @@ swift test --disable-sandbox
     CODE_SIGNING_ALLOWED=NO \
     build
 
-source_paths=(.gitignore AGENTS.md Cargo.toml Package.swift README.md Marla.xcodeproj Resources Sources Tests docs rust scripts)
+source_paths=(.cargo .gitignore AGENTS.md Cargo.toml Package.swift README.md Marla.xcodeproj Resources Sources Tests docs rust scripts)
 if rg -n '[[:blank:]]+$' "${source_paths[@]}"; then
     print -u2 "Trailing whitespace found."
     exit 1

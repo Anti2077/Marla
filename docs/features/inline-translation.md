@@ -2,7 +2,7 @@
 
 ## Status
 
-In Progress. Accessibility acquisition is implemented; the 0.1.0 nearby-card presentation remains unimplemented and unverified.
+Implemented; live compatibility verification remains in progress. The nearby result card and real translation path are present, while the complete cross-application matrix is not yet accepted.
 
 ## Goal
 
@@ -24,12 +24,13 @@ Translate selected text in a nearby anchored card without unnecessarily activati
 ## Current implementation
 
 - Requests and reports macOS Accessibility trust.
-- Reads selected text from the focused Accessibility element without changing it.
-- Requests global selection bounds when the source element supports `AXBoundsForRange`.
+- Reads selected text from the focused Accessibility element or a bounded descendant tree without changing it.
+- Supports standard `AXSelectedText`/range attributes and Web Accessibility Text Marker attributes used by Electron editors such as VSCodium.
+- Requests global selection bounds through `AXBoundsForRange` or `AXBoundsForTextMarkerRange` when available.
 - Captures the frontmost application's display name and Bundle ID.
-- Exposes a temporary menu-bar probe for technical validation.
+- Presents the shared non-activating result card, streams the real Rust result, and preserves request-ID cancellation rules.
 
-A stable Xcode application bundle now exists and has passed build, signature, and launch checks. Selection acquisition remains compile- and unit-tested only; real Accessibility permission persistence, cross-application acquisition, and nearby-card behavior are not yet accepted.
+A stable signed Xcode application bundle exists and has passed build, signature, and launch checks. A controlled VSCodium run exposed a remaining descendant/Text Marker lookup failure while the sentence was visibly selected. The latest build merges all relevant child collections, prioritizes text/WebArea nodes, and accepts attributed-string Text Marker output; automated checks pass, but the Mac locked before the final live retest. Terminal, Safari, TextEdit, focus preservation, and anchor placement remain manual acceptance gaps.
 
 ## Degradation
 

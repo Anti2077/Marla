@@ -2,7 +2,7 @@
 
 ## Status
 
-0.1.0 target architecture accepted; implementation remains in the technical-foundation phase.
+0.1.0 target architecture accepted and implemented; release verification remains in progress.
 
 ## Platform
 
@@ -52,7 +52,7 @@ The default global shortcuts are `⌃⌥D` for selection, `⌃⌥S` for screensh
 
 Uses macOS Accessibility APIs to obtain selected text, selection bounds, and focused application identity. Version 0.1.0 does not read bounded surrounding text and does not simulate Copy as a clipboard fallback.
 
-The first implementation reads `AXSelectedText`, requests `AXBoundsForRange` when the focused element supports it, and treats missing geometry as a supported degradation rather than a failed text acquisition. Nearby context and clipboard compatibility are not implemented yet.
+The implementation reads standard selected-text/range attributes and Web Accessibility Text Marker attributes from a bounded focused-element descendant tree. It requests `AXBoundsForRange` or `AXBoundsForTextMarkerRange` when supported and treats missing geometry as a supported degradation rather than a failed text acquisition. Nearby context and clipboard compatibility are not implemented.
 
 ### Screenshot capture
 
@@ -99,7 +99,7 @@ Cancellation propagates to OCR and translation network work. A translation failu
 
 The repository retains Swift Package Manager for fast core compilation and tests and now also contains a native Xcode application target. Full Xcode 26.5 is selected per command through `DEVELOPER_DIR`, without changing the machine-wide `xcode-select` setting.
 
-The Xcode target emits a stable macOS `.app` with Bundle ID `com.marla.app`, macOS 14 deployment, LSUIElement behavior, version `0.1.0`, and arm64 architecture. Ad-hoc signing and process launch are verified; TCC permission persistence and real Accessibility and Screen Recording onboarding remain manual validation gaps.
+The Xcode target emits a stable macOS `.app` with Bundle ID `com.marla.app`, macOS 14 deployment, LSUIElement behavior, version `0.1.0`, and arm64 architecture. Stable local-certificate signing and process launch are verified. One-time Keychain authorization, TCC permission persistence, and complete Accessibility and Screen Recording interaction remain manual validation gaps.
 
 Cargo emits `libmarla_core.a`; SwiftPM links it through `MarlaRustFFI`. The Xcode target uses a configuration-aware build phase and library search path so Debug links `target/debug` and Release links `target/release`. The unified verification script builds both the Swift Package foundation and the Debug Xcode app target.
 

@@ -50,4 +50,8 @@ public struct OCRDocument: Codable, Equatable, Sendable {
         }
         self.detectedLanguage = detectedLanguage
     }
+
+    public var plainText: String {
+        blocks.map(\.sourceText).joined(separator: "\n")
+    }
 }

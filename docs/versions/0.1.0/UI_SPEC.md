@@ -1,6 +1,6 @@
 # Marla 0.1.0 UI 规范 / UI Specification
 
-状态 / Status: Planned
+状态 / Status: Implemented — visual verification in progress
 
 设计方向 / Direction: Restrained Native · Warm Minimal
 
@@ -65,9 +65,11 @@ Icons use SF Symbols at a consistent weight. Until a final app icon exists, use 
 | Token | 规格 | 用途 |
 | --- | --- | --- |
 | `title` | SF Pro 17pt Semibold | 卡片主要状态和设置页标题 |
-| `body` | SF Pro 14pt Regular | 原文与译文正文 |
+| `translation` | SF Pro 15pt Regular | 译文第一视觉层级 |
+| `body` | SF Pro 14pt Regular | 快速输入和一般正文 |
 | `bodyEmphasis` | SF Pro 14pt Medium | 主要操作与目标语言 |
 | `caption` | SF Pro 12pt Regular | 来源、状态、隐私提示 |
+| `source` | SF Pro 13pt Regular | 展开的原文对照 |
 | `micro` | SF Pro 11pt Regular | 快捷键和次要元数据 |
 
 结果卡片属于工具界面，不使用大号衬线标题。正文应允许系统文字设置和无障碍缩放，不截断关键状态。
@@ -104,9 +106,11 @@ Icons use SF Symbols at a consistent weight. Until a final app icon exists, use 
 | Token | Specification | Use |
 | --- | --- | --- |
 | `title` | SF Pro 17pt Semibold | Primary card state and Settings titles |
-| `body` | SF Pro 14pt Regular | Source and translation body |
+| `translation` | SF Pro 15pt Regular | First visual level for translation |
+| `body` | SF Pro 14pt Regular | Quick input and general body text |
 | `bodyEmphasis` | SF Pro 14pt Medium | Primary actions and target language |
 | `caption` | SF Pro 12pt Regular | Source, status, and privacy notes |
+| `source` | SF Pro 13pt Regular | Expanded source comparison |
 | `micro` | SF Pro 11pt Regular | Shortcuts and secondary metadata |
 
 The result card is a utility surface and does not use oversized serif titles. Body text honors system text settings and accessibility scaling, and critical state is never truncated.
@@ -170,13 +174,13 @@ The final anchor is computed before presentation. Entry uses a 160ms ease-out fa
 
 ### 中文
 
-非选中区域只做足以建立范围感的系统暗化，不使用彩色渐变。选区边界使用 1pt 高对比描边和四角短控制标记；拖动时在相邻位置显示紧凑尺寸标签。光标使用系统十字样式。
+非选中区域只做足以建立范围感的系统暗化，不使用彩色渐变。选区边界使用 1pt 高对比描边和四角短控制标记；拖动时在相邻位置显示紧凑尺寸标签。未开始拖动时在上方显示“拖动框选要翻译的区域 · Esc 取消”，光标使用系统十字样式。
 
 标志性细节是选区四角在确认瞬间进行一次 120ms 向内收束，随后立即退出并开始 Vision；Reduce Motion 下取消位移，只改变透明度。框选层不得显示营销文案、工具栏或与任务无关的品牌元素。
 
 ### English
 
-Unselected space receives only enough system dimming to establish scope, with no colored gradient. The region uses a 1pt high-contrast outline and short corner markers, with a compact adjacent size label during drag. The pointer uses the system crosshair.
+Unselected space receives only enough system dimming to establish scope, with no colored gradient. The region uses a 1pt high-contrast outline and short corner markers, with a compact adjacent size label during drag. Before dragging, it shows “Drag to select text to translate · Esc to cancel”; the pointer uses the system crosshair.
 
 Its signature detail is a single 120ms inward confirmation of the four corners before dismissal and Vision start. With Reduce Motion, movement is removed and opacity changes only. The selection layer contains no marketing copy, toolbar, or unrelated brand decoration.
 
@@ -242,6 +246,8 @@ With Reduce Motion, positional springs, corner convergence, and breathing scale 
 
 哲学一致性、视觉层级、工艺质量、功能性和原创性五项都必须至少 7/10。任何低于 7 的项目修复后重新评分；不得只以源码存在证明 UI 验收通过。
 
+2026-08-06 真实 Release App 复评：菜单、快速输入、等待/流式/完成/部分失败/长文/对照固定卡片、设置和截图框选场景均已从实际 `Marla_test_202608060135.app` 渲染并检查。五维评分为：哲学一致性 8/10、视觉层级 8/10、工艺质量 7/10、功能性 8/10、原创性 7/10；所有项目达到门槛。PNG 证据位于 `artifacts/ui-review/`，仅由显式 UI 自动化场景写入。macOS 26+ 的生产卡片使用 Liquid Glass，旧系统使用材质回退。后续 Qwen-MT、Web Text Marker 和截图坐标修复未改变 UI 表面；最终源码也已重新构建到固定签名的 `Marla_dev.app`。
+
 ### English
 
 After implementation, invoke the `swiftui-design-skill` five-dimension review and retain real-app screenshot evidence for:
@@ -255,3 +261,5 @@ After implementation, invoke the `swiftui-design-skill` five-dimension review an
 - Reduce Motion.
 
 Philosophy alignment, visual hierarchy, craft quality, functionality, and originality must each score at least 7/10. Any lower dimension is fixed and rescored. Source code alone cannot prove UI acceptance.
+
+2026-08-06 real Release App rescore: menu, quick input, awaiting/streaming/completed/partial-failure/long-text/comparison-pinned card, Settings, and screenshot-selection scenarios were rendered and inspected from `Marla_test_202608060135.app`. Scores are Philosophy Alignment 8/10, Visual Hierarchy 8/10, Craft Quality 7/10, Functionality 8/10, and Originality 7/10; every dimension meets the threshold. PNG evidence is under `artifacts/ui-review/` and is written only by explicit UI automation scenarios. Production cards use Liquid Glass on macOS 26+ and the material fallback on earlier supported systems. The later Qwen-MT, Web Text Marker, and screenshot-coordinate fixes do not change UI surfaces; the final source was also rebuilt into the fixed-path signed `Marla_dev.app`.

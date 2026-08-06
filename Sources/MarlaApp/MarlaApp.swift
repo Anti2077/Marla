@@ -1,128 +1,746 @@
 import AppKit
+import AVFoundation
 import MarlaCore
 import SwiftUI
+
+private struct MarlaReduceMotionOverrideKey: EnvironmentKey {
+    static let defaultValue = false
+}
+
+extension EnvironmentValues {
+    var marlaReduceMotionOverride: Bool {
+        get { self[MarlaReduceMotionOverrideKey.self] }
+        set { self[MarlaReduceMotionOverrideKey.self] = newValue }
+    }
+}
+
+private struct MarlaGlassSurfaceModifier: ViewModifier {
+    let cornerRadius: CGFloat
+
+    @ViewBuilder
+    func body(content: Content) -> some View {
+        let isSnapshotRenderer = ProcessInfo.processInfo.environment["MARLA_UI_TEST_CAPTURE_PATH"] != nil
+        if #available(macOS 26.0, *), !isSnapshotRenderer {
+            ZStack {
+                Color.clear
+                    .glassEffect(.regular, in: .rect(cornerRadius: cornerRadius))
+                content
+            }
+                .clipShape(RoundedRectangle(cornerRadius: cornerRadius))
+                .overlay {
+                    RoundedRectangle(cornerRadius: cornerRadius)
+                        .stroke(DesignTokens.divider.opacity(0.55), lineWidth: 0.5)
+                }
+        } else {
+            content
+                .background(.regularMaterial)
+                .clipShape(RoundedRectangle(cornerRadius: cornerRadius))
+                .overlay {
+                    RoundedRectangle(cornerRadius: cornerRadius)
+                        .stroke(DesignTokens.divider.opacity(0.65), lineWidth: 0.5)
+                }
+        }
+    }
+}
+
+extension View {
+    func marlaGlassSurface(cornerRadius: CGFloat = DesignTokens.radiusL) -> some View {
+        modifier(MarlaGlassSurfaceModifier(cornerRadius: cornerRadius))
+    }
+}
+
+enum DesignTokens {
+    static let background = Color(nsColor: .windowBackgroundColor)
+    static let surface = Color(nsColor: .controlBackgroundColor)
+    static let primaryText = Color(nsColor: .labelColor)
+    static let secondarySurface = primaryText.opacity(0.055)
+    static let inputSurface = Color(nsColor: .textBackgroundColor)
+    static let secondaryText = Color(nsColor: .secondaryLabelColor)
+    static let tertiaryText = Color(nsColor: .tertiaryLabelColor)
+    static let divider = Color(nsColor: .separatorColor)
+    static let accent = Color.accentColor
+    static let success = Color(nsColor: .systemGreen)
+    static let warning = Color(nsColor: .systemOrange)
+    static let error = Color(nsColor: .systemRed)
+
+    static let spaceXS: CGFloat = 4
+    static let spaceS: CGFloat = 8
+    static let spaceM: CGFloat = 12
+    static let spaceL: CGFloat = 16
+    static let spaceXL: CGFloat = 24
+    static let radiusS: CGFloat = 8
+    static let radiusM: CGFloat = 12
+    static let radiusL: CGFloat = 16
+}
+
+enum AppFont {
+    static let title = Font.system(size: 17, weight: .semibold)
+    static let translation = Font.system(size: 15, weight: .regular)
+    static let body = Font.system(size: 14, weight: .regular)
+    static let bodyEmphasis = Font.system(size: 14, weight: .medium)
+    static let source = Font.system(size: 13, weight: .regular)
+    static let caption = Font.system(size: 12, weight: .regular)
+    static let micro = Font.system(size: 11, weight: .regular)
+}
+
+@MainActor
+final class SpeechCoordinator {
+    static let shared = SpeechCoordinator()
+    private let synthesizer = AVSpeechSynthesizer()
+    private var currentText: String?
+
+    func speak(_ text: String) {
+        guard !text.isEmpty else { return }
+        if synthesizer.isSpeaking {
+            synthesizer.stopSpeaking(at: .immediate)
+            if currentText == text {
+                currentText = nil
+                return
+            }
+        }
+        currentText = text
+        let utterance = AVSpeechUtterance(string: text)
+        utterance.voice = AVSpeechSynthesisVoice(language: text.range(
+            of: #"\p{Han}"#,
+            options: .regularExpression
+        ) == nil ? "en-US" : "zh-CN")
+        synthesizer.speak(utterance)
+    }
+
+    func stop() {
+        synthesizer.stopSpeaking(at: .immediate)
+        currentText = nil
+    }
+}
 
 @main
 struct MarlaApplication: App {
     @StateObject private var model = MarlaApplicationModel()
 
     var body: some Scene {
-        MenuBarExtra("Marla", systemImage: "translate") {
-            VStack(alignment: .leading, spacing: 8) {
-                Text("瞬时翻译层")
-                    .font(.headline)
-
-                Text("M1 · 技术可行性验证")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-
-                Divider()
-
-                HStack {
-                    Image(systemName: model.accessibilityTrusted ? "checkmark.circle.fill" : "exclamationmark.triangle.fill")
-                        .foregroundStyle(model.accessibilityTrusted ? .green : .orange)
-
-                    Text(model.accessibilityTrusted ? "辅助功能权限已就绪" : "需要辅助功能权限")
-                        .font(.caption)
-                }
-
-                if model.accessibilityTrusted {
-                    Button("检测当前选区") {
-                        model.probeCurrentSelection()
-                    }
-                } else {
-                    Button("授予辅助功能权限…") {
-                        model.requestAccessibilityAccess()
-                    }
-                }
-
-                selectionProbeSummary
-
-                Divider()
-
-                Button("原位翻译") {}
-                    .disabled(true)
-
-                Button("截图翻译") {}
-                    .disabled(true)
-
-                Button("快速输入") {}
-                    .disabled(true)
-
-                Divider()
-
-                SettingsLink {
-                    Label("设置", systemImage: "gearshape")
-                }
-
-                Button("退出 Marla") {
-                    NSApplication.shared.terminate(nil)
-                }
-            }
-            .padding(8)
-            .onAppear {
-                model.refreshAccessibilityStatus()
-            }
+        MenuBarExtra {
+            MenuBarView(model: model)
+        } label: {
+            Image(systemName: "character.bubble")
+                .accessibilityLabel("Marla")
         }
         .menuBarExtraStyle(.window)
 
         Settings {
-            SettingsView()
+            SettingsView(settings: model.settings, appModel: model)
+        }
+    }
+}
+
+struct MenuBarView: View {
+    @ObservedObject var model: MarlaApplicationModel
+    @ObservedObject private var settings: MarlaSettingsStore
+    @ObservedObject private var shortcuts: GlobalShortcutManager
+
+    init(model: MarlaApplicationModel) {
+        self.model = model
+        settings = model.settings
+        shortcuts = model.shortcutManager
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: DesignTokens.spaceL) {
+            HStack(alignment: .firstTextBaseline) {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Marla")
+                        .font(AppFont.title)
+                    Text("安静地出现在你正在阅读的地方")
+                        .font(AppFont.caption)
+                        .foregroundStyle(DesignTokens.secondaryText)
+                }
+                Spacer()
+                Image(systemName: "character.bubble.fill")
+                    .font(.system(size: 19, weight: .medium))
+                    .foregroundStyle(DesignTokens.accent)
+            }
+
+            if !settings.onboardingSkipped,
+               !(settings.hasAPIConfiguration && model.accessibilityTrusted && model.screenRecordingAuthorized) {
+                OnboardingChecklistView(model: model)
+            }
+
+            VStack(alignment: .leading, spacing: DesignTokens.spaceS) {
+                Text("开始翻译")
+                    .font(AppFont.caption)
+                    .foregroundStyle(DesignTokens.secondaryText)
+                    .textCase(.uppercase)
+                EntryButton(
+                    title: "划词翻译",
+                    shortcut: shortcuts.bindings[.selection]?.displayName ?? "⌃⌥D",
+                    symbol: "text.viewfinder"
+                ) {
+                    model.translateSelection()
+                }
+                EntryButton(
+                    title: "截图翻译",
+                    shortcut: shortcuts.bindings[.screenshot]?.displayName ?? "⌃⌥S",
+                    symbol: "rectangle.dashed.and.magnifyingglass"
+                ) {
+                    model.translateScreenshot()
+                }
+                EntryButton(
+                    title: "快速输入",
+                    shortcut: shortcuts.bindings[.quickInput]?.displayName ?? "⌃⌥Space",
+                    symbol: "keyboard"
+                ) {
+                    model.showQuickInput()
+                }
+            }
+
+            HStack(spacing: DesignTokens.spaceS) {
+                PermissionChip(title: "API", isReady: settings.hasAPIConfiguration) {
+                    model.openSettings()
+                }
+                PermissionChip(title: "辅助功能", isReady: model.accessibilityTrusted) {
+                    model.requestAccessibilityAccess()
+                }
+                PermissionChip(title: "屏幕录制", isReady: model.screenRecordingAuthorized) {
+                    model.requestScreenRecordingAccess()
+                }
+            }
+
+            if let session = model.sessionStore.session {
+                SessionSummary(session: session)
+            }
+
+            Divider()
+
+            HStack(spacing: DesignTokens.spaceS) {
+                Button {
+                    model.openSettings()
+                } label: {
+                    Label("设置", systemImage: "gearshape")
+                }
+                .buttonStyle(.borderless)
+                .help("打开 Marla 设置")
+                Spacer()
+                Button {
+                    NSApplication.shared.terminate(nil)
+                } label: {
+                    Label("退出", systemImage: "power")
+                }
+                .buttonStyle(.borderless)
+            }
+        }
+        .padding(DesignTokens.spaceL)
+        .frame(width: 330)
+        .background(DesignTokens.background)
+        .onAppear { model.refreshPermissions() }
+    }
+}
+
+struct EntryButton: View {
+    let title: String
+    let shortcut: String
+    let symbol: String
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: DesignTokens.spaceM) {
+                Image(systemName: symbol)
+                    .font(.system(size: 15, weight: .medium))
+                    .frame(width: 20)
+                    .foregroundStyle(DesignTokens.accent)
+                Text(title)
+                    .font(AppFont.bodyEmphasis)
+                    .foregroundStyle(DesignTokens.primaryText)
+                Spacer()
+                Text(shortcut)
+                    .font(AppFont.micro.monospacedDigit())
+                    .foregroundStyle(DesignTokens.secondaryText)
+            }
+            .padding(.horizontal, DesignTokens.spaceM)
+            .frame(height: 44)
+            .background(DesignTokens.surface)
+            .clipShape(RoundedRectangle(cornerRadius: DesignTokens.radiusM))
+        }
+        .buttonStyle(.plain)
+        .contentShape(Rectangle())
+        .accessibilityLabel("\(title)，快捷键 \(shortcut)")
+    }
+}
+
+struct PermissionChip: View {
+    let title: String
+    let isReady: Bool
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: DesignTokens.spaceXS) {
+                Image(systemName: isReady ? "checkmark.circle.fill" : "circle")
+                    .foregroundStyle(isReady ? DesignTokens.success : DesignTokens.warning)
+                Text(title)
+                    .font(AppFont.caption)
+                    .foregroundStyle(DesignTokens.primaryText)
+            }
+            .frame(minWidth: 88, minHeight: 44)
+            .background(DesignTokens.secondarySurface)
+            .clipShape(RoundedRectangle(cornerRadius: DesignTokens.radiusS))
+        }
+        .buttonStyle(.plain)
+        .help(isReady ? "已授权" : "点击请求权限")
+    }
+}
+
+struct SessionSummary: View {
+    let session: CardSession
+
+    var body: some View {
+        HStack(spacing: DesignTokens.spaceS) {
+            Circle()
+                .fill(session.state.isFailure ? DesignTokens.error : DesignTokens.accent)
+                .frame(width: 7, height: 7)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(session.surface.displayName)
+                    .font(AppFont.caption)
+                Text(session.statusLabel)
+                    .font(AppFont.micro)
+                    .foregroundStyle(DesignTokens.secondaryText)
+            }
+            Spacer()
+        }
+        .padding(DesignTokens.spaceS)
+        .background(DesignTokens.secondarySurface)
+        .clipShape(RoundedRectangle(cornerRadius: DesignTokens.radiusS))
+    }
+}
+
+struct OnboardingChecklistView: View {
+    @ObservedObject var model: MarlaApplicationModel
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: DesignTokens.spaceS) {
+            Text("完成三项准备")
+                .font(AppFont.bodyEmphasis)
+            ChecklistRow(title: "配置翻译 API", detail: "快速输入可用后，三个入口都会使用真实流式翻译。", isReady: model.settings.hasAPIConfiguration) {
+                model.openSettings()
+            }
+            ChecklistRow(title: "辅助功能", detail: "允许 Marla 读取当前应用明确选中的文字。", isReady: model.accessibilityTrusted) {
+                model.requestAccessibilityAccess()
+            }
+            ChecklistRow(title: "屏幕录制", detail: "允许截图翻译捕获你明确框选的区域。", isReady: model.screenRecordingAuthorized) {
+                model.requestScreenRecordingAccess()
+            }
+            Button("稍后完成") {
+                model.settings.skipOnboarding()
+            }
+            .buttonStyle(.borderless)
+            .font(AppFont.caption)
+            .foregroundStyle(DesignTokens.secondaryText)
+        }
+        .padding(DesignTokens.spaceM)
+        .background(DesignTokens.surface)
+        .clipShape(RoundedRectangle(cornerRadius: DesignTokens.radiusL))
+    }
+}
+
+struct ChecklistRow: View {
+    let title: String
+    let detail: String
+    let isReady: Bool
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            HStack(alignment: .top, spacing: DesignTokens.spaceS) {
+                Image(systemName: isReady ? "checkmark.circle.fill" : "circle")
+                    .foregroundStyle(isReady ? DesignTokens.success : DesignTokens.accent)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(title).font(AppFont.bodyEmphasis)
+                    Text(detail)
+                        .font(AppFont.micro)
+                        .foregroundStyle(DesignTokens.secondaryText)
+                        .lineLimit(2)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                Spacer()
+            }
+            .frame(minHeight: 44)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+    }
+}
+
+extension TranslationSessionState {
+    var isFailure: Bool {
+        if case .failed = self { return true }
+        return false
+    }
+}
+
+struct TranslationCardView: View {
+    @ObservedObject var store: TranslationSessionStore
+    let onClose: () -> Void
+    let onRecovery: (CardRecoveryAction) -> Void
+    @Environment(\.accessibilityReduceMotion) private var systemReduceMotion
+    @Environment(\.marlaReduceMotionOverride) private var reduceMotionOverride
+
+    private var reduceMotion: Bool {
+        systemReduceMotion || reduceMotionOverride
+    }
+
+    var body: some View {
+        Group {
+            if let session = store.session {
+                VStack(alignment: .leading, spacing: DesignTokens.spaceM) {
+                    cardHeader(session)
+                    Divider()
+                    translationContent(session)
+                    if session.isComparisonExpanded {
+                        sourceContent(session)
+                    }
+                    Divider()
+                    cardActions(session)
+                }
+                .padding(DesignTokens.spaceL)
+                .frame(minWidth: 320, maxWidth: 520, minHeight: 160, maxHeight: .infinity, alignment: .topLeading)
+                .marlaGlassSurface()
+                .shadow(color: .black.opacity(0.16), radius: 18, y: 8)
+                .animation(reduceMotion ? nil : .easeOut(duration: 0.16), value: session.isPinned)
+                .onExitCommand(perform: onClose)
+            }
         }
     }
 
     @ViewBuilder
-    private var selectionProbeSummary: some View {
-        switch model.selectionProbeResult {
-        case .idle:
-            EmptyView()
-        case let .success(text, hasBounds, applicationName, surface):
-            VStack(alignment: .leading, spacing: 3) {
-                Text("已从\(applicationName ?? "当前应用")读取选区")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-
-                Text(text)
-                    .font(.caption)
-                    .lineLimit(2)
-
-                Text(hasBounds ? "已取得选区位置" : "未取得位置，将需要附近浮窗降级")
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
-
-                Text("Rust 语境分类：\(surfaceDescription(surface))")
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
+    private func cardHeader(_ session: CardSession) -> some View {
+        HStack(spacing: DesignTokens.spaceS) {
+            Image(systemName: session.surface.symbolName)
+                .foregroundStyle(DesignTokens.accent)
+            Text(session.surface.displayName)
+                .font(AppFont.caption)
+                .foregroundStyle(DesignTokens.secondaryText)
+            Spacer()
+            Menu {
+                Button("自动") { store.changeTarget(.automatic) }
+                Button("简体中文") { store.changeTarget(.simplifiedChinese) }
+                Button("English") { store.changeTarget(.english) }
+            } label: {
+                Text(session.target.label)
+                    .font(AppFont.caption)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 5)
+                    .background(DesignTokens.accent.opacity(0.12))
+                    .clipShape(Capsule())
             }
-            .frame(maxWidth: 260, alignment: .leading)
-        case let .failure(message):
-            Text(message)
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .frame(maxWidth: 260, alignment: .leading)
+            .menuStyle(.borderlessButton)
+            Button {
+                store.togglePinned()
+            } label: {
+                Image(systemName: session.isPinned ? "pin.fill" : "pin")
+            }
+            .buttonStyle(.borderless)
+            .frame(width: 28, height: 28)
+            .help(session.isPinned ? "取消固定" : "固定卡片")
+            Button(action: onClose) {
+                Image(systemName: "xmark")
+            }
+            .buttonStyle(.borderless)
+            .frame(width: 28, height: 28)
+            .help("关闭")
+        }
+        .accessibilityElement(children: .contain)
+    }
+
+    @ViewBuilder
+    private func translationContent(_ session: CardSession) -> some View {
+        VStack(alignment: .leading, spacing: DesignTokens.spaceS) {
+            if session.translation.isEmpty {
+                switch session.state {
+                case .recognizing:
+                    StateLine(symbol: "viewfinder", title: "正在识别框选文字…", tint: DesignTokens.accent)
+                case .awaitingFirstToken:
+                    HStack(spacing: DesignTokens.spaceS) {
+                        BreathingDot(reduceMotion: reduceMotion)
+                        Text("等待译文")
+                            .font(AppFont.body)
+                            .foregroundStyle(DesignTokens.secondaryText)
+                    }
+                case let .failed(message):
+                    ErrorStateView(
+                        message: message,
+                        recoveryAction: session.recoveryAction,
+                        onRecovery: onRecovery
+                    )
+                case .cancelled:
+                    StateLine(symbol: "checkmark", title: "已取消", tint: DesignTokens.secondaryText)
+                default:
+                    ProgressView().controlSize(.small)
+                }
+            } else {
+                ScrollView {
+                    translationText(session)
+                }
+                .frame(maxHeight: session.isComparisonExpanded ? 92 : 150)
+                if case let .failed(message) = session.state {
+                    PartialFailureView(
+                        message: message,
+                        recoveryAction: session.recoveryAction,
+                        onRecovery: onRecovery
+                    )
+                }
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private func translationText(_ session: CardSession) -> some View {
+        let cursor = Text("│").foregroundColor(DesignTokens.accent)
+        let text: Text
+        if case .streaming = session.state {
+            text = Text(session.translation) + cursor
+        } else {
+            text = Text(session.translation)
+        }
+        return text
+            .font(AppFont.translation)
+            .foregroundStyle(DesignTokens.primaryText)
+            .textSelection(.enabled)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .animation(.easeOut(duration: 0.12), value: session.state)
+    }
+
+    private func sourceContent(_ session: CardSession) -> some View {
+        VStack(alignment: .leading, spacing: DesignTokens.spaceXS) {
+            Text("原文")
+                .font(AppFont.caption)
+                .foregroundStyle(DesignTokens.secondaryText)
+            ScrollView {
+                Text(session.sourceText)
+                    .font(AppFont.source)
+                    .foregroundStyle(DesignTokens.secondaryText)
+                    .textSelection(.enabled)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+            .frame(maxHeight: 110)
         }
     }
 
-    private func surfaceDescription(_ surface: SurfaceType) -> String {
-        switch surface {
-        case .terminal:
-            "终端"
-        case .codeEditor:
-            "代码编辑器"
-        case .browser:
-            "浏览器"
-        case .document:
-            "文档"
-        case .email:
-            "邮件"
-        case .chat:
-            "聊天"
-        case .fileManager:
-            "文件管理器"
-        case .image:
-            "图片"
-        case .unknown:
-            "未知"
+    private func cardActions(_ session: CardSession) -> some View {
+        HStack(spacing: DesignTokens.spaceM) {
+            Button {
+                store.toggleComparison()
+            } label: {
+                Label(session.isComparisonExpanded ? "收起原文" : "查看原文", systemImage: session.isComparisonExpanded ? "chevron.up" : "chevron.down")
+            }
+            .buttonStyle(.borderless)
+            .help("切换原文对照")
+            Spacer()
+            Button { store.copyTranslation() } label: { Image(systemName: "doc.on.doc") }
+                .buttonStyle(.borderless)
+                .help("复制译文")
+                .accessibilityLabel(session.copyConfirmed ? "已复制译文" : "复制译文")
+                .symbolVariant(session.copyConfirmed ? .fill : .none)
+            Button { store.retry() } label: { Image(systemName: "arrow.clockwise") }
+                .buttonStyle(.borderless)
+                .help("重试")
+            Button { speak(session.translation) } label: { Image(systemName: "speaker.wave.2") }
+                .buttonStyle(.borderless)
+                .help("朗读或停止译文")
+            if !session.state.isTerminal {
+                Button { store.cancel() } label: { Image(systemName: "stop.circle") }
+                    .buttonStyle(.borderless)
+                    .help("取消当前翻译")
+            }
         }
+        .font(AppFont.caption)
+        .foregroundStyle(DesignTokens.secondaryText)
+    }
+
+    private func speak(_ text: String) {
+        SpeechCoordinator.shared.speak(text)
+    }
+}
+
+struct StateLine: View {
+    let symbol: String
+    let title: String
+    let tint: Color
+
+    var body: some View {
+        HStack(spacing: DesignTokens.spaceS) {
+            Image(systemName: symbol).foregroundStyle(tint)
+            Text(title).font(AppFont.body).foregroundStyle(DesignTokens.secondaryText)
+        }
+    }
+}
+
+struct BreathingDot: View {
+    let reduceMotion: Bool
+    @State private var active = false
+
+    var body: some View {
+        Circle()
+            .fill(DesignTokens.accent.opacity(0.75))
+            .frame(width: 7, height: 7)
+            .scaleEffect(reduceMotion ? 1 : (active ? 1.25 : 0.72))
+            .opacity(active ? 0.9 : 0.45)
+            .onAppear {
+                guard !reduceMotion else { return }
+                withAnimation(.easeInOut(duration: 0.9).repeatForever(autoreverses: true)) { active = true }
+            }
+    }
+}
+
+struct ErrorStateView: View {
+    let message: String
+    let recoveryAction: CardRecoveryAction?
+    let onRecovery: (CardRecoveryAction) -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: DesignTokens.spaceS) {
+            Text("翻译没有完成")
+                .font(AppFont.bodyEmphasis)
+                .foregroundStyle(DesignTokens.primaryText)
+            Text(message)
+                .font(AppFont.caption)
+                .foregroundStyle(DesignTokens.secondaryText)
+            if let recoveryAction {
+                Button(recoveryAction.title) { onRecovery(recoveryAction) }
+                    .buttonStyle(.borderedProminent)
+                    .tint(DesignTokens.accent)
+                    .controlSize(.small)
+            }
+        }
+    }
+}
+
+struct PartialFailureView: View {
+    let message: String
+    let recoveryAction: CardRecoveryAction?
+    let onRecovery: (CardRecoveryAction) -> Void
+
+    var body: some View {
+        HStack(alignment: .firstTextBaseline, spacing: DesignTokens.spaceS) {
+            Image(systemName: "exclamationmark.circle")
+                .foregroundStyle(DesignTokens.warning)
+            Text(message)
+                .font(AppFont.micro)
+                .foregroundStyle(DesignTokens.secondaryText)
+                .lineLimit(2)
+            Spacer(minLength: DesignTokens.spaceS)
+            if let recoveryAction {
+                Button(recoveryAction.title) { onRecovery(recoveryAction) }
+                    .buttonStyle(.borderless)
+                    .font(AppFont.caption)
+            }
+        }
+        .padding(DesignTokens.spaceS)
+        .background(DesignTokens.secondarySurface)
+        .clipShape(RoundedRectangle(cornerRadius: DesignTokens.radiusS))
+    }
+}
+
+struct QuickInputContainerView: View {
+    @ObservedObject var store: TranslationSessionStore
+    let onClose: () -> Void
+    let onRecovery: (CardRecoveryAction) -> Void
+
+    var body: some View {
+        if store.session?.surface == .quickInput {
+            TranslationCardView(store: store, onClose: onClose, onRecovery: onRecovery)
+                .transition(.opacity)
+        } else {
+            QuickInputView(store: store, onClose: onClose)
+                .transition(.opacity)
+        }
+    }
+}
+
+enum QuickInputValidation {
+    static func isSubmittable(_ text: String) -> Bool {
+        !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
+}
+
+struct QuickInputView: View {
+    @ObservedObject var store: TranslationSessionStore
+    let onClose: () -> Void
+    @State private var draft = ""
+    @State private var target = TranslationTarget.automatic
+    @FocusState private var isFocused: Bool
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: DesignTokens.spaceM) {
+            HStack {
+                Image(systemName: "keyboard").foregroundStyle(DesignTokens.accent)
+                Text("快速输入").font(AppFont.title)
+                Spacer()
+                Button(action: onClose) { Image(systemName: "xmark") }
+                    .buttonStyle(.borderless)
+                    .help("关闭")
+            }
+            HStack(spacing: DesignTokens.spaceS) {
+                Text(target == .automatic ? "自动：中文 ↔ English" : "目标：\(target.label)")
+                    .font(AppFont.caption)
+                    .foregroundStyle(DesignTokens.accent)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 5)
+                    .background(DesignTokens.accent.opacity(0.12))
+                    .clipShape(Capsule())
+                Menu {
+                    Button("自动") { target = .automatic }
+                    Button("简体中文") { target = .simplifiedChinese }
+                    Button("English") { target = .english }
+                } label: {
+                    Label(target.label, systemImage: "globe")
+                        .font(AppFont.caption)
+                }
+                .menuStyle(.borderlessButton)
+            }
+            TextEditor(text: $draft)
+                .font(AppFont.body)
+                .scrollContentBackground(.hidden)
+                .frame(minHeight: 104, maxHeight: 128)
+                .overlay(alignment: .topLeading) {
+                    if draft.isEmpty {
+                        Text("输入或粘贴要翻译的文字")
+                            .font(AppFont.body)
+                            .foregroundStyle(DesignTokens.tertiaryText)
+                            .padding(.horizontal, 5)
+                            .padding(.vertical, 1)
+                            .allowsHitTesting(false)
+                    }
+                }
+                .padding(DesignTokens.spaceM)
+                .background(DesignTokens.inputSurface)
+                .clipShape(RoundedRectangle(cornerRadius: DesignTokens.radiusM))
+                .overlay {
+                    RoundedRectangle(cornerRadius: DesignTokens.radiusM)
+                        .stroke(DesignTokens.divider.opacity(0.65), lineWidth: 0.5)
+                }
+                .focused($isFocused)
+            HStack {
+                Text("⌘Return 提交 · Esc 关闭")
+                    .font(AppFont.micro)
+                    .foregroundStyle(DesignTokens.secondaryText)
+                Spacer()
+                Button("翻译") { submit() }
+                    .buttonStyle(.borderedProminent)
+                    .tint(DesignTokens.accent)
+                    .controlSize(.small)
+                    .disabled(!QuickInputValidation.isSubmittable(draft))
+                    .keyboardShortcut(.return, modifiers: .command)
+            }
+        }
+        .padding(DesignTokens.spaceL)
+        .frame(width: 420)
+        .marlaGlassSurface()
+        .shadow(color: .black.opacity(0.16), radius: 18, y: 8)
+        .onAppear { isFocused = true }
+        .onExitCommand(perform: onClose)
+    }
+
+    private func submit() {
+        guard QuickInputValidation.isSubmittable(draft) else { return }
+        store.startText(draft, surface: .quickInput, anchor: nil, pointer: NSEvent.mouseLocation, activate: true, target: target)
     }
 }

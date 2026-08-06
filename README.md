@@ -13,7 +13,7 @@ The active 0.1.0 Alpha scope is:
 
 0.1.0 does not upload screenshot pixels, collect contextual window text, save translation history, cover source text in place, or provide cloud structured OCR. See [`docs/versions/0.1.0/SPEC.md`](docs/versions/0.1.0/SPEC.md) for the complete bilingual release contract.
 
-The native Xcode application foundation is in place, and implementation is now entering the translation-core phase. Start with [`docs/development/STATUS.md`](docs/development/STATUS.md) for verified progress and next steps.
+The native Xcode application, translation core, and 0.1.0 UI vertical slices are implemented. Start with [`docs/development/STATUS.md`](docs/development/STATUS.md) for verified progress and remaining manual checks.
 
 ## Development prerequisites
 
@@ -37,3 +37,16 @@ Build and verify an ad-hoc-signed timestamped Release test app with:
 ```
 
 The artifact is written under `artifacts/` as `Marla_test_yyyyMMddHHmm.app`. DMG packaging, notarization, automatic updates, and public distribution remain outside 0.1.0.
+
+### Stable local development signing
+
+Ad-hoc signing (`CODE_SIGN_IDENTITY=-`) changes the code hash on every rebuild, so macOS TCC may ask for Accessibility and Screen Recording again. A helper process cannot grant those permissions on behalf of Marla. If a stable local codesigning identity is available in the login keychain, use it for a stable development artifact:
+
+```sh
+MARLA_CODE_SIGN_IDENTITY="Marla Local Development" \
+MARLA_ARTIFACT_PATH="artifacts/Marla_dev.app" \
+MARLA_ALLOW_ARTIFACT_REPLACE=1 \
+./scripts/build-test-app.sh
+```
+
+The identity name is only an example. Create or select a persistent Code Signing identity in the login keychain, then find its exact name with `security find-identity -v -p codesigning`; the script deliberately fails if that identity is unavailable or untrusted. This is for local testing only, does not bypass TCC, and does not provide Developer ID signing or notarization. Authorize the stable `Marla_dev.app` once in System Settings and keep launching that same path. Xcode can normally create an Apple Development identity from a free Apple account for personal local testing; paid Developer Program membership is needed later for normal Developer ID distribution and notarization.

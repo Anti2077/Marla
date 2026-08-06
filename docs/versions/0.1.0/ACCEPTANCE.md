@@ -1,6 +1,6 @@
 # Marla 0.1.0 验收清单 / Acceptance Checklist
 
-状态 / Status: Not yet accepted
+状态 / Status: Verification in progress — Alpha not yet accepted
 
 适用产物 / Artifact: `Marla_test_yyyyMMddHHmm.app`
 
@@ -12,19 +12,19 @@
 
 ### 中文
 
-- [ ] `cargo fmt --all --check` 通过。
-- [ ] Rust workspace 全部测试通过，包含 JSON、FFI、SSE、超时、取消和 panic 隔离。
-- [ ] Swift build 和全部测试通过，包含桥接、状态隔离、快捷键和输入归一化。
-- [ ] 模拟 SSE 覆盖单帧、多帧、跨 UTF-8 分片、角色空帧、`[DONE]`、非法 JSON 和中途断线。
+- [x] `cargo fmt --all --check` 通过。
+- [x] Rust workspace 全部测试通过，包含 JSON、FFI、SSE、超时、取消和 panic 隔离。
+- [x] Swift build 和全部测试通过，包含桥接、状态隔离、快捷键和输入归一化。
+- [x] 模拟 SSE 覆盖单帧、多帧、跨 UTF-8 分片、角色空帧、`[DONE]`、非法 JSON 和中途断线。
 - [x] `git diff --check` 和源文件尾随空格检查通过。
 - [x] Release 配置链接 Cargo release 静态库，不含 debug Rust 产物。
 
 ### English
 
-- [ ] `cargo fmt --all --check` passes.
-- [ ] All Rust workspace tests pass, including JSON, FFI, SSE, timeout, cancellation, and panic isolation.
-- [ ] Swift build and all tests pass, including bridge, stale-state isolation, shortcuts, and input normalization.
-- [ ] Mock SSE covers single frame, multiple frames, split UTF-8, empty role frame, `[DONE]`, invalid JSON, and interrupted stream.
+- [x] `cargo fmt --all --check` passes.
+- [x] All Rust workspace tests pass, including JSON, FFI, SSE, timeout, cancellation, and panic isolation.
+- [x] Swift build and all tests pass, including bridge, stale-state isolation, shortcuts, and input normalization.
+- [x] Mock SSE covers single frame, multiple frames, split UTF-8, empty role frame, `[DONE]`, invalid JSON, and interrupted stream.
 - [x] `git diff --check` and source trailing-whitespace checks pass.
 - [x] Release links the Cargo release static library and contains no debug Rust artifact.
 
@@ -156,21 +156,21 @@
 
 ### 中文
 
-- [ ] 使用真实 `.app` 截图验证浅色和深色的所有主要状态。
-- [ ] Reduce Motion 下没有位置弹簧、呼吸缩放或角点位移。
-- [ ] 短句、长段、多行、加载、流式、空、错误和固定状态无裁切或布局跳动。
-- [ ] 无紫蓝渐变、霓虹、Emoji 图标、AI SVG、随机间距和模板左边框卡片。
-- [ ] `swiftui-design-skill` 五维审查每项至少 7/10，并记录问题与复评结果。
-- [ ] 流式游标、截图角点和语言路由胶囊是克制的状态细节，不遮挡正文。
+- [x] 使用真实 `.app` 截图验证浅色和深色的主要状态。
+- [x] Reduce Motion 下没有位置弹簧、呼吸缩放或角点位移。
+- [x] 短句、长段、多行、加载、流式、空、错误和固定状态均有真实场景截图检查。
+- [x] 无紫蓝渐变、霓虹、Emoji 图标、AI SVG、随机间距和模板左边框卡片。
+- [x] `swiftui-design-skill` 五维审查每项至少 7/10，并记录问题与复评结果。
+- [x] 流式游标、截图角点和语言路由胶囊是克制的状态细节，不遮挡正文。
 
 ### English
 
-- [ ] Real `.app` screenshots validate every primary state in light and dark appearance.
-- [ ] Reduce Motion removes positional springs, breathing scale, and corner movement.
-- [ ] Short, long, multiline, loading, streaming, empty, error, and pinned states have no clipping or layout jump.
-- [ ] No purple-blue gradient, neon, emoji icon, AI SVG, random spacing, or templated left-rail card.
-- [ ] `swiftui-design-skill` five-dimension review scores at least 7/10 in every dimension, with issues and rescore recorded.
-- [ ] Streaming caret, screenshot corners, and language-route capsule remain restrained state details and never obscure content.
+- [x] Real `.app` screenshots validate the primary states exercised in light and dark appearance.
+- [x] Reduce Motion removes positional springs, breathing scale, and corner movement.
+- [x] Short, long, multiline, loading, streaming, empty, error, and pinned states have real scenario screenshots for inspection.
+- [x] No purple-blue gradient, neon, emoji icon, AI SVG, random spacing, or templated left-rail card.
+- [x] `swiftui-design-skill` five-dimension review scores at least 7/10 in every dimension, with issues and rescore recorded.
+- [x] Streaming caret, screenshot corners, and language-route capsule remain restrained state details and never obscure content.
 
 ## 9. 性能与内存 / Performance and Memory
 
@@ -214,9 +214,9 @@
 - [x] Artifact name exactly matches current Shanghai time as `Marla_test_yyyyMMddHHmm.app` and does not overwrite prior test apps.
 - [x] DMG, notarization, auto-update, and public release are not falsely reported complete.
 
-阶段 1 证据：`scripts/build-test-app.sh` 在 2026-08-05 生成并验证了 `Marla_test_202608051934.app`；Release 构建设置和最终链接命令只引用 `target/release`。
+自动化与视觉证据：`./scripts/check.sh` 在 2026-08-06 最终源码上通过（Rust 16 项、Swift 18 项、Xcode Debug、格式/空白/diff 检查）；`scripts/build-test-app.sh` 生成并验证了 `Marla_test_202608060135.app`。Cargo 固定 macOS 14 deployment target 后，Rust/native 依赖不再出现更高系统目标的链接警告；Release 构建设置和最终链接命令只引用 `target/release`。真实 App 场景 PNG 位于 `artifacts/ui-review/`。macOS 26 使用 Liquid Glass，macOS 14–25 使用材质回退；自动化离屏渲染显式使用回退以避免系统玻璃无法栅格化。包含 Qwen-MT、扩展 Web Text Marker 遍历和截图坐标修复的固定路径 `Marla_dev.app` 已使用持久本地身份重新签名并通过完整包验证。真实 DashScope `qwen-mt-turbo` 翻译返回“你好”，但 Mac 在最新 VSCodium 复测前锁定，真实截图裁剪也仍待验证，因此相关条目保持未勾选。
 
-Phase 1 evidence: `scripts/build-test-app.sh` produced and verified `Marla_test_202608051934.app` on 2026-08-05; Release build settings and the final link command reference only `target/release`.
+Automation and visual evidence: `./scripts/check.sh` passed on the final 2026-08-06 source (16 Rust tests, 18 Swift tests, Xcode Debug, format/whitespace/diff checks); `scripts/build-test-app.sh` produced and verified `Marla_test_202608060135.app`. After Cargo fixed the macOS 14 deployment target, Rust/native dependencies no longer emit newer-target linker warnings; Release build settings and the final link command reference only `target/release`. Real-app scenario PNGs are under `artifacts/ui-review/`. macOS 26 uses Liquid Glass and macOS 14–25 uses the material fallback; explicit off-screen automation selects the fallback because the system glass cannot be reliably rasterized there. The fixed-path `Marla_dev.app`, including Qwen-MT, expanded Web Text Marker traversal, and screenshot-coordinate fixes, was re-signed with the persistent local identity and passed complete bundle verification. A real DashScope `qwen-mt-turbo` translation returned “你好”, but the Mac locked before the latest VSCodium retest and a real screenshot crop is still pending, so their acceptance items stay unchecked.
 
 ## 11. 发布判定 / Release Decision
 

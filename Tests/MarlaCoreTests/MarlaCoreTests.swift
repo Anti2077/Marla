@@ -29,6 +29,7 @@ final class MarlaCoreTests: XCTestCase {
         let document = OCRDocument(blocks: [later, earlier])
 
         XCTAssertEqual(document.blocks.map(\.id), ["earlier", "later"])
+        XCTAssertEqual(document.plainText, "Earlier\nLater")
     }
 
     func testOnlyScreenshotIntentRequiresOCR() {
@@ -99,5 +100,130 @@ final class MarlaCoreTests: XCTestCase {
             RustCoreBridge.classifySurface(applicationBundleID: "com.example.Unknown"),
             .unknown
         )
+    }
+
+    func testTranslationRequestEncodesNestedCredentialAndTarget() throws {
+        let request = TranslationFFIRequest(
+            requestID: UUID(uuidString: "00000000-0000-0000-0000-000000000001")!,
+            sourceText: "Hello\nworld",
+            target: .english,
+            endpoint: TranslationEndpointConfiguration(
+                baseURL: "https://example.com/v1",
+                model: "demo",
+                apiKey: "secret"
+            )
+        )
+        let data = try JSONEncoder().encode(request)
+        let object = try XCTUnwrap(JSONSerialization.jsonObject(with: data) as? [String: Any])
+        XCTAssertEqual(object["schemaVersion"] as? Int, 1)
+        XCTAssertEqual(
+            object["requestID"] as? String,
+            "00000000-0000-0000-0000-000000000001"
+        )
+        XCTAssertNil(object["requestId"])
+        let endpoint = try XCTUnwrap(object["endpoint"] as? [String: Any])
+        XCTAssertEqual(endpoint["baseURL"] as? String, "https://example.com/v1")
+        XCTAssertNil(endpoint["baseUrl"])
+        XCTAssertEqual(endpoint["apiKey"] as? String, "secret")
+        let target = try XCTUnwrap(object["target"] as? [String: Any])
+        XCTAssertEqual(target["mode"] as? String, "explicit")
+        XCTAssertEqual(target["language"] as? String, "en")
+    }
+
+    func testTranslationEventsDecodeStableFailureAndDelta() throws {
+        let id = UUID(uuidString: "00000000-0000-0000-0000-000000000002")!
+        let delta = try JSONDecoder().decode(
+            TranslationFFIEvent.self,
+            from: Data("{\"schemaVersion\":1,\"requestID\":\"\(id.uuidString)\",\"type\":\"delta\",\"text\":\"你\"}".utf8)
+        )
+        XCTAssertEqual(delta.requestID, id)
+        XCTAssertEqual(delta.text, "你")
+        let failure = try JSONDecoder().decode(
+            TranslationFFIEvent.self,
+            from: Data("{\"schemaVersion\":1,\"requestID\":\"\(id.uuidString)\",\"type\":\"failed\",\"code\":\"rate_limited\",\"message\":\"slow\",\"retryable\":true}".utf8)
+        )
+        XCTAssertEqual(failure.code, .rateLimited)
+        XCTAssertTrue(failure.retryable == true)
+    }
+
+    func testTranslationSessionReducerTransitionsAndRejectsLateEvents() {
+        let currentID = UUID(uuidString: "00000000-0000-0000-0000-000000000010")!
+        let staleID = UUID(uuidString: "00000000-0000-0000-0000-000000000011")!
+        var state = TranslationSessionState.awaitingFirstToken
+        var translation = ""
+
+        XCTAssertFalse(
+            TranslationSessionReducer.apply(
+                TranslationFFIEvent(
+                    schemaVersion: 1,
+                    requestID: staleID,
+                    type: "delta",
+                    text: "旧"
+                ),
+                requestID: currentID,
+                state: &state,
+                translation: &translation
+            )
+        )
+        XCTAssertEqual(state, .awaitingFirstToken)
+        XCTAssertEqual(translation, "")
+
+        XCTAssertTrue(
+            TranslationSessionReducer.apply(
+                TranslationFFIEvent(
+                    schemaVersion: 1,
+                    requestID: currentID,
+                    type: "delta",
+                    text: "新"
+                ),
+                requestID: currentID,
+                state: &state,
+                translation: &translation
+            )
+        )
+        XCTAssertEqual(state, .streaming)
+        XCTAssertEqual(translation, "新")
+
+        XCTAssertTrue(
+            TranslationSessionReducer.apply(
+                TranslationFFIEvent(
+                    schemaVersion: 1,
+                    requestID: currentID,
+                    type: "completed",
+                    text: "新译文"
+                ),
+                requestID: currentID,
+                state: &state,
+                translation: &translation
+            )
+        )
+        XCTAssertEqual(state, .completed)
+        XCTAssertEqual(translation, "新译文")
+
+        XCTAssertFalse(
+            TranslationSessionReducer.apply(
+                TranslationFFIEvent(
+                    schemaVersion: 1,
+                    requestID: currentID,
+                    type: "delta",
+                    text: "迟到"
+                ),
+                requestID: currentID,
+                state: &state,
+                translation: &translation
+            )
+        )
+        XCTAssertEqual(translation, "新译文")
+    }
+
+    func testCardPresentationUsesAcceptedSizingAndTransientDefaults() {
+        let presentation = CardPresentation()
+        XCTAssertEqual(presentation.preferredWidth, 380)
+        XCTAssertEqual(presentation.minimumWidth, 320)
+        XCTAssertEqual(presentation.maximumWidth, 520)
+        XCTAssertEqual(presentation.maximumVisibleHeightRatio, 0.6)
+        XCTAssertTrue(presentation.isTransient)
+        XCTAssertFalse(presentation.isPinned)
+        XCTAssertFalse(presentation.activatesOnPresentation)
     }
 }

@@ -1,10 +1,10 @@
 # Marla 0.1.0 产品规格 / Product Specification
 
-状态 / Status: Planned
+状态 / Status: Active Alpha verification
 
 版本 / Version: 0.1.0
 
-最后更新 / Last updated: 2026-08-05
+最后更新 / Last updated: 2026-08-06
 
 > 本文每节先给出中文规范，再给出英文镜像。发生歧义时以中文为准；两种语言必须在同一次修改中同步。
 >

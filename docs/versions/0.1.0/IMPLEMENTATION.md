@@ -1,6 +1,6 @@
 # Marla 0.1.0 实施规格 / Implementation Specification
 
-状态 / Status: In Progress
+状态 / Status: Implemented — verification in progress
 
 架构 / Architecture: SwiftUI/AppKit host + embedded Rust static library
 
@@ -10,15 +10,15 @@
 
 ### 中文
 
-仓库当前同时包含可构建的 Swift Package 骨架和原生 Xcode macOS App target。SwiftUI 菜单栏壳层、Accessibility 选区读取、基础领域模型、Rust `staticlib`、C ABI 和 Bundle ID 表面分类桥接已经存在并通过测试。Xcode target 已使用稳定 `com.marla.app` 生成并验证临时签名的 arm64 `.app`，Debug 和 Release 分别链接 Cargo 的 debug 与 release 产物。真实翻译网络管线、Vision 截图流程、全局快捷键和结果卡片仍未实现。
+仓库当前包含可构建的 Swift Package、原生 Xcode macOS App target、真实 Rust 流式翻译核心和完整的 0.1.0 UI 壳层。菜单栏、首次启动清单、划词/截图/快速输入入口、非激活结果卡片、跨屏 ScreenCaptureKit 框选、Vision `OCRDocument`、Carbon 快捷键、Keychain 设置、权限引导、错误恢复、朗读、固定、对照和 Reduce Motion 都已接入并通过当前自动化测试。macOS 26+ 的结果卡片和快速输入卡片使用 SwiftUI Liquid Glass，macOS 14–25 使用材质回退。Xcode target 已使用稳定 `com.marla.app` 生成并验证临时签名的 arm64 `.app`，Debug 和 Release 分别链接 Cargo 的 debug 与 release 产物；打包脚本也支持用本机稳定签名身份更新固定路径的开发测试包，以降低 TCC 因 ad-hoc 代码哈希变化而重复授权的频率。
 
-部分占位设置仍显示云端结构化 OCR；这是当前代码与 0.1.0 目标的已知差异，实施时必须删除，而不是把占位 UI 当作已接受行为。
+云端结构化 OCR 开关已删除。生产截图入口只在内存中经 Vision 生成带稳定行 ID 的文字文档，并且只把纯文字发送到 Rust；显式 UI 自动化夹具不改变生产入口。
 
 ### English
 
-The repository now contains both the buildable Swift Package foundation and a native Xcode macOS App target. A SwiftUI menu-bar shell, Accessibility selection reader, foundational domain models, Rust `staticlib`, C ABI, and Bundle-ID surface-classification bridge exist and pass tests. The Xcode target has produced and verified an ad-hoc-signed arm64 `.app` with stable identity `com.marla.app`; Debug and Release link the matching Cargo debug and release products. The real translation network pipeline, Vision screenshot flow, global shortcuts, and result card remain unimplemented.
+The repository now contains a buildable Swift Package, a native Xcode macOS App target, the real Rust streaming translation core, and the complete 0.1.0 UI shell. The menu bar, onboarding checklist, selection/screenshot/quick-input entries, non-activating result card, cross-display ScreenCaptureKit selection, Vision `OCRDocument`, Carbon shortcuts, Keychain settings, permission guidance, error recovery, speech, pinning, comparison, and Reduce Motion handling are wired and covered by the current automated tests. Result and quick-input cards use SwiftUI Liquid Glass on macOS 26+ and the material fallback on macOS 14–25. The Xcode target has produced and verified an ad-hoc-signed arm64 `.app` with stable identity `com.marla.app`; Debug and Release link the matching Cargo debug and release products. The packaging script also supports updating a fixed-path development app with a stable local signing identity, reducing repeated TCC prompts caused by changing ad-hoc code hashes.
 
-Some placeholder Settings still expose cloud structured OCR. This is a known discrepancy between current code and the 0.1.0 target and must be removed during implementation rather than treated as accepted behavior.
+The cloud structured OCR switch has been removed. Production screenshot entry keeps the in-memory Vision document with stable line IDs and sends text only to Rust; explicit UI automation fixtures do not alter production entry points.
 
 ## 2. 责任边界 / Responsibility Boundary
 
@@ -244,9 +244,11 @@ Logs may contain request ID, phase, duration, HTTP status, and error code, but n
 
 Rust 使用单个进程级异步运行时和一个共享 HTTP Client。OpenAI-compatible 请求发送到规范化的 `{baseURL}/chat/completions`，设置 `stream: true`。Key 非空时添加 Bearer Header；不支持自定义 Header。
 
-SSE 解析接受 `data:` 帧、空行分隔、跨网络分片的 UTF-8 和 `[DONE]`。只读取 `choices[0].delta.content`，同时容忍没有内容的角色帧。无法解析的有效 HTTP 响应返回 `invalid_response`，不得把原始响应体直接展示给用户或写入日志。
+SSE 解析接受 `data:` 帧、空行分隔、跨网络分片的 UTF-8、`[DONE]` 和 `finish_reason` 完成。通用端点读取 `choices[0].delta.content` 并容忍没有内容的角色帧。无法解析的有效 HTTP 响应返回 `invalid_response`；HTTP 200 流内的 Provider 错误也必须映射为失败事件，不得把原始响应体直接展示给用户或写入日志。
 
 自动模式的系统提示词语义固定为：把用户输入视为待翻译数据；自动识别源语言；中文译成英文，非中文译成简体中文；只输出译文；保留换行、标点、专有名词、代码标识符和终端参数。显式模式把目标替换为选定语言。源文本使用明确分隔符包裹，降低把内容当指令执行的风险。
+
+当模型名以 `qwen-mt-` 开头时，Rust 使用 Qwen-MT 的兼容协议：不发送 `system` 角色，把自动或显式目标映射到 `translation_options.source_lang` / `target_lang`，并把 Provider 返回的累计 `delta.content` 归一化为 Marla 的增量事件。其他模型继续使用上述通用 OpenAI-compatible 系统提示词。该分支已通过 mock-provider 测试和真实 DashScope 连接测试。
 
 不做可能造成重复计费的静默自动重试。连接失败、超时、429 和流中断都产生可重试错误，只有用户按“重试”才创建新 request ID。首个 delta 后的部分内容保留在 Swift 会话中。
 
@@ -254,9 +256,11 @@ SSE 解析接受 `data:` 帧、空行分隔、跨网络分片的 UTF-8 和 `[DON
 
 Rust uses one process-wide asynchronous runtime and one shared HTTP client. The OpenAI-compatible request goes to normalized `{baseURL}/chat/completions` with `stream: true`. A non-empty key adds a Bearer Header. Custom headers are unsupported.
 
-SSE parsing accepts `data:` frames, blank-line separation, UTF-8 split across network chunks, and `[DONE]`. It reads only `choices[0].delta.content` while tolerating role frames with no content. An unparseable successful HTTP response becomes `invalid_response`; raw response bodies are neither shown to the user nor logged.
+SSE parsing accepts `data:` frames, blank-line separation, UTF-8 split across network chunks, `[DONE]`, and `finish_reason` completion. Generic endpoints read `choices[0].delta.content` while tolerating role frames with no content. An unparseable successful HTTP response becomes `invalid_response`; provider errors carried inside an HTTP 200 stream also become failed events. Raw response bodies are neither shown to the user nor logged.
 
 The automatic system prompt has fixed semantics: treat user input as translation data; detect source language; translate Chinese to English and non-Chinese to Simplified Chinese; output translation only; preserve line breaks, punctuation, proper nouns, code identifiers, and terminal arguments. Explicit mode replaces the target with the selected language. Clear delimiters surround source text to reduce instruction confusion.
+
+When the model name starts with `qwen-mt-`, Rust uses the Qwen-MT-compatible protocol: it sends no `system` role, maps automatic or explicit targets into `translation_options.source_lang` / `target_lang`, and normalizes the provider's cumulative `delta.content` into Marla incremental events. Other models retain the generic OpenAI-compatible system prompt above. This branch is covered by mock-provider tests and a real DashScope connection test.
 
 There is no silent automatic retry that could duplicate billing. Connection failure, timeout, 429, and interrupted stream produce retryable errors; only the Retry action creates a new request ID. Partial content after the first delta remains in the Swift session.
 
@@ -264,17 +268,17 @@ There is no silent automatic retry that could duplicate billing. Connection fail
 
 ### 中文
 
-**划词**：从触发瞬间的前台进程和聚焦 Accessibility 元素读取 `AXSelectedText`、`AXSelectedTextRange` 和可用的 `AXBoundsForRange`。不读取附近文字和窗口标题，不把已有 Rust 应用分类放入请求。坐标不可用时使用触发时指针位置。
+**划词**：从触发瞬间的前台进程和聚焦 Accessibility 元素开始，在有界后代树内读取 `AXSelectedText`、`AXSelectedTextRange` / `AXStringForRange`，或 Electron/WebArea 使用的 `AXSelectedTextMarkerRange` / `AXStringForTextMarkerRange`。标准范围优先用 `AXBoundsForRange`，Text Marker 优先用 `AXBoundsForTextMarkerRange`。不读取附近文字和窗口标题，不把已有 Rust 应用分类放入请求；坐标不可用时使用触发时指针位置。
 
-**截图**：ScreenCaptureKit 负责跨显示器坐标和 Retina 缩放；裁剪后立即交给 Vision。`VNRecognizeTextRequest` 使用 `.accurate`，启用自动语言识别，并把候选按屏幕阅读顺序排序。输出是带稳定行 ID 和换行的纯文本；不调用 GLM-OCR，不上传像素。
+**截图**：每个相交显示器分别使用 ScreenCaptureKit 捕获。AppKit 全局左下原点的选区先转换为该显示器局部左上原点的 `sourceRect`，再按显示器缩放合成最终裁剪；裁剪后立即交给 Vision。`VNRecognizeTextRequest` 使用 `.accurate`，配置简体中文和 English 识别，并把候选按屏幕阅读顺序归一化为带稳定行 ID、边界和置信度的 `OCRDocument`。只有其换行纯文本进入翻译请求；不调用 GLM-OCR，不上传像素。
 
 **快速输入**：SwiftUI 编辑器本地持有草稿；提交前不跨 FFI。空白校验通过后创建与其他入口相同的翻译请求。
 
 ### English
 
-**Selection**: read `AXSelectedText`, `AXSelectedTextRange`, and available `AXBoundsForRange` from the frontmost process and focused Accessibility element at trigger time. Do not read nearby text or window title, and do not include the existing Rust app classification in the request. Use trigger-time pointer position when geometry is unavailable.
+**Selection**: starting from the trigger-time frontmost process and focused Accessibility element, search a bounded descendant tree for `AXSelectedText`, `AXSelectedTextRange` / `AXStringForRange`, or the `AXSelectedTextMarkerRange` / `AXStringForTextMarkerRange` attributes used by Electron WebAreas. Standard ranges prefer `AXBoundsForRange`; Text Markers prefer `AXBoundsForTextMarkerRange`. Do not read nearby text or window title, and do not include the existing Rust app classification in the request. Use the trigger-time pointer when geometry is unavailable.
 
-**Screenshot**: ScreenCaptureKit owns cross-display coordinates and Retina scaling; the crop immediately enters Vision. `VNRecognizeTextRequest` uses `.accurate`, enables automatic language detection, and sorts candidates into screen reading order. Output is plain text with stable line IDs and line breaks. Do not call GLM-OCR or upload pixels.
+**Screenshot**: each intersecting display is captured separately through ScreenCaptureKit. The AppKit global bottom-left selection is converted into that display's local top-left `sourceRect`, then composited at the display scale into the final crop before Vision. `VNRecognizeTextRequest` uses `.accurate`, is configured for Simplified Chinese and English, and normalizes candidates into an `OCRDocument` with stable line IDs, bounds, confidence, and reading order. Only its newline-joined text enters the translation request; do not call GLM-OCR or upload pixels.
 
 **Quick input**: the SwiftUI editor owns its draft locally and crosses no FFI boundary before submission. After whitespace validation, it creates the same translation request as other entries.
 
@@ -316,22 +320,22 @@ Each card owns a unique request ID. Every event first checks request ID; stale-r
 
 ### 中文
 
-1. **App 基础（2026-08-05 已验证）**：建立 Xcode App target、稳定 Bundle ID、权限声明、Rust Debug/Release 构建阶段和时间戳测试包脚本。
-2. **翻译核心**：实现 JSON schema、FFI 句柄、异步运行时、OpenAI-compatible SSE、Keychain 设置桥和模拟服务器测试。
-3. **划词垂直切片**：全局快捷键、选区获取、非激活结果卡片、流式状态、复制/重试/关闭。
-4. **截图垂直切片**：跨屏框选、ScreenCaptureKit、Vision、纯文本归一化和同一结果卡片。
-5. **快速输入与完整控件**：IME、多行输入、对照、朗读、固定、目标切换、快捷键录制和权限引导。
-6. **实验与产品化**：Force Touch 公共 API 可行性、性能/内存测量、视觉技能审查、兼容矩阵和时间戳测试 App。
+1. **App 基础（已验证）**：Xcode App target、稳定 Bundle ID、权限声明、Rust Debug/Release 构建阶段和时间戳测试包脚本。
+2. **翻译核心（已实现）**：JSON schema、FFI 句柄、异步运行时、OpenAI-compatible SSE、Keychain 设置桥和 mock-provider 测试。
+3. **划词垂直切片（已实现）**：Carbon 全局快捷键、选区获取、非激活结果卡片、流式状态、复制/重试/关闭。
+4. **截图垂直切片（已实现）**：跨屏框选、ScreenCaptureKit、Vision `OCRDocument`、纯文本归一化和同一结果卡片。
+5. **快速输入与完整控件（已实现）**：IME、多行输入、对照、朗读、固定、目标切换、快捷键录制和权限引导。
+6. **实验与产品化（验证中）**：Force Touch 公共 API 可行性、性能/内存测量、视觉技能审查、兼容矩阵和最终验收。
 
 每个阶段完成时同时更新 `STATUS.md` 和相关 0.1.0 文档；不得等到版本末尾集中补文档。
 
 ### English
 
-1. **App foundation (verified 2026-08-05)**: create Xcode App target, stable Bundle ID, permission declarations, Rust Debug/Release build phase, and timestamped test-app script.
-2. **Translation core**: implement JSON schema, FFI handles, async runtime, OpenAI-compatible SSE, Keychain settings bridge, and mock-server tests.
-3. **Selection vertical slice**: global shortcut, selection acquisition, non-activating result card, streaming state, copy/retry/close.
-4. **Screenshot vertical slice**: cross-display selection, ScreenCaptureKit, Vision, plain-text normalization, and the same result card.
-5. **Quick input and full controls**: IME, multiline input, comparison, speech, pin, target switching, shortcut recording, and permission onboarding.
-6. **Experiment and productization**: public-API Force Touch feasibility, performance/memory measurement, design-skill review, compatibility matrix, and timestamped test app.
+1. **App foundation (verified)**: Xcode App target, stable Bundle ID, permission declarations, Rust Debug/Release build phase, and timestamped test-app script.
+2. **Translation core (implemented)**: JSON schema, FFI handles, async runtime, OpenAI-compatible SSE, Keychain settings bridge, and mock-provider tests.
+3. **Selection vertical slice (implemented)**: Carbon global shortcuts, selection acquisition, non-activating result card, streaming state, copy/retry/close.
+4. **Screenshot vertical slice (implemented)**: cross-display selection, ScreenCaptureKit, Vision `OCRDocument`, plain-text normalization, and the same result card.
+5. **Quick input and full controls (implemented)**: IME, multiline input, comparison, speech, pin, target switching, shortcut recording, and permission onboarding.
+6. **Experiment and productization (verification in progress)**: public-API Force Touch feasibility, performance/memory measurement, design-skill review, compatibility matrix, and final acceptance.
 
 Every phase updates `STATUS.md` and affected 0.1.0 documentation when completed; documentation is not deferred to the end of the release.

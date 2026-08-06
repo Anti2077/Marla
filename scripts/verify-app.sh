@@ -68,10 +68,14 @@ if ! print -r -- "${signing_details}" | rg -q '^Identifier=com\.marla\.app$'; th
     print -u2 "Code signature identifier is not com.marla.app."
     exit 1
 fi
+signature_summary=$(print -r -- "${signing_details}" | rg '^(Authority|Signature)=' | head -n 1 || true)
+if [[ -z ${signature_summary} ]]; then
+    signature_summary="signature details unavailable"
+fi
 
 print "Verified app: ${app_path}"
 print "  Bundle ID: ${bundle_id}"
 print "  Version: ${version}"
 print "  Minimum macOS: ${minimum_system}"
 print "  Architecture: ${architectures}"
-print "  Signing: valid ($(print -r -- "${signing_details}" | rg '^Signature=' | head -n 1))"
+print "  Signing: valid (${signature_summary})"

@@ -10,6 +10,12 @@ Updated: 2026-08-07
 
 Origin: direct request / live visual defect
 
+Conversation: `TASK-005` 多 API 配置与设置、截图交互持续迭代（历史详细切片）
+
+## Initial request
+
+项目所有者指出 API 编辑器首行“配置名称”的蓝色 Focus Ring 顶边仍被滚动视口裁切，要求彻底修复。
+
 ## Outcome
 
 API 配置编辑器首行“配置名称”获得键盘焦点时，macOS 蓝色 Focus Ring 的四边都完整可见，不再被滚动内容区域顶部裁切。
@@ -30,6 +36,12 @@ API 配置编辑器首行“配置名称”获得键盘焦点时，macOS 蓝色 
 - 重构 API 编辑器的信息架构或字段顺序。
 - 改变系统 Focus Ring 的颜色、粗细或圆角。
 - 修改 API 请求、Keychain、模型获取或翻译行为。
+
+## Scope changes during the conversation
+
+| Date | Requested by | Change | Acceptance / verification impact | Status |
+| --- | --- | --- | --- | --- |
+| 2026-08-07 | Project owner | 将首行 Focus Ring 裁切修复追加到 `TASK-005` 对应的同一开发对话 | 8pt 安全边距、前台浅色/深色真实窗口截图和五维复评 | Verified |
 
 ## Current evidence
 
@@ -94,3 +106,4 @@ None — 项目所有者已明确要求修复该真实视觉缺陷。
 - Manual evidence: frontmost light/dark Release editor windows were captured by verified Core Graphics Window ID under `artifacts/ui-review/task-011/`; the system blue Focus Ring is complete on all four sides and existing field/action geometry remains aligned. Five-dimension scores are 8/8/9/8/7.
 - Documentation updated: Task, Backlog, Status, bilingual UI specification, bilingual acceptance record, and visual review.
 - Remaining work promoted to: None.
+- Scope changes closed: Yes

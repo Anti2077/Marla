@@ -98,6 +98,8 @@
 
 - [x] Base URL 模式追加 `/chat/completions`，完整 URL 模式原样使用地址；两种模式拒绝 query/fragment，并由测试连接和真实翻译共用。
 - [x] 模型获取由 Rust 根据 URL 模式推导 `/models`，携带当前配置 Key，返回排序去重列表；编辑器可展开并选择模型。
+- [ ] 获取模型和测试连接都优先使用当前非空 Key 草稿，草稿为空时回退 Keychain；相关字段变化会清除旧测试结果。
+- [ ] 只有启用配置可出现在结果卡选择器并发起请求；禁用默认、全部禁用、重新启用和“设为默认”保持默认值不变量。
 - [ ] 模型和空/非空 Key 都按协议构造请求；Key 只在非空时加入 Header。
 - [ ] API Key 存在 Keychain，不出现在 UserDefaults、日志、错误或诊断输出。
 - [ ] 首字前显示等待状态，delta 增量显示，完成后内容与 Provider 一致。
@@ -110,6 +112,8 @@
 
 - [x] Base URL mode appends `/chat/completions`; Complete URL mode uses the address unchanged. Both reject query/fragment and are shared by connection testing and real translation.
 - [x] Rust derives `/models` from the URL mode, uses the current profile key, and returns sorted unique IDs; the editor expands and selects a model.
+- [ ] Model discovery and connection testing both prefer the current non-empty key draft and fall back to Keychain only when the draft is empty; related field changes clear stale test results.
+- [ ] Only enabled profiles appear in the result-card picker and may start requests; disabling the default, disabling all, re-enabling, and Set as Default preserve the default invariant.
 - [ ] Model and empty/non-empty key build the specified request; Header is added only for non-empty key.
 - [ ] API Key lives in Keychain and never appears in UserDefaults, logs, errors, or diagnostics.
 - [ ] Waiting appears before first token, deltas render incrementally, and completion matches provider output.
@@ -175,6 +179,7 @@
 - [x] 菜单、设置、结果卡、快速输入和截图框选提示使用 macOS 26 Liquid Glass，并为 macOS 14–25 提供单层材质回退。
 - [x] 菜单和设置中的截图翻译使用目标系统可用且可见的 SF Symbol。
 - [x] API 编辑器首行获得焦点时，系统 Focus Ring 四边完整，不被滚动视口顶部裁切。
+- [ ] API 列表使用启用 Switch，菜单仅含设为默认/删除；原生拖拽图透明不可见，最右侧三横杠抓起后由固定 580×76pt 独立浮层绘制完整配置行，向左展开并保持原始抓取点且全程不缩放；列表原行变为等高空槽，空槽经过其它配置时以短促过渡实时移动和让位，松手后内容以短促动画恢复到空槽，且设置窗口本身不移动；编辑器底部仅含取消/保存，测试结果在表单内同行显示。
 
 ### English
 
@@ -187,6 +192,7 @@
 - [x] The menu, Settings, result card, quick input, and screenshot-selection labels use macOS 26 Liquid Glass with a single material fallback on macOS 14–25.
 - [x] Screenshot translation uses an available and visible SF Symbol in both the menu and Settings.
 - [x] When the API editor's first row is focused, all four sides of the system Focus Ring remain visible instead of clipping at the scroll viewport's top edge.
+- [ ] The API list uses an enabled switch and a menu containing only Set as Default/Delete. The native drag image is transparent and invisible; picking up the trailing handle renders the complete row in an independent fixed 580×76pt panel that expands leftward, preserves the exact grab point, and never scales. The source becomes a full-height empty slot that moves through the list with short animated displacement, and release restores the row content into that slot without moving the Settings window. The editor footer contains only Cancel/Save and shows test results inline in the form.
 
 ## 9. 性能与内存 / Performance and Memory
 

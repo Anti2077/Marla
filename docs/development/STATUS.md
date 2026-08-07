@@ -6,11 +6,11 @@ Release target: 0.1.0 Alpha
 
 Overall state: In Progress — implementation baseline exists; live acceptance remains incomplete
 
-Active task: None
+Active task: [TASK-013](../tasks/TASK-013-api-profile-activation-and-editor-actions.md)
 
 ## Current objective
 
-TASK-012 已完成：开发流程现在以一次开发对话对应一个可持续追加范围的 Task。当前没有活动实现任务；等待项目所有者开启下一次开发对话。
+执行 TASK-013：修复 API 编辑器测试连接的 Key 草稿逻辑，增加 profile 启用状态与可调用过滤，并收敛编辑器操作和列表拖拽排序交互。
 
 ## Current implemented baseline
 
@@ -29,6 +29,7 @@ TASK-012 已完成：开发流程现在以一次开发对话对应一个可持�
 - The API editor gives its first scroll-content row an 8pt focus-ring safety inset, keeping the native macOS Focus Ring complete in light and dark appearance.
 - Settings use a four-page native sidebar, summary-only API list and independently clipped editor sheet; global shortcuts have persistent switches, result cards support background dragging, and screenshot selection includes an in-memory 6× pointer magnifier.
 - Settings use a transparent full-size title bar with traffic lights inside one continuous four-corner surface, hidden scroll indicators, and a fixed `Esc` screenshot-cancellation row. Screenshot selection temporarily suspends an open Settings window and restores it without activating it; `Esc` cancellation is owned by the active selection session rather than a single view's first-responder state.
+- Translation API profiles have persistent enabled states and only enabled profiles can be selected or invoked. The summary list uses native switches, a Set Default/Delete menu, accessibility move actions, and a trailing reorder handle. Settings content no longer moves the window; the newest fixed App uses a complete-row drag preview and 220ms animated hover reordering, pending owner confirmation of that final pointer feedback.
 
 Implementation baseline commit: `88954bb`.
 
@@ -60,9 +61,9 @@ Before implementation, start the next development conversation with a `Ready` th
 
 ## Latest verification
 
-- `./scripts/check.sh` passed on 2026-08-07 after TASK-011.
+- `./scripts/check.sh` passed on 2026-08-07 after the latest TASK-013 drag-preview change.
 - Rust: 17 tests passed.
-- Swift: 41 tests passed.
+- Swift: 48 tests passed.
 - Xcode Debug application build passed.
 - SwiftUI preview support compiled in the Swift Package and Xcode Debug build.
 - Xcode Preview launched and loaded `__preview.dylib` while the fixed-path development app remained running; Debug allows the Preview host instance while Release remains single-instance.
@@ -79,6 +80,8 @@ Before implementation, start the next development conversation with a `Ready` th
 - TASK-010 added per-profile Base/Complete URL routing, an inline URL-mode switch, Rust-owned `/models` discovery through C ABI v2, and bottom-of-form model selection. A real `gpt-5.6-luna` Complete URL stream returned “你好”, `finish_reason: stop`, and `[DONE]`; the related `/v1/models` endpoint returned 20 models including `gpt-5.6-luna`. Light/dark Release captures passed the five-dimension review at 8/8/8/8/7 under `artifacts/ui-review/task-010/`. The fixed App retained Bundle ID `com.marla.app`, arm64, Authority `API Usage Monitor Dev`, and its designated requirement.
 - TASK-011 added an 8pt scroll-content safety inset above the first API editor field. Frontmost light/dark Release windows captured by verified Core Graphics Window ID show the native blue Focus Ring complete on all four sides; five-dimension scores are 8/8/9/8/7 under `artifacts/ui-review/task-011/`. The fixed App retained Bundle ID `com.marla.app`, arm64, Authority `API Usage Monitor Dev`, and its designated requirement.
 - TASK-012 changed development tracking to one evolving Task per implementation conversation. Owner-added scope remains in the same Task with explicit scope-change, acceptance, and verification updates; `git diff --check` and stale-rule searches passed.
+- The 2026-08-06 to 2026-08-07 multi-API/settings development conversation is retrospectively consolidated in canonical `TASK-005`; `TASK-006` through `TASK-011` remain linked detailed evidence slices rather than separate conversation boundaries.
+- TASK-013's fixed `artifacts/Marla_dev.app` retains Bundle ID `com.marla.app`, arm64, Authority `API Usage Monitor Dev`, and the existing designated requirement. Static light/dark list and editor captures passed the five-dimension review under `artifacts/ui-review/task-013/`; the owner confirmed that dragging the handle no longer moves the Settings window. Computer Use completed and reversed a real cross-row handle drag, restoring the prior order. After the owner still observed system drag-image scaling, the visible preview moved to a fixed 580×76pt nonactivating Panel while the native drag item became transparent 1×1pt; final owner confirmation of the Panel, exact handle anchor, moving empty slot, and release fade is pending.
 - A real DashScope `qwen-mt-turbo` request translated `Hello` to “你好”; the credential remained in Keychain.
 
 ## Pending product decisions

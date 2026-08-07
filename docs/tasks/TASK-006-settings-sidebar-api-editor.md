@@ -6,9 +6,15 @@ Owner: Project owner + Agent
 
 Created: 2026-08-06
 
-Updated: 2026-08-06
+Updated: 2026-08-07
 
 Origin: direct request / UI defect
+
+Conversation: `TASK-005` 多 API 配置与设置、截图交互持续迭代（历史详细切片）
+
+## Initial request
+
+项目所有者要求把设置改为原生侧栏结构，API 页面只显示摘要，选择或添加配置后才打开独立详情编辑器，并修复删除后的空白行和输入框拉伸。
 
 ## Outcome
 
@@ -32,6 +38,12 @@ TASK-005 的多 API 数据与行为已完成，但当前设置页仍将列表与
 - 新增 OCR provider、OCR 参数、图片上传或翻译协议。
 - 修改 TranslationAPIProfile、Keychain account、迁移、默认翻译和结果卡片切换行为。
 - 隐私、关于、上下文增强和其它未确认子菜单。
+
+## Scope changes during the conversation
+
+| Date | Requested by | Change | Acceptance / verification impact | Status |
+| --- | --- | --- | --- | --- |
+| 2026-08-06 | Project owner | 将本切片要求追加到 `TASK-005` 对应的同一开发对话 | 侧栏、摘要列表、独立编辑器、空状态和真实 App 五维验收 | Verified |
 
 ## Current evidence
 
@@ -95,3 +107,4 @@ None — 采用原生侧栏与弹出编辑窗口，OCR 页面只读 Vision 状�
 - Manual evidence: `artifacts/ui-review/task-006/`; fixed Release App sidebar/API/editor/empty-state/shortcuts/OCR screenshots passed 8/8/8/8/7 review.
 - Documentation updated: `STATUS.md`, `BACKLOG.md`, `IDEAS.md`, `UI_SPEC.md`, this Task.
 - Remaining work promoted to: None
+- Scope changes closed: Yes

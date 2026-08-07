@@ -21,12 +21,13 @@ Backlog 只收录已经确认需要完成、但尚未成为当前 Task 的工作
 | BL-005 | 按需语境增强引擎 | Deferred | 0.1.0 之后 | 完成隐私边界和发送内容的产品决策 |
 | BL-006 | GLM-OCR 云端结构化识别 | Deferred | 0.1.0 之后 | 完成图片上传披露、Provider 契约和成本验证 |
 | BL-007 | 多翻译 API 配置与窗口内手动切换 | Complete: TASK-005 | 0.1.0 之后的已确认增强 | 后续可另建 Task 做入口级默认或对比模式 |
-| BL-008 | 设置侧栏与 API 配置编辑器重构 | Complete: TASK-006 | 0.1.0 Alpha UX 修复 | None |
-| BL-009 | 设置与浮层交互细节修正 | Complete: TASK-007 | 0.1.0 Alpha UX 修复 | None |
-| BL-010 | 设置窗口一体化与截图焦点修正 | Complete: TASK-008 | 0.1.0 Alpha UX 修复 | None |
-| BL-011 | 可靠取消截图框选 | Complete: TASK-009 | 0.1.0 Alpha 真实缺陷 | None |
-| BL-012 | API Base URL、完整 URL 与模型获取 | Complete: TASK-010 | 0.1.0 Alpha 兼容性修复 | None |
-| BL-013 | API 编辑器顶部聚焦边框完整显示 | Complete: TASK-011 | 0.1.0 Alpha 视觉缺陷 | None |
+| BL-008 | 设置侧栏与 API 配置编辑器重构 | Complete: TASK-005（detail: TASK-006） | 0.1.0 Alpha UX 修复 | None |
+| BL-009 | 设置与浮层交互细节修正 | Complete: TASK-005（detail: TASK-007） | 0.1.0 Alpha UX 修复 | None |
+| BL-010 | 设置窗口一体化与截图焦点修正 | Complete: TASK-005（detail: TASK-008） | 0.1.0 Alpha UX 修复 | None |
+| BL-011 | 可靠取消截图框选 | Complete: TASK-005（detail: TASK-009） | 0.1.0 Alpha 真实缺陷 | None |
+| BL-012 | API Base URL、完整 URL 与模型获取 | Complete: TASK-005（detail: TASK-010） | 0.1.0 Alpha 兼容性修复 | None |
+| BL-013 | API 编辑器顶部聚焦边框完整显示 | Complete: TASK-005（detail: TASK-011） | 0.1.0 Alpha 视觉缺陷 | None |
+| BL-014 | API 配置启用、排序与编辑器操作收敛 | Active task: TASK-013 | 0.1.0 Alpha 逻辑与 UX 修复 | 完成自动化、真实 App 与固定构建验收 |
 
 ## 条目详情
 
@@ -83,6 +84,13 @@ Backlog 只收录已经确认需要完成、但尚未成为当前 Task 的工作
 - **明确不做**：自动 fallback、静默路由、Provider 专属参数、按入口记忆默认值、持久化译文历史和图片重新 OCR。
 - **迁移要求**：现有单配置字段和 `translation-api-key` 在首次启动时生成一个默认配置并迁移，重命名不得丢 Key，删除配置必须删除对应 Keychain 项。
 - **相关想法**：`IDEAS.md` 的 IDEA-010。
+
+### BL-014：API 配置启用、排序与编辑器操作收敛
+
+- **目标**：统一编辑器内当前 Key 草稿的测试行为，以显式启用状态控制哪些 profile 可调用，并用直接拖拽替代菜单中的上下移动。
+- **范围**：测试连接状态行、底部取消/保存、profile 启用迁移、默认配置不变量、结果卡过滤、三横杠拖拽排序及相关测试与真实 App 验收。
+- **明确不做**：自动 fallback、后台健康检查、Provider 专属参数和多模型并行翻译。
+- **当前 Task**：`TASK-013`。
 
 ## 提升规则
 

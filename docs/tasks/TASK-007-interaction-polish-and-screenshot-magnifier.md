@@ -6,9 +6,15 @@ Owner: Project owner + Agent
 
 Created: 2026-08-06
 
-Updated: 2026-08-06
+Updated: 2026-08-07
 
 Origin: direct request / UI defects
+
+Conversation: `TASK-005` 多 API 配置与设置、截图交互持续迭代（历史详细切片）
+
+## Initial request
+
+项目所有者要求修复 API 编辑器边界与取消、设置圆角、快捷键独立开关、结果卡拖动/底角，并为截图框选增加十字指针和便于精细操作的放大镜。
 
 ## Outcome
 
@@ -32,6 +38,12 @@ TASK-006 已完成设置结构重构，但真实 App 截图暴露了编辑器边
 - 修改 `TranslationAPIProfile` 的持久化 schema 或 Keychain account 规则。
 - 自动 API fallback、截图历史、云端 OCR、快捷键菜单入口的显隐。
 - 自定义鼠标光标资源、屏幕像素持久化或诊断截图存储。
+
+## Scope changes during the conversation
+
+| Date | Requested by | Change | Acceptance / verification impact | Status |
+| --- | --- | --- | --- | --- |
+| 2026-08-06 | Project owner | 将本切片交互修复追加到 `TASK-005` 对应的同一开发对话 | 取消清理、快捷键持久化、面板几何、放大镜边界/隐私和真实 App 五维验收 | Verified |
 
 ## Current evidence
 
@@ -103,3 +115,4 @@ None — 项目所有者已确认全部交互修正与截图放大镜。
 - Manual evidence: `artifacts/ui-review/task-007/`; fixed Release App API editor, shortcut light/dark, result-card and screenshot-magnifier captures passed 8/8/8/8/7 review. AppKit panel properties and regression coverage verify background dragging; direct pointer-drag automation was not available for the LSUIElement app.
 - Documentation updated: `STATUS.md`, `BACKLOG.md`, `SPEC.md`, `UI_SPEC.md`, this Task.
 - Remaining work promoted to: None
+- Scope changes closed: Yes

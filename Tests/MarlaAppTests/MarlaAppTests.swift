@@ -89,6 +89,173 @@ final class MarlaAppTests: XCTestCase {
         XCTAssertEqual(settings.defaultProfile?.id, profileID)
         XCTAssertEqual(settings.defaultProfile?.urlMode, .baseURL)
         XCTAssertEqual(settings.defaultProfile?.baseURL, "https://legacy.example/v1")
+        XCTAssertEqual(settings.defaultProfile?.isEnabled, true)
+    }
+
+    func testAPIKeyDraftResolverPrefersNonEmptyDraftAndFallsBackOnlyWhenNeeded() {
+        var fallbackCount = 0
+        let draft = APIKeyDraftResolver.resolve("  draft-key  ") {
+            fallbackCount += 1
+            return "stored-key"
+        }
+
+        XCTAssertEqual(draft, "draft-key")
+        XCTAssertEqual(fallbackCount, 0)
+
+        let stored = APIKeyDraftResolver.resolve(" \n ") {
+            fallbackCount += 1
+            return "stored-key"
+        }
+
+        XCTAssertEqual(stored, "stored-key")
+        XCTAssertEqual(fallbackCount, 1)
+    }
+
+    @MainActor
+    func testConnectionTesterResetClearsStaleValidationResult() {
+        let tester = TranslationConnectionTester()
+        tester.test(endpoint: TranslationEndpointConfiguration(baseURL: "invalid", model: ""))
+
+        XCTAssertNotNil(tester.message)
+        XCTAssertFalse(tester.didSucceed)
+
+        tester.reset()
+
+        XCTAssertNil(tester.message)
+        XCTAssertFalse(tester.isTesting)
+        XCTAssertFalse(tester.didSucceed)
+    }
+
+    @MainActor
+    func testProfileActivationMaintainsEnabledDefaultAndPersists() {
+        let suite = "com.marla.tests.profile-activation.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suite)!
+        defaults.removePersistentDomain(forName: suite)
+        let keychain = KeychainCredentialStore(service: "com.marla.tests", account: UUID().uuidString)
+        let settings = MarlaSettingsStore(defaults: defaults, keychain: keychain)
+
+        let firstID = settings.addProfile()
+        let secondID = settings.addProfile()
+        let thirdID = settings.addProfile()
+        settings.setDefaultProfile(secondID)
+
+        settings.setProfileEnabled(false, for: secondID)
+        XCTAssertEqual(settings.defaultProfileID, thirdID)
+
+        settings.setProfileEnabled(false, for: thirdID)
+        XCTAssertEqual(settings.defaultProfileID, firstID)
+
+        settings.setProfileEnabled(false, for: firstID)
+        XCTAssertNil(settings.defaultProfileID)
+        XCTAssertTrue(settings.enabledProfiles.isEmpty)
+
+        settings.setProfileEnabled(true, for: secondID)
+        XCTAssertEqual(settings.defaultProfileID, secondID)
+
+        settings.setProfileEnabled(false, for: secondID)
+        settings.setDefaultProfile(thirdID)
+        XCTAssertEqual(settings.defaultProfileID, thirdID)
+        XCTAssertEqual(settings.profile(id: thirdID)?.isEnabled, true)
+
+        let restored = MarlaSettingsStore(defaults: defaults, keychain: keychain)
+        XCTAssertEqual(restored.defaultProfileID, thirdID)
+        XCTAssertEqual(restored.enabledProfiles.map(\.id), [thirdID])
+        XCTAssertEqual(restored.profile(id: firstID)?.isEnabled, false)
+        XCTAssertEqual(restored.profile(id: secondID)?.isEnabled, false)
+    }
+
+    @MainActor
+    func testDisabledProfilesAreUnavailableToTranslationSessions() {
+        let suite = "com.marla.tests.disabled-profiles.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suite)!
+        defaults.removePersistentDomain(forName: suite)
+        let settings = MarlaSettingsStore(
+            defaults: defaults,
+            keychain: KeychainCredentialStore(service: "com.marla.tests", account: UUID().uuidString)
+        )
+        let enabledID = settings.addProfile()
+        settings.updateProfile(id: enabledID, name: "启用", baseURL: "https://enabled.example/v1", modelName: "enabled-model")
+        let disabledID = settings.addProfile()
+        settings.updateProfile(id: disabledID, name: "停用", baseURL: "https://disabled.example/v1", modelName: "disabled-model")
+        settings.setProfileEnabled(false, for: disabledID)
+        let store = TranslationSessionStore(settings: settings)
+
+        store.installUIAutomationFixture(
+            surface: .selection,
+            sourceText: "Hello",
+            translation: "你好",
+            state: .completed
+        )
+        let originalSessionID = store.session?.id
+        store.changeAPIProfile(disabledID)
+
+        XCTAssertEqual(store.availableProfiles.map(\.id), [enabledID])
+        XCTAssertNil(settings.endpoint(for: disabledID))
+        XCTAssertEqual(store.session?.id, originalSessionID)
+        XCTAssertEqual(store.session?.profileID, enabledID)
+    }
+
+    @MainActor
+    func testProfileDropReorderingPersistsExactOrder() {
+        let suite = "com.marla.tests.profile-drag-order.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suite)!
+        defaults.removePersistentDomain(forName: suite)
+        let keychain = KeychainCredentialStore(service: "com.marla.tests", account: UUID().uuidString)
+        let settings = MarlaSettingsStore(defaults: defaults, keychain: keychain)
+        let firstID = settings.addProfile()
+        let secondID = settings.addProfile()
+        let thirdID = settings.addProfile()
+
+        XCTAssertTrue(settings.moveProfile(id: firstID, onto: thirdID))
+        XCTAssertEqual(settings.profiles.map(\.id), [secondID, thirdID, firstID])
+        XCTAssertTrue(settings.moveProfile(id: firstID, onto: secondID))
+        XCTAssertEqual(settings.profiles.map(\.id), [firstID, secondID, thirdID])
+        XCTAssertFalse(settings.moveProfile(id: firstID, onto: firstID))
+
+        let restored = MarlaSettingsStore(defaults: defaults, keychain: keychain)
+        XCTAssertEqual(restored.profiles.map(\.id), [firstID, secondID, thirdID])
+    }
+
+    func testProfileDragPreviewKeepsTheGrabbedHandlePointUnderThePointer() {
+        let handleLocation = CGPoint(x: 9, y: 31)
+        let pointerLocation = CGPoint(x: 440, y: 280)
+
+        let previewFrame = APIProfileDragGeometry.previewFrame(
+            pointerLocation: pointerLocation,
+            handleLocation: handleLocation
+        )
+        let handleOrigin = APIProfileDragGeometry.handleOriginInPreview
+
+        XCTAssertEqual(previewFrame.width, APIProfileDragGeometry.previewSize.width)
+        XCTAssertEqual(previewFrame.height, APIProfileDragGeometry.previewSize.height)
+        XCTAssertEqual(
+            previewFrame.minX + handleOrigin.x + handleLocation.x,
+            pointerLocation.x
+        )
+        XCTAssertEqual(
+            previewFrame.minY + handleOrigin.y + handleLocation.y,
+            pointerLocation.y
+        )
+        XCTAssertEqual(APIProfileDragGeometry.previewSize, APIProfileDragGeometry.rowSize)
+        XCTAssertEqual(APIProfileDragGeometry.systemDraggingImageSize, CGSize(width: 1, height: 1))
+    }
+
+    @MainActor
+    func testPersistedEmptyProfileListDoesNotRemigrateLegacyConfiguration() {
+        let suite = "com.marla.tests.persisted-empty-profiles.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suite)!
+        defaults.removePersistentDomain(forName: suite)
+        defaults.set("https://legacy.example/v1", forKey: "translationBaseURL")
+        defaults.set("legacy-model", forKey: "translationModelName")
+        let keychain = KeychainCredentialStore(service: "com.marla.tests", account: UUID().uuidString)
+        let settings = MarlaSettingsStore(defaults: defaults, keychain: keychain)
+        let profileID = try! XCTUnwrap(settings.defaultProfileID)
+
+        settings.removeProfile(id: profileID)
+        let restored = MarlaSettingsStore(defaults: defaults, keychain: keychain)
+
+        XCTAssertTrue(restored.profiles.isEmpty)
+        XCTAssertNil(restored.defaultProfileID)
     }
 
     @MainActor
@@ -374,7 +541,7 @@ final class MarlaAppTests: XCTestCase {
         XCTAssertEqual(window.titleVisibility, .hidden)
         XCTAssertEqual(window.titlebarSeparatorStyle, .none)
         XCTAssertFalse(window.isOpaque)
-        XCTAssertTrue(window.isMovableByWindowBackground)
+        XCTAssertFalse(window.isMovableByWindowBackground)
         XCTAssertEqual(contentView.layer?.cornerRadius, DesignTokens.radiusL)
         XCTAssertEqual(contentView.layer?.cornerCurve, .continuous)
         XCTAssertTrue(contentView.layer?.masksToBounds == true)

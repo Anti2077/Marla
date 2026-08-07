@@ -6,9 +6,15 @@ Owner: Project owner + Agent
 
 Created: 2026-08-06
 
-Updated: 2026-08-06
+Updated: 2026-08-07
 
 Origin: direct request / UI defect
+
+Conversation: `TASK-005` 多 API 配置与设置、截图交互持续迭代（历史详细切片）
+
+## Initial request
+
+项目所有者要求把窗口顶部按钮融入设置主界面、移除右缘突兀白条、在设置中说明 `Esc` 取消截图，并保证设置已打开时截图层仍位于最前方。
 
 ## Outcome
 
@@ -31,6 +37,12 @@ TASK-007 的真实 App 使用中暴露了设置标题栏与圆角内容双层叠
 - 改变截图捕获、Vision OCR、翻译请求或隐私协议。
 - 新增自定义标题栏按钮、OCR provider 或截图历史。
 - 改变设置导航、API profile、Keychain 或快捷键数据模型。
+
+## Scope changes during the conversation
+
+| Date | Requested by | Change | Acceptance / verification impact | Status |
+| --- | --- | --- | --- | --- |
+| 2026-08-06 | Project owner | 将本切片窗口与截图层级要求追加到 `TASK-005` 对应的同一开发对话 | 单一四角表面、隐藏滚动条、设置暂停/恢复和截图取消场景验收 | Verified |
 
 ## Current evidence
 
@@ -96,3 +108,4 @@ None — 项目所有者已明确要求单一主表面、隐藏白条、Escape �
 - Manual evidence: Release screenshots under `artifacts/ui-review/task-008/` cover unified Settings light, Shortcuts dark, and screenshot selection entered while Settings was open. Five-dimension score: 8/8/8/8/7. A physical Computer Use press could not be isolated because two same-path Marla processes were running; the Agent stopped only its own test process and did not terminate the owner's existing instance.
 - Documentation updated: `SPEC.md`, `UI_SPEC.md`, `ACCEPTANCE.md`, screenshot feature status, `STATUS.md`, and Backlog.
 - Remaining work promoted to: None; broader 0.1.0 live acceptance gaps remain listed in `STATUS.md`.
+- Scope changes closed: Yes

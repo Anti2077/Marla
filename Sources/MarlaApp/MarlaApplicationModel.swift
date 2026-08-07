@@ -85,19 +85,22 @@ struct TranslationAPIProfile: Identifiable, Codable, Equatable, Sendable {
     var baseURL: String
     var urlMode: TranslationEndpointURLMode
     var modelName: String
+    var isEnabled: Bool
 
     init(
         id: UUID = UUID(),
         name: String = "新配置",
         baseURL: String = "",
         urlMode: TranslationEndpointURLMode = .baseURL,
-        modelName: String = ""
+        modelName: String = "",
+        isEnabled: Bool = true
     ) {
         self.id = id
         self.name = name
         self.baseURL = baseURL
         self.urlMode = urlMode
         self.modelName = modelName
+        self.isEnabled = isEnabled
     }
 
     var isConfigured: Bool {
@@ -121,6 +124,7 @@ struct TranslationAPIProfile: Identifiable, Codable, Equatable, Sendable {
         case baseURL
         case urlMode
         case modelName
+        case isEnabled
     }
 
     init(from decoder: Decoder) throws {
@@ -130,6 +134,14 @@ struct TranslationAPIProfile: Identifiable, Codable, Equatable, Sendable {
         baseURL = try container.decode(String.self, forKey: .baseURL)
         urlMode = try container.decodeIfPresent(TranslationEndpointURLMode.self, forKey: .urlMode) ?? .baseURL
         modelName = try container.decode(String.self, forKey: .modelName)
+        isEnabled = try container.decodeIfPresent(Bool.self, forKey: .isEnabled) ?? true
+    }
+}
+
+enum APIKeyDraftResolver {
+    static func resolve(_ draft: String, fallback: () -> String?) -> String? {
+        let trimmedDraft = draft.trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmedDraft.isEmpty ? fallback() : trimmedDraft
     }
 }
 
@@ -139,7 +151,7 @@ final class MarlaSettingsStore: ObservableObject {
         didSet { saveProfiles() }
     }
     @Published var defaultProfileID: UUID? {
-        didSet { defaults.set(defaultProfileID?.uuidString, forKey: Keys.defaultProfileID) }
+        didSet { saveDefaultProfileID() }
     }
     var baseURL: String {
         get { defaultProfile?.baseURL ?? "" }
@@ -179,11 +191,12 @@ final class MarlaSettingsStore: ObservableObject {
         self.defaults = defaults
         self.keychain = keychain
         if let data = defaults.data(forKey: Keys.profiles),
-           let decoded = try? JSONDecoder().decode([TranslationAPIProfile].self, from: data),
-           !decoded.isEmpty {
+           let decoded = try? JSONDecoder().decode([TranslationAPIProfile].self, from: data) {
             profiles = decoded
             let storedID = defaults.string(forKey: Keys.defaultProfileID).flatMap(UUID.init(uuidString:))
-            defaultProfileID = decoded.contains(where: { $0.id == storedID }) ? storedID : decoded.first?.id
+            defaultProfileID = decoded.contains(where: { $0.id == storedID && $0.isEnabled })
+                ? storedID
+                : decoded.first(where: \.isEnabled)?.id
         } else {
             let legacyURL = defaults.string(forKey: Keys.baseURL) ?? ""
             let legacyModel = defaults.string(forKey: Keys.modelName) ?? ""
@@ -204,11 +217,16 @@ final class MarlaSettingsStore: ObservableObject {
         forceTouchExperimental = defaults.bool(forKey: Keys.forceTouch)
         onboardingSkipped = defaults.bool(forKey: Keys.onboardingSkipped)
         saveProfiles()
+        saveDefaultProfileID()
     }
 
     var defaultProfile: TranslationAPIProfile? {
-        guard let defaultProfileID else { return profiles.first }
-        return profiles.first(where: { $0.id == defaultProfileID }) ?? profiles.first
+        guard let defaultProfileID else { return nil }
+        return profiles.first(where: { $0.id == defaultProfileID && $0.isEnabled })
+    }
+
+    var enabledProfiles: [TranslationAPIProfile] {
+        profiles.filter(\.isEnabled)
     }
 
     var apiKey: String? { defaultProfile.flatMap { apiKey(for: $0.id) } }
@@ -230,7 +248,7 @@ final class MarlaSettingsStore: ObservableObject {
     }
 
     func endpoint(for profileID: UUID?) -> TranslationEndpointConfiguration? {
-        guard let profile = profile(id: profileID), profile.isConfigured else { return nil }
+        guard let profile = profile(id: profileID), profile.isEnabled, profile.isConfigured else { return nil }
         return TranslationEndpointConfiguration(
             baseURL: profile.baseURL,
             urlMode: profile.urlMode,
@@ -260,13 +278,34 @@ final class MarlaSettingsStore: ObservableObject {
         if let baseURL { profiles[index].baseURL = baseURL }
         if let urlMode { profiles[index].urlMode = urlMode }
         if let modelName { profiles[index].modelName = modelName }
-        if defaultProfileID == nil { defaultProfileID = targetID }
+        if defaultProfileID == nil, profiles[index].isEnabled { defaultProfileID = targetID }
         saveProfiles()
     }
 
     func setDefaultProfile(_ id: UUID) {
-        guard profiles.contains(where: { $0.id == id }) else { return }
+        guard let index = profiles.firstIndex(where: { $0.id == id }) else { return }
+        if !profiles[index].isEnabled {
+            profiles[index].isEnabled = true
+        }
         defaultProfileID = id
+    }
+
+    func setProfileEnabled(_ isEnabled: Bool, for id: UUID) {
+        guard let index = profiles.firstIndex(where: { $0.id == id }) else { return }
+        guard profiles[index].isEnabled != isEnabled else {
+            if isEnabled, defaultProfileID == nil { defaultProfileID = id }
+            if !isEnabled, defaultProfileID == id {
+                defaultProfileID = nextEnabledProfileID(after: index, excluding: id)
+            }
+            return
+        }
+
+        profiles[index].isEnabled = isEnabled
+        if isEnabled {
+            if defaultProfileID == nil { defaultProfileID = id }
+        } else if defaultProfileID == id {
+            defaultProfileID = nextEnabledProfileID(after: index, excluding: id)
+        }
     }
 
     func moveProfile(id: UUID, by offset: Int) {
@@ -276,11 +315,22 @@ final class MarlaSettingsStore: ObservableObject {
         profiles.swapAt(index, destination)
     }
 
+    @discardableResult
+    func moveProfile(id: UUID, onto targetID: UUID) -> Bool {
+        guard id != targetID,
+              let sourceIndex = profiles.firstIndex(where: { $0.id == id }),
+              let targetIndex = profiles.firstIndex(where: { $0.id == targetID }) else { return false }
+        let profile = profiles.remove(at: sourceIndex)
+        profiles.insert(profile, at: min(targetIndex, profiles.count))
+        return true
+    }
+
     func removeProfile(id: UUID) {
         guard let index = profiles.firstIndex(where: { $0.id == id }) else { return }
+        let replacementDefaultID = nextEnabledProfileID(after: index, excluding: id)
         keychain.scoped(to: id).remove()
         profiles.remove(at: index)
-        if defaultProfileID == id { defaultProfileID = profiles.first?.id }
+        if defaultProfileID == id { defaultProfileID = replacementDefaultID }
     }
 
     func updateAPIKey(_ value: String) throws {
@@ -308,6 +358,22 @@ final class MarlaSettingsStore: ObservableObject {
         defaults.set(data, forKey: Keys.profiles)
     }
 
+    private func saveDefaultProfileID() {
+        if let defaultProfileID {
+            defaults.set(defaultProfileID.uuidString, forKey: Keys.defaultProfileID)
+        } else {
+            defaults.removeObject(forKey: Keys.defaultProfileID)
+        }
+    }
+
+    private func nextEnabledProfileID(after index: Int, excluding excludedID: UUID) -> UUID? {
+        if index + 1 < profiles.count,
+           let next = profiles[(index + 1)...].first(where: { $0.id != excludedID && $0.isEnabled }) {
+            return next.id
+        }
+        return profiles[..<index].first(where: { $0.id != excludedID && $0.isEnabled })?.id
+    }
+
     func skipOnboarding() {
         onboardingSkipped = true
         defaults.set(true, forKey: Keys.onboardingSkipped)
@@ -333,7 +399,10 @@ enum SettingsWindowStyle {
         window.isOpaque = false
         window.backgroundColor = .clear
         window.hasShadow = true
-        window.isMovableByWindowBackground = true
+        // Keep dragging scoped to the native title bar. Treating the entire
+        // content surface as a window-drag region steals pointer drags from
+        // controls such as the API profile reorder handle.
+        window.isMovableByWindowBackground = false
         apply(to: window.contentView)
     }
 
@@ -491,7 +560,7 @@ final class TranslationSessionStore: ObservableObject {
         self.settings = settings
     }
 
-    var availableProfiles: [TranslationAPIProfile] { settings.profiles }
+    var availableProfiles: [TranslationAPIProfile] { settings.enabledProfiles }
 
     func beginRecognizing(anchor: ScreenRect?, pointer: CGPoint?) -> UUID {
         cancelCurrentRequest()
@@ -671,6 +740,7 @@ final class TranslationSessionStore: ObservableObject {
         guard var current = session,
               !current.sourceText.isEmpty,
               let profile = settings.profile(id: profileID),
+              profile.isEnabled,
               profile.isConfigured else { return }
         cancelCurrentRequest()
         current.profileID = profile.id

@@ -10,6 +10,12 @@ Updated: 2026-08-07
 
 Origin: direct request / live defect
 
+Conversation: `TASK-005` 多 API 配置与设置、截图交互持续迭代（历史详细切片）
+
+## Initial request
+
+项目所有者要求为 API profile 增加 Base URL 与完整 URL 模式；随后要求把模式 switch 压缩进 URL 行，并在模型字段右侧获取、展开和选择当前地址与 Key 可用的模型。
+
 ## Outcome
 
 每个翻译 API 配置可以在 `Base URL` 与 `完整 URL` 两种模式之间切换；前者自动追加 `/chat/completions`，后者严格请求用户填写的完整地址。编辑器还能通过当前地址和 Key 获取 OpenAI-compatible `/models` 列表，避免手工猜测可用模型。
@@ -35,6 +41,14 @@ Origin: direct request / live defect
 - Provider 专属路由模板、自动 fallback 或代理重写规则。
 - 自定义翻译提示词。
 - 改变 Keychain account 或现有多 API 切换语义。
+
+## Scope changes during the conversation
+
+| Date | Requested by | Change | Acceptance / verification impact | Status |
+| --- | --- | --- | --- | --- |
+| 2026-08-07 | Project owner | 增加 Base URL/完整 URL 模式 | 旧配置迁移、最终请求地址、测试连接和真实翻译共用解析规则 | Verified |
+| 2026-08-07 | Project owner | 模式 switch 改为 URL 行内的 `Base [switch] 完整` | 固定标签列和浅色/深色几何验收 | Verified |
+| 2026-08-07 | Project owner | 模型字段移到底部，并通过当前 URL/Key 获取模型列表 | `/models` 推导、C ABI v2、排序去重、展开选择和真实 API 验收 | Verified |
 
 ## Current evidence
 
@@ -106,3 +120,4 @@ None — 项目所有者已明确选择同时支持 Base URL 和完整 URL。
 - Manual evidence: the supplied Complete URL returned HTTP 200 `text/event-stream` for `gpt-5.6-luna`, with content delta “你好”, `finish_reason: stop`, and `[DONE]`. Its `/v1/models` endpoint returned 20 model IDs and included `gpt-5.6-luna`; the credential was neither printed nor persisted. The stable Release `artifacts/Marla_dev.app` produced light/dark inline-slider and expanded-model-list captures under `artifacts/ui-review/task-010/`, scoring 8/8/8/8/7 in the five-dimension review. Computer Use could not enumerate this LSUIElement app, so the exact on-screen Marla window IDs were captured after verifying the sole fixed Release process rather than treating the AX timeout as evidence.
 - Documentation updated: Task, Backlog, Status, architecture, bilingual specification, UI specification, acceptance record, and C ABI version contract.
 - Remaining work promoted to: None; automatic endpoint probing, provider-specific model routes, and fallback remain explicitly out of scope.
+- Scope changes closed: Yes

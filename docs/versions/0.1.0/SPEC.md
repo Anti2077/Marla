@@ -186,12 +186,15 @@ The prompt must clearly delimit source text as data rather than instructions and
 - 对应地址，例如 Base URL `https://example.com/v1`，或完整 URL `https://example.com/v1/chat/completions`；
 - 模型名，可手工填写或从当前配置获取可用模型；
 - 可选 API Key；
+- 是否启用；
 - 连接测试；
 - 三个快捷键开关与录制器；
 - Force Touch 实验开关；
 - 快捷键恢复默认值。
 
-Base URL 模式会在规范化地址后追加 `/chat/completions`；完整 URL 模式严格使用填写地址，不追加或删除路径。两种模式都要求 HTTP(S) host，且拒绝 query 和 fragment。测试连接与真实翻译共用同一解析规则。获取模型时，Base URL 追加 `/models`；完整 URL 只在尾部为 `/chat/completions` 时替换为 `/models`，不能安全推导则显示错误。模型列表网络请求由 Rust 核心执行，使用当前配置的 Key，不创建新的凭据副本。如果 API Key 非空，则使用 `Authorization: Bearer <key>`；空 Key 允许兼容不要求认证的本地或代理端点。每个配置的 Key 只保存在其独立 macOS Keychain account 中；URL、模式、模型名和非敏感偏好保存在应用偏好。0.1.0 不支持自定义 Header、厂商专属请求参数、账号系统或 Marla 代理服务。
+Base URL 模式会在规范化地址后追加 `/chat/completions`；完整 URL 模式严格使用填写地址，不追加或删除路径。两种模式都要求 HTTP(S) host，且拒绝 query 和 fragment。测试连接与真实翻译共用同一解析规则；编辑器中非空的当前 Key 草稿优先于 Keychain 已保存值，草稿为空时才回退。获取模型使用同一 Key 选择规则：Base URL 追加 `/models`；完整 URL 只在尾部为 `/chat/completions` 时替换为 `/models`，不能安全推导则显示错误。模型列表网络请求由 Rust 核心执行，不创建新的凭据副本。如果 API Key 非空，则使用 `Authorization: Bearer <key>`；空 Key 允许兼容不要求认证的本地或代理端点。每个配置的 Key 只保存在其独立 macOS Keychain account 中；URL、模式、模型名、启用状态、顺序和其它非敏感偏好保存在应用偏好。
+
+只有启用的配置才出现在结果卡片配置选择器中并可发起请求。默认配置必须属于启用集合：禁用当前默认时选择顺序中的下一个启用配置，没有任何启用配置时默认值为空；在默认值为空时启用配置会使其成为默认；对禁用配置执行“设为默认”会同时启用它。完整性状态与启用状态相互独立。0.1.0 不支持自动 fallback、自定义 Header、厂商专属请求参数、账号系统或 Marla 代理服务。
 
 首次启动以紧凑清单引导配置 API、辅助功能权限和屏幕录制权限。快速输入本身不应因缺少辅助功能或屏幕录制权限而不可使用。菜单在任一准备项未完成时显示可操作状态；三项全部完成后自动隐藏该状态条，并在原区域展示最多三条仅本次运行保留的最近完成翻译。点击最近翻译只重新打开完成态结果，不重复网络请求。
 
@@ -203,12 +206,15 @@ Base URL 模式会在规范化地址后追加 `/chat/completions`；完整 URL �
 - its corresponding address, for example Base URL `https://example.com/v1` or Complete URL `https://example.com/v1/chat/completions`;
 - model name, entered manually or selected from models fetched for the current profile;
 - optional API Key;
+- enabled state;
 - connection test;
 - three shortcut switches and recorders;
 - experimental Force Touch toggle;
 - restore-default-shortcuts action.
 
-Base URL mode normalizes the address and appends `/chat/completions`; Complete URL mode uses the entered address exactly without adding or removing path components. Both modes require an HTTP(S) host and reject query or fragment components. Connection testing and real translation share the same resolution rule. For model discovery, Base URL appends `/models`; Complete URL replaces a trailing `/chat/completions` with `/models` and reports an error when the address cannot be derived safely. Rust performs the model-list request with the current profile key and creates no second credential copy. A non-empty API Key produces `Authorization: Bearer <key>`; an empty key supports local or proxy endpoints that require no authentication. Each profile's key is stored only in its independent macOS Keychain account. URL, mode, model, and non-sensitive preferences use application preferences. Custom headers, vendor-specific request options, accounts, and a Marla proxy service are not supported in 0.1.0.
+Base URL mode normalizes the address and appends `/chat/completions`; Complete URL mode uses the entered address exactly without adding or removing path components. Both modes require an HTTP(S) host and reject query or fragment components. Connection testing and real translation share the same resolution rule. A non-empty key draft in the editor takes precedence over the saved Keychain value, with an empty draft falling back to Keychain. Model discovery uses the same key-selection rule: Base URL appends `/models`; Complete URL replaces a trailing `/chat/completions` with `/models` and reports an error when the address cannot be derived safely. Rust performs the model-list request without creating a second credential copy. A non-empty API Key produces `Authorization: Bearer <key>`; an empty key supports local or proxy endpoints that require no authentication. Each profile's key is stored only in its independent macOS Keychain account. URL, mode, model, enabled state, order, and other non-sensitive preferences use application preferences.
+
+Only enabled profiles appear in the result-card profile picker and may start requests. The default must belong to the enabled set: disabling the current default chooses the next enabled profile in order, no enabled profiles means no default, enabling a profile while no default exists makes it the default, and setting a disabled profile as default also enables it. Completeness and enabled state remain independent. Automatic fallback, custom headers, vendor-specific request options, accounts, and a Marla proxy service are not supported in 0.1.0.
 
 First launch uses a compact checklist for API configuration, Accessibility permission, and Screen Recording permission. Quick input must remain usable when Accessibility or Screen Recording permission is absent. The menu shows actionable status while any setup item is incomplete. Once all three are ready, that status row hides automatically and its region shows up to three recent completed translations retained for the current run only. Selecting a recent translation reopens the completed result without repeating a network request.
 

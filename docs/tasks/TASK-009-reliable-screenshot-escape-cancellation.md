@@ -6,9 +6,15 @@ Owner: Project owner + Agent
 
 Created: 2026-08-06
 
-Updated: 2026-08-06
+Updated: 2026-08-07
 
 Origin: direct request / live defect
+
+Conversation: `TASK-005` 多 API 配置与设置、截图交互持续迭代（历史详细切片）
+
+## Initial request
+
+项目所有者在真实使用中确认 `Esc` 仍未退出截图，要求修复为不依赖单个 View First Responder 的可靠取消路径。
 
 ## Outcome
 
@@ -32,6 +38,12 @@ TASK-008 只验证了 `ScreenshotSelectionView` 收到 Escape 事件后的处理
 - 改变截图捕获、Vision OCR、翻译请求或快捷键数据模型。
 - 让用户关闭或重新绑定 Escape。
 - 新增截图工具栏、历史或图片持久化。
+
+## Scope changes during the conversation
+
+| Date | Requested by | Change | Acceptance / verification impact | Status |
+| --- | --- | --- | --- | --- |
+| 2026-08-06 | Project owner | 将真实 Escape 失败修复追加到 `TASK-005` 对应的同一开发对话 | 会话级监听、幂等取消、监听清理和真实键盘事件验收 | Verified |
 
 ## Current evidence
 
@@ -95,3 +107,4 @@ None — 项目所有者已确认 Escape 必须可靠取消，并授权构建时
 - Manual evidence: all old fixed-path processes were closed; Computer Use sent real `Escape` events to the sole Release `artifacts/Marla_dev.app` in ordinary screenshot and open-Settings screenshot scenarios, and both overlays disappeared without a result card. Evidence is under `artifacts/ui-review/task-009/`; the Mac auto-locked while the final post-cancellation desktop image was being copied, after both exits had already been re-read successfully.
 - Documentation updated: Task, Backlog, Status, screenshot feature spec, bilingual 0.1.0 specification, and acceptance record.
 - Remaining work promoted to: None; real crop accuracy and TCC persistence remain separately tracked by BL-002.
+- Scope changes closed: Yes

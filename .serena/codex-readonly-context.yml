@@ -1,0 +1,28 @@
+description: Marla project-scoped, semantic-navigation-only Codex context
+prompt: |
+  Use Serena only for token-efficient semantic navigation in Marla.
+  File editing, shell execution, memories, onboarding, and project switching are unavailable.
+
+excluded_tools:
+  - activate_project
+  - create_text_file
+  - delete_memory
+  - edit_memory
+  - execute_shell_command
+  - find_file
+  - insert_after_symbol
+  - insert_before_symbol
+  - list_dir
+  - list_memories
+  - onboarding
+  - read_file
+  - read_memory
+  - rename_memory
+  - rename_symbol
+  - replace_content
+  - replace_in_files
+  - replace_symbol_body
+  - safe_delete_symbol
+  - write_memory
+
+tool_description_overrides: {}

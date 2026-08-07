@@ -50,6 +50,15 @@ Before implementing or materially changing SwiftUI surfaces, read and use the in
 
 如果识别到用户正在学习命令，尽量解释每个命令和关键参数的作用，不只给出可复制的命令。
 
+## Serena semantic navigation
+
+- For Swift or Rust source exploration, prefer Serena symbol overviews, symbol lookup, declaration, implementation, reference, and diagnostic queries before broad whole-file reads, especially for unfamiliar code and cross-file call paths.
+- Call Serena's `initial_instructions` before the first Serena-assisted coding task in a new session.
+- Serena is navigation-only in this repository. Do not enable or use Serena source editing, shell, project-switching, onboarding, or memory tools. Changing the Serena or Codex MCP allowlist requires explicit authorization in the current Task.
+- Use `rg` and normal file reads for documentation, configuration, generated files, unsupported symbols, or whenever Serena is unavailable or returns incomplete results.
+- Do not use Serena to index or navigate `.build/`, `.swiftpm/`, `target/`, `DerivedData/`, `artifacts/`, or `.serena/cache/`.
+- Headroom is not part of the current toolchain. If recurring long test/build output, whole-repository or multi-file investigations, or repeated context compaction materially slow normal work, proactively tell the project owner that a separate Headroom evaluation and installation Task may now be worthwhile. Recheck current official guidance and obtain explicit authorization before installing Headroom, enabling its MCP integration, wrapping Codex, or changing related configuration.
+
 ## Verification
 
 For the current hybrid Swift Package and Xcode phase, normally run:

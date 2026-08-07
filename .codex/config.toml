@@ -1,0 +1,17 @@
+[mcp_servers.serena]
+command = "/Users/anti/.local/bin/serena"
+args = [
+  "start-mcp-server",
+  "--project-from-cwd",
+  "--context=.serena/codex-readonly-context.yml",
+  "--add-mode=no-memories",
+  "--enable-web-dashboard=false",
+  "--open-web-dashboard=false",
+]
+startup_timeout_sec = 60
+tool_timeout_sec = 240
+required = false
+
+[mcp_servers.serena.env]
+DEVELOPER_DIR = "/Applications/Xcode.app/Contents/Developer"
+PATH = "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin:/Users/anti/.cargo/bin:/Users/anti/.local/bin:/opt/homebrew/bin:/usr/bin:/bin:/usr/sbin:/sbin"

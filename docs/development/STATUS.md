@@ -6,11 +6,13 @@ Release target: 0.1.0 Alpha
 
 Overall state: In Progress — implementation baseline exists; live acceptance remains incomplete
 
-Active task: [TASK-013](../tasks/TASK-013-api-profile-activation-and-editor-actions.md)
+Active task: None
+
+Blocked task: [TASK-013](../tasks/TASK-013-api-profile-activation-and-editor-actions.md) — 等待项目所有者确认拖拽动态中间态
 
 ## Current objective
 
-执行 TASK-013：修复 API 编辑器测试连接的 Key 草稿逻辑，增加 profile 启用状态与可调用过滤，并收敛编辑器操作和列表拖拽排序交互。
+Serena 第一阶段已正式落地并验证；根 `AGENTS.md` 已固化语义导航的使用时机、只读边界和降级路径，并要求在长输出、全仓调查或反复上下文压缩开始拖慢工作时主动提醒项目所有者单独评估 Headroom。当前没有 Active Task。TASK-013 保持 Blocked，恢复条件是项目所有者确认固定 Panel、精确手柄锚点、移动空槽和松手恢复动画。
 
 ## Current implemented baseline
 
@@ -30,6 +32,7 @@ Active task: [TASK-013](../tasks/TASK-013-api-profile-activation-and-editor-acti
 - Settings use a four-page native sidebar, summary-only API list and independently clipped editor sheet; global shortcuts have persistent switches, result cards support background dragging, and screenshot selection includes an in-memory 6× pointer magnifier.
 - Settings use a transparent full-size title bar with traffic lights inside one continuous four-corner surface, hidden scroll indicators, and a fixed `Esc` screenshot-cancellation row. Screenshot selection temporarily suspends an open Settings window and restores it without activating it; `Esc` cancellation is owned by the active selection session rather than a single view's first-responder state.
 - Translation API profiles have persistent enabled states and only enabled profiles can be selected or invoked. The summary list uses native switches, a Set Default/Delete menu, accessibility move actions, and a trailing reorder handle. Settings content no longer moves the window; the newest fixed App uses a complete-row drag preview and 220ms animated hover reordering, pending owner confirmation of that final pointer feedback.
+- Project-scoped Serena 1.6.1 provides read-only Swift/Rust semantic navigation through Codex. A custom Context and fixed tool allowlist expose only nine retrieval/diagnostic tools; source edits, shell, project switching, onboarding, memories, Dashboard, and Headroom remain disabled.
 
 Implementation baseline commit: `88954bb`.
 
@@ -43,12 +46,14 @@ Implementation baseline commit: `88954bb`.
 
 ## Next selectable work
 
+TASK-013 is not selectable until the project owner confirms its pending drag-preview motion in the existing fixed App.
+
 1. `BL-001` — cross-application selection translation verification.
 2. `BL-002` — real screenshot crop and TCC permission verification.
 3. `BL-003` — latency and memory measurement.
 4. `BL-004` — optional Force Touch feasibility evidence.
 
-TASK-012 was the latest owner-selected workflow refinement and is now complete; remaining product verification gaps stay separately selectable.
+TASK-014 is complete; remaining product verification gaps stay separately selectable.
 
 Before implementation, start the next development conversation with a `Ready` then `Active` file from `docs/tasks/TASK_TEMPLATE.md`; keep that Task updated as the project owner adds scope during the conversation.
 
@@ -61,10 +66,14 @@ Before implementation, start the next development conversation with a `Ready` th
 
 ## Latest verification
 
-- `./scripts/check.sh` passed on 2026-08-07 after the latest TASK-013 drag-preview change.
+- `./scripts/check.sh` passed on 2026-08-07 after the TASK-014 Serena integration.
 - Rust: 17 tests passed.
 - Swift: 48 tests passed.
 - Xcode Debug application build passed.
+- TASK-014 installed `uv 0.12.2`, `serena-agent 1.6.1`, and rustup `rust-analyzer 1.96.0`; Serena health check passed and indexed 15 Swift files plus 1 Rust file while project/build caches remained ignored.
+- TASK-014's real stdio MCP session exposed exactly nine read-only semantic tools, with no edit, shell, project-switching, memory, or onboarding tools. Swift symbol/reference queries covered `TranslationAPIProfile` and `RustTranslationClient/start`; Rust covered `marla_translation_start` and four semantic test references.
+- A separate read-only `codex exec` process loaded the project `.codex/config.toml`, called Serena successfully, and returned `ACTIVE_PROJECT=Marla CONTEXT=codex-readonly-context ACTIVE_TOOLS=9`.
+- A second independent read-only `codex exec` process actually called `serena.find_symbol` and located `TranslationAPIProfile` at `Sources/MarlaApp/MarlaApplicationModel.swift:81-138`; root `AGENTS.md` now preserves the semantic-first usage rule, navigation-only boundary, ignored paths, and `rg`/normal-read fallback.
 - SwiftUI preview support compiled in the Swift Package and Xcode Debug build.
 - Xcode Preview launched and loaded `__preview.dylib` while the fixed-path development app remained running; Debug allows the Preview host instance while Release remains single-instance.
 - `Marla_test_202608060135.app` passed Bundle ID, version, deployment target, arm64, executable, and signature checks.

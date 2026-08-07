@@ -1,6 +1,6 @@
 # TASK-013：API 配置启用、排序与编辑器操作收敛
 
-Status: Active
+Status: Blocked
 
 Owner: Project owner + Agent
 
@@ -121,7 +121,7 @@ Conversation: 2026-08-07，API 配置逻辑与交互细节继续修正
 
 ## Decisions needed
 
-None — 启用语义、默认迁移、菜单范围和拖动手柄均已由项目所有者明确。
+恢复条件：项目所有者在最新固定 App 中确认固定 580×76pt Panel、精确手柄锚点、移动空槽和松手恢复动画符合预期；确认后继续完成本 Task。
 
 ## Completion record
 

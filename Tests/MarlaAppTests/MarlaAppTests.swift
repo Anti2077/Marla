@@ -35,6 +35,47 @@ private final class FakeSelectionClipboard: SelectionClipboardAccess {
     }
 }
 
+@MainActor
+private final class FakeKeychainItems {
+    var items: [String: Data] = [:]
+    var deniedAccounts: Set<String> = []
+    var readAccounts: [String] = []
+    var authenticationContextIDs: [ObjectIdentifier] = []
+    var savedAccounts: [String] = []
+    var removedAccounts: [String] = []
+    var saveSucceeds = true
+    var removeSucceeds = true
+
+    var backend: KeychainItemBackend {
+        KeychainItemBackend(
+            read: { [weak self] _, account, authenticationContext in
+                guard let self else { return .failed(-1) }
+                readAccounts.append(account)
+                if let authenticationContext {
+                    authenticationContextIDs.append(ObjectIdentifier(authenticationContext))
+                }
+                if deniedAccounts.contains(account) { return .failed(-1) }
+                guard let data = items[account] else { return .notFound }
+                return .found(data)
+            },
+            save: { [weak self] _, account, data in
+                guard let self else { return false }
+                savedAccounts.append(account)
+                guard saveSucceeds else { return false }
+                items[account] = data
+                return true
+            },
+            remove: { [weak self] _, account in
+                guard let self else { return false }
+                removedAccounts.append(account)
+                guard removeSucceeds else { return false }
+                items.removeValue(forKey: account)
+                return true
+            }
+        )
+    }
+}
+
 final class MarlaAppTests: XCTestCase {
     func testDefaultShortcutBindingsAndInternalConflictDetection() {
         let defaults = ShortcutBinding.defaults
@@ -80,6 +121,162 @@ final class MarlaAppTests: XCTestCase {
         settings.removeProfile(id: secondID)
         XCTAssertNil(settings.profile(id: secondID))
         XCTAssertEqual(settings.defaultProfile?.id, firstID)
+    }
+
+    @MainActor
+    func testKeychainVaultStoresAndReloadsMultipleProfilesFromOnePhysicalItem() throws {
+        let items = FakeKeychainItems()
+        let firstID = UUID()
+        let secondID = UUID()
+        let keychain = KeychainCredentialStore(
+            service: "com.marla.tests.vault",
+            backend: items.backend
+        )
+
+        XCTAssertTrue(keychain.loadVault())
+        try keychain.scoped(to: firstID).save("first-key")
+        try keychain.scoped(to: secondID).save("second-key")
+
+        XCTAssertEqual(Set(items.items.keys), [KeychainCredentialStore.vaultAccount])
+        XCTAssertEqual(items.savedAccounts, [
+            KeychainCredentialStore.vaultAccount,
+            KeychainCredentialStore.vaultAccount
+        ])
+
+        items.readAccounts.removeAll()
+        let reloaded = KeychainCredentialStore(
+            service: "com.marla.tests.vault",
+            backend: items.backend
+        )
+        XCTAssertTrue(reloaded.loadVault())
+        XCTAssertEqual(reloaded.scoped(to: firstID).read(), "first-key")
+        XCTAssertEqual(reloaded.scoped(to: secondID).read(), "second-key")
+        XCTAssertEqual(items.readAccounts, [KeychainCredentialStore.vaultAccount])
+    }
+
+    @MainActor
+    func testLegacyProfileItemsMigrateOnlyAfterVaultWriteSucceeds() {
+        let items = FakeKeychainItems()
+        let firstID = UUID()
+        let secondID = UUID()
+        let firstAccount = KeychainCredentialStore.profileAccount(for: firstID)
+        let secondAccount = KeychainCredentialStore.profileAccount(for: secondID)
+        items.items[firstAccount] = Data("first-key".utf8)
+        items.items[secondAccount] = Data("second-key".utf8)
+        let keychain = KeychainCredentialStore(
+            service: "com.marla.tests.migration",
+            backend: items.backend
+        )
+
+        XCTAssertTrue(keychain.loadVault())
+        items.saveSucceeds = false
+        XCTAssertFalse(keychain.migrateLegacyCredentials(
+            profileIDs: [firstID, secondID],
+            defaultProfileID: firstID
+        ))
+        XCTAssertNotNil(items.items[firstAccount])
+        XCTAssertNotNil(items.items[secondAccount])
+        XCTAssertTrue(items.removedAccounts.isEmpty)
+
+        items.saveSucceeds = true
+        XCTAssertTrue(keychain.migrateLegacyCredentials(
+            profileIDs: [firstID, secondID],
+            defaultProfileID: firstID
+        ))
+
+        XCTAssertEqual(keychain.scoped(to: firstID).read(), "first-key")
+        XCTAssertEqual(keychain.scoped(to: secondID).read(), "second-key")
+        XCTAssertNotNil(items.items[KeychainCredentialStore.vaultAccount])
+        XCTAssertNil(items.items[firstAccount])
+        XCTAssertNil(items.items[secondAccount])
+        XCTAssertEqual(Set(items.removedAccounts), [firstAccount, secondAccount])
+    }
+
+    @MainActor
+    func testStartupMigrationReusesOneAuthenticationContextForAllLegacyItems() throws {
+        let suite = "com.marla.tests.authentication-context.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suite)!
+        defaults.removePersistentDomain(forName: suite)
+        let firstID = UUID()
+        let secondID = UUID()
+        let profiles = [
+            TranslationAPIProfile(id: firstID, name: "第一配置"),
+            TranslationAPIProfile(id: secondID, name: "第二配置")
+        ]
+        defaults.set(try JSONEncoder().encode(profiles), forKey: "translationAPIProfiles.v1")
+        defaults.set(firstID.uuidString, forKey: "translationDefaultProfileID")
+
+        let items = FakeKeychainItems()
+        items.items[KeychainCredentialStore.profileAccount(for: firstID)] = Data("first-key".utf8)
+        items.items[KeychainCredentialStore.profileAccount(for: secondID)] = Data("second-key".utf8)
+        let settings = MarlaSettingsStore(
+            defaults: defaults,
+            keychain: KeychainCredentialStore(service: "com.marla.tests.authentication-context", backend: items.backend)
+        )
+
+        settings.loadCredentialsAfterApplicationLaunch()
+
+        XCTAssertEqual(settings.apiKey(for: firstID), "first-key")
+        XCTAssertEqual(settings.apiKey(for: secondID), "second-key")
+        XCTAssertEqual(Set(items.authenticationContextIDs).count, 1)
+        XCTAssertEqual(items.authenticationContextIDs.count, 3) // vault probe + two legacy items
+    }
+
+    @MainActor
+    func testDeniedVaultLoadNeverFallsBackToProfileItemDuringTranslation() {
+        let items = FakeKeychainItems()
+        let profileID = UUID()
+        let profileAccount = KeychainCredentialStore.profileAccount(for: profileID)
+        items.items[profileAccount] = Data("legacy-key".utf8)
+        items.deniedAccounts.insert(KeychainCredentialStore.vaultAccount)
+        let keychain = KeychainCredentialStore(
+            service: "com.marla.tests.denied-vault",
+            backend: items.backend
+        )
+
+        XCTAssertFalse(keychain.loadVault())
+        XCTAssertNil(keychain.scoped(to: profileID).read())
+        XCTAssertNil(keychain.scoped(to: profileID).read())
+        XCTAssertEqual(items.readAccounts, [KeychainCredentialStore.vaultAccount])
+    }
+
+    @MainActor
+    func testDeniedVaultLoadIsNotRetriedBySave() {
+        let items = FakeKeychainItems()
+        items.deniedAccounts.insert(KeychainCredentialStore.vaultAccount)
+        let profileID = UUID()
+        let keychain = KeychainCredentialStore(
+            service: "com.marla.tests.denied-save",
+            backend: items.backend
+        )
+
+        XCTAssertFalse(keychain.loadVault())
+        XCTAssertThrowsError(try keychain.scoped(to: profileID).save("new-key"))
+        XCTAssertEqual(items.readAccounts, [KeychainCredentialStore.vaultAccount])
+    }
+
+    @MainActor
+    func testSettingsStartupMigratesRootOnlyLegacyCredentialIntoVault() {
+        let suite = "com.marla.tests.root-only-migration.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suite)!
+        defaults.removePersistentDomain(forName: suite)
+        let items = FakeKeychainItems()
+        items.items["translation-api-key"] = Data("legacy-key".utf8)
+        let keychain = KeychainCredentialStore(
+            service: "com.marla.tests.root-only-migration",
+            backend: items.backend
+        )
+        let settings = MarlaSettingsStore(defaults: defaults, keychain: keychain)
+
+        XCTAssertTrue(settings.profiles.isEmpty)
+        XCTAssertTrue(items.readAccounts.isEmpty)
+
+        settings.loadCredentialsAfterApplicationLaunch()
+
+        let profileID = try! XCTUnwrap(settings.defaultProfileID)
+        XCTAssertEqual(settings.apiKey(for: profileID), "legacy-key")
+        XCTAssertNotNil(items.items[KeychainCredentialStore.vaultAccount])
+        XCTAssertNil(items.items["translation-api-key"])
     }
 
     @MainActor

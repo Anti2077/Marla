@@ -106,6 +106,7 @@
 - [ ] 只有启用配置可出现在结果卡选择器并发起请求；禁用默认、全部禁用、重新启用和“设为默认”保持默认值不变量。
 - [ ] 模型和空/非空 Key 都按协议构造请求；Key 只在非空时加入 Header。
 - [ ] API Key 存在 Keychain，不出现在 UserDefaults、日志、错误或诊断输出。
+- [ ] 全部 profile Key 存在一个版本化 Keychain vault item 中；应用完成启动后、首次翻译前只读取该 vault，切换配置不再访问其它 Keychain item。
 - [ ] 首字前显示等待状态，delta 增量显示，完成后内容与 Provider 一致。
 - [ ] 401/403、429、网络、首字超时、总超时、非法响应和断流显示对应恢复动作。
 - [ ] 取消是幂等的；关闭、重试和语言切换后迟到事件不能更新新卡片。
@@ -120,6 +121,7 @@
 - [ ] Only enabled profiles appear in the result-card picker and may start requests; disabling the default, disabling all, re-enabling, and Set as Default preserve the default invariant.
 - [ ] Model and empty/non-empty key build the specified request; Header is added only for non-empty key.
 - [ ] API Key lives in Keychain and never appears in UserDefaults, logs, errors, or diagnostics.
+- [ ] All profile keys live in one versioned Keychain vault item; after launch and before first translation, the app reads only that vault, and profile switching accesses no additional Keychain item.
 - [ ] Waiting appears before first token, deltas render incrementally, and completion matches provider output.
 - [ ] 401/403, 429, network, first-token timeout, total timeout, invalid response, and stream interruption show matching recovery actions.
 - [ ] Cancellation is idempotent; late events after close, retry, or language change cannot update the new card.

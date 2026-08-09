@@ -33,7 +33,7 @@ No `ContextSnapshot` fields cross the translation boundary in 0.1.0. The type re
 
 The 0.1.0 Swift/Rust boundary uses UTF-8 JSON with `schemaVersion: 1`. A request contains a request ID, exact source text, automatic or explicit target policy, endpoint configuration, optional request-scoped credential, and timeouts. Rust copies request bytes synchronously and never retains a Swift buffer.
 
-The API Key is transferred in request memory only, must never be logged, and remains persistently owned by Keychain on the Swift side.
+The API Key is transferred in request memory only and must never be logged. Swift persistently owns one versioned Keychain vault item containing independent logical entries keyed by profile identity; Rust never receives or persists the vault.
 
 ## Provider events
 

@@ -14,7 +14,9 @@
 
 云端结构化 OCR 开关已删除。生产截图入口只在内存中经 Vision 生成带稳定行 ID 的文字文档，并且只把纯文字发送到 Rust；显式 UI 自动化夹具不改变生产入口。
 
-翻译 API profile 由 Swift 按稳定 UUID 有序持久化，每个 profile 具有独立 Keychain account 和向后兼容的启用状态。`MarlaSettingsStore` 保证默认 profile 属于启用集合；全部停用时默认值为空。结果卡只读取启用集合，`endpoint(for:)` 和切换入口再次拒绝停用项。API 列表由本地拖动 ID 驱动 `DropDelegate` 的悬停重排，`dropEntered` 在动画事务内持久化新顺序；被拖稳定 ID 的行隐藏内容但保留等高空槽，使空槽随顺序更新移动。AppKit `NSDraggingItem` 只携带透明 1×1pt 图像维持原生 drop；独立的非激活无边框 `NSPanel` 以固定 580×76pt 绘制可见整行，并由 `draggingSession(_:movedTo:)` 根据屏幕指针坐标与最初手柄抓取点直接移动，因此不进入系统拖拽图缩放管线。拖动结束后 Panel 立即隐藏，原行内容以短促淡入恢复到空槽，设置内容背景不参与窗口拖动。API 编辑器的模型获取与连接测试共用 `APIKeyDraftResolver`，非空草稿优先且不会先读取 Keychain 回退值。
+启动凭据迁移在 `applicationDidFinishLaunching` 中执行，vault、根 account 和旧 profile account 查询复用同一个 `LAContext`；如果 vault 读取失败，本进程不会由保存或翻译再次重试 Keychain。
+
+翻译 API profile 由 Swift 按稳定 UUID 有序持久化，启用状态和其它非敏感字段保存在偏好；全部 profile Key 作为独立逻辑条目保存在一个版本化 Keychain vault item 中。`MarlaSettingsStore` 不在构造期读取 Keychain；`MarlaApplicationModel` 在 App 完成启动后调用 vault 加载和旧 item 迁移，成功写入完整 vault 后才删除旧凭据。所有 scoped store 共享进程内 account→Key 缓存，翻译和配置切换只读取缓存，拒绝回退到物理 profile item。`MarlaSettingsStore` 保证默认 profile 属于启用集合；全部停用时默认值为空。结果卡只读取启用集合，`endpoint(for:)` 和切换入口再次拒绝停用项。API 列表由本地拖动 ID 驱动 `DropDelegate` 的悬停重排，`dropEntered` 在动画事务内持久化新顺序；被拖稳定 ID 的行隐藏内容但保留等高空槽，使空槽随顺序更新移动。AppKit `NSDraggingItem` 只携带透明 1×1pt 图像维持原生 drop；独立的非激活无边框 `NSPanel` 以固定 580×76pt 绘制可见整行，并由 `draggingSession(_:movedTo:)` 根据屏幕指针坐标与最初手柄抓取点直接移动，因此不进入系统拖拽图缩放管线。拖动结束后 Panel 立即隐藏，原行内容以短促淡入恢复到空槽，设置内容背景不参与窗口拖动。API 编辑器的模型获取与连接测试共用 `APIKeyDraftResolver`，非空草稿优先且不会先读取 Keychain 回退值。
 
 ### English
 
@@ -22,7 +24,9 @@ The repository now contains a buildable Swift Package, a native Xcode macOS App 
 
 The cloud structured OCR switch has been removed. Production screenshot entry keeps the in-memory Vision document with stable line IDs and sends text only to Rust; explicit UI automation fixtures do not alter production entry points.
 
-Swift persists translation API profiles in order under stable UUIDs, each with an independent Keychain account and a backward-compatible enabled state. `MarlaSettingsStore` keeps the default inside the enabled set and uses no default when every profile is disabled. Result cards read only the enabled set, while `endpoint(for:)` and the switch entry reject disabled profiles again. The API list feeds a local drag identifier into a `DropDelegate` for hover reordering, and `dropEntered` persists the new order inside an animation transaction. The row carrying the dragged stable ID hides its content but retains a full-height empty slot, so the slot moves with the updated order. The AppKit `NSDraggingItem` carries only a transparent 1×1pt image to preserve native drop handling. A separate nonactivating borderless `NSPanel` renders the visible row at a fixed 580×76pt and moves through `draggingSession(_:movedTo:)` using the screen pointer and original handle grab point, bypassing the system drag-image scaling pipeline. When dragging ends, the panel hides immediately and row content fades back into the slot. The Settings content background never participates in window dragging. Model discovery and connection testing in the API editor share `APIKeyDraftResolver`, preferring a non-empty draft without first reading the Keychain fallback.
+Credential migration runs from `applicationDidFinishLaunching`, reusing one `LAContext` for the vault, root account, and legacy profile-account queries. If vault loading fails, saving or translating does not retry Keychain access in the same process.
+
+Swift persists translation API profiles in order under stable UUIDs, with enabled state and other non-sensitive fields in preferences. All profile keys live as independent logical entries inside one versioned Keychain vault item. `MarlaSettingsStore` does not read the Keychain during construction; after the App finishes launching, `MarlaApplicationModel` loads the vault and migrates legacy physical items, deleting them only after the complete vault is written. All scoped stores share an in-process account-to-key cache, and translation/profile switching never falls back to a physical profile item. `MarlaSettingsStore` keeps the default inside the enabled set and uses no default when every profile is disabled. Result cards read only the enabled set, while `endpoint(for:)` and the switch entry reject disabled profiles again. The API list feeds a local drag identifier into a `DropDelegate` for hover reordering, and `dropEntered` persists the new order inside an animation transaction. The row carrying the dragged stable ID hides its content but retains a full-height empty slot, so the slot moves with the updated order. The AppKit `NSDraggingItem` carries only a transparent 1×1pt image to preserve native drop handling. A separate nonactivating borderless `NSPanel` renders the visible row at a fixed 580×76pt and moves through `draggingSession(_:movedTo:)` using the screen pointer and original handle grab point, bypassing the system drag-image scaling pipeline. When dragging ends, the panel hides immediately and row content fades back into the slot. The Settings content background never participates in window dragging. Model discovery and connection testing in the API editor share `APIKeyDraftResolver`, preferring a non-empty draft without first reading the Keychain fallback.
 
 ## 2. 责任边界 / Responsibility Boundary
 
@@ -34,7 +38,7 @@ Swift persists translation API profiles in order under stable UUIDs, each with a
 | Accessibility、ScreenCaptureKit、Vision | 拥有 | 只接收规范化文字 |
 | 全局快捷键与 Force Touch | 拥有 | 接收翻译意图 |
 | 结果卡片、设置、权限、朗读 | 拥有 | 发送会话事件 |
-| Keychain | 持久化与读取 | 每次请求临时接收 Key，不持久化 |
+| Keychain | 单一 vault 持久化，启动完成后加载并缓存 | 每次请求临时接收 Key，不持久化 |
 | 自动语言规则与提示词 | 提供用户策略 | 拥有最终提示词构造 |
 | HTTP、SSE、超时、取消 | 不直接访问 | 拥有 |
 | 会话状态与迟到事件隔离 | 映射到 UI | 拥有请求生命周期 |
@@ -49,7 +53,7 @@ Swift 不把 `AXUIElement`、`NSWindow`、`CGImage` 或 Objective-C 对象指针
 | Accessibility, ScreenCaptureKit, Vision | Owns | Receives normalized text only |
 | Global shortcuts and Force Touch | Owns | Receives translation intent |
 | Result card, Settings, permissions, speech | Owns | Emits session events |
-| Keychain | Persists and reads | Receives key temporarily per request; never persists |
+| Keychain | Persists one vault, loaded and cached after launch | Receives key temporarily per request; never persists |
 | Automatic language rule and prompt | Supplies user policy | Owns final prompt construction |
 | HTTP, SSE, timeout, cancellation | Does not access directly | Owns |
 | Session state and late-event isolation | Maps to UI | Owns request lifecycle |

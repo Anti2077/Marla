@@ -2,6 +2,7 @@ import AppKit
 import Carbon
 import Combine
 import Foundation
+import LocalAuthentication
 import MarlaCore
 import QuartzCore
 import Security
@@ -9,67 +10,265 @@ import ScreenCaptureKit
 import SwiftUI
 import Vision
 
+enum KeychainItemReadResult {
+    case found(Data)
+    case notFound
+    case failed(OSStatus)
+}
+
+@MainActor
+struct KeychainItemBackend {
+    let read: (_ service: String, _ account: String, _ authenticationContext: LAContext?) -> KeychainItemReadResult
+    let save: (_ service: String, _ account: String, _ data: Data) -> Bool
+    let remove: (_ service: String, _ account: String) -> Bool
+
+    static let security = KeychainItemBackend(
+        read: { service, account, authenticationContext in
+            var query: [String: Any] = [
+                kSecClass as String: kSecClassGenericPassword,
+                kSecAttrService as String: service,
+                kSecAttrAccount as String: account,
+                kSecReturnData as String: true,
+                kSecMatchLimit as String: kSecMatchLimitOne
+            ]
+            if let authenticationContext {
+                query[kSecUseAuthenticationContext as String] = authenticationContext
+            }
+            var result: CFTypeRef?
+            let status = SecItemCopyMatching(query as CFDictionary, &result)
+            if status == errSecItemNotFound { return .notFound }
+            guard status == errSecSuccess, let data = result as? Data else {
+                return .failed(status)
+            }
+            return .found(data)
+        },
+        save: { service, account, data in
+            let query: [String: Any] = [
+                kSecClass as String: kSecClassGenericPassword,
+                kSecAttrService as String: service,
+                kSecAttrAccount as String: account
+            ]
+            let attributes: [String: Any] = [kSecValueData as String: data]
+            let status = SecItemUpdate(query as CFDictionary, attributes as CFDictionary)
+            if status == errSecItemNotFound {
+                var addQuery = query
+                addQuery[kSecValueData as String] = data
+                return SecItemAdd(addQuery as CFDictionary, nil) == errSecSuccess
+            }
+            return status == errSecSuccess
+        },
+        remove: { service, account in
+            let query: [String: Any] = [
+                kSecClass as String: kSecClassGenericPassword,
+                kSecAttrService as String: service,
+                kSecAttrAccount as String: account
+            ]
+            let status = SecItemDelete(query as CFDictionary)
+            return status == errSecSuccess || status == errSecItemNotFound
+        }
+    )
+}
+
 @MainActor
 final class KeychainCredentialStore: @unchecked Sendable {
+    private struct VaultPayload: Codable {
+        let schemaVersion: Int
+        var credentials: [String: String]
+    }
+
+    private final class VaultState {
+        var credentials: [String: String]?
+        var loadAttempted = false
+        var loadSucceeded = false
+    }
+
+    static let vaultAccount = "translation-api-key-vault.v1"
+
     let service: String
     let account: String
+    private let backend: KeychainItemBackend
+    private let state: VaultState
 
-    init(service: String = "com.marla.app", account: String = "translation-api-key") {
+    init(
+        service: String = "com.marla.app",
+        account: String = "translation-api-key",
+        backend: KeychainItemBackend = .security
+    ) {
         self.service = service
         self.account = account
+        self.backend = backend
+        state = VaultState()
+    }
+
+    private init(
+        service: String,
+        account: String,
+        backend: KeychainItemBackend,
+        state: VaultState
+    ) {
+        self.service = service
+        self.account = account
+        self.backend = backend
+        self.state = state
+    }
+
+    static func profileAccount(for profileID: UUID) -> String {
+        "translation-api-key.\(profileID.uuidString)"
     }
 
     func scoped(to profileID: UUID) -> KeychainCredentialStore {
-        KeychainCredentialStore(service: service, account: "translation-api-key.\(profileID.uuidString)")
+        KeychainCredentialStore(
+            service: service,
+            account: Self.profileAccount(for: profileID),
+            backend: backend,
+            state: state
+        )
     }
 
     var hasCredential: Bool { read() != nil }
 
-    func read() -> String? {
-        let query: [String: Any] = [
-            kSecClass as String: kSecClassGenericPassword,
-            kSecAttrService as String: service,
-            kSecAttrAccount as String: account,
-            kSecReturnData as String: true,
-            kSecMatchLimit as String: kSecMatchLimitOne
-        ]
-        var result: CFTypeRef?
-        guard SecItemCopyMatching(query as CFDictionary, &result) == errSecSuccess,
-              let data = result as? Data,
-              let value = String(data: data, encoding: .utf8),
-              !value.isEmpty else {
-            return nil
+    /// Must be called after NSApplication finishes launching so Keychain may
+    /// present the vault's single authorization UI before any translation.
+    @discardableResult
+    func loadVault(authenticationContext: LAContext? = nil) -> Bool {
+        guard !state.loadAttempted else { return state.loadSucceeded }
+        state.loadAttempted = true
+
+        switch backend.read(service, Self.vaultAccount, authenticationContext) {
+        case let .found(data):
+            guard let payload = try? JSONDecoder().decode(VaultPayload.self, from: data),
+                  payload.schemaVersion == 1 else {
+                return false
+            }
+            state.credentials = payload.credentials.filter { !$0.value.isEmpty }
+            state.loadSucceeded = true
+            return true
+        case .notFound:
+            state.credentials = [:]
+            state.loadSucceeded = true
+            return true
+        case .failed:
+            return false
         }
-        return value
+    }
+
+    /// Reads only the process-local vault. It intentionally never falls back to
+    /// a physical profile item during translation, preventing a late prompt.
+    func read() -> String? {
+        state.credentials?[account]
     }
 
     func save(_ value: String) throws {
-        let data = Data(value.utf8)
-        let query: [String: Any] = [
-            kSecClass as String: kSecClassGenericPassword,
-            kSecAttrService as String: service,
-            kSecAttrAccount as String: account
-        ]
-        let attributes: [String: Any] = [kSecValueData as String: data]
-        let status = SecItemUpdate(query as CFDictionary, attributes as CFDictionary)
-        if status == errSecItemNotFound {
-            var addQuery = query
-            addQuery[kSecValueData as String] = data
-            guard SecItemAdd(addQuery as CFDictionary, nil) == errSecSuccess else {
-                throw KeychainError.saveFailed
-            }
-        } else if status != errSecSuccess {
+        guard loadVault(), var credentials = state.credentials else {
             throw KeychainError.saveFailed
+        }
+        credentials[account] = value
+        guard writeVault(credentials) else { throw KeychainError.saveFailed }
+    }
+
+    @discardableResult
+    func remove() -> Bool {
+        guard var credentials = state.credentials else { return false }
+        credentials.removeValue(forKey: account)
+
+        if credentials.isEmpty {
+            let removed = backend.remove(service, Self.vaultAccount)
+            state.credentials = [:]
+            return removed
+        }
+
+        let saved = writeVault(credentials)
+        if !saved { state.credentials = credentials }
+        return saved
+    }
+
+    /// Imports old per-profile items into one physical vault. Old items are
+    /// deleted only after the complete merged vault has been written.
+    @discardableResult
+    func migrateLegacyCredentials(
+        profileIDs: [UUID],
+        defaultProfileID: UUID?,
+        authenticationContext: LAContext? = nil
+    ) -> Bool {
+        guard loadVault(authenticationContext: authenticationContext), var credentials = state.credentials else { return false }
+        let originalCredentials = credentials
+        var importedAccounts: [String] = []
+        var allReadsSucceeded = true
+
+        for profileID in profileIDs {
+            let profileAccount = Self.profileAccount(for: profileID)
+            guard credentials[profileAccount] == nil else { continue }
+            switch readLegacyCredential(account: profileAccount, authenticationContext: authenticationContext) {
+            case let .found(value):
+                credentials[profileAccount] = value
+                importedAccounts.append(profileAccount)
+            case .notFound:
+                break
+            case .failed:
+                allReadsSucceeded = false
+            }
+        }
+
+        if let defaultProfileID {
+            let defaultAccount = Self.profileAccount(for: defaultProfileID)
+            if credentials[defaultAccount] == nil {
+                switch readLegacyCredential(account: account, authenticationContext: authenticationContext) {
+                case let .found(value):
+                    credentials[defaultAccount] = value
+                    importedAccounts.append(account)
+                case .notFound:
+                    break
+                case .failed:
+                    allReadsSucceeded = false
+                }
+            }
+        }
+
+        guard credentials != originalCredentials else { return allReadsSucceeded }
+        guard writeVault(credentials) else { return false }
+        for importedAccount in importedAccounts {
+            _ = backend.remove(service, importedAccount)
+        }
+        return allReadsSucceeded
+    }
+
+    func readLegacyRootCredential(authenticationContext: LAContext? = nil) -> String? {
+        guard case let .found(value) = readLegacyCredential(account: account, authenticationContext: authenticationContext) else { return nil }
+        return value
+    }
+
+    func removeLegacyRootCredential() {
+        _ = backend.remove(service, account)
+    }
+
+    private enum LegacyCredentialReadResult {
+        case found(String)
+        case notFound
+        case failed
+    }
+
+    private func readLegacyCredential(account: String, authenticationContext: LAContext?) -> LegacyCredentialReadResult {
+        switch backend.read(service, account, authenticationContext) {
+        case let .found(data):
+            guard let value = String(data: data, encoding: .utf8), !value.isEmpty else {
+                return .notFound
+            }
+            return .found(value)
+        case .notFound:
+            return .notFound
+        case .failed:
+            return .failed
         }
     }
 
-    func remove() {
-        let query: [String: Any] = [
-            kSecClass as String: kSecClassGenericPassword,
-            kSecAttrService as String: service,
-            kSecAttrAccount as String: account
-        ]
-        SecItemDelete(query as CFDictionary)
+    private func writeVault(_ credentials: [String: String]) -> Bool {
+        let payload = VaultPayload(schemaVersion: 1, credentials: credentials)
+        guard let data = try? JSONEncoder().encode(payload),
+              backend.save(service, Self.vaultAccount, data) else {
+            return false
+        }
+        state.credentials = credentials
+        return true
     }
 }
 
@@ -178,6 +377,7 @@ final class MarlaSettingsStore: ObservableObject {
 
     let keychain: KeychainCredentialStore
     private let defaults: UserDefaults
+    private let shouldMigrateRootCredentialWithoutProfiles: Bool
 
     private enum Keys {
         static let profiles = "translationAPIProfiles.v1"
@@ -194,7 +394,9 @@ final class MarlaSettingsStore: ObservableObject {
     init(defaults: UserDefaults = .standard, keychain: KeychainCredentialStore = KeychainCredentialStore()) {
         self.defaults = defaults
         self.keychain = keychain
-        if let data = defaults.data(forKey: Keys.profiles),
+        let persistedProfilesData = defaults.data(forKey: Keys.profiles)
+        shouldMigrateRootCredentialWithoutProfiles = persistedProfilesData == nil
+        if let data = persistedProfilesData,
            let decoded = try? JSONDecoder().decode([TranslationAPIProfile].self, from: data) {
             profiles = decoded
             let storedID = defaults.string(forKey: Keys.defaultProfileID).flatMap(UUID.init(uuidString:))
@@ -204,13 +406,10 @@ final class MarlaSettingsStore: ObservableObject {
         } else {
             let legacyURL = defaults.string(forKey: Keys.baseURL) ?? ""
             let legacyModel = defaults.string(forKey: Keys.modelName) ?? ""
-            if !legacyURL.isEmpty || !legacyModel.isEmpty || keychain.hasCredential {
+            if !legacyURL.isEmpty || !legacyModel.isEmpty {
                 let migrated = TranslationAPIProfile(name: "默认配置", baseURL: legacyURL, modelName: legacyModel)
                 profiles = [migrated]
                 defaultProfileID = migrated.id
-                if let legacyKey = keychain.read() {
-                    try? keychain.scoped(to: migrated.id).save(legacyKey)
-                }
             } else {
                 profiles = []
                 defaultProfileID = nil
@@ -223,6 +422,36 @@ final class MarlaSettingsStore: ObservableObject {
         onboardingSkipped = defaults.bool(forKey: Keys.onboardingSkipped)
         saveProfiles()
         saveDefaultProfileID()
+    }
+
+    /// Called only after NSApplication finishes launching. This is the sole
+    /// production entry point that may show Keychain authorization for reads.
+    func loadCredentialsAfterApplicationLaunch() {
+        let authenticationContext = LAContext()
+        authenticationContext.localizedReason = "Marla 需要在启动时读取翻译 API Key"
+
+        guard keychain.loadVault(authenticationContext: authenticationContext) else {
+            credentialRevision += 1
+            return
+        }
+
+        if profiles.isEmpty,
+           shouldMigrateRootCredentialWithoutProfiles,
+           let legacyKey = keychain.readLegacyRootCredential(authenticationContext: authenticationContext) {
+            let migrated = TranslationAPIProfile(name: "默认配置")
+            profiles = [migrated]
+            defaultProfileID = migrated.id
+            if (try? keychain.scoped(to: migrated.id).save(legacyKey)) != nil {
+                keychain.removeLegacyRootCredential()
+            }
+        }
+
+        keychain.migrateLegacyCredentials(
+            profileIDs: profiles.map(\.id),
+            defaultProfileID: defaultProfileID,
+            authenticationContext: authenticationContext
+        )
+        credentialRevision += 1
     }
 
     var defaultProfile: TranslationAPIProfile? {
@@ -2229,6 +2458,8 @@ final class MarlaApplicationModel: ObservableObject {
 
     private let selectionReader: AccessibilitySelectionReader
     private var activeSelectionReadCancellation: SelectionReadCancellation?
+    private var applicationDidFinishLaunchingObserver: NSObjectProtocol?
+    private var didLoadCredentialsAfterLaunch = false
 
     init(
         selectionReader: AccessibilitySelectionReader = AccessibilitySelectionReader(),
@@ -2244,6 +2475,7 @@ final class MarlaApplicationModel: ObservableObject {
         shortcutManager = GlobalShortcutManager(registerHotKeys: enableSystemIntegrations)
         panelCoordinator.attach(model: self)
         if enableSystemIntegrations {
+            installCredentialVaultLaunchLoad()
             refreshPermissions()
         }
         if let accessibilityTrusted {
@@ -2263,6 +2495,28 @@ final class MarlaApplicationModel: ObservableObject {
             DispatchQueue.main.async { [weak self] in
                 self?.runUIAutomationScenario(scenario)
             }
+        }
+    }
+
+    private func installCredentialVaultLaunchLoad() {
+        applicationDidFinishLaunchingObserver = NotificationCenter.default.addObserver(
+            forName: NSApplication.didFinishLaunchingNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            Task { @MainActor [weak self] in
+                self?.loadCredentialsAfterLaunchIfNeeded()
+            }
+        }
+    }
+
+    func loadCredentialsAfterLaunchIfNeeded() {
+        guard !didLoadCredentialsAfterLaunch else { return }
+        didLoadCredentialsAfterLaunch = true
+        settings.loadCredentialsAfterApplicationLaunch()
+        if let applicationDidFinishLaunchingObserver {
+            NotificationCenter.default.removeObserver(applicationDidFinishLaunchingObserver)
+            self.applicationDidFinishLaunchingObserver = nil
         }
     }
 

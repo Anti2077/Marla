@@ -1,18 +1,18 @@
 # Project Status
 
-Last updated: 2026-08-09
+Last updated: 2026-08-10
 
 Release target: 0.1.0 Alpha
 
 Overall state: In Progress — implementation baseline exists; live acceptance remains incomplete
 
-Active task: None
+Active task: [TASK-016](../tasks/TASK-016-keychain-credential-prefetch.md) — 单一 Keychain vault 与启动授权
 
 Blocked task: [TASK-013](../tasks/TASK-013-api-profile-activation-and-editor-actions.md) — 等待项目所有者确认拖拽动态中间态
 
 ## Current objective
 
-TASK-015 已完成：受保护的 Bob 式 Copy 兼容路径通过完整自动化、固定产物验证以及 Codex/微信真实取词，项目所有者继续试用后确认成功率很高并接受目标完成。当前 API `unauthorized` 来自默认 DashScope profile 缺少独立 Keychain 凭据，按项目所有者要求不属于本次划词适配。当前没有 Active Task；TASK-013 保持 Blocked。
+TASK-015 已完成。TASK-016 首版 `kSecMatchLimitAll` 预热虽然通过自动化和打包，但项目所有者在固定 App 中确认真实行为未改善。当前实现改为单一 Keychain vault，并在 `applicationDidFinishLaunching` 中用同一个 `LAContext` 完成 vault/旧 item 迁移。随后两次真实启动分别暴露了构造期 nil `NSApp` 崩溃和自定义 App Delegate/过早 `NSApplication.shared` 导致菜单表面无法打开的问题；最终实现恢复标准 SwiftUI 启动入口，构造期不再访问 AppKit 单例，只保留启动完成通知。固定 Release App 的正常事件循环、无新增崩溃和完整菜单表面已验证；干净授权状态下的一次性 Keychain 行为仍待项目所有者复验。TASK-013 保持 Blocked。
 
 ## Current implemented baseline
 
@@ -27,7 +27,7 @@ TASK-015 已完成：受保护的 Bob 式 Copy 兼容路径通过完整自动化
 - Menu setup status that automatically yields to three bounded in-memory recent translations once API, Accessibility, and Screen Recording are ready; selecting a recent result performs no network request and quitting clears the list.
 - Single-layer macOS 26 Liquid Glass with a macOS 14–25 system-material fallback across the menu, Settings, result card, quick input, and screenshot-selection labels; screenshot entry icons use the available `viewfinder` symbol.
 - Fixed-path Release development packaging that stages, stable-signs, and verifies a new `artifacts/Marla_dev.app` before replacing the previous App; missing stable identities fail instead of falling back to ad-hoc signing.
-- Multiple named OpenAI-compatible API profiles with per-profile Keychain credentials, legacy single-endpoint migration, default selection, settings CRUD/reordering, and explicit result-card switching are implemented under TASK-005.
+- Multiple named OpenAI-compatible API profiles with one versioned Keychain vault, legacy single-endpoint/per-profile migration, shared in-memory credentials, default selection, settings CRUD/reordering, and explicit result-card switching are implemented under TASK-005/TASK-016.
 - Every API profile supports explicit Base URL or Complete URL semantics. The editor uses an inline Base/Complete switch and can fetch a Rust-owned `/models` list with the current profile credential, then expand and select a model at the bottom of the form.
 - The API editor gives its first scroll-content row an 8pt focus-ring safety inset, keeping the native macOS Focus Ring complete in light and dark appearance.
 - Settings use a four-page native sidebar, summary-only API list and independently clipped editor sheet; global shortcuts have persistent switches, result cards support background dragging, and screenshot selection includes an in-memory 6× pointer magnifier.
@@ -69,9 +69,9 @@ TASK-015 已完成；剩余发布矩阵继续保留在 BL-001，截图 `Esc` 与
 
 ## Latest verification
 
-- `./scripts/check.sh` passed on 2026-08-09 after the TASK-015 AX and Copy-compatibility changes.
+- TASK-016's first live authorization test invalidated the `kSecMatchLimitAll` behavior claim. The follow-up uses one vault and one `LAContext`, but its first two Release packages respectively crashed from nil `NSApp` during construction and remained alive without an openable menu surface after adding a custom App Delegate plus early `NSApplication.shared` access. The final lifecycle repair removes both construction-time AppKit paths and listens only for `NSApplication.didFinishLaunchingNotification`. `./scripts/check.sh` passes 17 Rust and 74 Swift tests plus the Xcode Debug build; the stable-signed fixed Release App is valid, idles in the normal AppKit event loop, creates no new crash report, and successfully captures its complete built-in menu acceptance surface. Clean live authorization behavior remains unverified.
 - Rust: 17 tests passed.
-- Swift: 68 tests passed.
+- Swift: 74 tests passed.
 - Xcode Debug application build passed.
 - TASK-014 installed `uv 0.12.2`, `serena-agent 1.6.1`, and rustup `rust-analyzer 1.96.0`; Serena health check passed and indexed 15 Swift files plus 1 Rust file while project/build caches remained ignored.
 - TASK-014's real stdio MCP session exposed exactly nine read-only semantic tools, with no edit, shell, project-switching, memory, or onboarding tools. Swift symbol/reference queries covered `TranslationAPIProfile` and `RustTranslationClient/start`; Rust covered `marla_translation_start` and four semantic test references.

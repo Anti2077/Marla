@@ -1,8 +1,8 @@
 # TASK-018：冻结全屏截图框选
 
-Status: Active
+Status: Done
 
-Implementation: Implemented; live owner acceptance pending
+Implementation: Complete
 
 Owner: Project owner + Agent
 
@@ -48,7 +48,8 @@ Conversation: 2026-08-10 截图翻译悬停界面保留
 
 | Date | Requested by | Change | Acceptance / verification impact | Status |
 | --- | --- | --- | --- | --- |
-| 2026-08-10 | Project owner | 放弃系统式虚拟指针，选择静态截图覆盖并开始实现 | 新建 TASK-018；要求触发前冻结、静态框选和同帧裁剪 | Implemented; live acceptance pending |
+| 2026-08-10 | Project owner | 放弃系统式虚拟指针，选择静态截图覆盖并开始实现 | 新建 TASK-018；要求触发前冻结、静态框选和同帧裁剪 | Implemented |
+| 2026-08-10 | Project owner | 结束 TASK-018 并合并到 `main` | 以现有自动化、Release 视觉证据结束实现 Task；未完成的真实环境证据转回 BL-002/BL-003，不把它们误记为已验证 | Complete |
 
 ## Current evidence
 
@@ -76,6 +77,13 @@ Conversation: 2026-08-10 截图翻译悬停界面保留
 - [x] `./scripts/check.sh`、固定签名 Release 打包和 `git diff --check` 通过。
 - [x] 固定 Release App 的浅色、深色、Reduce Motion 截图完成五维审查，每项至少 7/10。
 - [x] 规格、实现说明、验收清单、架构、Task 和 STATUS 与验证事实同步。
+
+## Remaining release verification
+
+以下项目未在 TASK-018 中伪造完成状态；项目所有者已决定结束实现 Task，并将它们作为发布验收继续保留：
+
+- 浏览器 Tooltip/悬停菜单与播放中视频的真实冻结效果、物理副屏/混合缩放裁剪、真实 `Esc`/右键/无效区域/捕获失败路径，以及 Screen Recording 权限持久性由 `BL-002` 跟踪。
+- 全显示器冻结期间的内存峰值和会话结束后的回落由 `BL-003` 跟踪。
 
 ## Verification
 
@@ -120,10 +128,10 @@ None. The implementation and tests are tightly coupled in one Swift source/test 
 
 ## Completion record
 
-- Verified commit: Pending
+- Verified implementation commit: `27203b5`
 - Automated evidence: `./scripts/check.sh` passed 17 Rust and 83 Swift tests plus Swift/Xcode Debug; frozen cross-display composition tests passed
-- Manual evidence: stable-signed Release light/dark/Reduce Motion captures reviewed at 8/8/8/7/7 under `artifacts/ui-review/task-018/`; real hover/video, physical multi-display, Esc, and memory checks pending
+- Manual evidence: stable-signed Release light/dark/Reduce Motion captures reviewed at 8/8/8/7/7 under `artifacts/ui-review/task-018/`; task closure accepted by project owner without claiming the remaining real-environment checks
 - Documentation updated: SPEC/IMPLEMENTATION/ACCEPTANCE/ARCHITECTURE/Task/STATUS synchronized
-- Remaining work promoted to: None; pending live acceptance remains in TASK-018
+- Remaining work promoted to: `BL-002` for real hover/video, display, cancellation/capture-failure, crop, and TCC evidence; `BL-003` for memory peak/recovery
 - Scope changes closed: Yes
 - Parallel contributions integrated: None

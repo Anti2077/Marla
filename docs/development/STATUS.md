@@ -6,7 +6,7 @@ Release target: 0.1.0 Alpha
 
 Overall state: In Progress — implementation baseline exists; live acceptance remains incomplete
 
-Active task: [TASK-018](../tasks/TASK-018-frozen-screenshot-selection.md) — 冻结全屏截图框选
+Active task: None
 
 Blocked tasks:
 
@@ -16,7 +16,7 @@ Blocked tasks:
 
 ## Current objective
 
-项目所有者确认不继续系统式虚拟指针路线，选择在 `Anti2077/screenshot-hover-preservation` 分支实现截图快捷键触发瞬间的全显示器内存冻结：框选层、未调暗选区、放大镜和最终 Vision 裁剪必须来自同一组静态帧，避免真实指针移动或 Marla 激活后丢失悬停界面。TASK-017 保留已实现原型并转为等待复验的 Blocked；TASK-016 与 TASK-013 继续保持 Blocked。
+当前没有 Active implementation Task。TASK-018 的全显示器冻结截图实现已由项目所有者结束并批准合入 `main`；未完成的真实悬停/视频、多显示器、取消/失败、裁剪与 TCC 证据保留在 BL-002，内存峰值与回落保留在 BL-003。TASK-017、TASK-016 与 TASK-013 继续保持 Blocked。
 
 ## Current implemented baseline
 
@@ -40,7 +40,7 @@ Blocked tasks:
 - Translation API profiles have persistent enabled states and only enabled profiles can be selected or invoked. The summary list uses native switches, a Set Default/Delete menu, accessibility move actions, and a trailing reorder handle. Settings content no longer moves the window; the newest fixed App uses a complete-row drag preview and 220ms animated hover reordering, pending owner confirmation of that final pointer feedback.
 - Project-scoped Serena 1.6.1 provides read-only Swift/Rust semantic navigation through Codex. A custom Context and fixed tool allowlist expose only nine retrieval/diagnostic tools; source edits, shell, project switching, onboarding, memories, Dashboard, and Headroom remain disabled.
 
-Implementation baseline commit: `88954bb`.
+Implementation baseline commit: `27203b5`.
 
 ## Release gaps
 
@@ -74,7 +74,7 @@ TASK-015 已完成；剩余发布矩阵继续保留在 BL-001，截图 `Esc` 与
 
 ## Latest verification
 
-- TASK-018 captures every active display before presenting selection windows, excludes Marla's own windows, redraws the background/undimmed selection/loupe from the same frozen frame set, and composites the final crop without a second live capture. Cross-display mixed-scale layout tests pass; `./scripts/check.sh` passes 17 Rust and 83 Swift tests plus Swift/Xcode Debug, and the stable-signed fixed Release passes packaging. Three 3420×2224 Release captures under `artifacts/ui-review/task-018/` cover light, dark, and Reduce Motion and score 8/8/8/7/7. Real hover/video, physical multi-display, real `Esc`, and memory recovery remain pending owner acceptance.
+- TASK-018 is complete at implementation commit `27203b5`. It captures every active display before presenting selection windows, excludes Marla's own windows, redraws the background/undimmed selection/loupe from the same frozen frame set, and composites the final crop without a second live capture. Cross-display mixed-scale layout tests pass; `./scripts/check.sh` passes 17 Rust and 83 Swift tests plus Swift/Xcode Debug, and the stable-signed fixed Release passes packaging. Three 3420×2224 Release captures under `artifacts/ui-review/task-018/` cover light, dark, and Reduce Motion and score 8/8/8/7/7. The project owner accepted Task closure; remaining real-environment evidence is tracked by BL-002/BL-003 rather than reported as verified.
 - TASK-017 live owner feedback invalidated the first prototype's missing-geometry behavior: the experiment toggle persisted, but the real shortcut still showed the original 380×300 result card because Copy compatibility returns no bounds. The repair now converts AX top-left coordinates to AppKit, places short single-line missing-bounds selections in a visibly labeled “附近” pointer-estimate bar, and keeps the complete card for multi-line, long, or unsafe input. `./scripts/check.sh` passes 17 Rust and 81 Swift tests plus Swift/Xcode Debug; the repaired stable-signed Release passes packaging, and new light/dark/Reduce Motion `inline-estimated` captures score 8/8/8/7/7. Project-owner re-verification of the real shortcut remains pending.
 - TASK-017's first prototype passes 17 Rust and 79 Swift tests plus the Swift/Xcode Debug build. New coverage verifies default-off persistence, eligible negative-coordinate placement, visible-frame clamping, missing/multi-line/tall/edge-crossing rejection, compact non-draggable panel styling, and terminal expand/close transitions. The stable-signed fixed Release App passed packaging verification; light, dark, and Reduce Motion `inline-streaming` captures are under `artifacts/ui-review/task-017/` and score 8/8/8/7/7 in the required five-dimension review. Real external-app selection geometry and focus preservation remain pending.
 - TASK-016's first live authorization test invalidated the `kSecMatchLimitAll` behavior claim. The follow-up uses one vault and one `LAContext`, but its first two Release packages respectively crashed from nil `NSApp` during construction and remained alive without an openable menu surface after adding a custom App Delegate plus early `NSApplication.shared` access. The final lifecycle repair removes both construction-time AppKit paths and listens only for `NSApplication.didFinishLaunchingNotification`. `./scripts/check.sh` passes 17 Rust and 74 Swift tests plus the Xcode Debug build; the stable-signed fixed Release App is valid, idles in the normal AppKit event loop, creates no new crash report, and successfully captures its complete built-in menu acceptance surface. Clean live authorization behavior remains unverified.

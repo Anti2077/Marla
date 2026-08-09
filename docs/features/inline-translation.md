@@ -24,18 +24,20 @@ Translate selected text in a nearby anchored card without unnecessarily activati
 ## Current implementation
 
 - Requests and reports macOS Accessibility trust.
-- Reads selected text from the focused Accessibility element or a bounded descendant tree without changing it.
-- Supports standard `AXSelectedText`/range attributes and Web Accessibility Text Marker attributes used by Electron editors such as VSCodium.
+- Reads selected text from the focused Accessibility element or a bounded descendant tree without changing it. The trigger-time frontmost application is fixed for the read. Candidate roots include the frontmost application's focused element/window, the identity-checked system-wide focused application, the system-wide focused element, and both application/system-wide pointer hits with a bounded ancestor path.
+- Probes standard `AXSelectedText`/range attributes and Web Accessibility Text Marker attributes used by Electron editors such as VSCodium even when an application omits those selection attributes or child attributes from its advertised `AXAttributeNames`; AX child arrays are accepted in both Swift and CFArray forms, and an empty range no longer prevents another non-empty mechanism from being evaluated.
+- Renderer/helper AX nodes are accepted only when they can be tied to the trigger-time frontmost application; the graph uses global deduplication, a 4,000-element limit, and a 250ms search budget.
+- When the user explicitly enables Copy compatibility, an AX miss falls back to a protected simulated `⌘C`: Marla snapshots every readable item/type/data representation, accepts only text after a new pasteboard change while the trigger-time source remains frontmost, and restores the snapshot on every exit path. The mode is off by default, never consumes an unchanged clipboard value, treats a repeated selection shortcut as cancellation, and skips restoration rather than overwriting a newer external clipboard write.
 - Requests global selection bounds through `AXBoundsForRange` or `AXBoundsForTextMarkerRange` when available.
 - Captures the frontmost application's display name and Bundle ID.
 - Presents the shared non-activating result card, streams the real Rust result, and preserves request-ID cancellation rules.
 
-A stable signed Xcode application bundle exists and has passed build, signature, and launch checks. A controlled VSCodium run exposed a remaining descendant/Text Marker lookup failure while the sentence was visibly selected. The latest build merges all relevant child collections, prioritizes text/WebArea nodes, and accepts attributed-string Text Marker output; automated checks pass, but the Mac locked before the final live retest. Terminal, Safari, TextEdit, focus preservation, and anchor placement remain manual acceptance gaps.
+A stable signed Xcode application bundle exists and has passed build, signature, and launch checks. The redacted audit compares complete pre/post pasteboard snapshots and reports only whether they match; it never serializes pasteboard or selected text. The project owner confirmed a formerly failing Codex selection plus clipboard restoration, confirmed a WeChat selection reached the real translation request, and accepted TASK-015 complete after observing a high success rate. The downstream `unauthorized` is a missing local profile credential, not a selection failure. Full Zen/Ghostty, Terminal, Safari, TextEdit, VSCodium, focus, and anchor evidence remains release work under BL-001.
 
 ## Degradation
 
 - If precise bounds are unavailable, use a nearby panel.
-- If Accessibility selection is unavailable, show an actionable message; clipboard simulation is deferred.
+- If Accessibility selection is unavailable and Copy compatibility is disabled, show an actionable message. When compatibility is enabled, a failed or unsafe clipboard transaction reports an actionable error and sends no translation request.
 - If the source application scrolls, moves, or loses focus, dismiss an unpinned overlay.
 
 ## Acceptance criteria
@@ -51,6 +53,6 @@ A stable signed Xcode application bundle exists and has passed build, signature,
 - modifying source text;
 - covering source text in place in 0.1.0;
 - collecting nearby text or window-title context in 0.1.0;
-- clipboard-copy simulation;
+- automatic clipboard-copy simulation when the compatibility mode is disabled;
 - browser DOM rewriting;
 - guaranteed live tracking during scrolling.

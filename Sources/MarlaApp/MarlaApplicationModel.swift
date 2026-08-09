@@ -170,6 +170,9 @@ final class MarlaSettingsStore: ObservableObject {
     @Published var forceTouchExperimental: Bool {
         didSet { defaults.set(forceTouchExperimental, forKey: Keys.forceTouch) }
     }
+    @Published var selectionCopyFallbackEnabled: Bool {
+        didSet { defaults.set(selectionCopyFallbackEnabled, forKey: Keys.selectionCopyFallback) }
+    }
     @Published private(set) var credentialRevision = 0
     @Published private(set) var onboardingSkipped: Bool
 
@@ -184,6 +187,7 @@ final class MarlaSettingsStore: ObservableObject {
         static let targetMode = "translationTargetMode"
         static let targetLanguage = "translationTargetLanguage"
         static let forceTouch = "forceTouchExperimental"
+        static let selectionCopyFallback = "selectionCopyFallbackEnabled"
         static let onboardingSkipped = "onboardingSkipped"
     }
 
@@ -215,6 +219,7 @@ final class MarlaSettingsStore: ObservableObject {
         let mode = TranslationTargetMode(rawValue: defaults.string(forKey: Keys.targetMode) ?? "automatic") ?? .automatic
         defaultTarget = TranslationTarget(mode: mode, language: defaults.string(forKey: Keys.targetLanguage))
         forceTouchExperimental = defaults.bool(forKey: Keys.forceTouch)
+        selectionCopyFallbackEnabled = defaults.bool(forKey: Keys.selectionCopyFallback)
         onboardingSkipped = defaults.bool(forKey: Keys.onboardingSkipped)
         saveProfiles()
         saveDefaultProfileID()
@@ -1444,7 +1449,8 @@ final class ScreenshotCaptureCoordinator: ScreenshotCapturing {
                 contentRect: screen.frame,
                 styleMask: .borderless,
                 backing: .buffered,
-                defer: false
+                defer: false,
+                onCancel: { [weak session] in session?.cancel() }
             )
             window.isOpaque = false
             window.backgroundColor = .clear
@@ -1566,6 +1572,8 @@ final class ScreenshotCaptureCoordinator: ScreenshotCapturing {
 final class ScreenshotEscapeMonitor {
     private var localMonitor: Any?
     private var globalMonitor: Any?
+    private var eventTap: CFMachPort?
+    private var eventTapSource: CFRunLoopSource?
     private let onEscape: () -> Void
 
     init(onEscape: @escaping () -> Void) {
@@ -1573,7 +1581,11 @@ final class ScreenshotEscapeMonitor {
     }
 
     var isInstalled: Bool {
-        localMonitor != nil || globalMonitor != nil
+        localMonitor != nil || globalMonitor != nil || eventTap != nil
+    }
+
+    var hasEventTap: Bool {
+        eventTap != nil
     }
 
     func install() {
@@ -1587,6 +1599,7 @@ final class ScreenshotEscapeMonitor {
                 self?.onEscape()
             }
         }
+        installEventTap()
     }
 
     func remove() {
@@ -1597,6 +1610,15 @@ final class ScreenshotEscapeMonitor {
         if let globalMonitor {
             NSEvent.removeMonitor(globalMonitor)
             self.globalMonitor = nil
+        }
+        if let eventTapSource {
+            CFRunLoopRemoveSource(CFRunLoopGetMain(), eventTapSource, .commonModes)
+            self.eventTapSource = nil
+        }
+        if let eventTap {
+            CGEvent.tapEnable(tap: eventTap, enable: false)
+            CFMachPortInvalidate(eventTap)
+            self.eventTap = nil
         }
     }
 
@@ -1611,14 +1633,123 @@ final class ScreenshotEscapeMonitor {
         onEscape()
     }
 
-    static func isCancelKeyCode(_ keyCode: UInt16) -> Bool {
+    func handleEventTapEscape() {
+        onEscape()
+    }
+
+    nonisolated static func isCancelKeyCode(_ keyCode: UInt16) -> Bool {
         keyCode == 53
+    }
+
+    func reenableEventTap() {
+        guard let eventTap else { return }
+        CGEvent.tapEnable(tap: eventTap, enable: true)
+    }
+
+    private func installEventTap() {
+        let keyDownMask = CGEventMask(1) << CGEventType.keyDown.rawValue
+        let userInfo = Unmanaged.passUnretained(self).toOpaque()
+        // A default tap can be denied when Marla is allowed to listen but not
+        // suppress system keyboard events.  A listen-only tap still gives us a
+        // process-independent Escape notification; local/global monitors remain
+        // responsible for consuming it when AppKit owns the event.
+        let eventTap = CGEvent.tapCreate(
+            tap: .cgSessionEventTap,
+            place: .headInsertEventTap,
+            options: .defaultTap,
+            eventsOfInterest: keyDownMask,
+            callback: handleScreenshotEscapeEventTap,
+            userInfo: userInfo
+        ) ?? CGEvent.tapCreate(
+            tap: .cgSessionEventTap,
+            place: .headInsertEventTap,
+            options: .listenOnly,
+            eventsOfInterest: keyDownMask,
+            callback: handleScreenshotEscapeEventTap,
+            userInfo: userInfo
+        )
+        guard let eventTap else { return }
+        guard let source = CFMachPortCreateRunLoopSource(nil, eventTap, 0) else {
+            CFMachPortInvalidate(eventTap)
+            return
+        }
+        self.eventTap = eventTap
+        eventTapSource = source
+        CFRunLoopAddSource(CFRunLoopGetMain(), source, .commonModes)
+        CGEvent.tapEnable(tap: eventTap, enable: true)
     }
 }
 
+private func handleScreenshotEscapeEventTap(
+    _ proxy: CGEventTapProxy,
+    _ type: CGEventType,
+    _ event: CGEvent,
+    _ userData: UnsafeMutableRawPointer?
+) -> Unmanaged<CGEvent>? {
+    guard let userData else { return Unmanaged.passUnretained(event) }
+    let monitor = Unmanaged<ScreenshotEscapeMonitor>.fromOpaque(userData).takeUnretainedValue()
+    if type == .tapDisabledByTimeout || type == .tapDisabledByUserInput {
+        Task { @MainActor in monitor.reenableEventTap() }
+        return Unmanaged.passUnretained(event)
+    }
+    guard type == .keyDown,
+          ScreenshotEscapeMonitor.isCancelKeyCode(
+              UInt16(event.getIntegerValueField(.keyboardEventKeycode))
+          )
+    else { return Unmanaged.passUnretained(event) }
+    Task { @MainActor in monitor.handleEventTapEscape() }
+    return nil
+}
+
 final class ScreenshotSelectionWindow: NSWindow {
+    private let onCancel: () -> Void
+
+    init(
+        contentRect: NSRect,
+        styleMask style: NSWindow.StyleMask,
+        backing backingStoreType: NSWindow.BackingStoreType,
+        defer flag: Bool,
+        onCancel: @escaping () -> Void = {}
+    ) {
+        self.onCancel = onCancel
+        super.init(
+            contentRect: contentRect,
+            styleMask: style,
+            backing: backingStoreType,
+            defer: flag
+        )
+    }
+
     override var canBecomeKey: Bool { true }
     override var canBecomeMain: Bool { false }
+
+    // AppKit can route Escape as a key equivalent or cancelOperation rather
+    // than delivering keyDown to the content view. Keep a window-owned path
+    // so cancellation does not depend on first-responder identity.
+    override func performKeyEquivalent(with event: NSEvent) -> Bool {
+        guard ScreenshotEscapeMonitor.isCancelKeyCode(event.keyCode) else {
+            return super.performKeyEquivalent(with: event)
+        }
+        onCancel()
+        return true
+    }
+
+    // A borderless overlay can receive the key event through NSWindow's
+    // dispatch path without ever asking the first responder to handle it.
+    // Catch Escape here as well so cancellation remains independent of the
+    // hosted SwiftUI view and of AppKit key-equivalent routing details.
+    override func sendEvent(_ event: NSEvent) {
+        if event.type == .keyDown,
+           ScreenshotEscapeMonitor.isCancelKeyCode(event.keyCode) {
+            onCancel()
+            return
+        }
+        super.sendEvent(event)
+    }
+
+    override func cancelOperation(_ sender: Any?) {
+        onCancel()
+    }
 }
 
 enum ScreenCaptureGeometry {
@@ -2054,11 +2185,33 @@ final class VisionOCRService: VisionOCRProviding {
 }
 
 @MainActor
+private final class SelectionReadCancellation {
+    private(set) var isCancelled = false
+
+    func cancel() {
+        isCancelled = true
+    }
+}
+
+@MainActor
 final class MarlaApplicationModel: ObservableObject {
     enum SelectionProbeResult: Equatable {
         case idle
         case success(text: String, hasBounds: Bool, applicationName: String?, surface: SurfaceType)
         case failure(message: String)
+    }
+
+    struct SelectionUIAutomationReport: Codable, Equatable {
+        let result: String
+        let errorCode: String?
+        let textUTF16Length: Int?
+        let hasBounds: Bool?
+        let sourceApplicationBundleID: String?
+        let frontmostApplicationBundleIDAfterPresentation: String?
+        let focusPreserved: Bool?
+        let clipboardChangeCountDelta: Int
+        let clipboardPreserved: Bool?
+        let diagnostics: SelectionReadDiagnostics?
     }
 
     @Published private(set) var accessibilityTrusted = false
@@ -2075,6 +2228,7 @@ final class MarlaApplicationModel: ObservableObject {
     let settingsWindowCoordinator = MarlaSettingsWindowCoordinator()
 
     private let selectionReader: AccessibilitySelectionReader
+    private var activeSelectionReadCancellation: SelectionReadCancellation?
 
     init(
         selectionReader: AccessibilitySelectionReader = AccessibilitySelectionReader(),
@@ -2126,7 +2280,32 @@ final class MarlaApplicationModel: ObservableObject {
     }
 
     func translateSelection() {
+        if let activeSelectionReadCancellation {
+            activeSelectionReadCancellation.cancel()
+            return
+        }
+        let readCancellation = SelectionReadCancellation()
+        activeSelectionReadCancellation = readCancellation
+        defer {
+            if activeSelectionReadCancellation === readCancellation {
+                activeSelectionReadCancellation = nil
+            }
+        }
+
         let pointer = NSEvent.mouseLocation
+        let triggerApplication = NSWorkspace.shared.frontmostApplication
+        if ProcessInfo.processInfo.environment["MARLA_UI_TEST_SCENARIO"] == "selection-live" {
+            // Live acceptance arms this mode at launch and samples only when
+            // the owner deliberately presses the real selection shortcut after
+            // making a visible selection. It never presents a card or starts a
+            // translation request.
+            runSelectionUIAutomationAudit(
+                triggerApplication: triggerApplication,
+                isCancelled: { readCancellation.isCancelled }
+            )
+            return
+        }
+        let selectionAudit = selectionUIAutomationAuditIfRequested()
         guard accessibilityTrusted else {
             showPermissionError(
                 "划词翻译需要辅助功能权限。",
@@ -2134,13 +2313,27 @@ final class MarlaApplicationModel: ObservableObject {
                 pointer: pointer,
                 recovery: .openAccessibilitySettings
             )
+            scheduleSelectionUIAutomationReport(
+                selection: nil,
+                error: .accessibilityPermissionRequired,
+                audit: selectionAudit
+            )
             return
         }
         do {
-            let selection = try selectionReader.readSelection()
+            let selection = try selectionReader.readSelection(
+                from: triggerApplication,
+                allowCopyFallback: settings.selectionCopyFallbackEnabled,
+                isCancelled: { readCancellation.isCancelled }
+            )
             sessionStore.startText(selection.text, surface: .selection, anchor: selection.bounds, pointer: pointer)
             panelCoordinator.showResult(store: sessionStore, at: selection.bounds, pointer: pointer, activate: false)
+            scheduleSelectionUIAutomationReport(selection: selection, error: nil, audit: selectionAudit)
         } catch let error as SelectionReadingError {
+            if error == .selectionCancelled {
+                scheduleSelectionUIAutomationReport(selection: nil, error: error, audit: selectionAudit)
+                return
+            }
             sessionStore.startText("", surface: .selection, anchor: nil, pointer: pointer)
             sessionStore.fail(
                 message(for: error),
@@ -2148,6 +2341,7 @@ final class MarlaApplicationModel: ObservableObject {
                 recovery: recovery(for: error)
             )
             panelCoordinator.showResult(store: sessionStore, at: nil, pointer: pointer, activate: false)
+            scheduleSelectionUIAutomationReport(selection: nil, error: error, audit: selectionAudit)
         } catch {
             showPermissionError(
                 "暂时无法读取当前选区。",
@@ -2155,6 +2349,108 @@ final class MarlaApplicationModel: ObservableObject {
                 pointer: pointer,
                 recovery: .quickInput
             )
+            scheduleSelectionUIAutomationReport(selection: nil, error: nil, audit: selectionAudit)
+        }
+    }
+
+    private struct SelectionUIAutomationAudit {
+        let reportURL: URL
+        let sourceApplication: NSRunningApplication?
+        let sourceApplicationBundleID: String?
+        let clipboardChangeCount: Int
+        let clipboardSnapshot: PasteboardSnapshot?
+    }
+
+    private func selectionUIAutomationAuditIfRequested() -> SelectionUIAutomationAudit? {
+        guard let path = ProcessInfo.processInfo.environment["MARLA_UI_TEST_SELECTION_REPORT_PATH"],
+              !path.isEmpty
+        else { return nil }
+        let sourceApplication = NSWorkspace.shared.frontmostApplication
+        return SelectionUIAutomationAudit(
+            reportURL: URL(fileURLWithPath: path),
+            sourceApplication: sourceApplication,
+            sourceApplicationBundleID: sourceApplication?.bundleIdentifier,
+            clipboardChangeCount: NSPasteboard.general.changeCount,
+            clipboardSnapshot: try? PasteboardSnapshot.capture(from: .general)
+        )
+    }
+
+    private func runSelectionUIAutomationAudit(
+        triggerApplication: NSRunningApplication? = nil,
+        isCancelled: () -> Bool = { false }
+    ) {
+        guard let audit = selectionUIAutomationAuditIfRequested() else { return }
+        guard accessibilityTrusted else {
+            scheduleSelectionUIAutomationReport(
+                selection: nil,
+                error: .accessibilityPermissionRequired,
+                audit: audit
+            )
+            return
+        }
+
+        do {
+            let selection = try selectionReader.readSelection(
+                from: triggerApplication ?? audit.sourceApplication,
+                allowCopyFallback: settings.selectionCopyFallbackEnabled,
+                isCancelled: isCancelled
+            )
+            scheduleSelectionUIAutomationReport(selection: selection, error: nil, audit: audit)
+        } catch let error as SelectionReadingError {
+            scheduleSelectionUIAutomationReport(selection: nil, error: error, audit: audit)
+        } catch {
+            scheduleSelectionUIAutomationReport(selection: nil, error: nil, audit: audit)
+        }
+    }
+
+    private func scheduleSelectionUIAutomationReport(
+        selection: MarlaCore.TextSelection?,
+        error: SelectionReadingError?,
+        audit: SelectionUIAutomationAudit?
+    ) {
+        guard let audit else { return }
+        let diagnostics = selectionReader.lastDiagnostics
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+            let frontmostBundleID = NSWorkspace.shared.frontmostApplication?.bundleIdentifier
+            let finalClipboardSnapshot = try? PasteboardSnapshot.capture(from: .general)
+            let clipboardPreserved: Bool?
+            if let initialClipboardSnapshot = audit.clipboardSnapshot,
+               let finalClipboardSnapshot {
+                clipboardPreserved = initialClipboardSnapshot == finalClipboardSnapshot
+            } else {
+                clipboardPreserved = nil
+            }
+            let report = SelectionUIAutomationReport(
+                result: selection == nil ? "failure" : "success",
+                errorCode: error.map(Self.selectionErrorCode),
+                textUTF16Length: selection?.text.utf16.count,
+                hasBounds: selection.map { $0.bounds != nil },
+                sourceApplicationBundleID: selection?.applicationBundleID ?? audit.sourceApplicationBundleID,
+                frontmostApplicationBundleIDAfterPresentation: frontmostBundleID,
+                focusPreserved: audit.sourceApplicationBundleID.map { $0 == frontmostBundleID },
+                clipboardChangeCountDelta: NSPasteboard.general.changeCount - audit.clipboardChangeCount,
+                clipboardPreserved: clipboardPreserved,
+                diagnostics: diagnostics
+            )
+            let encoder = JSONEncoder()
+            encoder.outputFormatting = [.prettyPrinted, .sortedKeys, .withoutEscapingSlashes]
+            guard let data = try? encoder.encode(report) else { return }
+            try? data.write(to: audit.reportURL, options: .atomic)
+        }
+    }
+
+    private static func selectionErrorCode(_ error: SelectionReadingError) -> String {
+        switch error {
+        case .accessibilityPermissionRequired: "accessibilityPermissionRequired"
+        case .focusedElementUnavailable: "focusedElementUnavailable"
+        case .selectedTextUnavailable: "selectedTextUnavailable"
+        case .emptySelection: "emptySelection"
+        case .selectionSearchLimitReached: "selectionSearchLimitReached"
+        case .selectionSearchTimedOut: "selectionSearchTimedOut"
+        case .selectionCancelled: "selectionCancelled"
+        case .copyFallbackUnavailable: "copyFallbackUnavailable"
+        case .copyFallbackTimedOut: "copyFallbackTimedOut"
+        case .clipboardRestoreFailed: "clipboardRestoreFailed"
         }
     }
 
@@ -2338,12 +2634,17 @@ final class MarlaApplicationModel: ObservableObject {
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) { [weak self] in
                 self?.translateScreenshot()
             }
-        case "selection-live":
+        case "selection-audit":
             let selectionDelay = ProcessInfo.processInfo.environment["MARLA_UI_TEST_SELECTION_DELAY"]
                 .flatMap(Double.init) ?? 0
             DispatchQueue.main.asyncAfter(deadline: .now() + max(0, selectionDelay)) { [weak self] in
-                self?.translateSelection()
+                // Acceptance sampling must never present UI or send selected text to a provider.
+                self?.runSelectionUIAutomationAudit()
             }
+        case "selection-live":
+            // Unlike the one-shot audit, live mode waits for the real
+            // ⌃⌥D shortcut so the owner can select text after launch.
+            break
         case "translation-live":
             sessionStore.startText(
                 "Hello",
@@ -2459,7 +2760,10 @@ final class MarlaApplicationModel: ObservableObject {
 
     func probeCurrentSelection() {
         do {
-            let selection = try selectionReader.readSelection()
+            let selection = try selectionReader.readSelection(
+                from: NSWorkspace.shared.frontmostApplication,
+                allowCopyFallback: settings.selectionCopyFallbackEnabled
+            )
             selectionProbeResult = .success(
                 text: selection.text,
                 hasBounds: selection.bounds != nil,
@@ -2496,7 +2800,15 @@ final class MarlaApplicationModel: ObservableObject {
         switch error {
         case .accessibilityPermissionRequired:
             .openAccessibilitySettings
-        case .focusedElementUnavailable, .selectedTextUnavailable, .emptySelection:
+        case .focusedElementUnavailable,
+             .selectedTextUnavailable,
+             .emptySelection,
+             .selectionSearchLimitReached,
+             .selectionSearchTimedOut,
+             .selectionCancelled,
+             .copyFallbackUnavailable,
+             .copyFallbackTimedOut,
+             .clipboardRestoreFailed:
             .quickInput
         }
     }
@@ -2507,6 +2819,12 @@ final class MarlaApplicationModel: ObservableObject {
         case .focusedElementUnavailable: "无法读取当前聚焦的界面元素。"
         case .selectedTextUnavailable: "当前应用没有提供可读取的选中文本。"
         case .emptySelection: "当前没有选中文字。试试 ⌃⌥Space 快速输入。"
+        case .selectionSearchLimitReached: "当前应用的选区结构过于复杂，读取已安全停止。"
+        case .selectionSearchTimedOut: "当前应用响应选区读取超时，请重试或使用快速输入。"
+        case .selectionCancelled: "已取消本次兼容取词。"
+        case .copyFallbackUnavailable: "兼容取词没有取得新的选区文本，请重试或使用快速输入。"
+        case .copyFallbackTimedOut: "兼容取词等待应用响应超时，请重试或使用快速输入。"
+        case .clipboardRestoreFailed: "兼容取词未能安全恢复剪贴板，已停止翻译请求。"
         }
     }
 }

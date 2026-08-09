@@ -2,8 +2,200 @@ import AppKit
 import ApplicationServices
 import MarlaCore
 
+enum SelectionMechanism: String, Codable, Equatable {
+    case directText
+    case standardRange
+    case textMarker
+    case simulatedCopy
+}
+
+enum SelectionTextLookup: Equatable {
+    case found(String, SelectionMechanism)
+    case empty
+    case unavailable
+}
+
+enum SelectionSearchTermination: String, Codable, Equatable {
+    case found
+    case exhausted
+    case elementLimit
+    case timeLimit
+}
+
+enum SelectionGraphLookup<Node> {
+    case found(String, SelectionMechanism, Node)
+    case empty
+    case unavailable
+}
+
+struct SelectionSearchOutcome<Node> {
+    let lookup: SelectionGraphLookup<Node>
+    let visitedElementCount: Int
+    let termination: SelectionSearchTermination
+}
+
+struct SelectionGraphSearch {
+    static func find<Node: Hashable>(
+        roots: [Node],
+        maximumElements: Int,
+        hasTimeRemaining: () -> Bool,
+        selection: (Node) -> SelectionTextLookup,
+        children: (Node) -> [Node]
+    ) -> SelectionSearchOutcome<Node> {
+        var queue: [Node] = []
+        var enqueued = Set<Node>()
+        var nextIndex = 0
+        var visitedElementCount = 0
+        var observedEmptySelection = false
+        var deferredRoots: [Node] = []
+
+        func enqueue(_ nodes: [Node]) {
+            for node in nodes where enqueued.insert(node).inserted {
+                queue.append(node)
+            }
+        }
+
+        enqueue(roots)
+        let initialRootCount = queue.count
+
+        while nextIndex < queue.count {
+            guard visitedElementCount < maximumElements else {
+                return SelectionSearchOutcome(
+                    lookup: .unavailable,
+                    visitedElementCount: visitedElementCount,
+                    termination: .elementLimit
+                )
+            }
+            guard hasTimeRemaining() else {
+                return SelectionSearchOutcome(
+                    lookup: .unavailable,
+                    visitedElementCount: visitedElementCount,
+                    termination: .timeLimit
+                )
+            }
+
+            let node = queue[nextIndex]
+            nextIndex += 1
+            visitedElementCount += 1
+
+            switch selection(node) {
+            case let .found(text, mechanism):
+                return SelectionSearchOutcome(
+                    lookup: .found(text, mechanism, node),
+                    visitedElementCount: visitedElementCount,
+                    termination: .found
+                )
+            case .empty:
+                observedEmptySelection = true
+            case .unavailable:
+                break
+            }
+
+            // Probe every focused/pointer/window root before expanding any one large AX subtree.
+            // Electron and custom browser trees often expose the selection on an ancestor while
+            // the first hit node owns thousands of unrelated descendants.
+            if nextIndex < initialRootCount {
+                deferredRoots.append(node)
+                continue
+            }
+            if !deferredRoots.isEmpty {
+                deferredRoots.forEach { enqueue(children($0)) }
+                deferredRoots.removeAll(keepingCapacity: true)
+            }
+            enqueue(children(node))
+        }
+
+        return SelectionSearchOutcome(
+            lookup: observedEmptySelection ? .empty : .unavailable,
+            visitedElementCount: visitedElementCount,
+            termination: .exhausted
+        )
+    }
+}
+
+struct SelectionCandidateRoots {
+    static func merge<Node: Hashable>(_ groups: [[Node]]) -> [Node] {
+        var seen = Set<Node>()
+        return groups.flatMap { group in
+            group.filter { seen.insert($0).inserted }
+        }
+    }
+}
+
+struct SelectionReadDiagnostics: Codable, Equatable {
+    let rootCount: Int
+    let hadFocusedCandidate: Bool
+    let hadPointerCandidate: Bool
+    let rawPointerHitCount: Int
+    let hadSystemFocusedElement: Bool
+    let hadApplicationFocusedElement: Bool
+    let hadFocusedWindow: Bool
+    let systemFocusedApplicationMatched: Bool
+    let visitedElementCount: Int
+    let termination: SelectionSearchTermination
+    let matchedMechanism: SelectionMechanism?
+    let elapsedMilliseconds: Int
+    let copyFallbackAttempted: Bool
+    let copyFallbackStatus: ClipboardRestoreStatus
+
+    init(
+        rootCount: Int,
+        hadFocusedCandidate: Bool,
+        hadPointerCandidate: Bool,
+        rawPointerHitCount: Int,
+        hadSystemFocusedElement: Bool,
+        hadApplicationFocusedElement: Bool,
+        hadFocusedWindow: Bool,
+        systemFocusedApplicationMatched: Bool,
+        visitedElementCount: Int,
+        termination: SelectionSearchTermination,
+        matchedMechanism: SelectionMechanism?,
+        elapsedMilliseconds: Int,
+        copyFallbackAttempted: Bool = false,
+        copyFallbackStatus: ClipboardRestoreStatus = .notAttempted
+    ) {
+        self.rootCount = rootCount
+        self.hadFocusedCandidate = hadFocusedCandidate
+        self.hadPointerCandidate = hadPointerCandidate
+        self.rawPointerHitCount = rawPointerHitCount
+        self.hadSystemFocusedElement = hadSystemFocusedElement
+        self.hadApplicationFocusedElement = hadApplicationFocusedElement
+        self.hadFocusedWindow = hadFocusedWindow
+        self.systemFocusedApplicationMatched = systemFocusedApplicationMatched
+        self.visitedElementCount = visitedElementCount
+        self.termination = termination
+        self.matchedMechanism = matchedMechanism
+        self.elapsedMilliseconds = elapsedMilliseconds
+        self.copyFallbackAttempted = copyFallbackAttempted
+        self.copyFallbackStatus = copyFallbackStatus
+    }
+}
+
 @MainActor
 final class AccessibilitySelectionReader: SelectionReader {
+    private struct AXNode: Hashable {
+        let element: AXUIElement
+
+        static func == (lhs: AXNode, rhs: AXNode) -> Bool {
+            CFEqual(lhs.element, rhs.element)
+        }
+
+        func hash(into hasher: inout Hasher) {
+            hasher.combine(CFHash(element))
+        }
+    }
+
+    private static let maximumElements = 4_000
+    private static let searchTimeLimit: TimeInterval = 0.25
+    private static let applicationMessageTimeout: Float = 0.1
+
+    private let copyFallback: ClipboardSelectionFallback
+    private(set) var lastDiagnostics: SelectionReadDiagnostics?
+
+    init(copyFallback: ClipboardSelectionFallback = ClipboardSelectionFallback()) {
+        self.copyFallback = copyFallback
+    }
+
     var isTrusted: Bool {
         AXIsProcessTrusted()
     }
@@ -18,29 +210,200 @@ final class AccessibilitySelectionReader: SelectionReader {
     }
 
     func readSelection() throws -> TextSelection {
+        try readSelection(from: nil)
+    }
+
+    /// Reads against the application captured at the shortcut trigger. A
+    /// Carbon hot-key callback is delivered to Marla asynchronously; relying
+    /// on a later `frontmostApplication` lookup can otherwise bind the AX
+    /// search to Marla itself after AppKit has processed the event.
+    func readSelection(
+        from triggerApplication: NSRunningApplication?,
+        allowCopyFallback: Bool = false,
+        isCancelled: () -> Bool = { false }
+    ) throws -> TextSelection {
         guard isTrusted else {
+            lastDiagnostics = nil
             throw SelectionReadingError.accessibilityPermissionRequired
         }
 
-        let application = NSWorkspace.shared.frontmostApplication
-        let systemWideElement = AXUIElementCreateSystemWide()
-        guard let focusedElement = copyFocusedElement(from: systemWideElement) else {
+        guard let application = triggerApplication ?? NSWorkspace.shared.frontmostApplication else {
+            lastDiagnostics = nil
             throw SelectionReadingError.focusedElementUnavailable
         }
 
-        let lookup = findSelection(startingAt: focusedElement)
-        guard case let .found(selectedText, selectedElement) = lookup else {
-            if case .empty = lookup {
+        let startedAt = ProcessInfo.processInfo.systemUptime
+        let systemWideElement = AXUIElementCreateSystemWide()
+        let applicationElement = AXUIElementCreateApplication(application.processIdentifier)
+        AXUIElementSetMessagingTimeout(applicationElement, Self.applicationMessageTimeout)
+
+        // `AXUIElementCopyElementAtPosition` is implemented inconsistently by
+        // Electron and custom AppKit clients.  Some return a hit only when the
+        // application element is used; others expose the renderer through the
+        // system-wide element.  Probe both handles and merge the ancestor paths
+        // before traversing the graph.  The trigger has already captured the
+        // frontmost application, so this remains bounded to the pointer location
+        // and never becomes a nearby-text scan.
+        let pointerHitGroups: [[AXNode]] = [
+            copyElementAtPointer(from: applicationElement).map { [AXNode(element: $0)] } ?? [],
+            copyElementAtPointer(from: systemWideElement).map { [AXNode(element: $0)] } ?? []
+        ]
+        let pointerHits = SelectionCandidateRoots.merge(pointerHitGroups).map(\.element)
+        let pointerCandidates = pointerHits.flatMap {
+            elementAndAncestors(
+                startingAt: $0,
+                maximumCount: 16
+            )
+        }
+
+        let systemFocusedApplication = copyElementAttribute(
+            kAXFocusedApplicationAttribute as CFString,
+            from: systemWideElement
+        )
+        let systemFocusedApplicationMatches = systemFocusedApplication.map {
+            elementBelongsToApplication($0, application: application)
+        } ?? false
+        let rawSystemFocusedElement = copyElementAttribute(
+            kAXFocusedUIElementAttribute as CFString,
+            from: systemWideElement
+        )
+        let systemFocusedElement = rawSystemFocusedElement.flatMap {
+            // Renderer/helper processes can own the focused AX node while the
+            // focused application element still belongs to the frontmost app.
+            // The old exact-PID check rejected that valid path (notably Codex).
+            elementBelongsToApplication($0, application: application) || systemFocusedApplicationMatches
+                ? $0
+                : nil
+        }
+        let applicationFocusedElement = copyElementAttribute(
+            kAXFocusedUIElementAttribute as CFString,
+            from: applicationElement
+        )
+        let focusedWindow = copyElementAttribute(
+            kAXFocusedWindowAttribute as CFString,
+            from: applicationElement
+        )
+        let windowFocusedElement = focusedWindow.flatMap {
+            copyElementAttribute(kAXFocusedUIElementAttribute as CFString, from: $0)
+        }
+        let focusedCandidates = [systemFocusedElement, applicationFocusedElement, windowFocusedElement]
+            .compactMap { $0 }
+        let focusedApplicationRoots: [AXNode] = systemFocusedApplicationMatches
+            ? systemFocusedApplication.map { AXNode(element: $0) }.map { [$0] } ?? []
+            : []
+        let roots = SelectionCandidateRoots.merge([
+            pointerCandidates.map(AXNode.init),
+            focusedCandidates.map(AXNode.init),
+            // Some renderer/helper processes expose the focused application as
+            // a separate AX root. Keep it when LaunchServices ties that root
+            // to the trigger-time frontmost application; otherwise a valid
+            // selection can sit outside the main application's AX subtree.
+            focusedApplicationRoots,
+            [focusedWindow, applicationElement].compactMap { $0 }.map(AXNode.init)
+        ])
+
+        let outcome = SelectionGraphSearch.find(
+            roots: roots,
+            maximumElements: Self.maximumElements,
+            hasTimeRemaining: {
+                ProcessInfo.processInfo.systemUptime - startedAt < Self.searchTimeLimit
+            },
+            selection: { [self] node in selectionText(from: node.element) },
+            children: { [self] node in childElements(from: node.element).map(AXNode.init) }
+        )
+        lastDiagnostics = SelectionReadDiagnostics(
+            rootCount: Set(roots).count,
+            hadFocusedCandidate: !focusedCandidates.isEmpty,
+            hadPointerCandidate: !pointerCandidates.isEmpty,
+            rawPointerHitCount: pointerHits.count,
+            hadSystemFocusedElement: rawSystemFocusedElement != nil,
+            hadApplicationFocusedElement: applicationFocusedElement != nil,
+            hadFocusedWindow: focusedWindow != nil,
+            systemFocusedApplicationMatched: systemFocusedApplicationMatches,
+            visitedElementCount: outcome.visitedElementCount,
+            termination: outcome.termination,
+            matchedMechanism: {
+                guard case let .found(_, mechanism, _) = outcome.lookup else { return nil }
+                return mechanism
+            }(),
+            elapsedMilliseconds: Int((ProcessInfo.processInfo.systemUptime - startedAt) * 1_000)
+        )
+
+        if allowCopyFallback {
+            if case .found = outcome.lookup {
+                // Accessibility already found a selection; do not touch the clipboard.
+            } else {
+                do {
+                    let fallback = try copyFallback.readSelection(
+                        from: application,
+                        isCancelled: isCancelled
+                    )
+                    updateCopyFallbackDiagnostics(
+                        status: fallback.restoreStatus,
+                        matched: true,
+                        startedAt: startedAt
+                    )
+                    return fallback.selection
+                } catch let error as ClipboardSelectionFallbackError {
+                    updateCopyFallbackDiagnostics(
+                        status: copyFallback.lastRestoreStatus,
+                        matched: false,
+                        startedAt: startedAt
+                    )
+                    switch error {
+                    case .timedOut:
+                        throw SelectionReadingError.copyFallbackTimedOut
+                    case .restoreFailed:
+                        throw SelectionReadingError.clipboardRestoreFailed
+                    case .cancelled:
+                        throw SelectionReadingError.selectionCancelled
+                    case .sourceApplicationChanged,
+                         .snapshotUnavailable,
+                         .copyEventUnavailable,
+                         .clipboardChangedDuringCopy,
+                         .selectedTextUnavailable:
+                        throw SelectionReadingError.copyFallbackUnavailable
+                    }
+                }
+            }
+        }
+
+        guard case let .found(selectedText, mechanism, selectedNode) = outcome.lookup else {
+            switch outcome.termination {
+            case .elementLimit:
+                throw SelectionReadingError.selectionSearchLimitReached
+            case .timeLimit:
+                throw SelectionReadingError.selectionSearchTimedOut
+            case .found:
+                assertionFailure("A found search must contain a selected node")
+                throw SelectionReadingError.selectedTextUnavailable
+            case .exhausted:
+                break
+            }
+            if case .empty = outcome.lookup {
+                // A pointer-only path is useful for custom-rendered surfaces,
+                // but an empty value there does not prove that the application
+                // exposed a real focused selection. Keep that failure distinct
+                // from an explicitly empty range on a focused AX element.
+                if focusedCandidates.isEmpty {
+                    throw SelectionReadingError.selectedTextUnavailable
+                }
                 throw SelectionReadingError.emptySelection
+            }
+            if focusedCandidates.isEmpty {
+                if pointerCandidates.isEmpty {
+                    throw SelectionReadingError.focusedElementUnavailable
+                }
+                throw SelectionReadingError.selectedTextUnavailable
             }
             throw SelectionReadingError.selectedTextUnavailable
         }
 
         let selection = TextSelection(
             text: selectedText,
-            bounds: copySelectionBounds(from: selectedElement),
-            applicationBundleID: application?.bundleIdentifier,
-            applicationName: application?.localizedName
+            bounds: copySelectionBounds(from: selectedNode.element, preferred: mechanism),
+            applicationBundleID: application.bundleIdentifier,
+            applicationName: application.localizedName
         )
 
         guard selection.hasVisibleText else {
@@ -50,165 +413,242 @@ final class AccessibilitySelectionReader: SelectionReader {
         return selection
     }
 
-    private func copyFocusedElement(from systemWideElement: AXUIElement) -> AXUIElement? {
-        var value: CFTypeRef?
-        let result = AXUIElementCopyAttributeValue(
-            systemWideElement,
-            kAXFocusedUIElementAttribute as CFString,
-            &value
+    private func updateCopyFallbackDiagnostics(
+        status: ClipboardRestoreStatus,
+        matched: Bool,
+        startedAt: TimeInterval
+    ) {
+        guard let diagnostics = lastDiagnostics else { return }
+        lastDiagnostics = SelectionReadDiagnostics(
+            rootCount: diagnostics.rootCount,
+            hadFocusedCandidate: diagnostics.hadFocusedCandidate,
+            hadPointerCandidate: diagnostics.hadPointerCandidate,
+            rawPointerHitCount: diagnostics.rawPointerHitCount,
+            hadSystemFocusedElement: diagnostics.hadSystemFocusedElement,
+            hadApplicationFocusedElement: diagnostics.hadApplicationFocusedElement,
+            hadFocusedWindow: diagnostics.hadFocusedWindow,
+            systemFocusedApplicationMatched: diagnostics.systemFocusedApplicationMatched,
+            visitedElementCount: diagnostics.visitedElementCount,
+            termination: diagnostics.termination,
+            matchedMechanism: matched ? .simulatedCopy : diagnostics.matchedMechanism,
+            elapsedMilliseconds: Int((ProcessInfo.processInfo.systemUptime - startedAt) * 1_000),
+            copyFallbackAttempted: true,
+            copyFallbackStatus: status
         )
+    }
 
-        guard result == .success,
-              let value,
-              CFGetTypeID(value) == AXUIElementGetTypeID()
-        else {
-            return nil
-        }
+    private func elementBelongsToApplication(_ element: AXUIElement, application: NSRunningApplication) -> Bool {
+        var elementProcessIdentifier = pid_t()
+        guard AXUIElementGetPid(element, &elementProcessIdentifier) == .success else { return false }
+        if elementProcessIdentifier == application.processIdentifier { return true }
+        // A renderer/helper may expose AX nodes under the same bundle.  Accept
+        // that identity only when LaunchServices can confirm it, rather than
+        // trusting an arbitrary process returned by the system-wide element.
+        return NSRunningApplication(processIdentifier: elementProcessIdentifier)?.bundleIdentifier
+            == application.bundleIdentifier
+    }
 
-        let element = value as! AXUIElement
+    private func copyElementAtPointer(
+        from applicationElement: AXUIElement
+    ) -> AXUIElement? {
+        guard let location = CGEvent(source: nil)?.location else { return nil }
+        var element: AXUIElement?
+        let result = AXUIElementCopyElementAtPosition(
+            applicationElement,
+            Float(location.x),
+            Float(location.y),
+            &element
+        )
+        guard result == .success, let element else { return nil }
         return element
     }
 
-    private enum SelectionLookup {
-        case found(String, AXUIElement)
-        case empty
-        case unavailable
+    private func elementAndAncestors(
+        startingAt element: AXUIElement,
+        maximumCount: Int
+    ) -> [AXUIElement] {
+        var candidates: [AXUIElement] = []
+        var seen = Set<AXNode>()
+        var current: AXUIElement? = element
+
+        while let candidate = current,
+              candidates.count < maximumCount,
+              seen.insert(AXNode(element: candidate)).inserted {
+            candidates.append(candidate)
+            current = copyElementAttribute(kAXParentAttribute as CFString, from: candidate)
+        }
+        return candidates
     }
 
-    /// Electron editors can leave the macOS focus on their WebArea while the actual text area is
-    /// exposed further down the accessibility tree. Search a bounded set of visible descendants
-    /// so selection acquisition stays responsive and never expands into unrelated window context.
-    private func findSelection(startingAt focusedElement: AXUIElement) -> SelectionLookup {
-        var queue = [focusedElement]
-        var nextIndex = 0
+    private func selectionText(from element: AXUIElement) -> SelectionTextLookup {
+        var lookups: [SelectionTextLookup] = []
+        // Do not gate selection probes on AXAttributeNames.  WebKit/Electron
+        // frequently omits selection attributes from that list while still
+        // serving the values (especially Text Marker ranges).  The AX call is
+        // itself the capability check and returns `.attributeUnsupported` when
+        // unavailable; skipping it creates a false negative.
+        if let directValue = copyAttribute(kAXSelectedTextAttribute as CFString, from: element) {
+            lookups.append(Self.textLookup(from: stringValue(from: directValue), mechanism: .directText))
+        }
+
+        if let (rangeValue, range) = copySelectionRange(from: element) {
+            if range.length == 0 {
+                lookups.append(.empty)
+            } else {
+                var rangeLookups: [SelectionTextLookup] = []
+                rangeLookups.append(
+                    parameterizedTextLookup(
+                        attribute: kAXStringForRangeParameterizedAttribute as CFString,
+                        parameter: rangeValue,
+                        from: element,
+                        mechanism: .standardRange
+                    )
+                )
+                rangeLookups.append(
+                    parameterizedTextLookup(
+                        attribute: "AXAttributedStringForRange" as CFString,
+                        parameter: rangeValue,
+                        from: element,
+                        mechanism: .standardRange
+                    )
+                )
+                if let fullValue = copyStringAttribute(kAXValueAttribute as CFString, from: element) {
+                    rangeLookups.append(
+                        Self.textLookup(
+                            from: Self.substring(in: fullValue, range: range),
+                            mechanism: .standardRange
+                        )
+                    )
+                }
+                lookups.append(Self.resolveTextLookups(rangeLookups))
+            }
+        }
+
+        if let markerRange = copyAttribute("AXSelectedTextMarkerRange" as CFString, from: element) {
+            var markerLookups: [SelectionTextLookup] = []
+            if let markerLength = textMarkerRangeLength(markerRange, from: element), markerLength == 0 {
+                markerLookups.append(.empty)
+            }
+            markerLookups.append(
+                parameterizedTextLookup(
+                    attribute: "AXStringForTextMarkerRange" as CFString,
+                    parameter: markerRange,
+                    from: element,
+                    mechanism: .textMarker
+                )
+            )
+            markerLookups.append(
+                parameterizedTextLookup(
+                    attribute: "AXAttributedStringForTextMarkerRange" as CFString,
+                    parameter: markerRange,
+                    from: element,
+                    mechanism: .textMarker
+                )
+            )
+            lookups.append(Self.resolveTextLookups(markerLookups))
+        }
+
+        return Self.resolveTextLookups(lookups)
+    }
+
+    nonisolated static func resolveTextLookups(_ lookups: [SelectionTextLookup]) -> SelectionTextLookup {
         var observedEmptySelection = false
-        let maximumElements = 2_000
-
-        while nextIndex < queue.count, nextIndex < maximumElements {
-            let element = queue[nextIndex]
-            nextIndex += 1
-
-            switch selectionText(from: element) {
-            case let .found(text, _):
-                return .found(text, element)
+        for lookup in lookups {
+            switch lookup {
+            case let .found(text, mechanism):
+                guard !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+                    observedEmptySelection = true
+                    continue
+                }
+                return .found(text, mechanism)
             case .empty:
                 observedEmptySelection = true
             case .unavailable:
                 break
             }
-
-            let remainingCapacity = maximumElements - queue.count
-            guard remainingCapacity > 0 else { continue }
-            queue.append(contentsOf: childElements(from: element).prefix(remainingCapacity))
         }
-
         return observedEmptySelection ? .empty : .unavailable
     }
 
-    private func selectionText(from element: AXUIElement) -> SelectionLookup {
-        if let selectedText = copyStringAttribute(
-            kAXSelectedTextAttribute as CFString,
-            from: element
-        ) {
-            if !selectedText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                return .found(selectedText, element)
-            }
-        }
+    private static func textLookup(
+        from text: String?,
+        mechanism: SelectionMechanism
+    ) -> SelectionTextLookup {
+        guard let text else { return .unavailable }
+        return text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            ? .empty
+            : .found(text, mechanism)
+    }
 
-        if let (rangeValue, range) = copySelectionRange(from: element) {
-            guard range.length > 0 else {
-                return .empty
-            }
+    private func parameterizedTextLookup(
+        attribute: CFString,
+        parameter: CFTypeRef,
+        from element: AXUIElement,
+        mechanism: SelectionMechanism
+    ) -> SelectionTextLookup {
+        var value: CFTypeRef?
+        let result = AXUIElementCopyParameterizedAttributeValue(
+            element,
+            attribute,
+            parameter,
+            &value
+        )
+        guard result == .success else { return .unavailable }
+        return Self.textLookup(from: stringValue(from: value), mechanism: mechanism)
+    }
 
-            var value: CFTypeRef?
-            let result = AXUIElementCopyParameterizedAttributeValue(
-                element,
-                kAXStringForRangeParameterizedAttribute as CFString,
-                rangeValue,
-                &value
-            )
-            if result == .success,
-               let selectedText = stringValue(from: value),
-               !selectedText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                return .found(selectedText, element)
-            }
-
-            if let fullValue = copyStringAttribute(kAXValueAttribute as CFString, from: element),
-               let selectedText = Self.substring(in: fullValue, range: range),
-               !selectedText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                return .found(selectedText, element)
-            }
-        }
-
-        if let markerRange = copyAttribute("AXSelectedTextMarkerRange" as CFString, from: element) {
-            var lengthValue: CFTypeRef?
-            let lengthResult = AXUIElementCopyParameterizedAttributeValue(
-                element,
-                "AXLengthForTextMarkerRange" as CFString,
-                markerRange,
-                &lengthValue
-            )
-            if lengthResult == .success,
-               let length = lengthValue as? NSNumber,
-               length.intValue == 0 {
-                return .empty
-            }
-
-            var markerStringValue: CFTypeRef?
-            let stringResult = AXUIElementCopyParameterizedAttributeValue(
-                element,
-                "AXStringForTextMarkerRange" as CFString,
-                markerRange,
-                &markerStringValue
-            )
-            if stringResult == .success,
-               let selectedText = stringValue(from: markerStringValue),
-               !selectedText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                return .found(selectedText, element)
-            }
-
-            var attributedValue: CFTypeRef?
-            let attributedResult = AXUIElementCopyParameterizedAttributeValue(
-                element,
-                "AXAttributedStringForTextMarkerRange" as CFString,
-                markerRange,
-                &attributedValue
-            )
-            if attributedResult == .success,
-               let selectedText = stringValue(from: attributedValue),
-               !selectedText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                return .found(selectedText, element)
-            }
-        }
-        return .unavailable
+    private func textMarkerRangeLength(_ markerRange: CFTypeRef, from element: AXUIElement) -> Int? {
+        var lengthValue: CFTypeRef?
+        let result = AXUIElementCopyParameterizedAttributeValue(
+            element,
+            "AXLengthForTextMarkerRange" as CFString,
+            markerRange,
+            &lengthValue
+        )
+        guard result == .success, let length = lengthValue as? NSNumber else { return nil }
+        return length.intValue
     }
 
     private func childElements(from element: AXUIElement) -> [AXUIElement] {
         let attributes: [CFString] = [
             kAXChildrenAttribute as CFString,
             kAXVisibleChildrenAttribute as CFString,
+            "AXChildrenInNavigationOrder" as CFString,
             "AXContents" as CFString,
-            "AXRows" as CFString
+            "AXRows" as CFString,
+            "AXVisibleRows" as CFString,
+            "AXDisclosedRows" as CFString
         ]
-        var seen = Set<UInt>()
         var children: [AXUIElement] = []
+        var seen = Set<AXNode>()
+        // Do not gate child probes on AXAttributeNames. WebKit/Electron and
+        // custom accessibility clients often omit children from that list
+        // while still returning them from AXChildren/AXContents. The AX call
+        // itself is the capability check; the graph search remains bounded.
         for attribute in attributes {
             for child in copyElementArrayAttribute(attribute, from: element) ?? [] {
-                let identifier = UInt(bitPattern: Unmanaged.passUnretained(child).toOpaque())
-                guard seen.insert(identifier).inserted else { continue }
+                guard seen.insert(AXNode(element: child)).inserted else { continue }
                 children.append(child)
             }
         }
-        return children.sorted { selectionPriority(for: $0) > selectionPriority(for: $1) }
+        return children.enumerated()
+            .map { (index: $0.offset, element: $0.element, priority: selectionPriority(for: $0.element)) }
+            .sorted {
+                if $0.priority != $1.priority { return $0.priority > $1.priority }
+                return $0.index < $1.index
+            }
+            .map(\.element)
     }
 
     private func selectionPriority(for element: AXUIElement) -> Int {
         switch copyStringAttribute(kAXRoleAttribute as CFString, from: element) {
-        case "AXTextArea", "AXTextField":
-            3
+        case "AXTextArea", "AXTextField", "AXSearchField":
+            4
         case "AXWebArea":
-            2
+            3
         case "AXStaticText":
+            2
+        case "AXGroup", "AXScrollArea":
             1
         default:
             0
@@ -222,7 +662,19 @@ final class AccessibilitySelectionReader: SelectionReader {
         var value: CFTypeRef?
         let result = AXUIElementCopyAttributeValue(element, attribute, &value)
         guard result == .success else { return nil }
-        return value as? [AXUIElement]
+        if let elements = value as? [AXUIElement] {
+            return elements
+        }
+        if let value,
+           CFGetTypeID(value) == CFArrayGetTypeID() {
+            return (value as! NSArray).compactMap { item in
+                let itemReference = item as CFTypeRef
+                guard CFGetTypeID(itemReference) == AXUIElementGetTypeID() else { return nil }
+                return (itemReference as! AXUIElement)
+            }
+        }
+        guard let value, CFGetTypeID(value) == AXUIElementGetTypeID() else { return nil }
+        return [value as! AXUIElement]
     }
 
     private func copyStringAttribute(
@@ -245,21 +697,51 @@ final class AccessibilitySelectionReader: SelectionReader {
         return result == .success ? value : nil
     }
 
-    private func copySelectionBounds(from element: AXUIElement) -> ScreenRect? {
-        if let (rangeValue, _) = copySelectionRange(from: element),
+    private func copyElementAttribute(_ attribute: CFString, from element: AXUIElement) -> AXUIElement? {
+        guard let value = copyAttribute(attribute, from: element),
+              CFGetTypeID(value) == AXUIElementGetTypeID()
+        else { return nil }
+        return (value as! AXUIElement)
+    }
+
+    private func copySelectionBounds(
+        from element: AXUIElement,
+        preferred mechanism: SelectionMechanism
+    ) -> ScreenRect? {
+        let standardBounds = copyStandardSelectionBounds(from: element)
+        let markerBounds = copyTextMarkerSelectionBounds(from: element)
+        let rectangle: CGRect?
+        switch mechanism {
+        case .textMarker:
+            rectangle = markerBounds ?? standardBounds
+        case .directText, .standardRange:
+            rectangle = standardBounds ?? markerBounds
+        case .simulatedCopy:
+            rectangle = nil
+        }
+        guard let rectangle, Self.isUsableSelectionBounds(rectangle) else { return nil }
+        return ScreenRect(
+            x: rectangle.origin.x,
+            y: rectangle.origin.y,
+            width: rectangle.width,
+            height: rectangle.height
+        )
+    }
+
+    private func copyStandardSelectionBounds(from element: AXUIElement) -> CGRect? {
+        if let (rangeValue, range) = copySelectionRange(from: element),
+           range.length > 0,
            let rectangle = copyBounds(
                parameterizedAttribute: kAXBoundsForRangeParameterizedAttribute as CFString,
                parameter: rangeValue,
                from: element
            ) {
-            return ScreenRect(
-                x: rectangle.origin.x,
-                y: rectangle.origin.y,
-                width: rectangle.width,
-                height: rectangle.height
-            )
+            return rectangle
         }
+        return nil
+    }
 
+    private func copyTextMarkerSelectionBounds(from element: AXUIElement) -> CGRect? {
         guard let markerRange = copyAttribute("AXSelectedTextMarkerRange" as CFString, from: element),
               let rectangle = copyBounds(
                   parameterizedAttribute: "AXBoundsForTextMarkerRange" as CFString,
@@ -267,12 +749,17 @@ final class AccessibilitySelectionReader: SelectionReader {
                   from: element
               )
         else { return nil }
-        return ScreenRect(
-            x: rectangle.origin.x,
-            y: rectangle.origin.y,
-            width: rectangle.width,
-            height: rectangle.height
-        )
+        return rectangle
+    }
+
+    nonisolated static func isUsableSelectionBounds(_ rectangle: CGRect) -> Bool {
+        rectangle.origin.x.isFinite
+            && rectangle.origin.y.isFinite
+            && rectangle.width.isFinite
+            && rectangle.height.isFinite
+            && rectangle.width >= 0
+            && rectangle.height >= 0
+            && (rectangle.width > 0 || rectangle.height > 0)
     }
 
     private func copyBounds(

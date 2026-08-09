@@ -50,9 +50,9 @@ The default global shortcuts are `⌃⌥D` for selection, `⌃⌥S` for screensh
 
 ### Selection reader
 
-Uses macOS Accessibility APIs to obtain selected text, selection bounds, and focused application identity. Version 0.1.0 does not read bounded surrounding text and does not simulate Copy as a clipboard fallback.
+Uses macOS Accessibility APIs to obtain selected text, selection bounds, and focused application identity. The default path does not touch the clipboard or read bounded surrounding text. An explicit user-enabled compatibility mode may use a Swift/AppKit simulated `⌘C` fallback with complete in-memory pasteboard snapshot/restore; Rust never receives the pasteboard or platform objects.
 
-The implementation reads standard selected-text/range attributes and Web Accessibility Text Marker attributes from a bounded focused-element descendant tree. It requests `AXBoundsForRange` or `AXBoundsForTextMarkerRange` when supported and treats missing geometry as a supported degradation rather than a failed text acquisition. Nearby context and clipboard compatibility are not implemented.
+The implementation reads standard selected-text/range attributes and Web Accessibility Text Marker attributes from a bounded focused-element descendant tree. It requests `AXBoundsForRange` or `AXBoundsForTextMarkerRange` when supported and treats missing geometry as a supported degradation rather than a failed text acquisition. Nearby context is not implemented. Clipboard compatibility is opt-in, bounded to one trigger, and owned entirely by Swift/AppKit.
 
 ### Screenshot capture
 

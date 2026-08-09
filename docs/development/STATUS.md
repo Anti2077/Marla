@@ -1,6 +1,6 @@
 # Project Status
 
-Last updated: 2026-08-07
+Last updated: 2026-08-09
 
 Release target: 0.1.0 Alpha
 
@@ -12,13 +12,14 @@ Blocked task: [TASK-013](../tasks/TASK-013-api-profile-activation-and-editor-act
 
 ## Current objective
 
-Serena 第一阶段已正式落地并验证；根 `AGENTS.md` 已固化语义导航的使用时机、只读边界和降级路径，并要求在长输出、全仓调查或反复上下文压缩开始拖慢工作时主动提醒项目所有者单独评估 Headroom。当前没有 Active Task。TASK-013 保持 Blocked，恢复条件是项目所有者确认固定 Panel、精确手柄锚点、移动空槽和松手恢复动画。
+TASK-015 已完成：受保护的 Bob 式 Copy 兼容路径通过完整自动化、固定产物验证以及 Codex/微信真实取词，项目所有者继续试用后确认成功率很高并接受目标完成。当前 API `unauthorized` 来自默认 DashScope profile 缺少独立 Keychain 凭据，按项目所有者要求不属于本次划词适配。当前没有 Active Task；TASK-013 保持 Blocked。
 
 ## Current implemented baseline
 
 - Native SwiftUI/AppKit menu-bar application with selection translation, screenshot translation, and quick input.
 - Nearby result card with streaming, comparison, copy, retry, system speech, pinning, cancellation, target switching, and actionable error states.
-- Accessibility selection reader with standard range and Web Text Marker support plus pointer fallback.
+- Accessibility selection reader with standard range and Web Text Marker support, trigger-time frontmost-app binding, frontmost-app/window/focused roots, identity-checked system focused-application roots, dual application/system-wide pointer hit paths, renderer/helper identity checks, global graph deduplication, ungated AX child probes, and bounded pointer fallback.
+- Default-off Copy compatibility that snapshots every readable pasteboard representation, accepts only a new Copy result, restores on success/failure/cancellation, avoids overwriting a newer external write, rejects focus changes, and reports only redacted lifecycle evidence.
 - Cross-display ScreenCaptureKit selection, in-memory Vision OCR, stable line order, and text-only translation requests.
 - Embedded Rust static library with versioned C ABI, shared async runtime, generic OpenAI-compatible SSE, Qwen-MT adaptation, timeouts, cancellation, and stale-event isolation.
 - Grouped Settings, Carbon shortcuts, Keychain credential storage, permission guidance, light/dark appearance, Reduce Motion, and verified test-app packaging.
@@ -30,7 +31,7 @@ Serena 第一阶段已正式落地并验证；根 `AGENTS.md` 已固化语义导
 - Every API profile supports explicit Base URL or Complete URL semantics. The editor uses an inline Base/Complete switch and can fetch a Rust-owned `/models` list with the current profile credential, then expand and select a model at the bottom of the form.
 - The API editor gives its first scroll-content row an 8pt focus-ring safety inset, keeping the native macOS Focus Ring complete in light and dark appearance.
 - Settings use a four-page native sidebar, summary-only API list and independently clipped editor sheet; global shortcuts have persistent switches, result cards support background dragging, and screenshot selection includes an in-memory 6× pointer magnifier.
-- Settings use a transparent full-size title bar with traffic lights inside one continuous four-corner surface, hidden scroll indicators, and a fixed `Esc` screenshot-cancellation row. Screenshot selection temporarily suspends an open Settings window and restores it without activating it; `Esc` cancellation is owned by the active selection session rather than a single view's first-responder state.
+- Settings use a transparent full-size title bar with traffic lights inside one continuous four-corner surface, hidden scroll indicators, and a fixed `Esc` screenshot-cancellation row. Screenshot selection temporarily suspends an open Settings window and restores it without activating it; `Esc` cancellation is owned by the active selection session rather than a single view's first-responder state, with window key-equivalent/cancel-operation routing and a listen-only event-tap fallback.
 - Translation API profiles have persistent enabled states and only enabled profiles can be selected or invoked. The summary list uses native switches, a Set Default/Delete menu, accessibility move actions, and a trailing reorder handle. Settings content no longer moves the window; the newest fixed App uses a complete-row drag preview and 220ms animated hover reordering, pending owner confirmation of that final pointer feedback.
 - Project-scoped Serena 1.6.1 provides read-only Swift/Rust semantic navigation through Codex. A custom Context and fixed tool allowlist expose only nine retrieval/diagnostic tools; source edits, shell, project switching, onboarding, memories, Dashboard, and Headroom remain disabled.
 
@@ -38,7 +39,8 @@ Implementation baseline commit: `88954bb`.
 
 ## Release gaps
 
-- Live selection verification remains incomplete in Terminal, Safari, TextEdit, and the final VSCodium build.
+- Full release selection verification remains incomplete in Terminal, Safari, TextEdit, Zen, Ghostty, and the final VSCodium build.
+- Real screenshot `Esc` cancellation needs re-verification after the project owner reproduced a regression against the older TASK-009 evidence.
 - Real screenshot crop accuracy and Screen Recording permission persistence remain unverified across representative display layouts.
 - P95 shell latency, Rust-delta-to-visible-Swift latency, and idle/translation/Vision memory budgets have not been measured.
 - Force Touch public-API feasibility remains an optional experiment and does not block 0.1.0.
@@ -55,20 +57,21 @@ TASK-013 is not selectable until the project owner confirms its pending drag-pre
 
 TASK-014 is complete; remaining product verification gaps stay separately selectable.
 
-Before implementation, start the next development conversation with a `Ready` then `Active` file from `docs/tasks/TASK_TEMPLATE.md`; keep that Task updated as the project owner adds scope during the conversation.
+TASK-015 已完成；剩余发布矩阵继续保留在 BL-001，截图 `Esc` 与裁剪/权限复验保留在 BL-002。
 
 ## Current risks
 
-- A visible VSCodium selection failed in an earlier live build; the latest expanded AX traversal passes automation but still needs live confirmation.
+- A visible VSCodium selection failed in an earlier live build; the latest AX/Copy chain passes automation and the project owner has now confirmed one formerly failing Codex selection plus clipboard restoration. A WeChat selection also reached the real translation request and returned Provider `unauthorized`, proving text acquisition; its clipboard/focus checks, Zen, Ghostty, VSCodium, and the remaining matrix still need current-build confirmation.
+- Community evidence (SelectedTextKit/Easydict and portable-translator) and project-owner testing of Bob identify simulated `⌘C` with pasteboard backup/restore as the key compatibility path for custom Electron/WeChat surfaces. TASK-015 implements that path behind a default-off setting; remaining cross-application geometry/focus/clipboard proof belongs to BL-001. Copy-menu, browser, and PopClip/Service bridges remain future IDEA-011 slices.
 - Screenshot coordinate conversion has unit coverage but not a final visual comparison against the real selected region.
 - The fixed-path development App is locally signed, not Developer ID signed or notarized; it is not a public distribution artifact.
 - Real DashScope Qwen-MT translation succeeded, but representative TTFT, throughput, and live error mapping remain unmeasured.
 
 ## Latest verification
 
-- `./scripts/check.sh` passed on 2026-08-07 after the TASK-014 Serena integration.
+- `./scripts/check.sh` passed on 2026-08-09 after the TASK-015 AX and Copy-compatibility changes.
 - Rust: 17 tests passed.
-- Swift: 48 tests passed.
+- Swift: 68 tests passed.
 - Xcode Debug application build passed.
 - TASK-014 installed `uv 0.12.2`, `serena-agent 1.6.1`, and rustup `rust-analyzer 1.96.0`; Serena health check passed and indexed 15 Swift files plus 1 Rust file while project/build caches remained ignored.
 - TASK-014's real stdio MCP session exposed exactly nine read-only semantic tools, with no edit, shell, project-switching, memory, or onboarding tools. Swift symbol/reference queries covered `TranslationAPIProfile` and `RustTranslationClient/start`; Rust covered `marla_translation_start` and four semantic test references.
@@ -92,6 +95,7 @@ Before implementation, start the next development conversation with a `Ready` th
 - The 2026-08-06 to 2026-08-07 multi-API/settings development conversation is retrospectively consolidated in canonical `TASK-005`; `TASK-006` through `TASK-011` remain linked detailed evidence slices rather than separate conversation boundaries.
 - TASK-013's fixed `artifacts/Marla_dev.app` retains Bundle ID `com.marla.app`, arm64, Authority `API Usage Monitor Dev`, and the existing designated requirement. Static light/dark list and editor captures passed the five-dimension review under `artifacts/ui-review/task-013/`; the owner confirmed that dragging the handle no longer moves the Settings window. Computer Use completed and reversed a real cross-row handle drag, restoring the prior order. After the owner still observed system drag-image scaling, the visible preview moved to a fixed 580×76pt nonactivating Panel while the native drag item became transparent 1×1pt; final owner confirmation of the Panel, exact handle anchor, moving empty slot, and release fade is pending.
 - A real DashScope `qwen-mt-turbo` request translated `Hello` to “你好”; the credential remained in Keychain.
+- TASK-015 is complete. Standard/range/marker resolution, pointer/focused/window root ordering, trigger-time application binding, system focused-application roots, ungated AX child probes, CFArray child conversion, global AX graph deduplication, cyclic references, search budgets, Unicode offsets, window-level Escape routing, and the complete Copy transaction lifecycle all pass. The fixed `artifacts/Marla_dev.app` is stable-signature-verified. The project owner confirmed a formerly failing Codex selection plus clipboard restoration, confirmed WeChat reached the real translation request, then accepted the goal complete after observing a high success rate. The downstream Provider `unauthorized` is a missing local profile credential and is excluded from TASK-015. Remaining release evidence stays in BL-001/BL-002.
 
 ## Pending product decisions
 

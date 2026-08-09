@@ -32,3 +32,17 @@ TASK-001-short-name.md
 - Agent 自己想到的便利功能仍写入 `backlog/IDEAS.md`，不能借“顺便”之名实现。
 - 明显无关、需要新权限、破坏性迁移、独立架构决策或并行隔离的新增内容，先说明影响，由项目所有者决定并入当前 Task 还是另开后续 Task。
 - Task 完成后不因新的开发对话而重新打开；新对话创建新 Task，并通过 Related/Origin 链接旧 Task。
+
+## Parallel contributors
+
+A Task may use multiple sub-Agents without creating additional Tasks. The Task remains the single implementation contract for the conversation.
+
+文档工作进行委派时，主 Agent 应记录或明确告知：
+
+- 每个子 Agent 的边界目标；
+- Required Reading；
+- 允许写入的文件或章节；
+- 只读审查还是可以编辑；
+- 交付格式和验证要求。
+
+主 Agent 独占 Task 文件、范围变更记录、`STATUS.md`、最终整合和完成记录。子 Agent 的“完成”只表示其分工已交回审查，不表示整个 Task 完成。

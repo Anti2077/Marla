@@ -44,6 +44,12 @@ public enum SelectionReadingError: Error, Equatable, Sendable {
     case focusedElementUnavailable
     case selectedTextUnavailable
     case emptySelection
+    case selectionSearchLimitReached
+    case selectionSearchTimedOut
+    case selectionCancelled
+    case copyFallbackUnavailable
+    case copyFallbackTimedOut
+    case clipboardRestoreFailed
 }
 
 @MainActor

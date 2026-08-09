@@ -163,6 +163,14 @@ struct SettingsView: View {
                     .foregroundStyle(DesignTokens.secondaryText)
             }
 
+            SettingsSection(title: "兼容性取词", systemImage: "arrow.triangle.2.circlepath") {
+                Toggle("AX 失败时模拟 ⌘C", isOn: $settings.selectionCopyFallbackEnabled)
+                Text("默认关闭。开启后，Marla 会先备份剪贴板，在 AX 无法读取时模拟一次 ⌘C，读取新文本后恢复原内容；检测到其他应用同时写入时不会覆盖更新内容。")
+                    .font(AppFont.caption)
+                    .foregroundStyle(DesignTokens.secondaryText)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
             SettingsSection(title: "隐私边界", systemImage: "hand.raised") {
                 Text("截图只在本机通过 Vision 识别。只有识别出的文字会发送到当前翻译 API，截图像素不会上传；最近三条译文只保留在本次运行内存中，退出即清空。")
                     .font(AppFont.body)

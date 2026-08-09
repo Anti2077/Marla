@@ -27,6 +27,7 @@
 | IDEA-008 | 更多瞬时翻译入口 | Captured | 保持“不打断工作”原则 |
 | IDEA-009 | 本地 OCR / VLM 能力分档 | Captured | 截图与文档场景的未来选项 |
 | IDEA-010 | 多翻译 API 配置与窗口内切换 | Promoted | TASK-005 已实现核心行为；TASK-006 重构其设置入口 |
+| IDEA-011 | 多路径选区桥接（Copy / PopClip / Service） | Promoted | Bob 式 Copy fallback 已获授权并进入 TASK-015；PopClip/Service 仍待后续决策 |
 
 ---
 
@@ -620,6 +621,60 @@ Related: `IMPLEMENTATION.md`、Rust translation provider
 已由项目所有者明确要求实施，提升为 `BL-007`，当前施工单为 `TASK-005`。首期采用全局默认配置；结果卡片切换只影响当前卡片并立即重跑，同一份截图 OCR 文本不重新捕获。
 
 ---
+
+## IDEA-011：多路径选区桥接（Copy / PopClip / Service）
+
+Status: Promoted to TASK-015 (Copy fallback slice)
+
+Priority: Unranked
+
+Source: 2026-08-09 社区源码与 Bob 官方文档调研；TASK-015 的 Codex/微信失败证据
+
+Created: 2026-08-09
+
+Related: `TASK-015-deep-selection-reliability.md`、`inline-translation.md`、`SPEC.md`
+
+### 一句话描述
+
+在 AX 直接读取失败的应用中，提供用户明确开启的兼容桥接：优先尝试 AX，再按顺序尝试 Copy 菜单动作、模拟 `⌘C` 的受保护剪贴板读取，或由 PopClip/macOS Service 传入显式选区文本。
+
+### 社区证据
+
+- SelectedTextKit 将 Accessibility、菜单 Copy、模拟快捷键和浏览器 AppleScript 暴露为可组合策略，并备份/恢复全部 pasteboard items。
+- Easydict 在 WeChat 与 `com.openai.chat` 的 AX 异常后允许强制 fallback，说明这些应用类型的失败是已知兼容性问题。
+- Bob 官方文档把“可选且可复制”作为普通划词前提，并提供 `translateText`、PopClip 等外部文本直传接口；Bob 本身不开源，内部策略未知。
+- PopClip 官方文档允许插件或 macOS Service 读取当前选区全文并交给外部程序。
+- 项目所有者随后实测确认 Bob 会模拟 `⌘C`，读取新剪贴板文本后还原原剪贴板；历史工具没有留下明显记录，说明这条路径可以在不改变最终剪贴板状态的情况下工作。
+
+### 可能方案与权衡
+
+| 方案 | 成功率预期 | 代价与风险 |
+| --- | --- | --- |
+| AX → Copy 菜单动作 | 高于单 AX，保留系统语义 | 仍会改变源应用剪贴板；菜单项权限/状态不一致 |
+| AX → 模拟 `⌘C` + 完整备份/恢复 | 对自定义控件覆盖最广 | 需要辅助功能与剪贴板读写；竞态、隐私、系统提示音和撤销语义复杂 |
+| PopClip / macOS Service 直传 | Marla 不必自己遍历目标 AX；用户意图明确 | 需安装/配置外挂；服务入口在不同应用中支持不一致；需新增安全的文本入口 |
+| 按应用脚本或 allowlist | 可针对已知 Electron/微信问题 | 维护成本高、容易过时，违背通用架构边界 |
+
+### 当前发布关系与边界
+
+项目所有者已授权本想法中的 Bob 式 Copy fallback，并在 TASK-015 中实现为默认关闭的兼容模式；PopClip/Service、浏览器扩展、DOM 注入和按应用脚本仍不在本次范围。兼容模式关闭时，0.1.0 继续使用不触碰剪贴板的 AX 链路。
+
+### 剩余切片进入开发的条件
+
+1. 先完成 TASK-015 的 Codex、微信、Zen、Ghostty、Safari、TextEdit、Terminal 对照矩阵，记录成功率、延迟、剪贴板类型恢复和焦点变化，不记录正文。
+2. 项目所有者另行选择 Copy 菜单动作或 PopClip/Service 直传之一作为后续 Task；本次授权不自动扩展到这些入口。
+3. 若选择外部文本入口，需完成签名、来源校验、长度限制和取消语义，并同步 Task、双语规格/验收和必要 ADR。
+
+### 尚未决定
+
+- 是否继续增加 Copy 菜单动作，还是让模拟 `⌘C` 保持唯一剪贴板兼容路径。
+- 是否为 PopClip/Service 提供显式外部文本入口。
+- 外部入口是否允许直接开始翻译，还是先显示预览并要求用户确认。
+
+### 下一步
+
+先完成 TASK-015 内 Copy fallback 的自动化、固定 App 构建和 Codex/微信真实矩阵；PopClip/Service 直传另行评估。
+
 
 ## 新想法模板
 

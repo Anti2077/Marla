@@ -44,6 +44,26 @@ The initial Task scope is a baseline, not a frozen contract.
 5. Report and deliberately resolve mismatches before implementation.
 6. Implement the Task's current accumulated In Scope, including owner-approved additions recorded during the conversation. Record unrequested ideas without implementing them.
 
+## Parallel documentation work
+
+对于较大的多文件文档工作，主 Agent 先在当前 Task 或工作记录中建立简短的拆分表：
+
+| Contributor | Objective | Required Reading | Write ownership | Output |
+| --- | --- | --- | --- | --- |
+| Agent A | 核对当前代码和测试事实 | 指定源码与测试 | None | 证据报告 |
+| Agent B | 更新某个独立功能规格 | 相关 Feature/ADR | 指定功能文档 | 文档修改 |
+| Agent C | 审查术语、链接和中英文一致性 | 文档入口与版本合同 | None | 审查结果 |
+
+规则：
+
+1. 按独立文件、独立章节、事实核对或审查职责拆分，不按同一段文字多人抢写。
+2. 共享工作树中一份文件同一时间只能有一个写入负责人；`AGENTS.md`、`STATUS.md`、当前 Task、文档索引和同一份双语文档通常由主 Agent 串行维护。
+3. 子 Agent 是当前 Task 的协作者，不创建新的 Active Task，不改变产品范围，不自行接受 ADR，不提交或推送。
+4. 子 Agent 开工前读取相关规则、Status、当前 Task 和 Required Reading；发现冲突或未知时回报主 Agent。
+5. 子 Agent 完成只表示其分工已交回主 Agent；主 Agent 必须整合、处理冲突，并做完整 diff、链接、重复编号、术语、中英同步和代码/测试事实检查。
+6. 如果必须并行编辑同一文件，应先使用独立分支或工作树并明确合并边界；不得依赖共享工作树中的隐式覆盖。
+7. 小型或强耦合文档修改不强行并行；并行的目的是真正减少等待，不是增加协调成本。
+
 ## Finishing work
 
 1. Confirm that the initial request and every recorded scope addition have acceptance coverage.
@@ -54,7 +74,8 @@ The initial Task scope is a baseline, not a frozen contract.
 6. Update the Backlog entry: close it, reduce its remaining scope, or split follow-up work.
 7. Update the roadmap only when broad capability order changes.
 8. Create or supersede an ADR only when a durable decision changes.
-9. Keep implementation, tests, Task, and affected documentation synchronized in the same change.
+9. If sub-Agents contributed, integrate their changes and evidence before marking the Task complete.
+10. Keep implementation, tests, Task, and affected documentation synchronized in the same change.
 
 ## Current verification command
 

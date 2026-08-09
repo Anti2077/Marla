@@ -3,6 +3,38 @@ import MarlaCore
 @testable import MarlaApp
 import XCTest
 
+@MainActor
+private final class FakeSelectionClipboard: SelectionClipboardAccess {
+    var changeCount = 0
+    var text: String?
+    var snapshotValue = PasteboardSnapshot(items: [])
+    var changeCountAfterSnapshot: Int?
+    var restoreResponse = ClipboardRestoreStatus.restored
+    var restoreCalls = 0
+    var lastRestoredSnapshot: PasteboardSnapshot?
+
+    func snapshot() throws -> PasteboardSnapshot {
+        if let changeCountAfterSnapshot {
+            changeCount = changeCountAfterSnapshot
+        }
+        return snapshotValue
+    }
+
+    func plainText() -> String? { text }
+
+    func restore(
+        _ snapshot: PasteboardSnapshot,
+        ifUnchangedFrom expectedChangeCount: Int
+    ) -> ClipboardRestoreStatus {
+        restoreCalls += 1
+        guard changeCount == expectedChangeCount else {
+            return .skippedBecauseClipboardChanged
+        }
+        lastRestoredSnapshot = snapshot
+        return restoreResponse
+    }
+}
+
 final class MarlaAppTests: XCTestCase {
     func testDefaultShortcutBindingsAndInternalConflictDetection() {
         let defaults = ShortcutBinding.defaults
@@ -582,6 +614,37 @@ final class MarlaAppTests: XCTestCase {
     }
 
     @MainActor
+    func testScreenshotSelectionWindowRoutesEscapeBeforeFirstResponder() throws {
+        var cancellationCount = 0
+        let window = ScreenshotSelectionWindow(
+            contentRect: NSRect(x: 0, y: 0, width: 100, height: 100),
+            styleMask: .borderless,
+            backing: .buffered,
+            defer: false,
+            onCancel: { cancellationCount += 1 }
+        )
+        let event = try XCTUnwrap(
+            NSEvent.keyEvent(
+                with: .keyDown,
+                location: .zero,
+                modifierFlags: [],
+                timestamp: 0,
+                windowNumber: window.windowNumber,
+                context: nil,
+                characters: "\u{1B}",
+                charactersIgnoringModifiers: "\u{1B}",
+                isARepeat: false,
+                keyCode: 53
+            )
+        )
+
+        window.sendEvent(event)
+        XCTAssertTrue(window.performKeyEquivalent(with: event))
+        window.cancelOperation(nil)
+        XCTAssertEqual(cancellationCount, 3)
+    }
+
+    @MainActor
     func testEscapeCancelsScreenshotSelection() {
         XCTAssertTrue(ScreenshotSelectionView.isCancelKeyCode(53))
         XCTAssertFalse(ScreenshotSelectionView.isCancelKeyCode(36))
@@ -647,8 +710,9 @@ final class MarlaAppTests: XCTestCase {
         XCTAssertTrue(monitor.handleLocal(returnKey) === returnKey)
         monitor.handleGlobal(returnKey)
         monitor.handleGlobal(escape)
+        monitor.handleEventTapEscape()
 
-        XCTAssertEqual(cancellationCount, 2)
+        XCTAssertEqual(cancellationCount, 3)
     }
 
     @MainActor
@@ -660,6 +724,7 @@ final class MarlaAppTests: XCTestCase {
         XCTAssertTrue(monitor.isInstalled)
         monitor.remove()
         XCTAssertFalse(monitor.isInstalled)
+        XCTAssertFalse(monitor.hasEventTap)
         monitor.remove()
         XCTAssertFalse(monitor.isInstalled)
     }
@@ -720,6 +785,458 @@ final class MarlaAppTests: XCTestCase {
         XCTAssertNil(
             AccessibilitySelectionReader.substring(in: value, range: CFRange(location: 20, length: 1))
         )
+    }
+
+    func testSelectionTextResolutionContinuesAfterEmptyStandardRange() {
+        XCTAssertEqual(
+            AccessibilitySelectionReader.resolveTextLookups([
+                .empty,
+                .found("Electron marker selection", .textMarker)
+            ]),
+            .found("Electron marker selection", .textMarker)
+        )
+        XCTAssertEqual(
+            AccessibilitySelectionReader.resolveTextLookups([
+                .found("   \n", .directText),
+                .unavailable,
+                .found("Range selection", .standardRange)
+            ]),
+            .found("Range selection", .standardRange)
+        )
+        XCTAssertEqual(
+            AccessibilitySelectionReader.resolveTextLookups([.unavailable, .empty, .unavailable]),
+            .empty
+        )
+    }
+
+    func testSelectionGraphSearchDeduplicatesRootsAndCyclesGlobally() {
+        let children = [
+            0: [1, 1],
+            1: [0, 2],
+            2: [2]
+        ]
+        let outcome = SelectionGraphSearch.find(
+            roots: [0, 0],
+            maximumElements: 20,
+            hasTimeRemaining: { true },
+            selection: { node in
+                node == 2 ? .found("selected", .directText) : .unavailable
+            },
+            children: { children[$0] ?? [] }
+        )
+
+        XCTAssertEqual(outcome.visitedElementCount, 3)
+        XCTAssertEqual(outcome.termination, .found)
+        guard case let .found(text, mechanism, node) = outcome.lookup else {
+            return XCTFail("Expected a selection match")
+        }
+        XCTAssertEqual(text, "selected")
+        XCTAssertEqual(mechanism, .directText)
+        XCTAssertEqual(node, 2)
+    }
+
+    func testSelectionCandidateRootsPrioritizePointerPathAndDedupeFallbacks() {
+        let roots = SelectionCandidateRoots.merge([
+            [7, 6, 5],
+            [5, 4],
+            [4, 3]
+        ])
+
+        XCTAssertEqual(roots, [7, 6, 5, 4, 3])
+        let outcome = SelectionGraphSearch.find(
+            roots: roots,
+            maximumElements: 20,
+            hasTimeRemaining: { true },
+            selection: { node in
+                node == 7 ? .found("pointer selection", .directText) : .unavailable
+            },
+            children: { _ in [] }
+        )
+        XCTAssertEqual(outcome.visitedElementCount, 1)
+        XCTAssertEqual(outcome.termination, .found)
+    }
+
+    func testSelectionGraphSearchDoesNotLetEarlierEmptyNodeHideLaterSelection() {
+        let outcome = SelectionGraphSearch.find(
+            roots: [0, 1],
+            maximumElements: 20,
+            hasTimeRemaining: { true },
+            selection: { node in
+                node == 0 ? .empty : .found("marker", .textMarker)
+            },
+            children: { _ in [] }
+        )
+
+        XCTAssertEqual(outcome.visitedElementCount, 2)
+        guard case let .found(text, mechanism, node) = outcome.lookup else {
+            return XCTFail("Expected the later non-empty selection")
+        }
+        XCTAssertEqual(text, "marker")
+        XCTAssertEqual(mechanism, .textMarker)
+        XCTAssertEqual(node, 1)
+    }
+
+    func testSelectionGraphSearchReportsElementAndTimeBudgets() {
+        let elementLimited = SelectionGraphSearch.find(
+            roots: [0],
+            maximumElements: 2,
+            hasTimeRemaining: { true },
+            selection: { _ in .unavailable },
+            children: { [$0 + 1] }
+        )
+        XCTAssertEqual(elementLimited.visitedElementCount, 2)
+        XCTAssertEqual(elementLimited.termination, .elementLimit)
+
+        var timeChecks = 0
+        let timeLimited = SelectionGraphSearch.find(
+            roots: [0],
+            maximumElements: 20,
+            hasTimeRemaining: {
+                timeChecks += 1
+                return timeChecks == 1
+            },
+            selection: { _ in .unavailable },
+            children: { [$0 + 1] }
+        )
+        XCTAssertEqual(timeLimited.visitedElementCount, 1)
+        XCTAssertEqual(timeLimited.termination, .timeLimit)
+    }
+
+    func testSelectionGraphSearchProbesAllRootsBeforeExpandingTheirChildren() {
+        var events: [String] = []
+        let outcome = SelectionGraphSearch.find(
+            roots: [0, 1],
+            maximumElements: 20,
+            hasTimeRemaining: { true },
+            selection: { node in
+                events.append("selection\(node)")
+                return .unavailable
+            },
+            children: { node in
+                events.append("children\(node)")
+                return node < 2 ? [node + 2] : []
+            }
+        )
+
+        XCTAssertEqual(outcome.termination, .exhausted)
+        XCTAssertEqual(
+            Array(events.prefix(4)),
+            ["selection0", "selection1", "children0", "children1"]
+        )
+    }
+
+    func testSelectionBoundsRejectInvalidGeometryButAllowsCaretWidth() {
+        XCTAssertTrue(
+            AccessibilitySelectionReader.isUsableSelectionBounds(
+                CGRect(x: 10, y: 20, width: 0, height: 18)
+            )
+        )
+        XCTAssertFalse(
+            AccessibilitySelectionReader.isUsableSelectionBounds(
+                CGRect(x: CGFloat.infinity, y: 20, width: 30, height: 18)
+            )
+        )
+        XCTAssertFalse(AccessibilitySelectionReader.isUsableSelectionBounds(.zero))
+    }
+
+    @MainActor
+    func testCopyFallbackReadsOnlyTextAfterPasteboardChangeAndRestoresSnapshot() throws {
+        let clipboard = FakeSelectionClipboard()
+        clipboard.text = "old clipboard"
+        clipboard.snapshotValue = PasteboardSnapshot(items: [
+            PasteboardItemSnapshot(representations: [
+                PasteboardRepresentation(type: "public.utf8-plain-text", data: Data("old clipboard".utf8)),
+                PasteboardRepresentation(type: "com.example.custom", data: Data([1, 2, 3]))
+            ])
+        ])
+        var now = 0.0
+        var pumpCount = 0
+        let fallback = ClipboardSelectionFallback(
+            clipboard: clipboard,
+            timeout: 0.2,
+            now: { now },
+            pump: { _ in
+                pumpCount += 1
+                now += 0.01
+                clipboard.changeCount = 1
+                clipboard.text = "copied selection"
+            },
+            sendCopy: { true },
+            isFrontmost: { _ in true }
+        )
+
+        let result = try fallback.readSelection(from: NSRunningApplication.current)
+
+        XCTAssertEqual(result.selection.text, "copied selection")
+        XCTAssertEqual(result.restoreStatus, .restored)
+        XCTAssertEqual(fallback.lastRestoreStatus, .restored)
+        XCTAssertEqual(clipboard.restoreCalls, 1)
+        XCTAssertEqual(clipboard.lastRestoredSnapshot, clipboard.snapshotValue)
+        XCTAssertGreaterThan(pumpCount, 0)
+    }
+
+    @MainActor
+    func testCopyFallbackDoesNotConsumeUnchangedClipboardText() {
+        let clipboard = FakeSelectionClipboard()
+        clipboard.text = "stale clipboard"
+        var now = 0.0
+        let fallback = ClipboardSelectionFallback(
+            clipboard: clipboard,
+            timeout: 0.03,
+            now: { now },
+            pump: { _ in now += 0.01 },
+            sendCopy: { true },
+            isFrontmost: { _ in true }
+        )
+
+        XCTAssertThrowsError(try fallback.readSelection(from: NSRunningApplication.current)) { error in
+            XCTAssertEqual(error as? ClipboardSelectionFallbackError, .timedOut)
+        }
+        XCTAssertEqual(fallback.lastRestoreStatus, .notAttempted)
+        XCTAssertEqual(clipboard.restoreCalls, 0)
+    }
+
+    @MainActor
+    func testCopyFallbackRestoresAfterChangedClipboardContainsNoText() {
+        let clipboard = FakeSelectionClipboard()
+        var now = 0.0
+        let fallback = ClipboardSelectionFallback(
+            clipboard: clipboard,
+            timeout: 0.03,
+            now: { now },
+            pump: { _ in
+                now += 0.01
+                clipboard.changeCount = 1
+                clipboard.text = nil
+            },
+            sendCopy: { true },
+            isFrontmost: { _ in true }
+        )
+
+        XCTAssertThrowsError(try fallback.readSelection(from: NSRunningApplication.current)) { error in
+            XCTAssertEqual(error as? ClipboardSelectionFallbackError, .selectedTextUnavailable)
+        }
+        XCTAssertEqual(fallback.lastRestoreStatus, .restored)
+        XCTAssertEqual(clipboard.restoreCalls, 1)
+    }
+
+    @MainActor
+    func testCopyFallbackDoesNotRestoreWhenCopyEventWasNeverSent() {
+        let clipboard = FakeSelectionClipboard()
+        let fallback = ClipboardSelectionFallback(
+            clipboard: clipboard,
+            sendCopy: { false },
+            isFrontmost: { _ in true }
+        )
+
+        XCTAssertThrowsError(try fallback.readSelection(from: NSRunningApplication.current)) { error in
+            XCTAssertEqual(error as? ClipboardSelectionFallbackError, .copyEventUnavailable)
+        }
+        XCTAssertEqual(fallback.lastRestoreStatus, .notAttempted)
+        XCTAssertEqual(clipboard.restoreCalls, 0)
+    }
+
+    @MainActor
+    func testCopyFallbackAbortsWhenClipboardChangesDuringSnapshot() {
+        let clipboard = FakeSelectionClipboard()
+        clipboard.changeCountAfterSnapshot = 1
+        var copyEventCount = 0
+        let fallback = ClipboardSelectionFallback(
+            clipboard: clipboard,
+            sendCopy: {
+                copyEventCount += 1
+                return true
+            },
+            isFrontmost: { _ in true }
+        )
+
+        XCTAssertThrowsError(try fallback.readSelection(from: NSRunningApplication.current)) { error in
+            XCTAssertEqual(error as? ClipboardSelectionFallbackError, .snapshotUnavailable)
+        }
+        XCTAssertEqual(copyEventCount, 0)
+        XCTAssertEqual(clipboard.restoreCalls, 0)
+    }
+
+    @MainActor
+    func testCopyFallbackNeverRestoresOverConcurrentClipboardWrite() {
+        let clipboard = FakeSelectionClipboard()
+        var now = 0.0
+        var pumpCount = 0
+        let fallback = ClipboardSelectionFallback(
+            clipboard: clipboard,
+            timeout: 0.2,
+            now: { now },
+            pump: { _ in
+                pumpCount += 1
+                now += 0.01
+                clipboard.changeCount = pumpCount == 1 ? 1 : 2
+                clipboard.text = pumpCount == 1 ? nil : "copied selection"
+            },
+            sendCopy: { true },
+            isFrontmost: { _ in true }
+        )
+
+        XCTAssertThrowsError(try fallback.readSelection(from: NSRunningApplication.current)) { error in
+            XCTAssertEqual(error as? ClipboardSelectionFallbackError, .clipboardChangedDuringCopy)
+        }
+        XCTAssertEqual(fallback.lastRestoreStatus, .skippedBecauseClipboardChanged)
+        XCTAssertNil(clipboard.lastRestoredSnapshot)
+        XCTAssertGreaterThanOrEqual(pumpCount, 2)
+    }
+
+    @MainActor
+    func testCopyFallbackStopsWhenSnapshotCannotBeRestored() {
+        let clipboard = FakeSelectionClipboard()
+        clipboard.restoreResponse = .failed
+        var now = 0.0
+        let fallback = ClipboardSelectionFallback(
+            clipboard: clipboard,
+            timeout: 0.1,
+            now: { now },
+            pump: { _ in
+                now += 0.01
+                clipboard.changeCount = 1
+                clipboard.text = "copied selection"
+            },
+            sendCopy: { true },
+            isFrontmost: { _ in true }
+        )
+
+        XCTAssertThrowsError(try fallback.readSelection(from: NSRunningApplication.current)) { error in
+            XCTAssertEqual(error as? ClipboardSelectionFallbackError, .restoreFailed)
+        }
+        XCTAssertEqual(fallback.lastRestoreStatus, .failed)
+    }
+
+    @MainActor
+    func testCopyFallbackRestoresSnapshotWhenCancelledAfterCopy() {
+        let clipboard = FakeSelectionClipboard()
+        var now = 0.0
+        var cancelled = false
+        let fallback = ClipboardSelectionFallback(
+            clipboard: clipboard,
+            timeout: 0.1,
+            now: { now },
+            pump: { _ in
+                now += 0.01
+                clipboard.changeCount = 1
+                clipboard.text = "copied selection"
+                cancelled = true
+            },
+            sendCopy: { true },
+            isFrontmost: { _ in true }
+        )
+
+        XCTAssertThrowsError(
+            try fallback.readSelection(
+                from: NSRunningApplication.current,
+                isCancelled: { cancelled }
+            )
+        ) { error in
+            XCTAssertEqual(error as? ClipboardSelectionFallbackError, .cancelled)
+        }
+        XCTAssertEqual(fallback.lastRestoreStatus, .restored)
+        XCTAssertEqual(clipboard.restoreCalls, 1)
+        XCTAssertEqual(clipboard.lastRestoredSnapshot, clipboard.snapshotValue)
+    }
+
+    @MainActor
+    func testCopyFallbackRestoresSnapshotWhenSourceApplicationLosesFocus() {
+        let clipboard = FakeSelectionClipboard()
+        var now = 0.0
+        var sourceIsFrontmost = true
+        let fallback = ClipboardSelectionFallback(
+            clipboard: clipboard,
+            timeout: 0.1,
+            now: { now },
+            pump: { _ in
+                now += 0.01
+                clipboard.changeCount = 1
+                clipboard.text = "copied selection"
+                sourceIsFrontmost = false
+            },
+            sendCopy: { true },
+            isFrontmost: { _ in sourceIsFrontmost }
+        )
+
+        XCTAssertThrowsError(try fallback.readSelection(from: NSRunningApplication.current)) { error in
+            XCTAssertEqual(error as? ClipboardSelectionFallbackError, .sourceApplicationChanged)
+        }
+        XCTAssertEqual(fallback.lastRestoreStatus, .restored)
+        XCTAssertEqual(clipboard.restoreCalls, 1)
+    }
+
+    @MainActor
+    func testClipboardSnapshotRebuildsEveryItemAndRepresentation() throws {
+        let firstItem = NSPasteboardItem()
+        firstItem.setString("original", forType: .string)
+        firstItem.setData(
+            Data([1, 2, 3, 4]),
+            forType: NSPasteboard.PasteboardType("com.marla.tests.binary")
+        )
+        let secondItem = NSPasteboardItem()
+        secondItem.setData(
+            Data("second".utf8),
+            forType: NSPasteboard.PasteboardType("public.utf8-plain-text")
+        )
+        let snapshot = try PasteboardSnapshot.capture(items: [firstItem, secondItem])
+
+        XCTAssertEqual(
+            try PasteboardSnapshot.capture(items: snapshot.makePasteboardItems()),
+            snapshot
+        )
+    }
+
+    @MainActor
+    func testSelectionCopyFallbackSettingDefaultsOffAndPersists() {
+        let suite = "com.marla.tests.copy-fallback.(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suite)!
+        defaults.removePersistentDomain(forName: suite)
+        let keychain = KeychainCredentialStore(service: "com.marla.tests", account: UUID().uuidString)
+
+        let settings = MarlaSettingsStore(defaults: defaults, keychain: keychain)
+        XCTAssertFalse(settings.selectionCopyFallbackEnabled)
+
+        settings.selectionCopyFallbackEnabled = true
+        let reloaded = MarlaSettingsStore(defaults: defaults, keychain: keychain)
+        XCTAssertTrue(reloaded.selectionCopyFallbackEnabled)
+    }
+
+    @MainActor
+    func testSelectionUIAutomationReportContainsNoSelectedTextOrClipboardContent() throws {
+        let report = MarlaApplicationModel.SelectionUIAutomationReport(
+            result: "success",
+            errorCode: nil,
+            textUTF16Length: 27,
+            hasBounds: true,
+            sourceApplicationBundleID: "com.apple.TextEdit",
+            frontmostApplicationBundleIDAfterPresentation: "com.apple.TextEdit",
+            focusPreserved: true,
+            clipboardChangeCountDelta: 0,
+            clipboardPreserved: true,
+            diagnostics: SelectionReadDiagnostics(
+                rootCount: 3,
+                hadFocusedCandidate: true,
+                hadPointerCandidate: true,
+                rawPointerHitCount: 1,
+                hadSystemFocusedElement: true,
+                hadApplicationFocusedElement: true,
+                hadFocusedWindow: true,
+                systemFocusedApplicationMatched: true,
+                visitedElementCount: 1,
+                termination: .found,
+                matchedMechanism: .standardRange,
+                elapsedMilliseconds: 2
+            )
+        )
+        let encoded = try JSONEncoder().encode(report)
+        let json = try XCTUnwrap(String(data: encoded, encoding: .utf8))
+
+        XCTAssertFalse(json.contains("Marla selection reliability"))
+        XCTAssertFalse(json.contains("clipboardContent"))
+        XCTAssertTrue(json.contains("textUTF16Length"))
+        XCTAssertTrue(json.contains("clipboardChangeCountDelta"))
+        XCTAssertTrue(json.contains("clipboardPreserved"))
     }
 
     @MainActor

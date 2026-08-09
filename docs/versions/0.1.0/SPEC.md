@@ -4,7 +4,7 @@
 
 版本 / Version: 0.1.0
 
-最后更新 / Last updated: 2026-08-06
+最后更新 / Last updated: 2026-08-09
 
 > 本文每节先给出中文规范，再给出英文镜像。发生歧义时以中文为准；两种语言必须在同一次修改中同步。
 >
@@ -88,21 +88,21 @@ Force Touch is an experimental entry point that is off by default. It only reuse
 
 ### 中文
 
-触发后，Marla 通过 Accessibility 读取选中文字和可用的选区范围。0.1.0 不把译文覆盖到原文字体和位置，而是在选区的上方或下方放置非激活结果卡片；空间不足时选择可见面积更大的方向。无法得到可靠选区坐标时，卡片降级到指针附近。
+触发后，Marla 通过 Accessibility 读取选中文字和可用的选区范围。检索同时考虑前台应用、窗口和系统焦点，以及应用/system-wide 指针命中及其有界父链；标准选区与 Web Text Marker 必须在同一元素上合并评估，不能因为某一机制为空而跳过其它机制。检索必须有全局去重、元素与总耗时上限，并把 renderer/helper AX 节点绑定到触发时前台应用。0.1.0 不把译文覆盖到原文字体和位置，而是在选区的上方或下方放置非激活结果卡片；空间不足时选择可见面积更大的方向。无法得到可靠选区坐标时，卡片降级到指针附近。
 
-没有选中文字时，不自动把任意剪贴板内容当成输入。Marla 显示短暂、可操作的提示，并给出快速输入的快捷键。0.1.0 不包含会模拟复制动作的剪贴板兼容模式。
+没有选中文字时，不自动把任意既有剪贴板内容当成输入。默认关闭的“兼容性取词”设置允许用户明确授权 Marla 模拟一次 `⌘C`：它必须先在内存中备份 `NSPasteboard.general` 的全部可读 item、类型、顺序和数据，且快照前后 `changeCount` 保持稳定；只接受源应用仍在前台且本次 `changeCount` 变化后获得的非空文本，并在成功、空结果、异常、取消和超时路径恢复原内容。恢复后必须重新读取并比较完整快照。若恢复前检测到其他进程已再次写入，则不覆盖更新后的剪贴板并报告脱敏状态；快照不完整、恢复不一致或恢复失败时不发送翻译请求。重复划词快捷键取消当前兼容事务并先完成清理。兼容模式关闭时，Marla 只使用 Accessibility 并显示快速输入提示。
 
 ### English
 
-On invocation, Marla reads selected text and available selection bounds through Accessibility. 0.1.0 does not cover the source text in place. It places a non-activating result card above or below the selection, choosing the side with more visible space. If reliable selection geometry is unavailable, the card falls back to the pointer.
+On invocation, Marla reads selected text and available selection bounds through Accessibility. Retrieval considers the frontmost application, window and system focus, plus application/system-wide pointer hits and bounded ancestor paths. Standard selection and Web Text Marker mechanisms must be evaluated together on the same element; an empty result from one mechanism may not suppress another. The search uses global deduplication, element/time budgets, and binds renderer/helper AX nodes to the trigger-time frontmost application. 0.1.0 does not cover the source text in place. It places a non-activating result card above or below the selection, choosing the side with more visible space. If reliable selection geometry is unavailable, the card falls back to the pointer.
 
-When no text is selected, Marla does not silently use arbitrary clipboard content. It presents a brief actionable message with the quick-input shortcut. A compatibility mode that simulates Copy is not included in 0.1.0.
+When no text is selected, Marla does not silently use arbitrary existing clipboard content. An off-by-default “Copy compatibility” setting lets the user explicitly authorize one simulated `⌘C`: Marla must first snapshot every readable item, type, order, and data representation in `NSPasteboard.general` while `changeCount` remains stable, accept non-empty text only after this trigger changes the count and while the source app remains frontmost, and restore the original contents on success, empty result, error, cancellation, and timeout. It must re-read and compare the complete restored snapshot. If another process writes again before restoration, Marla must not overwrite the newer clipboard and reports only a redacted status; incomplete, mismatched, or failed restoration sends no translation request. A repeated selection shortcut cancels the active compatibility transaction and finishes cleanup first. With compatibility disabled, Marla uses Accessibility only and shows the quick-input action.
 
 ## 5. 截图翻译 / Screenshot Translation
 
 ### 中文
 
-截图入口显示覆盖所有活动显示器的轻量框选层。系统十字光标旁显示短生命周期像素放大镜、中心准星和指针坐标，并在显示器边缘自动换位；拖动期间展示清晰边界和尺寸反馈。`Esc`、右键或未形成有效区域时取消，不进行 OCR、翻译或持久化。`Esc` 由当前截图会话统一处理，不依赖某一个框选 View 保持键盘焦点；会话结束后必须移除临时按键监听。放大镜采样只存在于当前框选会话内存中。进入框选时，Marla 临时隐藏自己已打开的设置窗口；框选结束后只恢复其原有可见状态，不得让设置窗口越过框选层或抢占源应用焦点。
+截图入口显示覆盖所有活动显示器的轻量框选层。系统十字光标旁显示短生命周期像素放大镜、中心准星和指针坐标，并在显示器边缘自动换位；拖动期间展示清晰边界和尺寸反馈。`Esc`、右键或未形成有效区域时取消，不进行 OCR、翻译或持久化。`Esc` 由当前截图会话统一处理，并同时保留 View、窗口 `sendEvent`/key-equivalent/`cancelOperation`、本地/全局监听和会话级系统事件 tap 路径，不依赖某一个框选 View 保持键盘焦点；会话结束后必须移除临时按键监听。放大镜采样只存在于当前框选会话内存中。进入框选时，Marla 临时隐藏自己已打开的设置窗口；框选结束后只恢复其原有可见状态，不得让设置窗口越过框选层或抢占源应用焦点。
 
 确认区域后只在内存中保留裁剪图像，并使用 macOS Vision `VNRecognizeTextRequest` 本地识别。0.1.0 只保留纯文本、行顺序和换行，不承诺表格、公式、代码块、Markdown 或页面布局恢复。识别出的文字进入与其他入口相同的翻译管线，截图像素不进入 Rust 网络请求，也不上传给翻译服务。
 
@@ -110,7 +110,7 @@ When no text is selected, Marla does not silently use arbitrary clipboard conten
 
 ### English
 
-The screenshot entry presents a lightweight selection layer across all active displays. A short-lived pixel loupe beside the system crosshair shows a center reticle and pointer coordinates, flipping sides near display edges. Dragging shows a clear boundary and size feedback. `Esc`, right-click, or an invalid region cancels without OCR, translation, or persistence. The active screenshot session owns `Esc` handling instead of relying on any one selection view to retain keyboard focus, and all temporary key monitors are removed when the session finishes. Loupe sampling exists only in memory for the active selection session. When selection starts, Marla temporarily hides any open Settings window of its own. After selection, it only restores the previous visibility state; Settings may not rise above the selection layer or steal focus from the source application.
+The screenshot entry presents a lightweight selection layer across all active displays. A short-lived pixel loupe beside the system crosshair shows a center reticle and pointer coordinates, flipping sides near display edges. Dragging shows a clear boundary and size feedback. `Esc`, right-click, or an invalid region cancels without OCR, translation, or persistence. The active screenshot session owns `Esc` handling and retains View, window `sendEvent`/key-equivalent/`cancelOperation`, local/global monitor, and session-scoped system event-tap routes instead of relying on any one selection view to retain keyboard focus; all temporary key monitors are removed when the session finishes. Loupe sampling exists only in memory for the active selection session. When selection starts, Marla temporarily hides any open Settings window of its own. After selection, it only restores the previous visibility state; Settings may not rise above the selection layer or steal focus from the source application.
 
 After confirmation, only the cropped image remains in memory and macOS Vision `VNRecognizeTextRequest` performs local recognition. 0.1.0 preserves plain text, line order, and line breaks only; it does not promise table, formula, code-block, Markdown, or page-layout recovery. Recognized text enters the same translation pipeline as other entries. Screenshot pixels never enter the Rust network request and are never uploaded to the translation service.
 

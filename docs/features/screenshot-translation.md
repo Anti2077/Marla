@@ -19,7 +19,7 @@ Translate text from a small user-selected screen region using local macOS Vision
 
 ## Acceptance criteria
 
-- Escape cancellation belongs to the active screenshot session and does not depend on a selection view retaining keyboard focus. Session-scoped local and global monitors are removed as soon as the session finishes.
+- Escape cancellation belongs to the active screenshot session and does not depend on a selection view retaining keyboard focus. The selection window handles raw `sendEvent`, AppKit key-equivalent, and `cancelOperation` routing, with session-scoped local/global monitors and a system event-tap fallback removed as soon as the session finishes.
 - Escape cancels without OCR, translation, persistence, or upload.
 - An already-open Marla Settings window never covers the selection layer and is restored without stealing source-application focus.
 - No image crop is uploaded in 0.1.0.

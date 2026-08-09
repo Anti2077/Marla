@@ -14,7 +14,7 @@ Backlog 只收录已经确认需要完成、但尚未成为当前 Task 的工作
 
 | ID | 工作 | 状态 | 发布关系 | 提升为 Task 的条件 |
 | --- | --- | --- | --- | --- |
-| BL-001 | 跨应用划词翻译真实验证 | Ready | 0.1.0 阻塞项 | 项目所有者选择它作为下一项工作 |
+| BL-001 | 跨应用划词翻译真实验证 | Ready; implementation complete in [TASK-015](../tasks/TASK-015-deep-selection-reliability.md) | 0.1.0 阻塞项 | 项目所有者选择完成剩余发布矩阵 |
 | BL-002 | 截图裁剪与权限持久化真实验证 | Ready | 0.1.0 阻塞项 | 可在目标显示器组合上运行测试 App |
 | BL-003 | UI 延迟与内存预算测量 | Ready | 0.1.0 阻塞项 | 明确测试场景和采样方式 |
 | BL-004 | Force Touch 公共 API 可行性验证 | Needs evidence | 0.1.0 非阻塞实验 | 确定可复现的硬件与应用矩阵 |
@@ -27,7 +27,7 @@ Backlog 只收录已经确认需要完成、但尚未成为当前 Task 的工作
 | BL-011 | 可靠取消截图框选 | Complete: TASK-005（detail: TASK-009） | 0.1.0 Alpha 真实缺陷 | None |
 | BL-012 | API Base URL、完整 URL 与模型获取 | Complete: TASK-005（detail: TASK-010） | 0.1.0 Alpha 兼容性修复 | None |
 | BL-013 | API 编辑器顶部聚焦边框完整显示 | Complete: TASK-005（detail: TASK-011） | 0.1.0 Alpha 视觉缺陷 | None |
-| BL-014 | API 配置启用、排序与编辑器操作收敛 | Active task: TASK-013 | 0.1.0 Alpha 逻辑与 UX 修复 | 完成自动化、真实 App 与固定构建验收 |
+| BL-014 | API 配置启用、排序与编辑器操作收敛 | [Blocked task: TASK-013](../tasks/TASK-013-api-profile-activation-and-editor-actions.md) | 0.1.0 Alpha 逻辑与 UX 修复 | 项目所有者确认拖拽动态中间态 |
 
 ## 条目详情
 
@@ -38,10 +38,12 @@ Backlog 只收录已经确认需要完成、但尚未成为当前 Task 的工作
 - **仍需证据**：最新签名构建的真实运行结果、失败应用与 AX 树特征、焦点和剪贴板不变。
 - **建议拆分**：先做兼容矩阵验证；只有出现可复现失败时，另建一个修复 Task。
 - **相关文档**：`features/inline-translation.md`、`versions/0.1.0/ACCEPTANCE.md`。
+- **已完成实现**：`TASK-015` 已完成 AX 深化与受保护的 Copy fallback；项目所有者在 Codex/微信真实场景中确认成功率显著提升并接受该目标完成。
+- **仍需证据**：BL-001 只保留 Terminal、Safari、TextEdit、Zen、Ghostty、VSCodium 以及完整几何、焦点、剪贴板发布矩阵，不重新打开 TASK-015。
 
 ### BL-002：截图裁剪与权限持久化真实验证
 
-- **目标**：验证单屏、Retina、多屏、负坐标和混合缩放下，框选区域与 Vision 实际输入一致，并确认稳定签名 App 的 Screen Recording 授权行为。
+- **目标**：验证单屏、Retina、多屏、负坐标和混合缩放下，框选区域与 Vision 实际输入一致，复验真实 `Esc` 取消回归，并确认稳定签名 App 的 Screen Recording 授权行为。
 - **已具备**：坐标转换单元测试、跨显示器框选层、内存 Vision OCR、固定路径签名测试 App。
 - **仍需证据**：真实裁剪对比、取消路径、空 OCR、TCC 重启后的权限状态。
 - **边界**：验证期间不得将用户截图写入仓库；如需临时诊断产物，必须显式启用并清理。

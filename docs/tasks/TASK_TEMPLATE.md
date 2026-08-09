@@ -80,6 +80,14 @@ Conversation: 当前开发对话的标题、日期或可识别说明
 - `Tests/...`
 - 相关 Accepted ADR。
 
+## Parallel contributors (optional)
+
+如果本 Task 使用了文档子 Agent，记录其边界和写入所有权；没有则写 `None`。
+
+| Contributor | Objective | Required Reading | Write ownership | Permission | Output / status |
+| --- | --- | --- | --- | --- | --- |
+| Agent name | 独立目标 | 文件列表 | 文件或章节 | Read-only / Edit | 交付结果 |
+
 ## Risks and rollback
 
 - 可能破坏的现有行为。
@@ -100,3 +108,4 @@ Conversation: 当前开发对话的标题、日期或可识别说明
 - Documentation updated:
 - Remaining work promoted to:
 - Scope changes closed:
+- Parallel contributions integrated:

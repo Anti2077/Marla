@@ -42,6 +42,18 @@ Each implementation-focused development conversation maps to one Task. Keep usin
 - A task is not complete until relevant tests pass and documentation reflects the verified state.
 - Preserve user changes and keep edits focused.
 
+## Documentation collaboration
+
+- For substantial documentation work, especially multi-file creation, restructuring, specification synchronization, or evidence review, the main Agent should normally evaluate whether multiple sub-Agents can work in parallel.
+- Sub-Agents are contributors to the current conversation's Task, not separate Tasks. Parallel documentation work does not authorize additional product scope.
+- Before delegating, the main Agent must define each contributor's bounded objective, Required Reading, allowed write files or sections, forbidden files, expected output, and whether the contributor is read-only or may edit.
+- In the shared worktree, assign each file one write owner at a time. If several perspectives are needed for one file, use one writer and read-only reviewers. Do not have multiple Agents edit `AGENTS.md`, `STATUS.md`, the active Task, documentation indexes, or the same bilingual document concurrently.
+- The main Agent owns interpretation of project rules, the active Task and scope-change record, `STATUS.md`, final wording, conflict resolution, whole-diff review, final verification, and the eventual commit or push.
+- Sub-Agents must read the relevant `AGENTS.md`, `STATUS.md`, active Task, and Required Reading before contributing. They must report evidence, conflicts, and unknowns instead of silently making product or architecture decisions.
+- Sub-Agents must not create or switch Active Tasks, promote Ideas to Backlog, accept or supersede ADRs, mark acceptance criteria complete, or commit/merge/push unless the main Agent explicitly assigns and authorizes that action.
+- Before finishing, the main Agent must reconcile terminology, duplicate IDs, links, bilingual sections, and claims against live code/tests; run applicable documentation checks and `git diff --check`; and verify that no parallel contribution or existing user change was omitted.
+- For a small or tightly coupled documentation edit that cannot be divided safely, the main Agent may work alone and should not create artificial parallelism.
+
 ## UI design requirement
 
 Before implementing or materially changing SwiftUI surfaces, read and use the installed `swiftui-design-skill`. If it is unavailable, install `wholiver/swiftui-design-skill@swiftui-design-skill` before UI work. After implementation, run its five-dimension review against real app screenshots; every dimension must score at least 7/10.

@@ -33,7 +33,9 @@
 ### 中文
 
 - [ ] `⌃⌥D` 在 Terminal、Safari、代码编辑器和 TextEdit 中触发。
-- [ ] 成功读取选中文字，原文不被修改，剪贴板不被覆盖。
+- [ ] 成功读取选中文字，原文不被修改；兼容模式关闭时剪贴板不被触碰，开启时完整恢复原剪贴板。
+- [ ] 兼容模式默认关闭；开启后，AX 读取失败的 Codex/微信场景可通过模拟 `⌘C` 获取文本，不得使用触发前已有剪贴板内容。
+- [ ] Copy fallback 的全部 item、类型、顺序和可读数据均在内存中备份；成功、空结果、错误、取消、超时和恢复失败均有清理验证，检测到外部新写入时不覆盖它。
 - [ ] 坐标可用时卡片靠近选区且完全位于可见工作区。
 - [ ] 坐标不可用时卡片回退到触发时指针附近。
 - [ ] 无选区时显示可操作提示，不发送翻译请求。
@@ -42,7 +44,9 @@
 ### English
 
 - [ ] `⌃⌥D` triggers in Terminal, Safari, a code editor, and TextEdit.
-- [ ] Selected text is read, source is unchanged, and clipboard is preserved.
+- [ ] Selected text is read and source is unchanged; with compatibility disabled the clipboard is untouched, and with it enabled the original clipboard is fully restored.
+- [ ] Compatibility is off by default; when enabled, AX failures in Codex/WeChat can use simulated `⌘C`, and pre-existing clipboard content is never accepted as the selection.
+- [ ] Every pasteboard item, type, order, and readable data representation is snapshotted in memory; success, empty result, error, cancellation, timeout, restore failure, and concurrent external writes have explicit cleanup evidence.
 - [ ] With geometry, the card anchors near selection and remains in the visible work area.
 - [ ] Without geometry, the card falls back to trigger-time pointer position.
 - [ ] No selection shows an actionable message and sends no translation request.
@@ -54,7 +58,7 @@
 
 - [ ] `⌃⌥S` 在单显示器、Retina 和多显示器环境进入正确框选层。
 - [ ] 跨屏坐标、负坐标原点和不同缩放比例下裁剪区域正确。
-- [x] 真实 `Esc` 在普通框选和设置已打开的焦点场景中取消，且不产生 OCR、网络请求或文件。
+- [ ] 真实 `Esc` 在普通框选和设置已打开的焦点场景中取消，且不产生 OCR、网络请求或文件（TASK-009 的旧证据已被项目所有者在当前固定 App 中复现为失败，TASK-015 正在重新验收）。
 - [ ] 右键和无效区域取消，且不产生 OCR、网络请求或文件。
 - [ ] Vision 对短句、多行和长截图文字输出稳定阅读顺序。
 - [ ] 空 OCR 显示重新框选操作，不发送空请求。
@@ -65,7 +69,7 @@
 
 - [ ] `⌃⌥S` enters the correct selection layer on single-display, Retina, and multi-display setups.
 - [ ] Crop is correct with cross-screen coordinates, negative origins, and mixed scale factors.
-- [x] A real `Esc` cancels both ordinary selection and the open-Settings focus scenario, with no OCR, network request, or file.
+- [ ] A real `Esc` cancels both ordinary selection and the open-Settings focus scenario, with no OCR, network request, or file (the project owner reproduced a failure in the current fixed App after the older TASK-009 evidence; TASK-015 is re-verifying it).
 - [ ] Right-click and invalid regions cancel with no OCR, network request, or file.
 - [ ] Vision produces stable reading order for short, multiline, and long captured text.
 - [ ] Empty OCR offers reselect and sends no empty request.
@@ -265,6 +269,10 @@ TASK-010 automation, real-API, and visual evidence: every profile now has explic
 TASK-011 自动化与视觉证据：API 编辑器滚动内容顶部增加 8pt Focus Ring 安全边距，并提供只由 UI 验收环境变量启用的确定性首行聚焦。`./scripts/check.sh` 通过（Rust 17 项、Swift 41 项、Swift/Xcode Debug 构建、格式/空白/diff 检查）。固定 `artifacts/Marla_dev.app` 重新构建并保持 Bundle ID `com.marla.app`、arm64、Authority `API Usage Monitor Dev` 和既有 designated requirement。前台浅色/深色 Release 窗口按 Core Graphics Window ID 捕获，蓝色 Focus Ring 四边完整；证据位于 `artifacts/ui-review/task-011/`，五维评分为 8/8/9/8/7。
 
 TASK-011 automation and visual evidence: the API editor now gives its scroll content an 8pt top safety inset for the Focus Ring and exposes deterministic first-row focus only through the UI-acceptance environment. `./scripts/check.sh` passed (17 Rust tests, 41 Swift tests, Swift/Xcode Debug builds, formatting/whitespace/diff checks). The fixed `artifacts/Marla_dev.app` was rebuilt while preserving Bundle ID `com.marla.app`, arm64, Authority `API Usage Monitor Dev`, and the existing designated requirement. Frontmost light/dark Release windows captured by verified Core Graphics Window ID show all four sides of the blue Focus Ring; evidence is under `artifacts/ui-review/task-011/`, with five-dimension scores of 8/8/9/8/7.
+
+TASK-015 当前自动化与产物证据：选区机制合并、Unicode UTF-16 截取、空标准 Range 后继续尝试 Text Marker、候选根顺序、全局 AX 图去重/环、元素与时间预算、窗口级 Escape 路由、事件 tap 回退，以及 Copy fallback 的稳定快照、完整表示重建、成功/空结果/错误/取消/超时/失焦/并发写入/恢复失败均通过；最新 `./scripts/check.sh` 为 Rust 17 项、Swift 68 项，`./scripts/build-test-app.sh` 和固定 App 复核验证 Bundle ID、arm64、稳定签名和 designated requirement。项目所有者确认此前失败的 Codex 选区成功且剪贴板还原、微信选区成功进入真实请求，并在继续试用后确认整体成功率很高，接受 TASK-015 完成。当前 Provider `unauthorized` 来自缺失的本机 profile 凭据，按项目所有者要求不纳入本 Task。Zen/Ghostty、完整发布矩阵和真实 Escape 仍保持未勾选并分别留在 BL-001/BL-002。
+
+TASK-015 current automation and artifact evidence: selection-mechanism merging, UTF-16 Unicode slicing, continuing to Text Marker after an empty standard range, candidate-root ordering, global AX graph deduplication/cycles, element/time budgets, window-level Escape routing, the event-tap fallback, and Copy fallback stable snapshots, full representation rebuilding, success/empty/error/cancellation/timeout/focus-loss/concurrent-write/restore-failure paths all pass. The latest `./scripts/check.sh` reports 17 Rust and 68 Swift tests, and the packaging plus fixed-App verification confirm its Bundle ID, arm64 architecture, stable signature, and designated requirement. The project owner confirmed one formerly failing Codex selection now succeeds and restores the clipboard, confirmed WeChat reaches the real request, and accepted TASK-015 complete after observing a high overall success rate. The current Provider `unauthorized` comes from a missing local profile credential and is excluded from this Task by the project owner. Zen/Ghostty, the full release matrix, and real Escape remain unchecked under BL-001/BL-002.
 
 ## 11. 发布判定 / Release Decision
 

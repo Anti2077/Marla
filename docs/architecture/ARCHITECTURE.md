@@ -56,7 +56,7 @@ The implementation reads standard selected-text/range attributes and Web Accessi
 
 ### Screenshot capture
 
-Uses ScreenCaptureKit. Captures remain in memory and only the selected crop enters macOS Vision. Version 0.1.0 sends no image pixels across FFI or to a cloud provider.
+Uses ScreenCaptureKit to capture every active display before presenting selection windows. The AppKit selection layer, loupe, and final crop all use those session-only frozen frames; confirmation composites the cross-display crop without a second live capture. Full-display frames are released when selection finishes, and only the selected crop enters macOS Vision. Version 0.1.0 sends no image pixels across FFI or to a cloud provider.
 
 ### OCR provider
 

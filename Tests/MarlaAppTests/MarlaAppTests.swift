@@ -708,6 +708,120 @@ final class MarlaAppTests: XCTestCase {
         XCTAssertLessThanOrEqual(frame.maxY, nearTop.y - 8)
     }
 
+    func testInlineOverlayPlacementCoversEligibleSingleLineAndStaysVisible() throws {
+        let visible = NSRect(x: -1920, y: -120, width: 1920, height: 1080)
+        let anchor = ScreenRect(x: -1800, y: 700, width: 320, height: 22)
+
+        let placement = try XCTUnwrap(
+            InlineOverlayPlacementCalculator.placement(
+                visibleFrame: visible,
+                anchor: anchor,
+                pointer: nil,
+                sourceText: "A single line selection"
+            )
+        )
+        let frame = placement.frame
+
+        XCTAssertEqual(placement.mode, .selectionBounds)
+        XCTAssertTrue(visible.contains(frame))
+        XCTAssertLessThanOrEqual(frame.minX, anchor.x)
+        XCTAssertGreaterThanOrEqual(frame.maxX, anchor.x + anchor.width)
+        XCTAssertEqual(frame.midY, anchor.y + anchor.height / 2, accuracy: 0.001)
+    }
+
+    func testInlineOverlayPlacementUsesPointerForShortSingleLineWithoutBounds() throws {
+        let visible = NSRect(x: 0, y: 0, width: 1440, height: 900)
+        let pointer = CGPoint(x: 1395, y: 860)
+
+        let placement = try XCTUnwrap(
+            InlineOverlayPlacementCalculator.placement(
+                visibleFrame: visible,
+                anchor: nil,
+                pointer: pointer,
+                sourceText: "No exact geometry"
+            )
+        )
+
+        XCTAssertEqual(placement.mode, .pointerEstimate)
+        XCTAssertTrue(visible.contains(placement.frame))
+        XCTAssertEqual(placement.frame.height, 40)
+    }
+
+    func testInlineOverlayPlacementRejectsMultilineLongAndUnsafeGeometry() {
+        let visible = NSRect(x: 0, y: 0, width: 1440, height: 900)
+
+        XCTAssertNil(
+            InlineOverlayPlacementCalculator.placement(
+                visibleFrame: visible,
+                anchor: nil,
+                pointer: CGPoint(x: 200, y: 300),
+                sourceText: String(repeating: "x", count: 161)
+            )
+        )
+        XCTAssertNil(
+            InlineOverlayPlacementCalculator.placement(
+                visibleFrame: visible,
+                anchor: ScreenRect(x: 200, y: 300, width: 240, height: 22),
+                pointer: nil,
+                sourceText: "First line\nSecond line"
+            )
+        )
+        XCTAssertNil(
+            InlineOverlayPlacementCalculator.placement(
+                visibleFrame: visible,
+                anchor: ScreenRect(x: 200, y: 300, width: 240, height: 52),
+                pointer: nil,
+                sourceText: "Wrapped geometry"
+            )
+        )
+        XCTAssertNil(
+            InlineOverlayPlacementCalculator.placement(
+                visibleFrame: visible,
+                anchor: ScreenRect(x: 1380, y: 300, width: 120, height: 22),
+                pointer: nil,
+                sourceText: "Crosses the display edge"
+            )
+        )
+    }
+
+    func testAccessibilityCoordinateConverterMapsTopLeftDisplayCoordinatesToAppKit() throws {
+        let displays = [
+            AccessibilityDisplayGeometry(
+                accessibilityFrame: CGRect(x: 0, y: 0, width: 1512, height: 982),
+                appKitFrame: CGRect(x: 0, y: 0, width: 1512, height: 982)
+            ),
+            AccessibilityDisplayGeometry(
+                accessibilityFrame: CGRect(x: -1920, y: 120, width: 1920, height: 1080),
+                appKitFrame: CGRect(x: -1920, y: -218, width: 1920, height: 1080)
+            )
+        ]
+
+        XCTAssertEqual(
+            AccessibilityCoordinateConverter.appKitRect(
+                from: CGRect(x: -1800, y: 220, width: 320, height: 24),
+                displays: displays
+            ),
+            CGRect(x: -1800, y: 738, width: 320, height: 24)
+        )
+        XCTAssertNil(
+            AccessibilityCoordinateConverter.appKitRect(
+                from: CGRect(x: 5000, y: 5000, width: 40, height: 20),
+                displays: displays
+            )
+        )
+    }
+
+    func testInlineOverlayTerminalStatesExpandFailureAndCloseCancellation() {
+        XCTAssertEqual(
+            InlineOverlayTransition.terminalAction(for: .failed(message: "network")),
+            .expand
+        )
+        XCTAssertEqual(InlineOverlayTransition.terminalAction(for: .cancelled), .close)
+        XCTAssertEqual(InlineOverlayTransition.terminalAction(for: nil), .close)
+        XCTAssertNil(InlineOverlayTransition.terminalAction(for: .streaming))
+        XCTAssertNil(InlineOverlayTransition.terminalAction(for: .completed))
+    }
+
     func testScreenCaptureGeometryConvertsAppKitSelectionToDisplayLocalTopLeftCoordinates() {
         let screen = CGRect(x: -1920, y: -120, width: 1920, height: 1080)
         let intersection = CGRect(x: -1800, y: 700, width: 320, height: 120)
@@ -733,6 +847,57 @@ final class MarlaAppTests: XCTestCase {
     }
 
     @MainActor
+    func testFrozenScreenshotLayoutComposesCrossDisplaySelectionAtHighestScale() throws {
+        let leftImage = try makeSolidImage(width: 200, height: 200, color: .systemRed)
+        let rightImage = try makeSolidImage(width: 100, height: 100, color: .systemGreen)
+        let displays = [
+            ScreenshotMagnifierSource(
+                screenFrame: CGRect(x: -100, y: 0, width: 100, height: 100),
+                cgImage: leftImage
+            ),
+            ScreenshotMagnifierSource(
+                screenFrame: CGRect(x: 0, y: 0, width: 100, height: 100),
+                cgImage: rightImage
+            )
+        ]
+        let selection = CGRect(x: -50, y: 20, width: 100, height: 40)
+
+        let layout = try XCTUnwrap(
+            ScreenshotFrozenCapture.layout(global: selection, frozenDisplays: displays)
+        )
+
+        XCTAssertEqual(layout.scale, 2)
+        XCTAssertEqual(layout.pixelSize, CGSize(width: 200, height: 80))
+        XCTAssertEqual(layout.fragments.count, 2)
+        XCTAssertEqual(layout.fragments[0].clipRect, CGRect(x: 0, y: 0, width: 100, height: 80))
+        XCTAssertEqual(layout.fragments[0].fullDisplayRect, CGRect(x: -100, y: -40, width: 200, height: 200))
+        XCTAssertEqual(layout.fragments[1].clipRect, CGRect(x: 100, y: 0, width: 100, height: 80))
+        XCTAssertEqual(layout.fragments[1].fullDisplayRect, CGRect(x: 100, y: -40, width: 200, height: 200))
+
+        let image = try XCTUnwrap(
+            ScreenshotFrozenCapture.image(global: selection, frozenDisplays: displays)
+        )
+        XCTAssertEqual(image.width, 200)
+        XCTAssertEqual(image.height, 80)
+    }
+
+    @MainActor
+    func testFrozenScreenshotLayoutRejectsRegionsOutsideCapturedDisplays() throws {
+        let image = try makeSolidImage(width: 100, height: 100, color: .black)
+        let display = ScreenshotMagnifierSource(
+            screenFrame: CGRect(x: 0, y: 0, width: 100, height: 100),
+            cgImage: image
+        )
+
+        XCTAssertNil(
+            ScreenshotFrozenCapture.layout(
+                global: CGRect(x: 200, y: 200, width: 20, height: 20),
+                frozenDisplays: [display]
+            )
+        )
+    }
+
+    @MainActor
     func testFloatingPanelStyleEnablesDraggingAndClipsHostedContent() {
         let panel = MarlaPanel(
             contentRect: NSRect(x: 0, y: 0, width: 380, height: 300),
@@ -749,6 +914,26 @@ final class MarlaAppTests: XCTestCase {
         XCTAssertTrue(panel.isMovableByWindowBackground)
         XCTAssertTrue(panel.hasShadow)
         XCTAssertEqual(contentView.layer?.cornerRadius, DesignTokens.radiusL)
+        XCTAssertTrue(contentView.layer?.masksToBounds == true)
+    }
+
+    @MainActor
+    func testInlineOverlayPanelStyleDisablesDraggingAndUsesCompactClipping() {
+        let panel = MarlaPanel(
+            contentRect: NSRect(x: 0, y: 0, width: 320, height: 40),
+            styleMask: .borderless,
+            backing: .buffered,
+            defer: false
+        )
+        let contentView = NSView(frame: panel.contentView?.bounds ?? .zero)
+
+        InlineOverlayPanelStyle.apply(to: panel)
+        InlineOverlayPanelStyle.apply(to: contentView)
+
+        XCTAssertFalse(panel.isMovable)
+        XCTAssertFalse(panel.isMovableByWindowBackground)
+        XCTAssertTrue(panel.hasShadow)
+        XCTAssertEqual(contentView.layer?.cornerRadius, DesignTokens.radiusS)
         XCTAssertTrue(contentView.layer?.masksToBounds == true)
     }
 
@@ -1400,6 +1585,21 @@ final class MarlaAppTests: XCTestCase {
     }
 
     @MainActor
+    func testInlineTranslationExperimentDefaultsOffAndPersists() {
+        let suite = "com.marla.tests.inline-overlay.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suite)!
+        defaults.removePersistentDomain(forName: suite)
+        let keychain = KeychainCredentialStore(service: "com.marla.tests", account: UUID().uuidString)
+
+        let settings = MarlaSettingsStore(defaults: defaults, keychain: keychain)
+        XCTAssertFalse(settings.inlineTranslationExperimental)
+
+        settings.inlineTranslationExperimental = true
+        let reloaded = MarlaSettingsStore(defaults: defaults, keychain: keychain)
+        XCTAssertTrue(reloaded.inlineTranslationExperimental)
+    }
+
+    @MainActor
     func testSelectionUIAutomationReportContainsNoSelectedTextOrClipboardContent() throws {
         let report = MarlaApplicationModel.SelectionUIAutomationReport(
             result: "success",
@@ -1450,5 +1650,22 @@ final class MarlaAppTests: XCTestCase {
                 )
             )
         )
+    }
+
+    private func makeSolidImage(width: Int, height: Int, color: NSColor) throws -> CGImage {
+        let context = try XCTUnwrap(
+            CGContext(
+                data: nil,
+                width: width,
+                height: height,
+                bitsPerComponent: 8,
+                bytesPerRow: 0,
+                space: CGColorSpaceCreateDeviceRGB(),
+                bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+            )
+        )
+        context.setFillColor(color.cgColor)
+        context.fill(CGRect(x: 0, y: 0, width: width, height: height))
+        return try XCTUnwrap(context.makeImage())
     }
 }

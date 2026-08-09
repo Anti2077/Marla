@@ -665,6 +665,101 @@ struct TranslationCardView: View {
     }
 }
 
+struct InlineTranslationOverlayView: View {
+    @ObservedObject var store: TranslationSessionStore
+    let placementMode: InlineOverlayPlacementMode
+    let onExpand: () -> Void
+    let onClose: () -> Void
+
+    private var displayText: String {
+        guard let session = store.session else { return "正在准备译文…" }
+        if !session.translation.isEmpty { return session.translation }
+        switch session.state {
+        case .idle, .acquiring, .recognizing, .awaitingFirstToken, .streaming:
+            return "正在翻译…"
+        case let .failed(message):
+            return message
+        case .cancelled:
+            return "已取消"
+        case .completed:
+            return "暂无译文"
+        }
+    }
+
+    private var isWorking: Bool {
+        guard let state = store.session?.state else { return false }
+        switch state {
+        case .acquiring, .recognizing, .awaitingFirstToken, .streaming:
+            return true
+        case .idle, .completed, .failed, .cancelled:
+            return false
+        }
+    }
+
+    var body: some View {
+        HStack(spacing: DesignTokens.spaceS) {
+            if isWorking {
+                ProgressView()
+                    .controlSize(.mini)
+                    .tint(DesignTokens.accent)
+                    .accessibilityLabel("翻译中")
+            } else {
+                Image(systemName: "character.book.closed.fill")
+                    .font(AppFont.caption)
+                    .foregroundStyle(DesignTokens.accent)
+                    .accessibilityHidden(true)
+            }
+
+            Text(displayText)
+                .font(AppFont.bodyEmphasis)
+                .foregroundStyle(DesignTokens.primaryText)
+                .lineLimit(1)
+                .truncationMode(.tail)
+                .frame(maxWidth: .infinity, alignment: .leading)
+
+            if placementMode == .pointerEstimate {
+                Label("附近", systemImage: "location.fill")
+                    .font(AppFont.micro)
+                    .foregroundStyle(DesignTokens.secondaryText)
+                    .labelStyle(.titleAndIcon)
+                    .fixedSize()
+                    .help("选区未提供精确位置，译文显示在鼠标附近")
+                    .accessibilityLabel("近似位置")
+            }
+
+            Button(action: onExpand) {
+                Image(systemName: "arrow.up.left.and.arrow.down.right")
+                    .font(AppFont.caption)
+                    .frame(width: 28, height: 28)
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .foregroundStyle(DesignTokens.secondaryText)
+            .help("展开完整结果卡")
+            .accessibilityLabel("展开完整结果卡")
+        }
+        .padding(.leading, DesignTokens.spaceM)
+        .padding(.trailing, DesignTokens.spaceXS)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(DesignTokens.background)
+        .overlay {
+            RoundedRectangle(cornerRadius: DesignTokens.radiusS, style: .continuous)
+                .stroke(DesignTokens.divider.opacity(0.75), lineWidth: 0.5)
+        }
+        .clipShape(RoundedRectangle(cornerRadius: DesignTokens.radiusS, style: .continuous))
+        .onChange(of: store.session?.state) { _, state in
+            switch InlineOverlayTransition.terminalAction(for: state) {
+            case .close:
+                onClose()
+            case .expand:
+                onExpand()
+            case nil:
+                break
+            }
+        }
+    }
+}
+
 struct StateLine: View {
     let symbol: String
     let title: String

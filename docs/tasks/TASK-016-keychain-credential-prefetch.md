@@ -1,8 +1,8 @@
 # TASK-016：单一 Keychain vault 与启动授权
 
-Status: Active
+Status: Blocked
 
-Implementation: Launch lifecycle repaired; live authorization flow pending owner confirmation
+Implementation: Launch lifecycle repaired; blocked on owner clean-authorization confirmation
 
 Owner: Project owner + Agent
 

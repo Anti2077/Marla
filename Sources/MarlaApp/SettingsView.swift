@@ -158,9 +158,11 @@ struct SettingsView: View {
 
             SettingsSection(title: "实验功能", systemImage: "flask") {
                 Toggle("重按触控板触发划词翻译", isOn: $settings.forceTouchExperimental)
-                Text("实验功能默认关闭，只使用公开 API；键盘快捷键始终保留。")
+                Toggle("单行选区原位显示译文", isOn: $settings.inlineTranslationExperimental)
+                Text("实验功能默认关闭。原位显示只尝试可靠的单行选区；缺少几何、多行或尺寸异常时仍使用附近结果卡。")
                     .font(AppFont.caption)
                     .foregroundStyle(DesignTokens.secondaryText)
+                    .fixedSize(horizontal: false, vertical: true)
             }
 
             SettingsSection(title: "兼容性取词", systemImage: "arrow.triangle.2.circlepath") {

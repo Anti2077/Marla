@@ -278,7 +278,7 @@ There is no silent automatic retry that could duplicate billing. Connection fail
 
 **划词**：从触发瞬间的前台进程和聚焦 Accessibility 元素开始，在有界后代树内读取 `AXSelectedText`、`AXSelectedTextRange` / `AXStringForRange`，或 Electron/WebArea 使用的 `AXSelectedTextMarkerRange` / `AXStringForTextMarkerRange`。标准范围优先用 `AXBoundsForRange`，Text Marker 优先用 `AXBoundsForTextMarkerRange`。不读取附近文字和窗口标题，不把已有 Rust 应用分类放入请求；坐标不可用时使用触发时指针位置。
 
-**截图**：每个相交显示器分别使用 ScreenCaptureKit 捕获。AppKit 全局左下原点的选区先转换为该显示器局部左上原点的 `sourceRect`，再按显示器缩放合成最终裁剪；裁剪后立即交给 Vision。`VNRecognizeTextRequest` 使用 `.accurate`，配置简体中文和 English 识别，并把候选按屏幕阅读顺序归一化为带稳定行 ID、边界和置信度的 `OCRDocument`。只有其换行纯文本进入翻译请求；不调用 GLM-OCR，不上传像素。
+**截图**：在创建任何框选窗口前，每个活动显示器分别使用 ScreenCaptureKit 捕获完整静态帧，并明确排除 Marla 自身应用窗口。AppKit 框选层、未调暗选区和像素放大镜只绘制这些会话内冻结帧。确认后不再次捕获实时桌面，而是把 AppKit 全局左下原点选区与各显示器 frame 相交，按冻结图像像素缩放中的最高值合成最终裁剪；全屏帧随框选会话释放，裁剪立即交给 Vision。`VNRecognizeTextRequest` 使用 `.accurate`，配置简体中文和 English 识别，并把候选按屏幕阅读顺序归一化为带稳定行 ID、边界和置信度的 `OCRDocument`。只有其换行纯文本进入翻译请求；不调用 GLM-OCR，不上传像素。
 
 **快速输入**：SwiftUI 编辑器本地持有草稿；提交前不跨 FFI。空白校验通过后创建与其他入口相同的翻译请求。
 
@@ -286,7 +286,7 @@ There is no silent automatic retry that could duplicate billing. Connection fail
 
 **Selection**: starting from the trigger-time frontmost process and focused Accessibility element, search a bounded descendant tree for `AXSelectedText`, `AXSelectedTextRange` / `AXStringForRange`, or the `AXSelectedTextMarkerRange` / `AXStringForTextMarkerRange` attributes used by Electron WebAreas. Standard ranges prefer `AXBoundsForRange`; Text Markers prefer `AXBoundsForTextMarkerRange`. Do not read nearby text or window title, and do not include the existing Rust app classification in the request. Use the trigger-time pointer when geometry is unavailable.
 
-**Screenshot**: each intersecting display is captured separately through ScreenCaptureKit. The AppKit global bottom-left selection is converted into that display's local top-left `sourceRect`, then composited at the display scale into the final crop before Vision. `VNRecognizeTextRequest` uses `.accurate`, is configured for Simplified Chinese and English, and normalizes candidates into an `OCRDocument` with stable line IDs, bounds, confidence, and reading order. Only its newline-joined text enters the translation request; do not call GLM-OCR or upload pixels.
+**Screenshot**: before creating any selection window, ScreenCaptureKit captures a complete static frame for every active display while explicitly excluding Marla's own application windows. The AppKit selection layer, undimmed selected region, and pixel loupe draw only these session-frozen frames. Confirmation does not recapture the live desktop. Instead, it intersects the AppKit global bottom-left selection with each display frame and composites the final crop at the highest frozen-image pixel scale. Full-display frames are released with the selection session and the crop immediately enters Vision. `VNRecognizeTextRequest` uses `.accurate`, is configured for Simplified Chinese and English, and normalizes candidates into an `OCRDocument` with stable line IDs, bounds, confidence, and reading order. Only its newline-joined text enters the translation request; do not call GLM-OCR or upload pixels.
 
 **Quick input**: the SwiftUI editor owns its draft locally and crosses no FFI boundary before submission. After whitespace validation, it creates the same translation request as other entries.
 

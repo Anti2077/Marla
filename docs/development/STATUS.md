@@ -6,13 +6,17 @@ Release target: 0.1.0 Alpha
 
 Overall state: In Progress — implementation baseline exists; live acceptance remains incomplete
 
-Active task: [TASK-016](../tasks/TASK-016-keychain-credential-prefetch.md) — 单一 Keychain vault 与启动授权
+Active task: [TASK-018](../tasks/TASK-018-frozen-screenshot-selection.md) — 冻结全屏截图框选
 
-Blocked task: [TASK-013](../tasks/TASK-013-api-profile-activation-and-editor-actions.md) — 等待项目所有者确认拖拽动态中间态
+Blocked tasks:
+
+- [TASK-013](../tasks/TASK-013-api-profile-activation-and-editor-actions.md) — 等待项目所有者确认拖拽动态中间态
+- [TASK-016](../tasks/TASK-016-keychain-credential-prefetch.md) — 等待项目所有者在干净 Keychain 授权状态复验启动与首次翻译
+- [TASK-017](../tasks/TASK-017-inline-streaming-overlay-feasibility.md) — 等待项目所有者复验原位/附近译文条和关闭生命周期
 
 ## Current objective
 
-TASK-015 已完成。TASK-016 首版 `kSecMatchLimitAll` 预热虽然通过自动化和打包，但项目所有者在固定 App 中确认真实行为未改善。当前实现改为单一 Keychain vault，并在 `applicationDidFinishLaunching` 中用同一个 `LAContext` 完成 vault/旧 item 迁移。随后两次真实启动分别暴露了构造期 nil `NSApp` 崩溃和自定义 App Delegate/过早 `NSApplication.shared` 导致菜单表面无法打开的问题；最终实现恢复标准 SwiftUI 启动入口，构造期不再访问 AppKit 单例，只保留启动完成通知。固定 Release App 的正常事件循环、无新增崩溃和完整菜单表面已验证；干净授权状态下的一次性 Keychain 行为仍待项目所有者复验。TASK-013 保持 Blocked。
+项目所有者确认不继续系统式虚拟指针路线，选择在 `Anti2077/screenshot-hover-preservation` 分支实现截图快捷键触发瞬间的全显示器内存冻结：框选层、未调暗选区、放大镜和最终 Vision 裁剪必须来自同一组静态帧，避免真实指针移动或 Marla 激活后丢失悬停界面。TASK-017 保留已实现原型并转为等待复验的 Blocked；TASK-016 与 TASK-013 继续保持 Blocked。
 
 ## Current implemented baseline
 
@@ -20,7 +24,8 @@ TASK-015 已完成。TASK-016 首版 `kSecMatchLimitAll` 预热虽然通过自�
 - Nearby result card with streaming, comparison, copy, retry, system speech, pinning, cancellation, target switching, and actionable error states.
 - Accessibility selection reader with standard range and Web Text Marker support, trigger-time frontmost-app binding, frontmost-app/window/focused roots, identity-checked system focused-application roots, dual application/system-wide pointer hit paths, renderer/helper identity checks, global graph deduplication, ungated AX child probes, and bounded pointer fallback.
 - Default-off Copy compatibility that snapshots every readable pasteboard representation, accepts only a new Copy result, restores on success/failure/cancellation, avoids overwriting a newer external write, rejects focus changes, and reports only redacted lifecycle evidence.
-- Cross-display ScreenCaptureKit selection, in-memory Vision OCR, stable line order, and text-only translation requests.
+- Default-off single-line in-place translation feasibility surface that reuses the existing streaming session. Its first real Copy compatibility test exposed a missing-bounds fallback defect; the repaired build adds an honestly labeled pointer-near mode while preserving the complete card for multi-line, long, or unsafe input.
+- Pre-selection full-display ScreenCaptureKit freezing with Marla-window exclusion, same-frame cross-display selection/loupe/crop composition, in-memory Vision OCR, stable line order, and text-only translation requests.
 - Embedded Rust static library with versioned C ABI, shared async runtime, generic OpenAI-compatible SSE, Qwen-MT adaptation, timeouts, cancellation, and stale-event isolation.
 - Grouped Settings, Carbon shortcuts, Keychain credential storage, permission guidance, light/dark appearance, Reduce Motion, and verified test-app packaging.
 - Xcode SwiftUI previews for the main menu, Settings, translation-card states, and quick input, with preview-safe fixtures that avoid system integrations.
@@ -69,9 +74,12 @@ TASK-015 已完成；剩余发布矩阵继续保留在 BL-001，截图 `Esc` 与
 
 ## Latest verification
 
+- TASK-018 captures every active display before presenting selection windows, excludes Marla's own windows, redraws the background/undimmed selection/loupe from the same frozen frame set, and composites the final crop without a second live capture. Cross-display mixed-scale layout tests pass; `./scripts/check.sh` passes 17 Rust and 83 Swift tests plus Swift/Xcode Debug, and the stable-signed fixed Release passes packaging. Three 3420×2224 Release captures under `artifacts/ui-review/task-018/` cover light, dark, and Reduce Motion and score 8/8/8/7/7. Real hover/video, physical multi-display, real `Esc`, and memory recovery remain pending owner acceptance.
+- TASK-017 live owner feedback invalidated the first prototype's missing-geometry behavior: the experiment toggle persisted, but the real shortcut still showed the original 380×300 result card because Copy compatibility returns no bounds. The repair now converts AX top-left coordinates to AppKit, places short single-line missing-bounds selections in a visibly labeled “附近” pointer-estimate bar, and keeps the complete card for multi-line, long, or unsafe input. `./scripts/check.sh` passes 17 Rust and 81 Swift tests plus Swift/Xcode Debug; the repaired stable-signed Release passes packaging, and new light/dark/Reduce Motion `inline-estimated` captures score 8/8/8/7/7. Project-owner re-verification of the real shortcut remains pending.
+- TASK-017's first prototype passes 17 Rust and 79 Swift tests plus the Swift/Xcode Debug build. New coverage verifies default-off persistence, eligible negative-coordinate placement, visible-frame clamping, missing/multi-line/tall/edge-crossing rejection, compact non-draggable panel styling, and terminal expand/close transitions. The stable-signed fixed Release App passed packaging verification; light, dark, and Reduce Motion `inline-streaming` captures are under `artifacts/ui-review/task-017/` and score 8/8/8/7/7 in the required five-dimension review. Real external-app selection geometry and focus preservation remain pending.
 - TASK-016's first live authorization test invalidated the `kSecMatchLimitAll` behavior claim. The follow-up uses one vault and one `LAContext`, but its first two Release packages respectively crashed from nil `NSApp` during construction and remained alive without an openable menu surface after adding a custom App Delegate plus early `NSApplication.shared` access. The final lifecycle repair removes both construction-time AppKit paths and listens only for `NSApplication.didFinishLaunchingNotification`. `./scripts/check.sh` passes 17 Rust and 74 Swift tests plus the Xcode Debug build; the stable-signed fixed Release App is valid, idles in the normal AppKit event loop, creates no new crash report, and successfully captures its complete built-in menu acceptance surface. Clean live authorization behavior remains unverified.
 - Rust: 17 tests passed.
-- Swift: 74 tests passed.
+- Swift: 83 tests passed.
 - Xcode Debug application build passed.
 - TASK-014 installed `uv 0.12.2`, `serena-agent 1.6.1`, and rustup `rust-analyzer 1.96.0`; Serena health check passed and indexed 15 Swift files plus 1 Rust file while project/build caches remained ignored.
 - TASK-014's real stdio MCP session exposed exactly nine read-only semantic tools, with no edit, shell, project-switching, memory, or onboarding tools. Swift symbol/reference queries covered `TranslationAPIProfile` and `RustTranslationClient/start`; Rust covered `marla_translation_start` and four semantic test references.

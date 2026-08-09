@@ -2,6 +2,37 @@ import AppKit
 import ApplicationServices
 import MarlaCore
 
+struct AccessibilityDisplayGeometry: Equatable {
+    let accessibilityFrame: CGRect
+    let appKitFrame: CGRect
+}
+
+enum AccessibilityCoordinateConverter {
+    static func appKitRect(
+        from accessibilityRect: CGRect,
+        displays: [AccessibilityDisplayGeometry]
+    ) -> CGRect? {
+        guard AccessibilitySelectionReader.isUsableSelectionBounds(accessibilityRect) else { return nil }
+
+        let candidates: [(display: AccessibilityDisplayGeometry, area: CGFloat)] = displays.compactMap { display in
+            let intersection = accessibilityRect.intersection(display.accessibilityFrame)
+            let area = intersection.isNull ? 0 : intersection.width * intersection.height
+            return area > 0 ? (display, area) : nil
+        }
+        let display = candidates.max { lhs, rhs in lhs.area < rhs.area }?.display
+        guard let display else { return nil }
+
+        let localX = accessibilityRect.minX - display.accessibilityFrame.minX
+        let localTop = accessibilityRect.minY - display.accessibilityFrame.minY
+        return CGRect(
+            x: display.appKitFrame.minX + localX,
+            y: display.appKitFrame.maxY - localTop - accessibilityRect.height,
+            width: accessibilityRect.width,
+            height: accessibilityRect.height
+        )
+    }
+}
+
 enum SelectionMechanism: String, Codable, Equatable {
     case directText
     case standardRange
@@ -719,13 +750,29 @@ final class AccessibilitySelectionReader: SelectionReader {
         case .simulatedCopy:
             rectangle = nil
         }
-        guard let rectangle, Self.isUsableSelectionBounds(rectangle) else { return nil }
+        guard let rectangle,
+              let appKitRectangle = AccessibilityCoordinateConverter.appKitRect(
+                  from: rectangle,
+                  displays: currentDisplayGeometries()
+              )
+        else { return nil }
         return ScreenRect(
-            x: rectangle.origin.x,
-            y: rectangle.origin.y,
-            width: rectangle.width,
-            height: rectangle.height
+            x: appKitRectangle.origin.x,
+            y: appKitRectangle.origin.y,
+            width: appKitRectangle.width,
+            height: appKitRectangle.height
         )
+    }
+
+    private func currentDisplayGeometries() -> [AccessibilityDisplayGeometry] {
+        NSScreen.screens.compactMap { screen in
+            let screenNumberKey = NSDeviceDescriptionKey("NSScreenNumber")
+            guard let screenNumber = screen.deviceDescription[screenNumberKey] as? NSNumber else { return nil }
+            return AccessibilityDisplayGeometry(
+                accessibilityFrame: CGDisplayBounds(CGDirectDisplayID(screenNumber.uint32Value)),
+                appKitFrame: screen.frame
+            )
+        }
     }
 
     private func copyStandardSelectionBounds(from element: AXUIElement) -> CGRect? {

@@ -18,7 +18,7 @@
 | ID | 想法 | 状态 | 与当前产品关系 |
 | --- | --- | --- | --- |
 | IDEA-001 | 按需上下文感知翻译 | Accepted direction | 0.1.0 后，ADR-0003 |
-| IDEA-002 | 原位流式覆盖翻译 | Exploring | 0.1.0 明确不做 |
+| IDEA-002 | 原位流式覆盖翻译 | Promoted | TASK-017 feasibility；0.1.0 默认仍不启用 |
 | IDEA-003 | GLM-OCR 结构化截图翻译 | Accepted direction | 0.1.0 后，ADR-0002/0005 |
 | IDEA-004 | 万能文档翻译工作区 | Captured | 长期产品扩展 |
 | IDEA-005 | 用户可控术语表 | Captured | 语境系统的可能组成 |
@@ -114,7 +114,7 @@ Related: `ADR-0003-context-engine.md`、BL-005、`DATA_CONTRACTS.md`
 
 ## IDEA-002：原位流式覆盖翻译
 
-Status: Exploring
+Status: Promoted
 
 Priority: Unranked
 
@@ -122,7 +122,7 @@ Source: 用户讨论
 
 Created: 2026-08-05
 
-Related: `UX_PRINCIPLES.md`、`features/inline-translation.md`
+Related: `UX_PRINCIPLES.md`、`features/inline-translation.md`、`TASK-017`
 
 ### 一句话描述
 
@@ -180,7 +180,7 @@ Related: `UX_PRINCIPLES.md`、`features/inline-translation.md`
 
 ### 下一步
 
-未来创建独立 feasibility Task，比较“整块覆盖 + 自动降级”和“逐行覆盖”两种最小原型。
+已由项目所有者在 2026-08-10 选择进入 `TASK-017`。首个原型只验证“单行整块覆盖 + 自动降级”，默认关闭；真实几何、生命周期和五维视觉证据完成后再决定是否投入逐行覆盖。
 
 ---
 

@@ -369,6 +369,9 @@ final class MarlaSettingsStore: ObservableObject {
     @Published var forceTouchExperimental: Bool {
         didSet { defaults.set(forceTouchExperimental, forKey: Keys.forceTouch) }
     }
+    @Published var inlineTranslationExperimental: Bool {
+        didSet { defaults.set(inlineTranslationExperimental, forKey: Keys.inlineTranslation) }
+    }
     @Published var selectionCopyFallbackEnabled: Bool {
         didSet { defaults.set(selectionCopyFallbackEnabled, forKey: Keys.selectionCopyFallback) }
     }
@@ -387,6 +390,7 @@ final class MarlaSettingsStore: ObservableObject {
         static let targetMode = "translationTargetMode"
         static let targetLanguage = "translationTargetLanguage"
         static let forceTouch = "forceTouchExperimental"
+        static let inlineTranslation = "inlineTranslationExperimental"
         static let selectionCopyFallback = "selectionCopyFallbackEnabled"
         static let onboardingSkipped = "onboardingSkipped"
     }
@@ -418,6 +422,7 @@ final class MarlaSettingsStore: ObservableObject {
         let mode = TranslationTargetMode(rawValue: defaults.string(forKey: Keys.targetMode) ?? "automatic") ?? .automatic
         defaultTarget = TranslationTarget(mode: mode, language: defaults.string(forKey: Keys.targetLanguage))
         forceTouchExperimental = defaults.bool(forKey: Keys.forceTouch)
+        inlineTranslationExperimental = defaults.bool(forKey: Keys.inlineTranslation)
         selectionCopyFallbackEnabled = defaults.bool(forKey: Keys.selectionCopyFallback)
         onboardingSkipped = defaults.bool(forKey: Keys.onboardingSkipped)
         saveProfiles()
@@ -1143,6 +1148,109 @@ enum FloatingPanelStyle {
     }
 }
 
+@MainActor
+enum InlineOverlayPanelStyle {
+    static let cornerRadius = DesignTokens.radiusS
+
+    static func apply(to panel: NSPanel) {
+        panel.isMovable = false
+        panel.isMovableByWindowBackground = false
+        panel.hasShadow = true
+    }
+
+    static func apply(to contentView: NSView) {
+        contentView.wantsLayer = true
+        contentView.layer?.cornerRadius = cornerRadius
+        contentView.layer?.cornerCurve = .continuous
+        contentView.layer?.masksToBounds = true
+    }
+}
+
+enum InlineOverlayPlacementMode: Equatable {
+    case selectionBounds
+    case pointerEstimate
+}
+
+struct InlineOverlayPlacement: Equatable {
+    let frame: NSRect
+    let mode: InlineOverlayPlacementMode
+}
+
+enum InlineOverlayPlacementCalculator {
+    static func placement(
+        visibleFrame visible: NSRect,
+        anchor: ScreenRect?,
+        pointer: CGPoint?,
+        sourceText: String
+    ) -> InlineOverlayPlacement? {
+        let trimmed = sourceText.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty,
+              trimmed.rangeOfCharacter(from: .newlines) == nil
+        else { return nil }
+
+        if let anchor {
+            return exactPlacement(visibleFrame: visible, anchor: anchor)
+        }
+        guard trimmed.count <= 160, let pointer else { return nil }
+        let values = [pointer.x, pointer.y]
+        guard values.allSatisfy(\.isFinite), visible.contains(pointer) else { return nil }
+
+        let width = min(max(CGFloat(trimmed.count) * 8 + 112, 240), min(480, visible.width - 16))
+        let height: CGFloat = 40
+        let preferredX = pointer.x + 14
+        let preferredY = pointer.y + 14
+        let x = min(max(preferredX, visible.minX + 8), visible.maxX - width - 8)
+        let y = min(max(preferredY, visible.minY + 8), visible.maxY - height - 8)
+        return InlineOverlayPlacement(
+            frame: NSRect(x: x, y: y, width: width, height: height),
+            mode: .pointerEstimate
+        )
+    }
+
+    private static func exactPlacement(
+        visibleFrame visible: NSRect,
+        anchor: ScreenRect
+    ) -> InlineOverlayPlacement? {
+        let values = [anchor.x, anchor.y, anchor.width, anchor.height]
+        guard values.allSatisfy(\.isFinite),
+              anchor.width >= 24,
+              anchor.height >= 10,
+              anchor.height <= 36
+        else { return nil }
+
+        let source = NSRect(x: anchor.x, y: anchor.y, width: anchor.width, height: anchor.height)
+        guard visible.contains(source), source.width <= min(720, visible.width - 16) else { return nil }
+
+        let width = min(max(source.width + 40, 160), min(560, visible.width - 16))
+        let height = min(max(source.height + 12, 32), 48)
+        let x = min(max(source.minX - 8, visible.minX + 8), visible.maxX - width - 8)
+        let y = min(max(source.midY - height / 2, visible.minY + 8), visible.maxY - height - 8)
+        return InlineOverlayPlacement(
+            frame: NSRect(x: x, y: y, width: width, height: height),
+            mode: .selectionBounds
+        )
+    }
+}
+
+enum InlineOverlayTerminalAction: Equatable {
+    case expand
+    case close
+}
+
+enum InlineOverlayTransition {
+    static func terminalAction(for state: TranslationSessionState?) -> InlineOverlayTerminalAction? {
+        guard let state else { return .close }
+        switch state {
+        case .failed:
+            return .expand
+        case .cancelled:
+            return .close
+        case .idle, .acquiring, .recognizing, .awaitingFirstToken, .streaming, .completed:
+            return nil
+        }
+    }
+}
+
 struct PanelPlacementCalculator {
     static func frame(
         visibleFrame visible: NSRect,
@@ -1174,25 +1282,40 @@ struct PanelPlacementCalculator {
 
 @MainActor
 final class FloatingPanelCoordinator: NSObject, NSWindowDelegate {
+    private enum SurfaceStyle {
+        case floating
+        case inline
+    }
+
     private weak var model: MarlaApplicationModel?
     private var panel: MarlaPanel?
     private var globalMonitor: Any?
     private var localMonitor: Any?
+    private var isShowingInline = false
 
     init(model: MarlaApplicationModel? = nil, installEventMonitors: Bool = true) {
         self.model = model
         super.init()
         guard installEventMonitors else { return }
-        globalMonitor = NSEvent.addGlobalMonitorForEvents(matching: [.leftMouseDown, .rightMouseDown, .keyDown]) { [weak self] event in
+        globalMonitor = NSEvent.addGlobalMonitorForEvents(matching: [.leftMouseDown, .rightMouseDown, .keyDown, .scrollWheel]) { [weak self] event in
             Task { @MainActor [weak self] in
                 guard let self else { return }
+                if event.type == .scrollWheel {
+                    guard self.isShowingInline else { return }
+                    self.hide()
+                    return
+                }
                 if event.type == .keyDown, event.keyCode != 53 { return }
                 guard self.model?.sessionStore.session?.isPinned != true else { return }
                 self.hide()
             }
         }
-        localMonitor = NSEvent.addLocalMonitorForEvents(matching: [.leftMouseDown, .rightMouseDown, .keyDown]) { [weak self] event in
+        localMonitor = NSEvent.addLocalMonitorForEvents(matching: [.leftMouseDown, .rightMouseDown, .keyDown, .scrollWheel]) { [weak self] event in
             guard let self else { return event }
+            if event.type == .scrollWheel, self.isShowingInline {
+                self.hide()
+                return event
+            }
             if event.type == .keyDown, event.keyCode == 53 {
                 guard self.model?.sessionStore.session?.isPinned != true else { return event }
                 self.hide()
@@ -1211,6 +1334,7 @@ final class FloatingPanelCoordinator: NSObject, NSWindowDelegate {
     }
 
     func showResult(store: TranslationSessionStore, at anchor: ScreenRect?, pointer: CGPoint?, activate: Bool) {
+        isShowingInline = false
         let content = AnyView(
             TranslationCardView(
                 store: store,
@@ -1218,10 +1342,61 @@ final class FloatingPanelCoordinator: NSObject, NSWindowDelegate {
                 onRecovery: { [weak self] action in self?.model?.performRecovery(action) }
             )
         )
-        show(content: content, width: 380, height: 300, anchor: anchor, pointer: pointer, activate: activate)
+        show(
+            content: content,
+            width: 380,
+            height: 300,
+            anchor: anchor,
+            pointer: pointer,
+            activate: activate,
+            style: .floating
+        )
+    }
+
+    @discardableResult
+    func showInlineResult(
+        store: TranslationSessionStore,
+        sourceText: String,
+        at anchor: ScreenRect?,
+        pointer: CGPoint?,
+        activate: Bool = false
+    ) -> Bool {
+        if let state = store.session?.state, case .failed = state { return false }
+        guard let targetScreen = screen(anchor: anchor, pointer: pointer),
+              let placement = InlineOverlayPlacementCalculator.placement(
+                  visibleFrame: targetScreen.visibleFrame,
+                  anchor: anchor,
+                  pointer: pointer,
+                  sourceText: sourceText
+              )
+        else { return false }
+
+        isShowingInline = true
+        let content = AnyView(
+            InlineTranslationOverlayView(
+                store: store,
+                placementMode: placement.mode,
+                onExpand: { [weak self] in
+                    self?.showResult(store: store, at: anchor, pointer: pointer, activate: false)
+                },
+                onClose: { [weak self] in self?.hide() }
+            )
+        )
+        show(
+            content: content,
+            width: placement.frame.width,
+            height: placement.frame.height,
+            anchor: anchor,
+            pointer: pointer,
+            activate: activate,
+            targetFrame: placement.frame,
+            style: .inline
+        )
+        return true
     }
 
     func showQuickInput(store: TranslationSessionStore, pointer: CGPoint?) {
+        isShowingInline = false
         store.close()
         let content = AnyView(
             QuickInputContainerView(
@@ -1230,10 +1405,19 @@ final class FloatingPanelCoordinator: NSObject, NSWindowDelegate {
                 onRecovery: { [weak self] action in self?.model?.performRecovery(action) }
             )
         )
-        show(content: content, width: 420, height: 300, anchor: nil, pointer: pointer, activate: true)
+        show(
+            content: content,
+            width: 420,
+            height: 300,
+            anchor: nil,
+            pointer: pointer,
+            activate: true,
+            style: .floating
+        )
     }
 
     func showMenuAutomationSurface(model: MarlaApplicationModel) {
+        isShowingInline = false
         let content = AnyView(MenuBarView(model: model))
         show(
             content: content,
@@ -1241,28 +1425,46 @@ final class FloatingPanelCoordinator: NSObject, NSWindowDelegate {
             height: 620,
             anchor: nil,
             pointer: CGPoint(x: NSScreen.main?.visibleFrame.maxX ?? 1200, y: NSScreen.main?.visibleFrame.maxY ?? 800),
-            activate: true
+            activate: true,
+            style: .floating
         )
     }
 
     func hide() {
+        isShowingInline = false
         panel?.orderOut(nil)
         model?.sessionStore.close()
         SpeechCoordinator.shared.stop()
     }
 
-    private func show(content: AnyView, width: CGFloat, height: CGFloat, anchor: ScreenRect?, pointer: CGPoint?, activate: Bool) {
+    private func show(
+        content: AnyView,
+        width: CGFloat,
+        height: CGFloat,
+        anchor: ScreenRect?,
+        pointer: CGPoint?,
+        activate: Bool,
+        targetFrame explicitTargetFrame: NSRect? = nil,
+        style: SurfaceStyle
+    ) {
         let panel = panel ?? makePanel()
         let forcedReduceMotion = ProcessInfo.processInfo.environment["MARLA_UI_TEST_REDUCE_MOTION"] == "1"
         let hostingView = NSHostingView(
             rootView: content.environment(\.marlaReduceMotionOverride, forcedReduceMotion)
         )
-        FloatingPanelStyle.apply(to: hostingView)
+        switch style {
+        case .floating:
+            FloatingPanelStyle.apply(to: panel)
+            FloatingPanelStyle.apply(to: hostingView)
+        case .inline:
+            InlineOverlayPanelStyle.apply(to: panel)
+            InlineOverlayPanelStyle.apply(to: hostingView)
+        }
         panel.contentView = hostingView
-        let targetFrame = frame(width: width, height: height, anchor: anchor, pointer: pointer)
+        let targetFrame = explicitTargetFrame ?? frame(width: width, height: height, anchor: anchor, pointer: pointer)
         let reduceMotion = forcedReduceMotion || NSWorkspace.shared.accessibilityDisplayShouldReduceMotion
         var entryFrame = targetFrame
-        if !reduceMotion { entryFrame.origin.y -= 4 }
+        if style == .floating, !reduceMotion { entryFrame.origin.y -= 4 }
         panel.alphaValue = 0
         panel.setFrame(entryFrame, display: true, animate: false)
         panel.orderFrontRegardless()
@@ -1274,7 +1476,7 @@ final class FloatingPanelCoordinator: NSObject, NSWindowDelegate {
             context.duration = reduceMotion ? 0.12 : 0.16
             context.timingFunction = CAMediaTimingFunction(name: .easeOut)
             panel.animator().alphaValue = 1
-            if !reduceMotion { panel.animator().setFrame(targetFrame, display: true) }
+            if style == .floating, !reduceMotion { panel.animator().setFrame(targetFrame, display: true) }
         }
     }
 
@@ -1299,11 +1501,7 @@ final class FloatingPanelCoordinator: NSObject, NSWindowDelegate {
     }
 
     private func frame(width requestedWidth: CGFloat, height requestedHeight: CGFloat, anchor: ScreenRect?, pointer: CGPoint?) -> NSRect {
-        let targetScreen = anchor.flatMap { rect in
-            NSScreen.screens.first { $0.frame.intersects(NSRect(x: rect.x, y: rect.y, width: rect.width, height: rect.height)) }
-        } ?? pointer.flatMap { point in
-            NSScreen.screens.first { $0.frame.contains(point) }
-        } ?? NSScreen.main ?? NSScreen.screens.first!
+        let targetScreen = screen(anchor: anchor, pointer: pointer) ?? NSScreen.main ?? NSScreen.screens.first!
         return PanelPlacementCalculator.frame(
             visibleFrame: targetScreen.visibleFrame,
             requestedWidth: requestedWidth,
@@ -1311,6 +1509,14 @@ final class FloatingPanelCoordinator: NSObject, NSWindowDelegate {
             anchor: anchor,
             pointer: pointer
         )
+    }
+
+    private func screen(anchor: ScreenRect?, pointer: CGPoint?) -> NSScreen? {
+        anchor.flatMap { rect in
+            NSScreen.screens.first { $0.frame.intersects(NSRect(x: rect.x, y: rect.y, width: rect.width, height: rect.height)) }
+        } ?? pointer.flatMap { point in
+            NSScreen.screens.first { $0.frame.contains(point) }
+        }
     }
 
     func windowWillClose(_ notification: Notification) {
@@ -1654,28 +1860,57 @@ final class ScreenshotCaptureCoordinator: ScreenshotCapturing {
     private var completion: ((Result<CapturedScreenshot, Error>) -> Void)?
     private var selectionSession: ScreenshotSelectionSession?
     private var escapeMonitor: ScreenshotEscapeMonitor?
+    private var capturePreparationTask: Task<Void, Never>?
+    private var capturePreparationID: UUID?
 
     func present(completion: @escaping (Result<CapturedScreenshot, Error>) -> Void) {
-        self.completion = completion
-        let magnifierSources = NSScreen.screens.compactMap(ScreenshotMagnifierSource.init(screen:))
-        let session = ScreenshotSelectionSession(magnifierSources: magnifierSources) { [weak self] rect, cancelled in
-            guard let self else { return }
-            if cancelled {
-                self.finish(.failure(ScreenshotError.cancelled))
-            } else {
-                self.capture(global: rect)
-            }
+        if self.completion != nil {
+            finish(.failure(ScreenshotError.cancelled))
         }
-        selectionSession = session
-        let escapeMonitor = ScreenshotEscapeMonitor { [weak self, weak session] in
-            guard let self, let session, self.selectionSession === session else { return }
-            session.cancel()
+        self.completion = completion
+        let preparationID = UUID()
+        capturePreparationID = preparationID
+        let escapeMonitor = ScreenshotEscapeMonitor { [weak self] in
+            guard let self, self.capturePreparationID == preparationID else { return }
+            if let selectionSession {
+                selectionSession.cancel()
+            } else {
+                finish(.failure(ScreenshotError.cancelled))
+            }
         }
         self.escapeMonitor = escapeMonitor
         escapeMonitor.install()
-        windows = NSScreen.screens.map { screen in
+
+        capturePreparationTask = Task { @MainActor [weak self] in
+            guard let self else { return }
+            do {
+                let frozenDisplays = try await captureFrozenDisplays()
+                try Task.checkCancellation()
+                guard capturePreparationID == preparationID else { return }
+                capturePreparationTask = nil
+                showSelection(using: frozenDisplays)
+            } catch is CancellationError {
+                return
+            } catch {
+                guard capturePreparationID == preparationID else { return }
+                finish(.failure(error))
+            }
+        }
+    }
+
+    private func showSelection(using frozenDisplays: [ScreenshotMagnifierSource]) {
+        let session = ScreenshotSelectionSession(magnifierSources: frozenDisplays) { [weak self] rect, cancelled in
+            guard let self else { return }
+            if cancelled {
+                finish(.failure(ScreenshotError.cancelled))
+            } else {
+                capture(global: rect, from: frozenDisplays)
+            }
+        }
+        selectionSession = session
+        windows = frozenDisplays.map { source in
             let window = ScreenshotSelectionWindow(
-                contentRect: screen.frame,
+                contentRect: source.screenFrame,
                 styleMask: .borderless,
                 backing: .buffered,
                 defer: false,
@@ -1686,7 +1921,7 @@ final class ScreenshotCaptureCoordinator: ScreenshotCapturing {
             window.level = .screenSaver
             window.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
             window.acceptsMouseMovedEvents = true
-            window.contentView = ScreenshotSelectionView(session: session)
+            window.contentView = ScreenshotSelectionView(session: session, frozenSource: source)
             window.makeFirstResponder(window.contentView)
             window.orderFrontRegardless()
             return window
@@ -1700,56 +1935,49 @@ final class ScreenshotCaptureCoordinator: ScreenshotCapturing {
 
     func presentUIAutomationFixture() {
         present { _ in }
-        guard let screen = NSScreen.main else { return }
-        let frame = screen.frame
-        selectionSession?.begin(at: NSPoint(x: frame.minX + frame.width * 0.24, y: frame.minY + frame.height * 0.3))
-        selectionSession?.move(to: NSPoint(x: frame.minX + frame.width * 0.76, y: frame.minY + frame.height * 0.68))
+        Task { @MainActor [weak self] in
+            guard let self else { return }
+            for _ in 0..<100 where selectionSession == nil {
+                try? await Task.sleep(for: .milliseconds(10))
+            }
+            guard let screen = NSScreen.main else { return }
+            let frame = screen.frame
+            selectionSession?.begin(
+                at: NSPoint(x: frame.minX + frame.width * 0.24, y: frame.minY + frame.height * 0.3)
+            )
+            selectionSession?.move(
+                to: NSPoint(x: frame.minX + frame.width * 0.76, y: frame.minY + frame.height * 0.68)
+            )
+        }
     }
 
-    private func capture(global: NSRect) {
+    private func capture(global: NSRect, from frozenDisplays: [ScreenshotMagnifierSource]) {
         guard global.width > 4, global.height > 4 else {
             finish(.failure(ScreenshotError.invalidRegion))
             return
         }
-        Task { @MainActor [weak self] in
-            do {
-                let image = try await self?.captureWithScreenCaptureKit(global)
-                guard let image else { throw ScreenshotError.captureFailed }
-                self?.finish(.success(CapturedScreenshot(image: image, globalRect: global)))
-            } catch {
-                self?.finish(.failure(error))
-            }
+        guard let image = ScreenshotFrozenCapture.image(
+            global: global,
+            frozenDisplays: frozenDisplays
+        ) else {
+            finish(.failure(ScreenshotError.captureFailed))
+            return
         }
+        finish(.success(CapturedScreenshot(image: image, globalRect: global)))
     }
 
-    private func captureWithScreenCaptureKit(_ global: CGRect) async throws -> CGImage {
+    private func captureFrozenDisplays() async throws -> [ScreenshotMagnifierSource] {
         let shareableContent = try await SCShareableContent.excludingDesktopWindows(
             false,
             onScreenWindowsOnly: true
         )
-        let targetScale = NSScreen.screens
-            .filter { $0.frame.intersects(global) }
-            .map(\.backingScaleFactor)
-            .max() ?? 1
-        let pixelWidth = max(1, Int(global.width * targetScale))
-        let pixelHeight = max(1, Int(global.height * targetScale))
-        guard let context = CGContext(
-            data: nil,
-            width: pixelWidth,
-            height: pixelHeight,
-            bitsPerComponent: 8,
-            bytesPerRow: 0,
-            space: CGColorSpaceCreateDeviceRGB(),
-            bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
-        ) else {
-            throw ScreenshotError.captureFailed
+        let ownApplication = shareableContent.applications.first {
+            $0.processID == ProcessInfo.processInfo.processIdentifier
         }
-
-        var capturedAnyDisplay = false
+        var frozenDisplays: [ScreenshotMagnifierSource] = []
         for screen in NSScreen.screens {
-            let intersection = screen.frame.intersection(global)
-            guard !intersection.isNull, intersection.width > 0, intersection.height > 0,
-                  let screenNumber = screen.deviceDescription[
+            try Task.checkCancellation()
+            guard let screenNumber = screen.deviceDescription[
                     NSDeviceDescriptionKey("NSScreenNumber")
                   ] as? NSNumber,
                   let display = shareableContent.displays.first(where: {
@@ -1759,33 +1987,38 @@ final class ScreenshotCaptureCoordinator: ScreenshotCapturing {
             }
 
             let configuration = SCStreamConfiguration()
-            configuration.sourceRect = ScreenCaptureGeometry.sourceRect(
-                intersection: intersection,
-                screenFrame: screen.frame
-            )
-            configuration.width = max(1, Int(intersection.width * screen.backingScaleFactor))
-            configuration.height = max(1, Int(intersection.height * screen.backingScaleFactor))
+            configuration.sourceRect = CGRect(origin: .zero, size: screen.frame.size)
+            configuration.width = max(1, Int(screen.frame.width * screen.backingScaleFactor))
+            configuration.height = max(1, Int(screen.frame.height * screen.backingScaleFactor))
             configuration.showsCursor = false
-            let filter = SCContentFilter(display: display, excludingWindows: [])
-            let fragment = try await SCScreenshotManager.captureImage(
+            let filter: SCContentFilter
+            if let ownApplication {
+                filter = SCContentFilter(
+                    display: display,
+                    excludingApplications: [ownApplication],
+                    exceptingWindows: []
+                )
+            } else {
+                filter = SCContentFilter(display: display, excludingWindows: [])
+            }
+            let image = try await SCScreenshotManager.captureImage(
                 contentFilter: filter,
                 configuration: configuration
             )
-            let destination = ScreenCaptureGeometry.destinationRect(
-                intersection: intersection,
-                selection: global,
-                scale: targetScale
+            frozenDisplays.append(
+                ScreenshotMagnifierSource(screenFrame: screen.frame, cgImage: image)
             )
-            context.draw(fragment, in: destination)
-            capturedAnyDisplay = true
         }
-        guard capturedAnyDisplay, let result = context.makeImage() else {
+        guard !frozenDisplays.isEmpty, frozenDisplays.count == NSScreen.screens.count else {
             throw ScreenshotError.captureFailed
         }
-        return result
+        return frozenDisplays
     }
 
     private func finish(_ result: Result<CapturedScreenshot, Error>) {
+        capturePreparationTask?.cancel()
+        capturePreparationTask = nil
+        capturePreparationID = nil
         escapeMonitor?.remove()
         escapeMonitor = nil
         windows.forEach { $0.orderOut(nil) }
@@ -2003,6 +2236,85 @@ enum ScreenCaptureGeometry {
     }
 }
 
+@MainActor
+enum ScreenshotFrozenCapture {
+    struct Fragment {
+        let displayIndex: Int
+        let clipRect: CGRect
+        let fullDisplayRect: CGRect
+    }
+
+    struct Layout {
+        let pixelSize: CGSize
+        let scale: CGFloat
+        let fragments: [Fragment]
+    }
+
+    static func layout(
+        global: CGRect,
+        frozenDisplays: [ScreenshotMagnifierSource]
+    ) -> Layout? {
+        guard global.width > 0, global.height > 0 else { return nil }
+        let intersectingDisplays = frozenDisplays.enumerated().filter {
+            !$0.element.screenFrame.intersection(global).isNull
+                && $0.element.screenFrame.intersection(global).width > 0
+                && $0.element.screenFrame.intersection(global).height > 0
+        }
+        guard !intersectingDisplays.isEmpty else { return nil }
+        let scale = intersectingDisplays.map(\.element.pixelScale).max() ?? 1
+        let pixelSize = CGSize(
+            width: max(1, (global.width * scale).rounded(.up)),
+            height: max(1, (global.height * scale).rounded(.up))
+        )
+        let fragments = intersectingDisplays.map { index, source in
+            let intersection = source.screenFrame.intersection(global)
+            return Fragment(
+                displayIndex: index,
+                clipRect: ScreenCaptureGeometry.destinationRect(
+                    intersection: intersection,
+                    selection: global,
+                    scale: scale
+                ),
+                fullDisplayRect: CGRect(
+                    x: (source.screenFrame.minX - global.minX) * scale,
+                    y: (source.screenFrame.minY - global.minY) * scale,
+                    width: source.screenFrame.width * scale,
+                    height: source.screenFrame.height * scale
+                )
+            )
+        }
+        return Layout(pixelSize: pixelSize, scale: scale, fragments: fragments)
+    }
+
+    static func image(
+        global: CGRect,
+        frozenDisplays: [ScreenshotMagnifierSource]
+    ) -> CGImage? {
+        guard let layout = layout(global: global, frozenDisplays: frozenDisplays),
+              let context = CGContext(
+                  data: nil,
+                  width: Int(layout.pixelSize.width),
+                  height: Int(layout.pixelSize.height),
+                  bitsPerComponent: 8,
+                  bytesPerRow: 0,
+                  space: CGColorSpaceCreateDeviceRGB(),
+                  bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+              ) else {
+            return nil
+        }
+        for fragment in layout.fragments {
+            context.saveGState()
+            context.clip(to: fragment.clipRect)
+            context.draw(
+                frozenDisplays[fragment.displayIndex].cgImage,
+                in: fragment.fullDisplayRect
+            )
+            context.restoreGState()
+        }
+        return context.makeImage()
+    }
+}
+
 enum ScreenshotError: LocalizedError {
     case cancelled
     case invalidRegion
@@ -2055,15 +2367,29 @@ struct ScreenshotMagnifierGeometry {
 @MainActor
 struct ScreenshotMagnifierSource {
     let screenFrame: NSRect
+    let cgImage: CGImage
     let image: NSImage
+
+    init(screenFrame: NSRect, cgImage: CGImage) {
+        self.screenFrame = screenFrame
+        self.cgImage = cgImage
+        image = NSImage(cgImage: cgImage, size: screenFrame.size)
+    }
 
     init?(screen: NSScreen) {
         guard let screenNumber = screen.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? NSNumber,
               let cgImage = CGDisplayCreateImage(CGDirectDisplayID(screenNumber.uint32Value)) else {
             return nil
         }
-        screenFrame = screen.frame
-        image = NSImage(cgImage: cgImage, size: screen.frame.size)
+        self.init(screenFrame: screen.frame, cgImage: cgImage)
+    }
+
+    var pixelScale: CGFloat {
+        guard screenFrame.width > 0, screenFrame.height > 0 else { return 1 }
+        return max(
+            CGFloat(cgImage.width) / screenFrame.width,
+            CGFloat(cgImage.height) / screenFrame.height
+        )
     }
 
     func contains(_ point: NSPoint) -> Bool {
@@ -2151,11 +2477,16 @@ final class ScreenshotSelectionSession {
 @MainActor
 final class ScreenshotSelectionView: NSView {
     private let session: ScreenshotSelectionSession
+    private let frozenSource: ScreenshotMagnifierSource?
     private let hintView: NSHostingView<ScreenshotGlassLabel>
     private let sizeView: NSHostingView<ScreenshotGlassLabel>
 
-    init(session: ScreenshotSelectionSession) {
+    init(
+        session: ScreenshotSelectionSession,
+        frozenSource: ScreenshotMagnifierSource? = nil
+    ) {
         self.session = session
+        self.frozenSource = frozenSource
         hintView = NSHostingView(
             rootView: ScreenshotGlassLabel(
                 text: "拖动框选要翻译的区域 · Esc 取消",
@@ -2214,6 +2545,12 @@ final class ScreenshotSelectionView: NSView {
     override var acceptsFirstResponder: Bool { true }
 
     override func draw(_ dirtyRect: NSRect) {
+        frozenSource?.image.draw(
+            in: bounds,
+            from: NSRect(origin: .zero, size: frozenSource?.image.size ?? .zero),
+            operation: .copy,
+            fraction: 1
+        )
         NSColor.black.withAlphaComponent(0.42).setFill()
         bounds.fill()
         guard let window else { return }
@@ -2231,9 +2568,21 @@ final class ScreenshotSelectionView: NSView {
         }
         if rect.width > 0, rect.height > 0 {
             hintView.isHidden = true
-            NSGraphicsContext.current?.compositingOperation = .clear
-            rect.fill()
-            NSGraphicsContext.current?.compositingOperation = .sourceOver
+            if let frozenSource {
+                NSGraphicsContext.saveGraphicsState()
+                NSBezierPath(rect: rect).addClip()
+                frozenSource.image.draw(
+                    in: bounds,
+                    from: NSRect(origin: .zero, size: frozenSource.image.size),
+                    operation: .copy,
+                    fraction: 1
+                )
+                NSGraphicsContext.restoreGraphicsState()
+            } else {
+                NSGraphicsContext.current?.compositingOperation = .clear
+                rect.fill()
+                NSGraphicsContext.current?.compositingOperation = .sourceOver
+            }
             NSColor.white.setStroke()
             let border = NSBezierPath(rect: rect)
             border.lineWidth = 1
@@ -2581,7 +2930,16 @@ final class MarlaApplicationModel: ObservableObject {
                 isCancelled: { readCancellation.isCancelled }
             )
             sessionStore.startText(selection.text, surface: .selection, anchor: selection.bounds, pointer: pointer)
-            panelCoordinator.showResult(store: sessionStore, at: selection.bounds, pointer: pointer, activate: false)
+            let didShowInline = settings.inlineTranslationExperimental
+                && panelCoordinator.showInlineResult(
+                    store: sessionStore,
+                    sourceText: selection.text,
+                    at: selection.bounds,
+                    pointer: pointer
+                )
+            if !didShowInline {
+                panelCoordinator.showResult(store: sessionStore, at: selection.bounds, pointer: pointer, activate: false)
+            }
             scheduleSelectionUIAutomationReport(selection: selection, error: nil, audit: selectionAudit)
         } catch let error as SelectionReadingError {
             if error == .selectionCancelled {
@@ -2834,6 +3192,38 @@ final class MarlaApplicationModel: ObservableObject {
                 state: .streaming
             )
             panelCoordinator.showResult(store: sessionStore, at: nil, pointer: NSEvent.mouseLocation, activate: true)
+        case "inline-streaming":
+            let visible = NSScreen.main?.visibleFrame ?? NSRect(x: 0, y: 0, width: 1440, height: 900)
+            let inlineSource = "Translation should stay where your eyes already are."
+            sessionStore.installUIAutomationFixture(
+                surface: .selection,
+                sourceText: inlineSource,
+                translation: "译文应该留在视线已经停留的位置",
+                state: .streaming
+            )
+            _ = panelCoordinator.showInlineResult(
+                store: sessionStore,
+                sourceText: inlineSource,
+                at: ScreenRect(x: visible.midX - 210, y: visible.midY, width: 420, height: 24),
+                pointer: NSEvent.mouseLocation,
+                activate: true
+            )
+        case "inline-estimated":
+            let visible = NSScreen.main?.visibleFrame ?? NSRect(x: 0, y: 0, width: 1440, height: 900)
+            let inlineSource = "Copy compatibility cannot expose exact selection bounds."
+            sessionStore.installUIAutomationFixture(
+                surface: .selection,
+                sourceText: inlineSource,
+                translation: "复制兼容路径无法提供精确选区坐标",
+                state: .streaming
+            )
+            _ = panelCoordinator.showInlineResult(
+                store: sessionStore,
+                sourceText: inlineSource,
+                at: nil,
+                pointer: CGPoint(x: visible.midX, y: visible.midY),
+                activate: true
+            )
         case "comparison":
             sessionStore.installUIAutomationFixture(
                 surface: .screenshot,
@@ -2939,15 +3329,20 @@ final class MarlaApplicationModel: ObservableObject {
 
     private static func captureFrontmostApplicationWindow(to path: String) throws {
         let visibleWindows = NSApp.windows.filter(\.isVisible)
+        let scenario = ProcessInfo.processInfo.environment["MARLA_UI_TEST_SCENARIO"]
+        let capturesFullDisplaySurface = scenario == "screenshot" || scenario == "screenshot-from-settings"
         let visibleSheet = visibleWindows
             .lazy
             .compactMap(\.attachedSheet)
             .first(where: \.isVisible) ?? visibleWindows.first { $0.sheetParent != nil }
-        let window = visibleSheet
-            ?? (NSApp.keyWindow?.isVisible == true ? NSApp.keyWindow : nil)
-            ?? visibleWindows.max { lhs, rhs in
+        let largestWindow = visibleWindows.max { lhs, rhs in
                 lhs.frame.width * lhs.frame.height < rhs.frame.width * rhs.frame.height
             }
+        let window = capturesFullDisplaySurface
+            ? largestWindow
+            : visibleSheet
+                ?? (NSApp.keyWindow?.isVisible == true ? NSApp.keyWindow : nil)
+                ?? largestWindow
         guard let window,
               let view = window.contentView?.superview ?? window.contentView else {
             throw UIAutomationSnapshotError.windowUnavailable

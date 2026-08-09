@@ -57,8 +57,10 @@
 ### 中文
 
 - [ ] `⌃⌥S` 在单显示器、Retina 和多显示器环境进入正确框选层。
+- [ ] 框选层出现前完成全显示器内存冻结；悬停弹层保留触发瞬间状态，视频/动画在框选期间显示为静态帧，选区内外和放大镜不露出实时桌面。
+- [ ] 确认后裁剪来自同一冻结帧而非第二次实时捕获；会话结束释放全屏帧，只把选区裁剪交给 Vision。
 - [ ] 跨屏坐标、负坐标原点和不同缩放比例下裁剪区域正确。
-- [ ] 真实 `Esc` 在普通框选和设置已打开的焦点场景中取消，且不产生 OCR、网络请求或文件（TASK-009 的旧证据已被项目所有者在当前固定 App 中复现为失败，TASK-015 正在重新验收）。
+- [ ] 真实 `Esc` 在普通框选和设置已打开的焦点场景中取消，且不产生 OCR、网络请求或文件（TASK-009 的旧证据已被项目所有者在后续固定 App 中复现为失败，当前由 TASK-018 复验）。
 - [ ] 右键和无效区域取消，且不产生 OCR、网络请求或文件。
 - [ ] Vision 对短句、多行和长截图文字输出稳定阅读顺序。
 - [ ] 空 OCR 显示重新框选操作，不发送空请求。
@@ -68,8 +70,10 @@
 ### English
 
 - [ ] `⌃⌥S` enters the correct selection layer on single-display, Retina, and multi-display setups.
+- [ ] Full-display in-memory freezing completes before the selection layer appears; hover surfaces retain their trigger-time state, video/animation appears static during selection, and the selected area, dimmed background, and loupe never reveal the live desktop.
+- [ ] Confirmation crops from the same frozen frames instead of a second live capture; session completion releases full-display frames and sends only the selected crop to Vision.
 - [ ] Crop is correct with cross-screen coordinates, negative origins, and mixed scale factors.
-- [ ] A real `Esc` cancels both ordinary selection and the open-Settings focus scenario, with no OCR, network request, or file (the project owner reproduced a failure in the current fixed App after the older TASK-009 evidence; TASK-015 is re-verifying it).
+- [ ] A real `Esc` cancels both ordinary selection and the open-Settings focus scenario, with no OCR, network request, or file (the project owner reproduced a failure in a later fixed App after the older TASK-009 evidence; TASK-018 now owns the re-verification).
 - [ ] Right-click and invalid regions cancel with no OCR, network request, or file.
 - [ ] Vision produces stable reading order for short, multiline, and long captured text.
 - [ ] Empty OCR offers reselect and sends no empty request.

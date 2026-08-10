@@ -149,7 +149,7 @@ None. 项目所有者已确认采用本方案；未来若需要跨机器实时�
 
 ## Completion record
 
-- Worktree verified commit: Pending commit; verified changes are in `codex/parallel-worktree-docs`
+- Worktree verified commit: `818a305` (`codex/parallel-worktree-docs`)
 - Integration commit: Pending
 - Integration verification: Pending
 - Automated evidence: `./scripts/check.sh` passed outside the restricted sandbox: 17 Rust tests, 81 Swift tests, Swift build/test, Xcode Debug build, formatting, local-state invariants, source whitespace, and `git diff --check`. The first sandboxed run failed only because five mock-provider tests could not bind a local port (`Operation not permitted`); the authorized rerun passed.

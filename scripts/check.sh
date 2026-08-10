@@ -15,6 +15,16 @@ export SWIFTPM_MODULECACHE_OVERRIDE="${cache_root}/swiftpm"
 
 cd "${project_root}"
 
+local_state_path=.marla/worktree-state.md
+if ! git check-ignore -q -- "${local_state_path}"; then
+    print -u2 "${local_state_path} must be ignored by the repository."
+    exit 1
+fi
+if git ls-files --error-unmatch "${local_state_path}" >/dev/null 2>&1; then
+    print -u2 "${local_state_path} is local coordination state and must not be tracked."
+    exit 1
+fi
+
 cargo fmt --all --check
 cargo test --workspace
 cargo build --workspace

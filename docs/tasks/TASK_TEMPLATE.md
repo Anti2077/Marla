@@ -12,6 +12,17 @@ Origin: BL-XXX / direct request / defect
 
 Conversation: 当前开发对话的标题、日期或可识别说明
 
+## Execution context
+
+- Worktree: `/absolute/path/to/worktree`
+- Branch: `branch/name`
+- Base commit: `40-character commit`
+- Integration target: `main`
+- Integration status: Not started / Unmerged / Ready / Integrated
+- Depends on: None / TASK-XXX
+- Owned paths: 明确的文件或目录
+- Known overlaps: None / 与其它 Task 重叠的路径和协调方式
+
 ## Initial request
 
 记录项目所有者开启本次开发对话时的原始目标。后续追加内容不改写这里，而是进入 Scope changes。
@@ -59,7 +70,7 @@ Conversation: 当前开发对话的标题、日期或可识别说明
 - [ ] 关键错误或降级路径。
 - [ ] 相关自动化测试通过。
 - [ ] 需要的真实 App 验证完成。
-- [ ] 相关规格和 `STATUS.md` 已同步。
+- [ ] 相关规格已同步；若已进入目标分支，由整合负责人同步 `STATUS.md`，否则已在本 Task 记录建议的 Status 变化。
 
 ## Verification
 
@@ -88,6 +99,12 @@ Conversation: 当前开发对话的标题、日期或可识别说明
 | --- | --- | --- | --- | --- | --- |
 | Agent name | 独立目标 | 文件列表 | 文件或章节 | Read-only / Edit | 交付结果 |
 
+## Parallel worktree coordination
+
+- Task ID 由谁、何时预留。
+- 本工作树与其它 Task 的路径所有权、依赖和建议整合顺序。
+- 需要整合负责人写入 `STATUS.md`、Backlog、Roadmap 或索引的内容。
+
 ## Risks and rollback
 
 - 可能破坏的现有行为。
@@ -100,12 +117,15 @@ Conversation: 当前开发对话的标题、日期或可识别说明
 
 ## Completion record
 
-任务完成时填写：
+功能工作树完成时先标记 `Ready for integration`；进入目标分支并完成整合验证后才标记 `Done`。
 
-- Verified commit:
+- Worktree verified commit:
+- Integration commit:
+- Integration verification:
 - Automated evidence:
 - Manual evidence:
 - Documentation updated:
+- Mainline documentation updated by:
 - Remaining work promoted to:
 - Scope changes closed:
 - Parallel contributions integrated:

@@ -345,7 +345,7 @@ Each card owns a unique request ID plus creation-time snapshots of native/second
 5. **快速输入与完整控件（已实现）**：IME、多行输入、对照、朗读、固定、目标切换、快捷键录制和权限引导。
 6. **产品化（验证中）**：性能/内存测量、视觉技能审查、兼容矩阵和最终验收。
 
-每个阶段完成时同时更新 `STATUS.md` 和相关 0.1.0 文档；不得等到版本末尾集中补文档。
+每个阶段在工作树中完成时同步相关 0.1.0 文档；整合负责人在阶段进入目标分支并完成验证后更新 `STATUS.md`。不得等到版本末尾集中补文档。
 
 ### English
 
@@ -356,4 +356,4 @@ Each card owns a unique request ID plus creation-time snapshots of native/second
 5. **Quick input and full controls (implemented)**: IME, multiline input, comparison, speech, pin, target switching, shortcut recording, and permission onboarding.
 6. **Productization (verification in progress)**: performance/memory measurement, design-skill review, compatibility matrix, and final acceptance.
 
-Every phase updates `STATUS.md` and affected 0.1.0 documentation when completed; documentation is not deferred to the end of the release.
+Each phase updates the affected 0.1.0 documentation when completed in its worktree. The integration owner updates `STATUS.md` after the phase enters the target branch and passes integration verification. Documentation is not deferred to the end of the release.

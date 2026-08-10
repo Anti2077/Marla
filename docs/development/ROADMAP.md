@@ -1,6 +1,6 @@
 # Roadmap
 
-The roadmap describes broad capability order. It is not a daily checklist and does not authorize an Agent to begin work. Current execution lives in `STATUS.md` and one active Task; confirmed work lives in Backlog; uncommitted possibilities live in Ideas.
+The roadmap describes broad capability order. It is not a daily checklist and does not authorize an Agent to begin work. Current integrated state lives in `STATUS.md`; authorized execution lives in the Task attached to each development conversation or isolated worktree. Confirmed future work lives in Backlog; uncommitted possibilities live in Ideas.
 
 ## Now: 0.1.0 Alpha acceptance
 

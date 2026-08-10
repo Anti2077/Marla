@@ -1,6 +1,6 @@
 # Marla Backlog
 
-Backlog 只收录已经确认需要完成、但尚未成为当前 Task 的工作。它不是想法清单，也不代表已经承诺某个发布日期。
+Backlog 只收录已经确认需要完成、但尚未进入某个已授权执行 Task 的工作。它不是想法清单，也不代表已经承诺某个发布日期。
 
 ## 状态定义
 
@@ -97,8 +97,8 @@ Backlog 只收录已经确认需要完成、但尚未成为当前 Task 的工作
 
 将 Backlog 条目提升为 Task 时：
 
-1. 复制 `tasks/TASK_TEMPLATE.md`，分配下一个连续编号。
+1. 由主线协调者预留一个尚未使用的连续 Task 编号；并行工作树不得各自猜测“下一个编号”。
 2. 用本次开发对话的初始目标创建 Task，不必把整个 Backlog 条目原样搬过去；对话中项目所有者追加的内容继续更新同一个 Task。
-3. 在本文件把状态改成 `Active task: TASK-xxx` 并链接施工单。
-4. 在 `development/STATUS.md` 中设置同一个活动 Task。
-5. 任务完成后根据剩余工作关闭、拆分或保留 Backlog 条目。
+3. 若主线协调提交先于工作树创建，可在本文件记录 `In progress: TASK-xxx`；否则功能工作树只在自己的 Task 中记录来源，等待整合负责人回填。
+4. 创建独立工作树时记录 branch、base、integration target、owned paths 和 overlaps；不要为了注册任务修改 `development/STATUS.md`。
+5. 功能工作树验证完成后标记 `Ready for integration`；整合负责人合并并验证目标分支后，根据剩余工作关闭、拆分或保留 Backlog 条目。

@@ -1,21 +1,21 @@
 # Project Status
 
+Scope: this file describes only the current target branch's integrated and verified baseline. It is not a registry for Active Tasks in other branches/worktrees, and it must not claim uncommitted feature-worktree results.
+
 Last updated: 2026-08-10
 
 Release target: 0.1.0 Alpha
 
 Overall state: In Progress — implementation baseline exists; live acceptance remains incomplete
 
-Active task: None
-
 Blocked tasks:
 
 - [TASK-013](../tasks/TASK-013-api-profile-activation-and-editor-actions.md) — 等待项目所有者确认拖拽动态中间态
 - [TASK-016](../tasks/TASK-016-keychain-credential-prefetch.md) — 等待项目所有者在干净 Keychain 授权状态复验启动与首次翻译
 
-## Current objective
+## Current integrated baseline
 
-TASK-019 已完成；当前没有 Active implementation Task。全局“翻译语言”设置、母语/第二语言路由、本机源语言识别、结果卡与快速输入双语言菜单继续保留；真实试用表现不理想的 IDEA-002 单行原位译文和 Force Touch 两个实验功能已从设置、状态、运行路径、专用 UI、夹具和测试中完整移除。TASK-016 与 TASK-013 继续保持 Blocked；不得从 Backlog 或 Ideas 自动选择下一项。
+当前目标分支已集成 TASK-019：全局“翻译语言”设置、母语/第二语言路由、本机源语言识别、结果卡与快速输入双语言菜单继续保留；真实试用表现不理想的 IDEA-002 单行原位译文和 Force Touch 两个实验功能已从设置、状态、运行路径、专用 UI、夹具和测试中完整移除。TASK-016 与 TASK-013 继续保持 Blocked；新的开发工作必须由项目所有者明确选择并绑定到自己的 Task/worktree，不能从 Backlog 或 Ideas 自动开始。
 
 ## Current implemented baseline
 
@@ -40,7 +40,7 @@ TASK-019 已完成；当前没有 Active implementation Task。全局“翻译�
 - Translation API profiles have persistent enabled states and only enabled profiles can be selected or invoked. The summary list uses native switches, a Set Default/Delete menu, accessibility move actions, and a trailing reorder handle. Settings content no longer moves the window; the newest fixed App uses a complete-row drag preview and 220ms animated hover reordering, pending owner confirmation of that final pointer feedback.
 - Project-scoped Serena 1.6.1 provides read-only Swift/Rust semantic navigation through Codex. A custom Context and fixed tool allowlist expose only nine retrieval/diagnostic tools; source edits, shell, project switching, onboarding, memories, Dashboard, and Headroom remain disabled.
 
-Implementation baseline commit: `27203b5`.
+Implementation baseline commit: `b26e734`.
 
 ## Release gaps
 
@@ -72,7 +72,7 @@ TASK-015 已完成；剩余发布矩阵继续保留在 BL-001，截图 `Esc` 与
 
 ## Latest verification
 
-- TASK-019 is complete on `Anti2077/ideas-012-translation-languages` with uncommitted branch changes. After the project-owner removal decision, `./scripts/check.sh` passes 17 Rust and 81 Swift tests plus Swift/Xcode Debug, formatting, whitespace, and diff checks; six dedicated inline-experiment tests were removed with that feature. The stable-signed fixed Release passes Bundle ID/version/minimum-system/arm64/signature/designated-requirement verification. Language settings, result-card, and quick-input captures under `artifacts/ui-review/task-019/` retain scores 8/8/8/8/7; final General light/dark captures without the Experimental section are under `artifacts/ui-review/task-019-removal/` and score 8/8/8/9/7. A live Japanese request against the Keychain-backed profile was not run because a new acceptance process raised system authorization; mock-provider payload tests verify `ja` mapping without exposing credentials.
+- TASK-019 is integrated at implementation commit `b26e734`. After the project-owner removal decision, `./scripts/check.sh` passed 17 Rust and 81 Swift tests plus Swift/Xcode Debug, formatting, whitespace, and diff checks; six dedicated inline-experiment tests were removed with that feature. The stable-signed fixed Release passed Bundle ID/version/minimum-system/arm64/signature/designated-requirement verification. Language settings, result-card, and quick-input captures under `artifacts/ui-review/task-019/` retain scores 8/8/8/8/7; final General light/dark captures without the Experimental section are under `artifacts/ui-review/task-019-removal/` and score 8/8/8/9/7. A live Japanese request against the Keychain-backed profile was not run because a new acceptance process raised system authorization; mock-provider payload tests verify `ja` mapping without exposing credentials.
 - TASK-018 is complete at implementation commit `27203b5`. It captures every active display before presenting selection windows, excludes Marla's own windows, redraws the background/undimmed selection/loupe from the same frozen frame set, and composites the final crop without a second live capture. Cross-display mixed-scale layout tests pass; `./scripts/check.sh` passes 17 Rust and 83 Swift tests plus Swift/Xcode Debug, and the stable-signed fixed Release passes packaging. Three 3420×2224 Release captures under `artifacts/ui-review/task-018/` cover light, dark, and Reduce Motion and score 8/8/8/7/7. The project owner accepted Task closure; remaining real-environment evidence is tracked by BL-002/BL-003 rather than reported as verified.
 - TASK-017's exact and pointer-estimate single-line surfaces were built and visually reviewed, but project-owner real use found both presentations unsatisfactory. TASK-019 now removes the prototype, its setting, runtime path, automation fixtures, and dedicated tests; the historical TASK-017 evidence remains available but no longer describes the current product baseline.
 - TASK-016's first live authorization test invalidated the `kSecMatchLimitAll` behavior claim. The follow-up uses one vault and one `LAContext`, but its first two Release packages respectively crashed from nil `NSApp` during construction and remained alive without an openable menu surface after adding a custom App Delegate plus early `NSApplication.shared` access. The final lifecycle repair removes both construction-time AppKit paths and listens only for `NSApplication.didFinishLaunchingNotification`. `./scripts/check.sh` passes 17 Rust and 74 Swift tests plus the Xcode Debug build; the stable-signed fixed Release App is valid, idles in the normal AppKit event loop, creates no new crash report, and successfully captures its complete built-in menu acceptance surface. Clean live authorization behavior remains unverified.
@@ -105,7 +105,7 @@ TASK-015 已完成；剩余发布矩阵继续保留在 BL-001，截图 `Esc` 与
 
 ## Pending product decisions
 
-Default translation vendor, contextual translation controls, cloud structured OCR controls, persistent history, final app icon, public signing/notarization, and public distribution remain outside the current Task. Their context is recorded in `docs/backlog/IDEAS.md` or accepted ADRs.
+Default translation vendor, contextual translation controls, cloud structured OCR controls, persistent history, final app icon, public signing/notarization, and public distribution remain outside the integrated baseline. Their context is recorded in `docs/backlog/IDEAS.md` or accepted ADRs.
 
 ## Required Reading
 
@@ -117,4 +117,4 @@ These files are universal for every task:
 - `docs/versions/0.1.0/SPEC.md`
 - `docs/architecture/ARCHITECTURE.md`
 
-The active Task must list any additional UI, implementation, acceptance, feature, data-contract, source, test, and ADR files it actually requires.
+Each Task attached to a development conversation/worktree must list any additional UI, implementation, acceptance, feature, data-contract, source, test, and ADR files it actually requires.

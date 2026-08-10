@@ -146,10 +146,13 @@ All other spacing follows a 4pt grid. Pointer controls may retain compact macOS 
 
 布局从上到下为：
 
-1. 状态行：自动语言方向或显式目标、固定状态、关闭；
-2. 译文区：第一视觉层级，支持选择文字和流式增长；
-3. 对照区：默认折叠，展开后显示原文并与译文保持稳定顺序；
-4. 操作行：朗读、复制、重试、目标语言和更多状态。
+1. 状态行：入口、当前翻译 API 配置、固定状态和关闭；
+2. 语言行：两个等层级紧凑菜单，左侧显示自动识别或显式源语言，右侧始终显示实际目标语言，中间使用克制的方向箭头；
+3. 译文区：第一视觉层级，支持选择文字和流式增长；
+4. 对照区：默认折叠，展开后显示原文并与译文保持稳定顺序；
+5. 操作行：朗读、复制、重试和更多状态。
+
+语言菜单使用单层语义浅表面、SF Symbols 和 4/8/12pt Token，不使用旧目标胶囊或第二套强调色。源语言自动状态必须显示“自动识别：语言”或“自动识别：未知”，让识别与覆盖关系可见。
 
 卡片的标志性细节是“稳定流式游标”：等待首字时在译文首行使用低对比度呼吸点；首个 delta 到达后转为克制的尾部插入游标；完成时在 120ms 内淡出。它只表达状态，不循环播放装饰动画。
 
@@ -161,10 +164,13 @@ The card defaults to 380pt wide and adapts between 320–520pt for available scr
 
 Top-to-bottom structure:
 
-1. status row: automatic direction or explicit target, pin state, close;
-2. translation area: primary visual level, selectable and stream-growing;
-3. comparison area: collapsed by default, preserving stable source/translation order when expanded;
-4. action row: speech, copy, retry, target language, and secondary state.
+1. status row: entry, current translation API profile, pin state, and close;
+2. language row: two equal compact menus, with automatic or explicit source on the left, the effective target on the right, and a restrained direction arrow between them;
+3. translation area: primary visual level, selectable and stream-growing;
+4. comparison area: collapsed by default, preserving stable source/translation order when expanded;
+5. action row: speech, copy, retry, and secondary state.
+
+Language menus use one semantic secondary surface, SF Symbols, and the 4/8/12pt tokens, without the previous target capsule or a second accent color. Automatic source visibly reads “Auto-detected: Language” or “Auto-detected: Unknown” so detection and override remain understandable.
 
 The card's signature detail is a stable streaming caret. Before first token, a low-contrast breathing dot occupies the first translation line. After the first delta, it becomes a restrained trailing insertion caret and fades out within 120ms on completion. It communicates state and never loops as decoration.
 
@@ -190,19 +196,21 @@ Its signature detail is a single 120ms inward confirmation of the four corners b
 
 快速输入复用结果卡片外壳，初始宽度 420pt。输入区至少显示三行但按内容增长到卡片最大高度；底部清楚显示 `⌘Return` 提交和 `Esc` 关闭。主要动作由键盘完成，不添加巨大提交按钮。
 
-输入状态的标志性细节是语言路由胶囊：未提交时显示“自动：中文 ↔ English”，手动选择后显示固定目标。它使用系统强调色的低透明度背景，不使用渐变。
+输入状态复用结果卡语言行：提交前左侧可选择自动识别或显式源语言，右侧显示按当前母语/第二语言偏好计算的实际目标并允许覆盖。两个菜单保持紧凑，不使用旧固定中英胶囊或渐变。
 
 ### English
 
 Quick input reuses the result-card shell and starts at 420pt wide. The editor shows at least three lines and grows with content up to the card maximum. The footer clearly shows `⌘Return` to submit and `Esc` to close. Keyboard is primary; no oversized submit button is added.
 
-Its signature detail is the language-route capsule: before submission it reads “Auto: 中文 ↔ English,” and after an explicit choice it shows the fixed target. It uses a low-opacity system accent background without gradients.
+The input state reuses the result-card language row. Before submission the left menu selects automatic or explicit source, while the right shows the effective target derived from current native/secondary preferences and allows an override. Both menus remain compact, with no fixed Chinese-English capsule or gradient.
 
 ## 7. 设置与首次启动 / Settings and First Launch
 
 ### 中文
 
-设置使用原生 macOS 侧栏，不制造卡片网格。窗口使用透明全尺寸标题栏，原生红黄绿按钮位于与侧栏和内容连续的同一个四角圆角表面内；不得在标题栏下再叠放第二张圆角卡片，也不显示常驻滚动指示条。内容背景不得成为窗口拖动区，窗口移动只由原生标题栏承担，避免抢占开关、菜单和排序手柄的指针手势。首期侧栏固定包含“通用”“翻译 API”“快捷键”“OCR”四项，默认打开“通用”。“翻译 API”页面只展示配置名称、模型、默认/完整状态和启用开关；点击配置后才打开独立编辑窗口。配置菜单只保留“设为默认”和“删除配置”，最右侧使用 `line.3.horizontal` 手柄直接拖拽排序，并提供对应的无障碍移动操作。原生拖拽项只携带透明 1×1pt 图像负责 drop 命中，不能作为用户可见预览；抓起时由不激活、不接收鼠标事件的无边框浮层以固定 580×76pt 绘制完整配置行，并保持指针位于用户实际抓取的尾部三横杠位置，整行由该锚点向左展开。浮层尺寸全程固定，不得缩放、把中心吸附到指针或变成缩略图。列表中的原行内容同时变空，但保留稳定 ID 与等高占位槽。进入另一配置行时立即移动该空槽，并使用约 220ms 的短促弹性过渡让其它行平滑让位；松手后内容以短促淡入恢复到当前空槽。API 编辑窗口使用固定标签列与统一输入宽度，保留足够焦点环边距；底部操作只保留右对齐的取消和保存，保存同时持久化配置与非空 Key 草稿，取消新增时不保留临时配置或 Key。测试连接位于模型区域下方，按钮旁直接展示测试中、成功或具体失败结果；URL、模式、模型或 Key 草稿改变后清除旧结果。首行输入框必须在滚动内容顶部保留至少一个 8pt Token，使系统向控件外扩展的 Focus Ring 四边完整可见。URL 模式使用 URL 输入行左侧固定标签区内的原生紧凑 switch，左侧 Base、右侧完整，不另占一行；示例和单行“请求地址”预览随模式同步，长地址只在固定宽度内截断。模型名称是最后一个输入字段，右侧是获取/刷新图标；获取成功后下方出现默认展开且可折叠的模型列表，选择一项回填并收起列表。快捷键页为每个全局监听提供原生 switch，并以不可关闭的固定行说明 `Esc` 用于取消截图框选。OCR 页面只读展示本机 Vision 和截图隐私边界。
+“通用”页只保留权限、兼容性取词和隐私边界，不显示 Force Touch、单行原位译文或通用“实验功能”区。
+
+设置使用原生 macOS 侧栏，不制造卡片网格。窗口使用透明全尺寸标题栏，原生红黄绿按钮位于与侧栏和内容连续的同一个四角圆角表面内；不得在标题栏下再叠放第二张圆角卡片，也不显示常驻滚动指示条。内容背景不得成为窗口拖动区，窗口移动只由原生标题栏承担，避免抢占开关、菜单和排序手柄的指针手势。侧栏固定包含“通用”“翻译语言”“翻译 API”“快捷键”“OCR”五项，默认打开“通用”。“翻译语言”页面用两个原生紧凑菜单设置互不相同的母语和第二语言，并以三条简洁方向示例解释当前路由；不使用配置卡片网格。“翻译 API”页面只展示配置名称、模型、默认/完整状态和启用开关；点击配置后才打开独立编辑窗口。配置菜单只保留“设为默认”和“删除配置”，最右侧使用 `line.3.horizontal` 手柄直接拖拽排序，并提供对应的无障碍移动操作。原生拖拽项只携带透明 1×1pt 图像负责 drop 命中，不能作为用户可见预览；抓起时由不激活、不接收鼠标事件的无边框浮层以固定 580×76pt 绘制完整配置行，并保持指针位于用户实际抓取的尾部三横杠位置，整行由该锚点向左展开。浮层尺寸全程固定，不得缩放、把中心吸附到指针或变成缩略图。列表中的原行内容同时变空，但保留稳定 ID 与等高占位槽。进入另一配置行时立即移动该空槽，并使用约 220ms 的短促弹性过渡让其它行平滑让位；松手后内容以短促淡入恢复到当前空槽。API 编辑窗口使用固定标签列与统一输入宽度，保留足够焦点环边距；底部操作只保留右对齐的取消和保存，保存同时持久化配置与非空 Key 草稿，取消新增时不保留临时配置或 Key。测试连接位于模型区域下方，按钮旁直接展示测试中、成功或具体失败结果；URL、模式、模型或 Key 草稿改变后清除旧结果。首行输入框必须在滚动内容顶部保留至少一个 8pt Token，使系统向控件外扩展的 Focus Ring 四边完整可见。URL 模式使用 URL 输入行左侧固定标签区内的原生紧凑 switch，左侧 Base、右侧完整，不另占一行；示例和单行“请求地址”预览随模式同步，长地址只在固定宽度内截断。模型名称是最后一个输入字段，右侧是获取/刷新图标；获取成功后下方出现默认展开且可折叠的模型列表，选择一项回填并收起列表。快捷键页为每个全局监听提供原生 switch，并以不可关闭的固定行说明 `Esc` 用于取消截图框选。OCR 页面只读展示本机 Vision 和截图隐私边界。
 
 首次启动不显示大幅欢迎页，而是直接显示三项可完成清单：配置翻译 API、授予辅助功能、授予屏幕录制。应用完成启动后读取包含全部 API Key 的单一 Keychain vault，使正常启动最多只授权一个当前凭据 item；旧版逐 profile item 仅在一次性迁移时集中处理，迁移查询复用同一个认证上下文，不得把提示延迟到首次翻译。每项解释它影响哪个入口，并允许暂时跳过；快速输入始终可用于验证 API。
 
@@ -210,11 +218,13 @@ Its signature detail is the language-route capsule: before submission it reads �
 
 ### English
 
-Settings uses a native macOS sidebar rather than a card grid. The window has a transparent full-size title bar, placing the native traffic-light controls inside the same continuous four-corner surface as the sidebar and content. It may not stack a second rounded card below the title bar or show a persistent scroll indicator. The content background is not a window-drag region; only the native title bar moves the window, so switches, menus, and reorder handles retain their pointer gestures. The first sidebar has four items: General, Translation API, Shortcuts, and OCR, with General selected by default. The Translation API page shows only profile name, model, default/completeness state, and an enabled switch; clicking a profile opens a separate editor window. The profile menu retains only Set as Default and Delete Profile. A trailing `line.3.horizontal` handle provides direct drag reordering plus matching accessibility move actions. The native dragging item carries only a transparent 1×1pt image for drop hit testing and is never used as the visible preview. On pickup, a nonactivating, mouse-ignoring borderless panel renders the complete row at a fixed 580×76pt. It follows the pointer while preserving the exact grab point inside the trailing three-line handle and expands leftward from that anchor. The panel size never changes, its center never snaps beneath the pointer, and it never becomes a thumbnail. The source row becomes empty while preserving its stable ID and full-height slot. Entering another profile row moves that empty slot immediately and uses a short, approximately 220ms spring transition to let surrounding rows make room. On release, the row content returns to the current slot with a short fade. The API editor uses a fixed label column, uniform input width, and enough focus-ring inset. Its footer contains only right-aligned Cancel and Save; Save persists the profile and any non-empty key draft, while cancelling a new profile leaves neither a placeholder nor its key. Connection Test sits below the model area and shows testing, success, or a specific failure beside the button. Changing URL, mode, model, or key draft clears stale results. The first field keeps at least one 8pt token above it inside the scroll content so all four sides of the system Focus Ring remain visible as it expands outside the control. URL mode uses a compact native switch inside the URL row's fixed label area, with Base on the left and Complete on the right, rather than consuming a separate row. The example and single-line Request URL preview update with the mode, and long addresses truncate within the fixed width. Model Name is the last input field, with a fetch/refresh icon to the right. A successful fetch reveals an initially expanded, collapsible model list below it; choosing one fills the field and collapses the list. Each global listener has a native switch on the Shortcuts page, while a non-disableable fixed row explains that `Esc` cancels screenshot selection. The OCR page is read-only and explains local Vision and screenshot privacy boundaries.
+Settings uses a native macOS sidebar rather than a card grid. The window has a transparent full-size title bar, placing the native traffic-light controls inside the same continuous four-corner surface as the sidebar and content. It may not stack a second rounded card below the title bar or show a persistent scroll indicator. The content background is not a window-drag region; only the native title bar moves the window, so switches, menus, and reorder handles retain their pointer gestures. The sidebar has five items: General, Translation Languages, Translation API, Shortcuts, and OCR, with General selected by default. Translation Languages uses two compact native menus for different Native and Secondary values plus three concise route examples; it does not introduce a card grid. The Translation API page shows only profile name, model, default/completeness state, and an enabled switch; clicking a profile opens a separate editor window. The profile menu retains only Set as Default and Delete Profile. A trailing `line.3.horizontal` handle provides direct drag reordering plus matching accessibility move actions. The native dragging item carries only a transparent 1×1pt image for drop hit testing and is never used as the visible preview. On pickup, a nonactivating, mouse-ignoring borderless panel renders the complete row at a fixed 580×76pt. It follows the pointer while preserving the exact grab point inside the trailing three-line handle and expands leftward from that anchor. The panel size never changes, its center never snaps beneath the pointer, and it never becomes a thumbnail. The source row becomes empty while preserving its stable ID and full-height slot. Entering another profile row moves that empty slot immediately and uses a short, approximately 220ms spring transition to let surrounding rows make room. On release, the row content returns to the current slot with a short fade. The API editor uses a fixed label column, uniform input width, and enough focus-ring inset. Its footer contains only right-aligned Cancel and Save; Save persists the profile and any non-empty key draft, while cancelling a new profile leaves neither a placeholder nor its key. Connection Test sits below the model area and shows testing, success, or a specific failure beside the button. Changing URL, mode, model, or key draft clears stale results. The first field keeps at least one 8pt token above it inside the scroll content so all four sides of the system Focus Ring remain visible as it expands outside the control. URL mode uses a compact native switch inside the URL row's fixed label area, with Base on the left and Complete on the right, rather than consuming a separate row. The example and single-line Request URL preview update with the mode, and long addresses truncate within the fixed width. Model Name is the last input field, with a fetch/refresh icon to the right. A successful fetch reveals an initially expanded, collapsible model list below it; choosing one fills the field and collapses the list. Each global listener has a native switch on the Shortcuts page, while a non-disableable fixed row explains that `Esc` cancels screenshot selection. The OCR page is read-only and explains local Vision and screenshot privacy boundaries.
 
 First launch does not show a large welcome hero. It directly presents a three-item completion list: configure translation API, grant Accessibility, and grant Screen Recording. After launch, the application reads one Keychain vault containing all API Keys, so a normal startup authorizes at most one current credential item. Legacy per-profile items are handled together only during one-time migration and reuse one authentication context; prompts may not be deferred until first translation. Each item explains the affected entry and may be skipped; quick input remains available to validate the API.
 
 The menu's setup status exists only while any item is incomplete. Once all are ready, the same region becomes Recent Translations: up to three rows, each showing an entry-point icon, one translation line, one source line, and a disclosure chevron. An empty state remains restrained and the section always states that quitting clears it. Screenshot translation consistently uses the `viewfinder` SF Symbol available on the target systems.
+
+General contains only permissions, Copy compatibility, and the privacy boundary; it has no Force Touch, single-line in-place translation, or generic Experimental section.
 
 ## 8. 状态、主题与无障碍 / States, Themes, and Accessibility
 
@@ -264,6 +274,8 @@ TASK-010 真实 Release App 验收：固定路径 `artifacts/Marla_dev.app` 生�
 
 TASK-011 真实 Release App 验收：固定路径 `artifacts/Marla_dev.app` 的 API 编辑器首行增加 8pt 滚动内容安全边距。前台浅色/深色窗口按 Core Graphics Window ID 捕获后，系统蓝色 Focus Ring 的上、下、左、右均完整可见，字段和底部操作区无布局回归；证据位于 `artifacts/ui-review/task-011/`。五维评审为哲学一致性 8/10、视觉层级 8/10、工艺质量 9/10、功能性 8/10、原创性 7/10，全部达到门槛。
 
+TASK-019 真实 Release App 验收：固定路径 `artifacts/Marla_dev.app` 生成翻译语言设置浅色/深色、结果卡浅色/深色/Reduce Motion、快速输入浅色/深色证据，位于 `artifacts/ui-review/task-019/`。首轮结果卡截图发现 macOS Menu 把复合 label 压平后只显示“源语言 → 目标语言”，设置菜单也出现重复箭头；改为单行实际值并移除重复箭头后已重新构建、签名和采集。最终 380pt 卡片清楚显示“自动识别：English → 简体中文”，API 配置留在顶行，420pt 快速输入无截断。五维评审为 8/8/8/8/7，全部达到门槛。
+
 ### English
 
 After implementation, invoke the `swiftui-design-skill` five-dimension review and retain real-app screenshot evidence for:
@@ -291,3 +303,5 @@ TASK-008 real Release App acceptance: the fixed `artifacts/Marla_dev.app` produc
 TASK-010 real Release App acceptance: the fixed `artifacts/Marla_dev.app` produced light/dark Complete URL editor evidence under `artifacts/ui-review/task-010/`. `Base [switch] Complete` occupies the URL row's 120pt label area rather than a separate row. Model Name is last, with the refresh icon and automatically expanded selectable model list fully visible. The fixed 360pt content column, Request URL preview, focus ring, and bottom actions show no clipping. Five-dimension scores are Philosophy Alignment 8/10, Visual Hierarchy 8/10, Craft Quality 8/10, Functionality 8/10, and Originality 7/10; every dimension meets the threshold.
 
 TASK-011 real Release App acceptance: the fixed `artifacts/Marla_dev.app` gives the API editor's first row an 8pt scroll-content safety inset. Frontmost light/dark windows captured by verified Core Graphics Window ID show all four sides of the system blue Focus Ring, with no field or bottom-action layout regression; evidence is under `artifacts/ui-review/task-011/`. Five-dimension scores are Philosophy Alignment 8/10, Visual Hierarchy 8/10, Craft Quality 9/10, Functionality 8/10, and Originality 7/10; every dimension meets the threshold.
+
+TASK-019 real Release App acceptance: the fixed `artifacts/Marla_dev.app` produced Translation Languages Settings light/dark, result-card light/dark/Reduce Motion, and quick-input light/dark evidence under `artifacts/ui-review/task-019/`. The first result-card capture exposed macOS Menu flattening that showed only “Source Language → Target Language” and duplicate Settings chevrons. After switching to one visible effective value and removing duplicate chevrons, the app was rebuilt, signed, and fully recaptured. The final 380pt card clearly reads “Auto-detected: English → Simplified Chinese,” retains the API profile in the top row, and fits quick input at 420pt without truncation. Five-dimension scores are 8/8/8/8/7; every dimension meets the threshold.

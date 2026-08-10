@@ -17,7 +17,6 @@ Backlog 只收录已经确认需要完成、但尚未成为当前 Task 的工作
 | BL-001 | 跨应用划词翻译真实验证 | Ready; implementation complete in [TASK-015](../tasks/TASK-015-deep-selection-reliability.md) | 0.1.0 阻塞项 | 项目所有者选择完成剩余发布矩阵 |
 | BL-002 | 截图裁剪与权限持久化真实验证 | Ready | 0.1.0 阻塞项 | 可在目标显示器组合上运行测试 App |
 | BL-003 | UI 延迟与内存预算测量 | Ready | 0.1.0 阻塞项 | 明确测试场景和采样方式 |
-| BL-004 | Force Touch 公共 API 可行性验证 | Needs evidence | 0.1.0 非阻塞实验 | 确定可复现的硬件与应用矩阵 |
 | BL-005 | 按需语境增强引擎 | Deferred | 0.1.0 之后 | 完成隐私边界和发送内容的产品决策 |
 | BL-006 | GLM-OCR 云端结构化识别 | Deferred | 0.1.0 之后 | 完成图片上传披露、Provider 契约和成本验证 |
 | BL-007 | 多翻译 API 配置与窗口内手动切换 | Complete: TASK-005 | 0.1.0 之后的已确认增强 | 后续可另建 Task 做入口级默认或对比模式 |
@@ -28,6 +27,7 @@ Backlog 只收录已经确认需要完成、但尚未成为当前 Task 的工作
 | BL-012 | API Base URL、完整 URL 与模型获取 | Complete: TASK-005（detail: TASK-010） | 0.1.0 Alpha 兼容性修复 | None |
 | BL-013 | API 编辑器顶部聚焦边框完整显示 | Complete: TASK-005（detail: TASK-011） | 0.1.0 Alpha 视觉缺陷 | None |
 | BL-014 | API 配置启用、排序与编辑器操作收敛 | [Blocked task: TASK-013](../tasks/TASK-013-api-profile-activation-and-editor-actions.md) | 0.1.0 Alpha 逻辑与 UX 修复 | 项目所有者确认拖拽动态中间态 |
+| BL-015 | 母语/第二语言自动路由与结果卡语言控制 | Complete: [TASK-019](../tasks/TASK-019-configurable-language-routing.md) | 0.1.0 Alpha 语言能力增强 | None |
 
 ## 条目详情
 
@@ -57,14 +57,6 @@ Backlog 只收录已经确认需要完成、但尚未成为当前 Task 的工作
 - **结果用途**：决定 0.1.0 是否可接受；不为了通过指标而隐藏网络 TTFT。
 - **相关文档**：`versions/0.1.0/ACCEPTANCE.md`。
 
-### BL-004：Force Touch 公共 API 可行性验证
-
-- **目标**：判断重按触控板能否在不同前台应用中稳定触发同一个划词翻译意图。
-- **约束**：默认关闭、只用公开 API、失败不影响键盘快捷键，也不阻塞 0.1.0。
-- **主要未知**：全局事件可见性、不同触控板硬件、系统设置差异、与应用自身 Force Click 行为冲突。
-- **可能结论**：可靠则保留实验入口；不可靠则移除或限制到 Marla 自有窗口，不以私有 API补救。
-- **相关想法**：`IDEAS.md` 的 IDEA-007。
-
 ### BL-005：按需语境增强引擎
 
 - **目标**：在用户触发翻译时，以有限、可解释、可关闭的语境提升术语与语气判断。
@@ -93,6 +85,13 @@ Backlog 只收录已经确认需要完成、但尚未成为当前 Task 的工作
 - **范围**：测试连接状态行、底部取消/保存、profile 启用迁移、默认配置不变量、结果卡过滤、三横杠拖拽排序及相关测试与真实 App 验收。
 - **明确不做**：自动 fallback、后台健康检查、Provider 专属参数和多模型并行翻译。
 - **当前 Task**：`TASK-013`。
+
+### BL-015：母语/第二语言自动路由与结果卡语言控制
+
+- **目标**：用全局母语和第二语言取代固定中英自动方向，在本机识别源语言，并让结果卡显示且可覆盖本次源/目标语言。
+- **首期范围**：简体中文、English、日本語；设置语言子页面；新会话自动路由；结果卡第二行双下拉；通用模型与 Qwen-MT 一致参数；未知源语言降级。
+- **明确不做**：繁体中文独立偏好、按 profile/入口偏好、额外识别服务、语言质量风格与已打开卡片随设置自动重译。
+- **完成 Task**：[TASK-019](../tasks/TASK-019-configurable-language-routing.md)。
 
 ## 提升规则
 

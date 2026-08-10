@@ -1,8 +1,8 @@
 # TASK-017：单行原位流式覆盖可行性原型
 
-Status: Blocked
+Status: Cancelled — removed by project-owner decision in TASK-019
 
-Implementation: Implemented; awaiting project-owner live verification
+Implementation: Removed
 
 Owner: Project owner + Agent
 
@@ -20,7 +20,7 @@ Conversation: 2026-08-10 开始尝试 IDEA-002
 
 ## Outcome
 
-Marla 获得一个默认关闭、可随时退出的单行静态选区覆盖原型：可靠几何满足保守条件时，译文在原选区位置流式出现；缺少 bounds 的短单行使用明确标记“附近”的鼠标旁译文条；多行、过长或几何不安全时使用现有完整结果卡。该原型用于收集真实几何、可读性与生命周期证据，不改变 0.1.0 的默认呈现合同。
+Marla 曾获得一个默认关闭、可随时退出的单行静态选区覆盖原型：可靠几何满足保守条件时，译文在原选区位置流式出现；缺少 bounds 的短单行使用明确标记“附近”的鼠标旁译文条。项目所有者真实试用后认为两种表现都不理想，并在 TASK-019 中要求完整删除；当前划词翻译只使用既有完整附近结果卡。
 
 ## Why now
 
@@ -52,6 +52,7 @@ IDEA-002 已记录原位覆盖可以进一步减少视线移动，但也明确�
 | 2026-08-10 | Project owner | 创建新分支并开始尝试 IDEA-002 | 建立独立 feasibility Task；实现保守单行原型并保留附近卡片回退 | In progress |
 | 2026-08-10 | Project owner | 开启实验功能后真实划词仍出现原 380×300 结果卡 | 真实 Copy compatibility 路径没有 bounds，推翻“首版已覆盖真实路径”的暗示；增加明确标记的鼠标附近单行译文条并修正 AX/AppKit 坐标转换 | In progress |
 | 2026-08-10 | Project owner | 转而开始截图冻结覆盖改进 | TASK-017 保留当前实现并转为 Blocked，等待日后复验；新的截图范围由 TASK-018 独立跟踪 | Blocked |
+| 2026-08-10 | Project owner | 真实试用后删除 IDEA-002 原位译文和另一个 Force Touch 实验 | TASK-019 删除设置、持久化状态、专用 View/面板/布局/生命周期、自动化夹具和测试；TASK-017 取消且不再等待复验 | Removed |
 
 ## Current evidence
 
@@ -60,6 +61,7 @@ IDEA-002 已记录原位覆盖可以进一步减少视线移动，但也明确�
 - `TranslationSessionStore` 已集中维护请求 ID、流式译文、失败、取消和完成状态；原型可以复用它而不改变 Rust 或数据合同。
 - `FloatingPanelCoordinator` 原先只支持 380×300 附近卡片；TASK-017 现增加复用同一 `NSPanel` 的精确和近似两种单行轻量布局。
 - 当前 feature spec 和 0.1.0 architecture 都明确声明正式实现只使用附近卡片，原位覆盖被延后。
+- TASK-019 已按项目所有者最终决定移除整个原型；上述证据保留为历史，不再描述当前代码基线。
 
 ## Proposed approach
 
@@ -122,14 +124,14 @@ None
 
 ## Decisions needed
 
-- 真实原型证据完成后，再由项目所有者决定是否继续整块覆盖、投入逐行覆盖，或退回附近卡片方向。
+None. 项目所有者已选择退回附近结果卡并删除原型；未来若重新讨论，需要新的明确授权和 Task。
 
 ## Completion record
 
-- Verified commit: Pending
+- Verified commit: 当前 TASK-019 分支未提交；移除工作由 TASK-019 验证
 - Automated evidence: After the live fallback repair, `./scripts/check.sh` passed 17 Rust and 81 Swift tests plus Swift/Xcode Debug builds. Coverage includes default-off persistence, exact and pointer-estimate placement, Accessibility-to-AppKit coordinate conversion, negative-coordinate and visible-frame containment, conservative rejection, panel styling, and terminal expand/close transitions.
 - Manual evidence: Stable-signed Release light/dark/Reduce Motion deterministic captures for exact and visibly labeled “附近” modes plus the five-dimension review are under `artifacts/ui-review/task-017/`. Real external-app selection/focus evidence and project-owner re-verification of the repaired Copy path remain pending.
 - Documentation updated: `docs/features/inline-translation.md`, `docs/backlog/IDEAS.md`, `docs/development/STATUS.md`, and this Task.
-- Remaining work promoted to: Pending
-- Scope changes closed: Pending
+- Remaining work promoted to: None；IDEA-002 已标记 Rejected
+- Scope changes closed: Yes — prototype removed
 - Parallel contributions integrated: None

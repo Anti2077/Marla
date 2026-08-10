@@ -5,6 +5,7 @@ import UniformTypeIdentifiers
 
 private enum SettingsPage: String, CaseIterable, Identifiable {
     case general
+    case languages
     case api
     case shortcuts
     case ocr
@@ -14,6 +15,7 @@ private enum SettingsPage: String, CaseIterable, Identifiable {
     var title: String {
         switch self {
         case .general: "通用"
+        case .languages: "翻译语言"
         case .api: "翻译 API"
         case .shortcuts: "快捷键"
         case .ocr: "OCR"
@@ -23,6 +25,7 @@ private enum SettingsPage: String, CaseIterable, Identifiable {
     var symbolName: String {
         switch self {
         case .general: "slider.horizontal.3"
+        case .languages: "character.book.closed"
         case .api: "network"
         case .shortcuts: "command"
         case .ocr: "text.viewfinder"
@@ -53,6 +56,7 @@ struct SettingsView: View {
             Group {
                 switch selectedPage {
                 case .general: generalPage
+                case .languages: languagesPage
                 case .api: apiPage
                 case .shortcuts: shortcutsPage
                 case .ocr: ocrPage
@@ -156,15 +160,6 @@ struct SettingsView: View {
                 }
             }
 
-            SettingsSection(title: "实验功能", systemImage: "flask") {
-                Toggle("重按触控板触发划词翻译", isOn: $settings.forceTouchExperimental)
-                Toggle("单行选区原位显示译文", isOn: $settings.inlineTranslationExperimental)
-                Text("实验功能默认关闭。原位显示只尝试可靠的单行选区；缺少几何、多行或尺寸异常时仍使用附近结果卡。")
-                    .font(AppFont.caption)
-                    .foregroundStyle(DesignTokens.secondaryText)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-
             SettingsSection(title: "兼容性取词", systemImage: "arrow.triangle.2.circlepath") {
                 Toggle("AX 失败时模拟 ⌘C", isOn: $settings.selectionCopyFallbackEnabled)
                 Text("默认关闭。开启后，Marla 会先备份剪贴板，在 AX 无法读取时模拟一次 ⌘C，读取新文本后恢复原内容；检测到其他应用同时写入时不会覆盖更新内容。")
@@ -239,6 +234,42 @@ struct SettingsView: View {
             Text("列表只显示摘要。点击配置后，在编辑窗口中管理 Base URL、模型、Key 和连接测试。")
                 .font(AppFont.caption)
                 .foregroundStyle(DesignTokens.secondaryText)
+        }
+    }
+
+    private var languagesPage: some View {
+        SettingsPageShell(
+            title: "翻译语言",
+            subtitle: "一次设置，自动决定每次翻译的方向"
+        ) {
+            SettingsSection(title: "自动语言路由", systemImage: "arrow.left.arrow.right") {
+                LanguagePreferenceRow(
+                    title: "母语",
+                    detail: "阅读其它语言时，默认翻译成母语。",
+                    selection: settings.nativeLanguage,
+                    disabledLanguage: settings.secondaryLanguage,
+                    onSelect: settings.setNativeLanguage
+                )
+                Divider()
+                LanguagePreferenceRow(
+                    title: "第二语言",
+                    detail: "原文就是母语时，默认翻译成第二语言。",
+                    selection: settings.secondaryLanguage,
+                    disabledLanguage: settings.nativeLanguage,
+                    onSelect: settings.setSecondaryLanguage
+                )
+            }
+
+            SettingsSection(title: "当前规则", systemImage: "point.3.connected.trianglepath.dotted") {
+                LanguageRouteSummary(
+                    nativeLanguage: settings.nativeLanguage,
+                    secondaryLanguage: settings.secondaryLanguage
+                )
+                Text("语言识别只在本机处理当前原文。识别不确定时，Marla 会把目标设为母语，并允许你在结果卡中覆盖源语言或目标语言。")
+                    .font(AppFont.caption)
+                    .foregroundStyle(DesignTokens.secondaryText)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
         }
     }
 
@@ -411,6 +442,89 @@ private struct SettingsSection<Content: View>: View {
         .padding(DesignTokens.spaceL)
         .frame(maxWidth: .infinity, alignment: .leading)
         .marlaGlassSurface(cornerRadius: DesignTokens.radiusM)
+    }
+}
+
+private struct LanguagePreferenceRow: View {
+    let title: String
+    let detail: String
+    let selection: TranslationLanguage
+    let disabledLanguage: TranslationLanguage
+    let onSelect: (TranslationLanguage) -> Void
+
+    var body: some View {
+        HStack(spacing: DesignTokens.spaceL) {
+            VStack(alignment: .leading, spacing: DesignTokens.spaceXS) {
+                Text(title)
+                    .font(AppFont.bodyEmphasis)
+                Text(detail)
+                    .font(AppFont.caption)
+                    .foregroundStyle(DesignTokens.secondaryText)
+            }
+            Spacer(minLength: DesignTokens.spaceL)
+            Menu {
+                ForEach(TranslationLanguage.allCases) { language in
+                    Button {
+                        onSelect(language)
+                    } label: {
+                        if language == selection {
+                            Label(language.label, systemImage: "checkmark")
+                        } else {
+                            Text(language.label)
+                        }
+                    }
+                    .disabled(language == disabledLanguage || language == selection)
+                }
+            } label: {
+                Text(selection.label)
+                    .font(AppFont.body)
+                .frame(minWidth: 112, alignment: .trailing)
+                .padding(.horizontal, DesignTokens.spaceM)
+                .padding(.vertical, DesignTokens.spaceS)
+                .background(DesignTokens.secondarySurface)
+                .clipShape(RoundedRectangle(cornerRadius: DesignTokens.radiusS))
+            }
+            .menuStyle(.borderlessButton)
+            .fixedSize()
+            .accessibilityLabel("\(title)：\(selection.label)")
+        }
+        .frame(minHeight: 44)
+    }
+}
+
+private struct LanguageRouteSummary: View {
+    let nativeLanguage: TranslationLanguage
+    let secondaryLanguage: TranslationLanguage
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: DesignTokens.spaceS) {
+            route(source: nativeLanguage, target: secondaryLanguage, emphasis: true)
+            ForEach(TranslationLanguage.allCases.filter { $0 != nativeLanguage }) { language in
+                route(source: language, target: nativeLanguage, emphasis: false)
+            }
+        }
+    }
+
+    private func route(
+        source: TranslationLanguage,
+        target: TranslationLanguage,
+        emphasis: Bool
+    ) -> some View {
+        HStack(spacing: DesignTokens.spaceS) {
+            Text(source.label)
+                .frame(width: 92, alignment: .trailing)
+            Image(systemName: "arrow.right")
+                .foregroundStyle(DesignTokens.accent)
+            Text(target.label)
+                .frame(width: 92, alignment: .leading)
+            if emphasis {
+                Text("原文是母语")
+                    .font(AppFont.micro)
+                    .foregroundStyle(DesignTokens.secondaryText)
+            }
+        }
+        .font(AppFont.body)
+        .accessibilityElement(children: .combine)
     }
 }
 
@@ -1339,6 +1453,7 @@ final class TranslationConnectionTester: ObservableObject {
         let request = TranslationFFIRequest(
             requestID: id,
             sourceText: "Hello",
+            sourceLanguage: .english,
             target: .simplifiedChinese,
             endpoint: endpoint,
             timeouts: TranslationTimeouts(connectSeconds: 10, firstTokenSeconds: 20, overallSeconds: 30)

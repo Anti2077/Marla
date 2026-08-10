@@ -4,7 +4,7 @@
 
 版本 / Version: 0.1.0
 
-最后更新 / Last updated: 2026-08-09
+最后更新 / Last updated: 2026-08-10
 
 > 本文每节先给出中文规范，再给出英文镜像。发生歧义时以中文为准；两种语言必须在同一次修改中同步。
 >
@@ -68,8 +68,6 @@ The release succeeds only when all of the following are true:
 
 三个快捷键均可在设置中独立关闭或重新录制；关闭只停止对应全局监听，不隐藏菜单入口。录制时必须检测与 Marla 其他入口的内部冲突；如果系统或其他应用已经占用组合键但无法可靠检测，界面应明确提示用户实际试用并提供恢复默认值操作。
 
-Force Touch 是默认关闭的实验入口。它只复用划词翻译意图，没有独立的后续行为，不使用私有 API，也不作为 0.1.0 发布阻塞项。
-
 ### English
 
 0.1.0 provides three independent global entry points:
@@ -81,8 +79,6 @@ Force Touch 是默认关闭的实验入口。它只复用划词翻译意图，�
 | Quick input | `⌃⌥Space` | Open a paste-and-type translation card near the pointer |
 
 Each shortcut can be independently disabled or recorded in Settings. Disabling stops only that global listener and does not hide the menu entry. Recording must detect conflicts among Marla actions. When reliable detection of a system or third-party conflict is impossible, the UI must ask the user to test the shortcut and provide a restore-defaults action.
-
-Force Touch is an experimental entry point that is off by default. It only reuses the selection-translation intent, has no unique downstream behavior, uses no private API, and cannot block the 0.1.0 release.
 
 ## 4. 划词翻译 / Selection Translation
 
@@ -134,45 +130,49 @@ Quick input opens a compact activatable card near the pointer on the current dis
 
 ### 中文
 
-结果卡片先稳定定位和显示骨架，再接收流式内容；文本增长不得反复改变锚点。默认显示译文，用户可以展开对照原文。卡片提供：
+结果卡片先稳定定位和显示骨架，再接收流式内容；文本增长不得反复改变锚点。默认显示译文，用户可以展开对照原文。顶部状态行保留入口、当前翻译 API 配置、固定与关闭；其下独立语言行左侧显示源语言，右侧显示实际目标语言。卡片提供：
 
 - 复制译文；
 - 重试当前请求；
 - 使用 macOS 系统语音朗读译文，不打包 TTS 模型；
 - 固定或取消固定；
-- 切换目标语言并重新翻译；
+- 覆盖源语言或目标语言并重新翻译；
 - 关闭或取消进行中的请求。
 
-选择翻译和截图翻译的卡片首次出现时不激活 Marla。用户点击卡片控件时可以主动激活。临时卡片在 `Esc` 或外部点击时关闭并取消未完成请求；固定卡片不会因外部点击关闭。关闭、重试或切换语言都必须先取消旧请求，迟到事件不得覆盖新会话。
+选择翻译和截图翻译的卡片首次出现时不激活 Marla。用户点击卡片控件时可以主动激活。临时卡片在 `Esc` 或外部点击时关闭并取消未完成请求；固定卡片不会因外部点击关闭。关闭、重试或切换语言都必须先取消旧请求，迟到事件不得覆盖新会话。源/目标语言切换只复用已取得的原文，不重复 Accessibility、Copy fallback、截图捕获或 Vision OCR。
 
 ### English
 
-The result card establishes a stable position and shell before accepting streamed content; text growth must not repeatedly move its anchor. Translation is shown by default, with source comparison available on demand. The card provides:
+The result card establishes a stable position and shell before accepting streamed content; text growth must not repeatedly move its anchor. Translation is shown by default, with source comparison available on demand. The top status row retains the entry, current translation API profile, pin, and close controls. A separate language row below shows source on the left and the effective target on the right. The card provides:
 
 - copy translation;
 - retry current request;
 - read translation through macOS system speech, with no bundled TTS model;
 - pin and unpin;
-- switch target language and retranslate;
+- override source or target language and retranslate;
 - close or cancel in-flight work.
 
-Selection and screenshot cards do not activate Marla when first presented. Clicking card controls may intentionally activate it. `Esc` or outside click closes a transient card and cancels unfinished work; pinned cards remain open. Close, retry, and target-language changes cancel the old request first, and late events may never overwrite a newer session.
+Selection and screenshot cards do not activate Marla when first presented. Clicking card controls may intentionally activate it. `Esc` or outside click closes a transient card and cancels unfinished work; pinned cards remain open. Close, retry, and language changes cancel the old request first, and late events may never overwrite a newer session. Source/target changes reuse acquired text without repeating Accessibility, Copy fallback, screenshot capture, or Vision OCR.
 
 ## 8. 语言规则 / Language Rules
 
 ### 中文
 
-自动模式由翻译模型判断源语言：中文输入默认译成英文，非中文输入默认译成简体中文。模型只返回译文，不在正文中加入“检测到的语言”、解释、引号或前言。
+设置中的“翻译语言”页面提供全局母语和第二语言，首批选项为简体中文（`zh-Hans`）、English（`en`）和日本語（`ja`），两者不能相同，默认分别为简体中文和 English。设置变化只影响之后的新翻译，不静默重译已经打开的卡片。
 
-0.1.0 的结果卡片至少提供“自动”“简体中文”“English”三个目标选项。手动目标优先于自动规则。切换目标不会重新执行 Vision OCR，只会使用已经取得的源文本发起新翻译。
+Swift 在本机用 `NLLanguageRecognizer` 处理本次明确触发的原文。系统识别到的中文家族在首期归一为简体中文；支持的识别结果在请求前进入会话。自动目标规则为：源语言等于母语时译成第二语言，其他支持语言或未知源语言译成母语。无法映射为首期语言时显示“自动识别：未知”，目标仍明确为母语，并让 Provider 自动识别源语言。
+
+结果卡源语言菜单提供自动识别和三个首期语言，目标菜单提供自动路由和三个首期语言。源语言覆盖只在目标仍为自动时重新路由；手动目标始终具有最高优先级。语言切换使用已有原文重新翻译。
 
 提示词必须把源文本明确标记为数据而不是指令，并要求尽量保留换行、标点、专有名词、代码标识符和终端参数。
 
 ### English
 
-In automatic mode, the translation model detects the source language: Chinese defaults to English, while non-Chinese defaults to Simplified Chinese. The model returns translation only, without detected-language labels, explanations, quotation marks, or preambles.
+The Translation Languages Settings page provides one global native language and one different secondary language. The first choices are Simplified Chinese (`zh-Hans`), English (`en`), and Japanese (`ja`), defaulting to Simplified Chinese and English. Setting changes affect future translations only and do not silently retranslate an open card.
 
-The 0.1.0 result card provides at least Auto, Simplified Chinese, and English target choices. An explicit target overrides the automatic rule. Changing target does not rerun Vision OCR; it starts a new translation from the already acquired source text.
+Swift uses `NLLanguageRecognizer` locally on the explicitly triggered source. System-detected Chinese variants normalize to the Simplified Chinese product option, and supported results enter the session before the request. Automatic routing sends the native language to the secondary language and every other supported or unknown source to the native language. An unmapped result is shown as “Auto-detected: Unknown”; the target is still explicitly the native language while the Provider detects source.
+
+The result-card source menu provides automatic detection and all three initial languages. The target menu provides automatic routing and all three languages. A source override recomputes direction only while target remains automatic; an explicit target always wins. Language changes retranslate already acquired source text.
 
 The prompt must clearly delimit source text as data rather than instructions and request preservation of line breaks, punctuation, proper nouns, code identifiers, and terminal arguments when practical.
 
@@ -189,8 +189,9 @@ The prompt must clearly delimit source text as data rather than instructions and
 - 是否启用；
 - 连接测试；
 - 三个快捷键开关与录制器；
-- Force Touch 实验开关；
 - 快捷键恢复默认值。
+
+设置侧栏另有“翻译语言”页面；母语和第二语言属于全局非敏感偏好，不归属于单个 API profile。
 
 Base URL 模式会在规范化地址后追加 `/chat/completions`；完整 URL 模式严格使用填写地址，不追加或删除路径。两种模式都要求 HTTP(S) host，且拒绝 query 和 fragment。测试连接与真实翻译共用同一解析规则；编辑器中非空的当前 Key 草稿优先于 Keychain 已保存值，草稿为空时才回退。获取模型使用同一 Key 选择规则：Base URL 追加 `/models`；完整 URL 只在尾部为 `/chat/completions` 时替换为 `/models`，不能安全推导则显示错误。模型列表网络请求由 Rust 核心执行，不创建新的凭据副本。如果 API Key 非空，则使用 `Authorization: Bearer <key>`；空 Key 允许兼容不要求认证的本地或代理端点。全部配置的 Key 只保存在一个版本化 macOS Keychain vault item 中，每个 profile UUID 在 vault 内对应独立逻辑条目；URL、模式、模型名、启用状态、顺序和其它非敏感偏好保存在应用偏好。应用完成启动后、首次翻译前只授权并读取这个 vault；当前进程内的 profile 读取使用内存缓存，翻译或切换配置不得再访问逐 profile Keychain item。旧版独立 item 只在启动迁移阶段读取，迁移使用同一个认证上下文，完整 vault 写入成功后才删除。
 
@@ -209,8 +210,9 @@ Base URL 模式会在规范化地址后追加 `/chat/completions`；完整 URL �
 - enabled state;
 - connection test;
 - three shortcut switches and recorders;
-- experimental Force Touch toggle;
 - restore-default-shortcuts action.
+
+The Settings sidebar also includes Translation Languages. Native and secondary language are global non-sensitive preferences, not fields of an API profile.
 
 Base URL mode normalizes the address and appends `/chat/completions`; Complete URL mode uses the entered address exactly without adding or removing path components. Both modes require an HTTP(S) host and reject query or fragment components. Connection testing and real translation share the same resolution rule. A non-empty key draft in the editor takes precedence over the saved Keychain value, with an empty draft falling back to Keychain. Model discovery uses the same key-selection rule: Base URL appends `/models`; Complete URL replaces a trailing `/chat/completions` with `/models` and reports an error when the address cannot be derived safely. Rust performs the model-list request without creating a second credential copy. A non-empty API Key produces `Authorization: Bearer <key>`; an empty key supports local or proxy endpoints that require no authentication. All profile keys live in one versioned macOS Keychain vault item, with each profile UUID represented by an independent logical entry inside the vault. URL, mode, model, enabled state, order, and other non-sensitive preferences use application preferences. After the application finishes launching and before first translation, Marla authorizes and reads only this vault. Profile reads use an in-memory cache for the current process, and translation or profile switching may not access legacy per-profile Keychain items. Legacy independent items are read only during startup migration, reuse one authentication context, and are deleted only after the complete vault is written successfully.
 
@@ -278,7 +280,7 @@ The UI must distinguish “local recognition with Vision” from “recognized t
 
 ### 中文
 
-- 覆盖原文位置的像素级原位翻译；
+- 任何覆盖原文位置或以鼠标估算位置显示的轻量原位译文界面；
 - 云端 GLM-OCR、Markdown、表格或版面结构恢复；
 - 语境增强、附近文字、窗口缓存、术语记忆和提示词缓存；
 - 持久历史、收藏、账号、同步和统计；
@@ -290,7 +292,7 @@ The UI must distinguish “local recognition with Vision” from “recognized t
 
 ### English
 
-- pixel-perfect in-place translation that covers source text;
+- any lightweight translation surface that covers source text or estimates an in-place position from the pointer;
 - cloud GLM-OCR, Markdown, table, or layout reconstruction;
 - context enhancement, nearby text, window caches, terminology memory, or prompt caching;
 - persistent history, favorites, accounts, sync, or analytics;

@@ -12,11 +12,10 @@ Blocked tasks:
 
 - [TASK-013](../tasks/TASK-013-api-profile-activation-and-editor-actions.md) — 等待项目所有者确认拖拽动态中间态
 - [TASK-016](../tasks/TASK-016-keychain-credential-prefetch.md) — 等待项目所有者在干净 Keychain 授权状态复验启动与首次翻译
-- [TASK-017](../tasks/TASK-017-inline-streaming-overlay-feasibility.md) — 等待项目所有者复验原位/附近译文条和关闭生命周期
 
 ## Current objective
 
-当前没有 Active implementation Task。TASK-018 的全显示器冻结截图实现已由项目所有者结束并批准合入 `main`；未完成的真实悬停/视频、多显示器、取消/失败、裁剪与 TCC 证据保留在 BL-002，内存峰值与回落保留在 BL-003。TASK-017、TASK-016 与 TASK-013 继续保持 Blocked。
+TASK-019 已完成；当前没有 Active implementation Task。全局“翻译语言”设置、母语/第二语言路由、本机源语言识别、结果卡与快速输入双语言菜单继续保留；真实试用表现不理想的 IDEA-002 单行原位译文和 Force Touch 两个实验功能已从设置、状态、运行路径、专用 UI、夹具和测试中完整移除。TASK-016 与 TASK-013 继续保持 Blocked；不得从 Backlog 或 Ideas 自动选择下一项。
 
 ## Current implemented baseline
 
@@ -24,7 +23,7 @@ Blocked tasks:
 - Nearby result card with streaming, comparison, copy, retry, system speech, pinning, cancellation, target switching, and actionable error states.
 - Accessibility selection reader with standard range and Web Text Marker support, trigger-time frontmost-app binding, frontmost-app/window/focused roots, identity-checked system focused-application roots, dual application/system-wide pointer hit paths, renderer/helper identity checks, global graph deduplication, ungated AX child probes, and bounded pointer fallback.
 - Default-off Copy compatibility that snapshots every readable pasteboard representation, accepts only a new Copy result, restores on success/failure/cancellation, avoids overwriting a newer external write, rejects focus changes, and reports only redacted lifecycle evidence.
-- Default-off single-line in-place translation feasibility surface that reuses the existing streaming session. Its first real Copy compatibility test exposed a missing-bounds fallback defect; the repaired build adds an honestly labeled pointer-near mode while preserving the complete card for multi-line, long, or unsafe input.
+- Selection translation always uses the complete nearby result card; the rejected single-line source-covering and pointer-estimate prototype has been removed together with its setting and runtime path.
 - Pre-selection full-display ScreenCaptureKit freezing with Marla-window exclusion, same-frame cross-display selection/loupe/crop composition, in-memory Vision OCR, stable line order, and text-only translation requests.
 - Embedded Rust static library with versioned C ABI, shared async runtime, generic OpenAI-compatible SSE, Qwen-MT adaptation, timeouts, cancellation, and stale-event isolation.
 - Grouped Settings, Carbon shortcuts, Keychain credential storage, permission guidance, light/dark appearance, Reduce Motion, and verified test-app packaging.
@@ -35,7 +34,8 @@ Blocked tasks:
 - Multiple named OpenAI-compatible API profiles with one versioned Keychain vault, legacy single-endpoint/per-profile migration, shared in-memory credentials, default selection, settings CRUD/reordering, and explicit result-card switching are implemented under TASK-005/TASK-016.
 - Every API profile supports explicit Base URL or Complete URL semantics. The editor uses an inline Base/Complete switch and can fetch a Rust-owned `/models` list with the current profile credential, then expand and select a model at the bottom of the form.
 - The API editor gives its first scroll-content row an 8pt focus-ring safety inset, keeping the native macOS Focus Ring complete in light and dark appearance.
-- Settings use a four-page native sidebar, summary-only API list and independently clipped editor sheet; global shortcuts have persistent switches, result cards support background dragging, and screenshot selection includes an in-memory 6× pointer magnifier.
+- Settings use a five-page native sidebar including Translation Languages, plus a summary-only API list and independently clipped editor sheet; global shortcuts have persistent switches, result cards support background dragging, and screenshot selection includes an in-memory 6× pointer magnifier.
+- Global native/secondary preferences support Simplified Chinese, English, and Japanese. New sessions locally detect source language, route native to secondary and other/unknown source to native, expose source/target overrides in the result card and quick input, and send consistent explicit target semantics through generic and Qwen-MT providers.
 - Settings use a transparent full-size title bar with traffic lights inside one continuous four-corner surface, hidden scroll indicators, and a fixed `Esc` screenshot-cancellation row. Screenshot selection temporarily suspends an open Settings window and restores it without activating it; `Esc` cancellation is owned by the active selection session rather than a single view's first-responder state, with window key-equivalent/cancel-operation routing and a listen-only event-tap fallback.
 - Translation API profiles have persistent enabled states and only enabled profiles can be selected or invoked. The summary list uses native switches, a Set Default/Delete menu, accessibility move actions, and a trailing reorder handle. Settings content no longer moves the window; the newest fixed App uses a complete-row drag preview and 220ms animated hover reordering, pending owner confirmation of that final pointer feedback.
 - Project-scoped Serena 1.6.1 provides read-only Swift/Rust semantic navigation through Codex. A custom Context and fixed tool allowlist expose only nine retrieval/diagnostic tools; source edits, shell, project switching, onboarding, memories, Dashboard, and Headroom remain disabled.
@@ -48,7 +48,6 @@ Implementation baseline commit: `27203b5`.
 - Real screenshot `Esc` cancellation needs re-verification after the project owner reproduced a regression against the older TASK-009 evidence.
 - Real screenshot crop accuracy and Screen Recording permission persistence remain unverified across representative display layouts.
 - P95 shell latency, Rust-delta-to-visible-Swift latency, and idle/translation/Vision memory budgets have not been measured.
-- Force Touch public-API feasibility remains an optional experiment and does not block 0.1.0.
 - The unchecked items in `docs/versions/0.1.0/ACCEPTANCE.md` remain authoritative release gaps.
 
 ## Next selectable work
@@ -58,7 +57,6 @@ TASK-013 is not selectable until the project owner confirms its pending drag-pre
 1. `BL-001` — cross-application selection translation verification.
 2. `BL-002` — real screenshot crop and TCC permission verification.
 3. `BL-003` — latency and memory measurement.
-4. `BL-004` — optional Force Touch feasibility evidence.
 
 TASK-014 is complete; remaining product verification gaps stay separately selectable.
 
@@ -74,12 +72,12 @@ TASK-015 已完成；剩余发布矩阵继续保留在 BL-001，截图 `Esc` 与
 
 ## Latest verification
 
+- TASK-019 is complete on `Anti2077/ideas-012-translation-languages` with uncommitted branch changes. After the project-owner removal decision, `./scripts/check.sh` passes 17 Rust and 81 Swift tests plus Swift/Xcode Debug, formatting, whitespace, and diff checks; six dedicated inline-experiment tests were removed with that feature. The stable-signed fixed Release passes Bundle ID/version/minimum-system/arm64/signature/designated-requirement verification. Language settings, result-card, and quick-input captures under `artifacts/ui-review/task-019/` retain scores 8/8/8/8/7; final General light/dark captures without the Experimental section are under `artifacts/ui-review/task-019-removal/` and score 8/8/8/9/7. A live Japanese request against the Keychain-backed profile was not run because a new acceptance process raised system authorization; mock-provider payload tests verify `ja` mapping without exposing credentials.
 - TASK-018 is complete at implementation commit `27203b5`. It captures every active display before presenting selection windows, excludes Marla's own windows, redraws the background/undimmed selection/loupe from the same frozen frame set, and composites the final crop without a second live capture. Cross-display mixed-scale layout tests pass; `./scripts/check.sh` passes 17 Rust and 83 Swift tests plus Swift/Xcode Debug, and the stable-signed fixed Release passes packaging. Three 3420×2224 Release captures under `artifacts/ui-review/task-018/` cover light, dark, and Reduce Motion and score 8/8/8/7/7. The project owner accepted Task closure; remaining real-environment evidence is tracked by BL-002/BL-003 rather than reported as verified.
-- TASK-017 live owner feedback invalidated the first prototype's missing-geometry behavior: the experiment toggle persisted, but the real shortcut still showed the original 380×300 result card because Copy compatibility returns no bounds. The repair now converts AX top-left coordinates to AppKit, places short single-line missing-bounds selections in a visibly labeled “附近” pointer-estimate bar, and keeps the complete card for multi-line, long, or unsafe input. `./scripts/check.sh` passes 17 Rust and 81 Swift tests plus Swift/Xcode Debug; the repaired stable-signed Release passes packaging, and new light/dark/Reduce Motion `inline-estimated` captures score 8/8/8/7/7. Project-owner re-verification of the real shortcut remains pending.
-- TASK-017's first prototype passes 17 Rust and 79 Swift tests plus the Swift/Xcode Debug build. New coverage verifies default-off persistence, eligible negative-coordinate placement, visible-frame clamping, missing/multi-line/tall/edge-crossing rejection, compact non-draggable panel styling, and terminal expand/close transitions. The stable-signed fixed Release App passed packaging verification; light, dark, and Reduce Motion `inline-streaming` captures are under `artifacts/ui-review/task-017/` and score 8/8/8/7/7 in the required five-dimension review. Real external-app selection geometry and focus preservation remain pending.
+- TASK-017's exact and pointer-estimate single-line surfaces were built and visually reviewed, but project-owner real use found both presentations unsatisfactory. TASK-019 now removes the prototype, its setting, runtime path, automation fixtures, and dedicated tests; the historical TASK-017 evidence remains available but no longer describes the current product baseline.
 - TASK-016's first live authorization test invalidated the `kSecMatchLimitAll` behavior claim. The follow-up uses one vault and one `LAContext`, but its first two Release packages respectively crashed from nil `NSApp` during construction and remained alive without an openable menu surface after adding a custom App Delegate plus early `NSApplication.shared` access. The final lifecycle repair removes both construction-time AppKit paths and listens only for `NSApplication.didFinishLaunchingNotification`. `./scripts/check.sh` passes 17 Rust and 74 Swift tests plus the Xcode Debug build; the stable-signed fixed Release App is valid, idles in the normal AppKit event loop, creates no new crash report, and successfully captures its complete built-in menu acceptance surface. Clean live authorization behavior remains unverified.
 - Rust: 17 tests passed.
-- Swift: 83 tests passed.
+- Swift: 81 tests passed.
 - Xcode Debug application build passed.
 - TASK-014 installed `uv 0.12.2`, `serena-agent 1.6.1`, and rustup `rust-analyzer 1.96.0`; Serena health check passed and indexed 15 Swift files plus 1 Rust file while project/build caches remained ignored.
 - TASK-014's real stdio MCP session exposed exactly nine read-only semantic tools, with no edit, shell, project-switching, memory, or onboarding tools. Swift symbol/reference queries covered `TranslationAPIProfile` and `RustTranslationClient/start`; Rust covered `marla_translation_start` and four semantic test references.

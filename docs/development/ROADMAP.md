@@ -9,9 +9,9 @@ The native application and three vertical slices are implemented. The remaining 
 - representative cross-application selection compatibility;
 - real screenshot crop and permission persistence;
 - latency and memory measurement;
-- all remaining non-Force-Touch acceptance checks.
+- all remaining acceptance checks.
 
-The complete contract is under `docs/versions/0.1.0/`; executable candidates are listed as BL-001 through BL-004.
+The complete contract is under `docs/versions/0.1.0/`; executable candidates are listed as BL-001 through BL-003.
 
 ## Next: strengthen the instantaneous translation layer
 
@@ -20,7 +20,6 @@ Potential directions after 0.1.0, subject to separate Tasks and product decision
 - bounded on-demand context and user-controlled terminology;
 - optional cloud structured OCR with explicit image-upload consent;
 - compatibility and interaction improvements to current entry points;
-- investigation of precise in-place presentation with honest fallback;
 - Provider capability and configuration evolution.
 
 Accepted architectural directions appear in ADRs. Open questions and promotion conditions are in `docs/backlog/IDEAS.md`.

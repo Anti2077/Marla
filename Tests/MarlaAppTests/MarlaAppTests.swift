@@ -99,6 +99,69 @@ final class MarlaAppTests: XCTestCase {
     }
 
     @MainActor
+    func testLanguagePreferencesPersistAndRejectDuplicateSelections() {
+        let suite = "com.marla.tests.languages.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suite)!
+        defaults.removePersistentDomain(forName: suite)
+        let keychain = KeychainCredentialStore(service: "com.marla.tests", account: UUID().uuidString)
+        let settings = MarlaSettingsStore(defaults: defaults, keychain: keychain)
+
+        XCTAssertEqual(settings.nativeLanguage, .simplifiedChinese)
+        XCTAssertEqual(settings.secondaryLanguage, .english)
+
+        settings.setNativeLanguage(.japanese)
+        settings.setSecondaryLanguage(.simplifiedChinese)
+        settings.setSecondaryLanguage(.japanese)
+
+        XCTAssertEqual(settings.nativeLanguage, .japanese)
+        XCTAssertEqual(settings.secondaryLanguage, .simplifiedChinese)
+
+        let restored = MarlaSettingsStore(defaults: defaults, keychain: keychain)
+        XCTAssertEqual(restored.nativeLanguage, .japanese)
+        XCTAssertEqual(restored.secondaryLanguage, .simplifiedChinese)
+    }
+
+    func testSystemSourceLanguageDetectorCoversCommonChineseEnglishAndJapanese() {
+        XCTAssertEqual(SystemSourceLanguageDetector.detect("Hello world"), .english)
+        XCTAssertEqual(SystemSourceLanguageDetector.detect("这是中文"), .simplifiedChinese)
+        XCTAssertEqual(SystemSourceLanguageDetector.detect("これは日本語です"), .japanese)
+        XCTAssertNil(SystemSourceLanguageDetector.detect("1234 --"))
+    }
+
+    @MainActor
+    func testSessionSourceOverrideRecomputesOnlyAutomaticTarget() {
+        let suite = "com.marla.tests.session-languages.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suite)!
+        defaults.removePersistentDomain(forName: suite)
+        let settings = MarlaSettingsStore(
+            defaults: defaults,
+            keychain: KeychainCredentialStore(service: "com.marla.tests", account: UUID().uuidString)
+        )
+        let store = TranslationSessionStore(settings: settings, sourceLanguageDetector: { _ in .english })
+        store.installUIAutomationFixture(
+            surface: .selection,
+            sourceText: "Hello",
+            translation: "你好",
+            state: .completed
+        )
+
+        XCTAssertEqual(store.session?.resolvedSourceLanguage, .english)
+        XCTAssertEqual(store.session?.resolvedTargetLanguage, .simplifiedChinese)
+
+        store.changeSource(.explicit(.simplifiedChinese))
+        XCTAssertEqual(store.session?.resolvedSourceLanguage, .simplifiedChinese)
+        XCTAssertEqual(store.session?.resolvedTargetLanguage, .english)
+
+        store.changeTarget(.japanese)
+        store.changeSource(.explicit(.english))
+        XCTAssertEqual(store.session?.resolvedSourceLanguage, .english)
+        XCTAssertEqual(store.session?.resolvedTargetLanguage, .japanese)
+
+        store.changeTarget(.automatic)
+        XCTAssertEqual(store.session?.resolvedTargetLanguage, .simplifiedChinese)
+    }
+
+    @MainActor
     func testAPIProfilesSupportDefaultOrderingAndIndependentAccounts() {
         let suite = "com.marla.tests.profiles.\(UUID().uuidString)"
         let defaults = UserDefaults(suiteName: suite)!
@@ -708,82 +771,6 @@ final class MarlaAppTests: XCTestCase {
         XCTAssertLessThanOrEqual(frame.maxY, nearTop.y - 8)
     }
 
-    func testInlineOverlayPlacementCoversEligibleSingleLineAndStaysVisible() throws {
-        let visible = NSRect(x: -1920, y: -120, width: 1920, height: 1080)
-        let anchor = ScreenRect(x: -1800, y: 700, width: 320, height: 22)
-
-        let placement = try XCTUnwrap(
-            InlineOverlayPlacementCalculator.placement(
-                visibleFrame: visible,
-                anchor: anchor,
-                pointer: nil,
-                sourceText: "A single line selection"
-            )
-        )
-        let frame = placement.frame
-
-        XCTAssertEqual(placement.mode, .selectionBounds)
-        XCTAssertTrue(visible.contains(frame))
-        XCTAssertLessThanOrEqual(frame.minX, anchor.x)
-        XCTAssertGreaterThanOrEqual(frame.maxX, anchor.x + anchor.width)
-        XCTAssertEqual(frame.midY, anchor.y + anchor.height / 2, accuracy: 0.001)
-    }
-
-    func testInlineOverlayPlacementUsesPointerForShortSingleLineWithoutBounds() throws {
-        let visible = NSRect(x: 0, y: 0, width: 1440, height: 900)
-        let pointer = CGPoint(x: 1395, y: 860)
-
-        let placement = try XCTUnwrap(
-            InlineOverlayPlacementCalculator.placement(
-                visibleFrame: visible,
-                anchor: nil,
-                pointer: pointer,
-                sourceText: "No exact geometry"
-            )
-        )
-
-        XCTAssertEqual(placement.mode, .pointerEstimate)
-        XCTAssertTrue(visible.contains(placement.frame))
-        XCTAssertEqual(placement.frame.height, 40)
-    }
-
-    func testInlineOverlayPlacementRejectsMultilineLongAndUnsafeGeometry() {
-        let visible = NSRect(x: 0, y: 0, width: 1440, height: 900)
-
-        XCTAssertNil(
-            InlineOverlayPlacementCalculator.placement(
-                visibleFrame: visible,
-                anchor: nil,
-                pointer: CGPoint(x: 200, y: 300),
-                sourceText: String(repeating: "x", count: 161)
-            )
-        )
-        XCTAssertNil(
-            InlineOverlayPlacementCalculator.placement(
-                visibleFrame: visible,
-                anchor: ScreenRect(x: 200, y: 300, width: 240, height: 22),
-                pointer: nil,
-                sourceText: "First line\nSecond line"
-            )
-        )
-        XCTAssertNil(
-            InlineOverlayPlacementCalculator.placement(
-                visibleFrame: visible,
-                anchor: ScreenRect(x: 200, y: 300, width: 240, height: 52),
-                pointer: nil,
-                sourceText: "Wrapped geometry"
-            )
-        )
-        XCTAssertNil(
-            InlineOverlayPlacementCalculator.placement(
-                visibleFrame: visible,
-                anchor: ScreenRect(x: 1380, y: 300, width: 120, height: 22),
-                pointer: nil,
-                sourceText: "Crosses the display edge"
-            )
-        )
-    }
-
     func testAccessibilityCoordinateConverterMapsTopLeftDisplayCoordinatesToAppKit() throws {
         let displays = [
             AccessibilityDisplayGeometry(
@@ -809,17 +796,6 @@ final class MarlaAppTests: XCTestCase {
                 displays: displays
             )
         )
-    }
-
-    func testInlineOverlayTerminalStatesExpandFailureAndCloseCancellation() {
-        XCTAssertEqual(
-            InlineOverlayTransition.terminalAction(for: .failed(message: "network")),
-            .expand
-        )
-        XCTAssertEqual(InlineOverlayTransition.terminalAction(for: .cancelled), .close)
-        XCTAssertEqual(InlineOverlayTransition.terminalAction(for: nil), .close)
-        XCTAssertNil(InlineOverlayTransition.terminalAction(for: .streaming))
-        XCTAssertNil(InlineOverlayTransition.terminalAction(for: .completed))
     }
 
     func testScreenCaptureGeometryConvertsAppKitSelectionToDisplayLocalTopLeftCoordinates() {
@@ -914,26 +890,6 @@ final class MarlaAppTests: XCTestCase {
         XCTAssertTrue(panel.isMovableByWindowBackground)
         XCTAssertTrue(panel.hasShadow)
         XCTAssertEqual(contentView.layer?.cornerRadius, DesignTokens.radiusL)
-        XCTAssertTrue(contentView.layer?.masksToBounds == true)
-    }
-
-    @MainActor
-    func testInlineOverlayPanelStyleDisablesDraggingAndUsesCompactClipping() {
-        let panel = MarlaPanel(
-            contentRect: NSRect(x: 0, y: 0, width: 320, height: 40),
-            styleMask: .borderless,
-            backing: .buffered,
-            defer: false
-        )
-        let contentView = NSView(frame: panel.contentView?.bounds ?? .zero)
-
-        InlineOverlayPanelStyle.apply(to: panel)
-        InlineOverlayPanelStyle.apply(to: contentView)
-
-        XCTAssertFalse(panel.isMovable)
-        XCTAssertFalse(panel.isMovableByWindowBackground)
-        XCTAssertTrue(panel.hasShadow)
-        XCTAssertEqual(contentView.layer?.cornerRadius, DesignTokens.radiusS)
         XCTAssertTrue(contentView.layer?.masksToBounds == true)
     }
 
@@ -1582,21 +1538,6 @@ final class MarlaAppTests: XCTestCase {
         settings.selectionCopyFallbackEnabled = true
         let reloaded = MarlaSettingsStore(defaults: defaults, keychain: keychain)
         XCTAssertTrue(reloaded.selectionCopyFallbackEnabled)
-    }
-
-    @MainActor
-    func testInlineTranslationExperimentDefaultsOffAndPersists() {
-        let suite = "com.marla.tests.inline-overlay.\(UUID().uuidString)"
-        let defaults = UserDefaults(suiteName: suite)!
-        defaults.removePersistentDomain(forName: suite)
-        let keychain = KeychainCredentialStore(service: "com.marla.tests", account: UUID().uuidString)
-
-        let settings = MarlaSettingsStore(defaults: defaults, keychain: keychain)
-        XCTAssertFalse(settings.inlineTranslationExperimental)
-
-        settings.inlineTranslationExperimental = true
-        let reloaded = MarlaSettingsStore(defaults: defaults, keychain: keychain)
-        XCTAssertTrue(reloaded.inlineTranslationExperimental)
     }
 
     @MainActor

@@ -12,7 +12,7 @@ Marla requires top-tier native macOS interaction while its translation orchestra
 
 Use a hybrid architecture:
 
-- SwiftUI and AppKit own presentation, Accessibility, ScreenCaptureKit, keyboard and Force Touch triggers, pasteboard compatibility, Keychain access, system speech, and macOS lifecycle.
+- SwiftUI and AppKit own presentation, Accessibility, ScreenCaptureKit, keyboard triggers, pasteboard compatibility, Keychain access, system speech, and macOS lifecycle.
 - Rust owns translation orchestration, translation and cloud-OCR provider adapters, normalized structured-content processing, context classification, bounded caches, retry policy, cancellation, and provider-independent session state.
 - Compile Rust as a static library embedded in the app. Expose a versioned C ABI and wrap it with ergonomic Swift types.
 - Do not introduce Tauri, a web view, a localhost HTTP server, or a continuously running Rust sidecar.

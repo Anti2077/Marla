@@ -87,18 +87,24 @@
 - [ ] `⌃⌥Space` 在当前指针屏幕打开并聚焦输入区。
 - [ ] 中文 IME、英文、多行、粘贴和 `⌘Return` 提交正常，原剪贴板保持不变。
 - [ ] 空白内容不可提交，`Esc` 可关闭。
-- [ ] 中文在自动模式译成英文；英文及其他语言译成简体中文。
-- [ ] 手动选择简体中文或 English 后严格使用目标语言。
-- [ ] 切换目标取消旧请求、复用源文本，截图入口不重复 OCR。
+- [x] 设置“翻译语言”页面可将互不相同的简体中文、English、日本語保存为母语和第二语言；默认是简体中文/English。
+- [x] 新翻译在本机识别常见中英日原文；自动规则将母语译到第二语言，其它或未知源语言译到母语，未知状态不伪装成已识别。
+- [x] 结果卡顶部只保留 API profile 与窗口控制，第二行左源右目标显示例如“自动识别：English → 简体中文”。
+- [x] 源语言可恢复自动或覆盖为三个首期语言；覆盖只重算自动目标。目标可恢复自动或显式覆盖，显式目标优先。
+- [x] 切换源/目标取消旧请求、复用源文本，划词不重复取词，截图入口不重复捕获或 OCR。
+- [x] 通用模型提示词与 Qwen-MT 的源/目标参数对 `zh-Hans`、`en`、`ja` 一致，未知源语言只在 source 使用 `auto`。
 
 ### English
 
 - [ ] `⌃⌥Space` opens on the pointer's display and focuses the editor.
 - [ ] Chinese IME, English, multiline, paste, and `⌘Return` submission work; clipboard remains unchanged.
 - [ ] Whitespace cannot submit and `Esc` closes.
-- [ ] Chinese auto-translates to English; English and other languages auto-translate to Simplified Chinese.
-- [ ] Explicit Simplified Chinese or English target is obeyed.
-- [ ] Target change cancels old request and reuses source; screenshot entry does not rerun OCR.
+- [x] Translation Languages Settings persists different Simplified Chinese, English, or Japanese values as Native and Secondary; defaults are Simplified Chinese/English.
+- [x] New translations locally detect common Chinese, English, and Japanese. Automatic routing sends native to secondary and every other or unknown source to native, without pretending unknown is recognized.
+- [x] The card header keeps only API profile and window controls; a second row shows source-left/target-right, for example “Auto-detected: English → Simplified Chinese.”
+- [x] Source can return to automatic or override to any initial language, recomputing automatic target only. Target can return to automatic or be explicit, and explicit target wins.
+- [x] Source/target changes cancel the old request and reuse source without repeating selection acquisition, screenshot capture, or OCR.
+- [x] Generic prompts and Qwen-MT source/target parameters agree for `zh-Hans`, `en`, and `ja`; unknown source uses `auto` for source only.
 
 ## 5. 翻译、错误与取消 / Translation, Errors, and Cancellation
 
@@ -158,23 +164,17 @@
 - [x] Once all three setup items are ready, the menu hides permission status and shows up to three recent completed translations retained in memory only.
 - [x] Recents exclude failed, cancelled, and empty results; selecting one restores a completed card without a new request.
 
-## 7. 快捷键与 Force Touch / Shortcuts and Force Touch
+## 7. 快捷键 / Shortcuts
 
 ### 中文
 
 - [ ] 三个默认快捷键正确注册、可修改、可恢复默认值。
 - [ ] Marla 内部重复组合键被阻止，并解释冲突。
-- [ ] Force Touch 默认关闭，设置中明确标记“实验”。
-- [ ] Force Touch 只使用公开 API，只复用划词意图；不可用时键盘入口不受影响。
-- [ ] Force Touch 验证失败不会阻塞 0.1.0 发布。
 
 ### English
 
 - [ ] Three default shortcuts register correctly, can be changed, and restore defaults.
 - [ ] Duplicate Marla combinations are rejected with a conflict explanation.
-- [ ] Force Touch is off by default and clearly labeled Experimental.
-- [ ] Force Touch uses public API only and reuses selection intent; keyboard remains unaffected when unavailable.
-- [ ] Failed Force Touch validation does not block 0.1.0 release.
 
 ## 8. 视觉与交互 / Visual and Interaction Quality
 
@@ -185,7 +185,7 @@
 - [x] 短句、长段、多行、加载、流式、空、错误和固定状态均有真实场景截图检查。
 - [x] 无紫蓝渐变、霓虹、Emoji 图标、AI SVG、随机间距和模板左边框卡片。
 - [x] `swiftui-design-skill` 五维审查每项至少 7/10，并记录问题与复评结果。
-- [x] 流式游标、截图角点和语言路由胶囊是克制的状态细节，不遮挡正文。
+- [x] 流式游标、截图角点和源/目标语言行是克制的状态细节，不遮挡正文。
 - [x] 菜单、设置、结果卡、快速输入和截图框选提示使用 macOS 26 Liquid Glass，并为 macOS 14–25 提供单层材质回退。
 - [x] 菜单和设置中的截图翻译使用目标系统可用且可见的 SF Symbol。
 - [x] API 编辑器首行获得焦点时，系统 Focus Ring 四边完整，不被滚动视口顶部裁切。
@@ -198,7 +198,7 @@
 - [x] Short, long, multiline, loading, streaming, empty, error, and pinned states have real scenario screenshots for inspection.
 - [x] No purple-blue gradient, neon, emoji icon, AI SVG, random spacing, or templated left-rail card.
 - [x] `swiftui-design-skill` five-dimension review scores at least 7/10 in every dimension, with issues and rescore recorded.
-- [x] Streaming caret, screenshot corners, and language-route capsule remain restrained state details and never obscure content.
+- [x] Streaming caret, screenshot corners, and the source/target language row remain restrained state details and never obscure content.
 - [x] The menu, Settings, result card, quick input, and screenshot-selection labels use macOS 26 Liquid Glass with a single material fallback on macOS 14–25.
 - [x] Screenshot translation uses an available and visible SF Symbol in both the menu and Settings.
 - [x] When the API editor's first row is focused, all four sides of the system Focus Ring remain visible instead of clipping at the scroll viewport's top edge.
@@ -280,12 +280,16 @@ TASK-015 当前自动化与产物证据：选区机制合并、Unicode UTF-16 �
 
 TASK-015 current automation and artifact evidence: selection-mechanism merging, UTF-16 Unicode slicing, continuing to Text Marker after an empty standard range, candidate-root ordering, global AX graph deduplication/cycles, element/time budgets, window-level Escape routing, the event-tap fallback, and Copy fallback stable snapshots, full representation rebuilding, success/empty/error/cancellation/timeout/focus-loss/concurrent-write/restore-failure paths all pass. The latest `./scripts/check.sh` reports 17 Rust and 68 Swift tests, and the packaging plus fixed-App verification confirm its Bundle ID, arm64 architecture, stable signature, and designated requirement. The project owner confirmed one formerly failing Codex selection now succeeds and restores the clipboard, confirmed WeChat reaches the real request, and accepted TASK-015 complete after observing a high overall success rate. The current Provider `unauthorized` comes from a missing local profile credential and is excluded from this Task by the project owner. Zen/Ghostty, the full release matrix, and real Escape remain unchecked under BL-001/BL-002.
 
+TASK-019 自动化、产物与视觉证据：全局母语/第二语言、本机中英日识别、未知降级、结果卡与快速输入源/目标覆盖、会话快照，以及通用/Qwen-MT Provider 映射通过测试。最终 `./scripts/check.sh` 为 17 项 Rust、81 项 Swift，并通过 Swift/Xcode Debug、格式、空白与 diff 检查；6 项原位实验专用测试随被拒绝功能一起删除。固定 `artifacts/Marla_dev.app` 保持 Bundle ID `com.marla.app`、0.1.0、macOS 14+、arm64、Authority `API Usage Monitor Dev` 和既有 designated requirement。语言设置、结果卡和快速输入证据位于 `artifacts/ui-review/task-019/`，五维评分 8/8/8/8/7；移除两个实验设置后的“通用”页浅色/深色证据位于 `artifacts/ui-review/task-019-removal/`，复审为 8/8/8/9/7。首轮语言截图发现 macOS Menu 压平复合标签、隐藏实际语言并重复箭头；修复后已重新构建和采集。现有 Keychain profile 的现场日语请求本轮未执行，不用它替代已通过的 mock payload 合同证据。
+
+TASK-019 automation, artifact, and visual evidence: global native/secondary preferences, local Chinese/English/Japanese detection, unknown fallback, result-card and quick-input source/target overrides, session snapshots, and generic/Qwen-MT provider mappings pass tests. The final `./scripts/check.sh` reports 17 Rust and 81 Swift tests and passes Swift/Xcode Debug, formatting, whitespace, and diff checks; six inline-experiment-only tests were removed with the rejected feature. The fixed `artifacts/Marla_dev.app` retains Bundle ID `com.marla.app`, version 0.1.0, macOS 14+, arm64, Authority `API Usage Monitor Dev`, and the existing designated requirement. Language-settings, result-card, and quick-input evidence is under `artifacts/ui-review/task-019/`, scoring 8/8/8/8/7. Final General light/dark captures after both experimental settings were removed are under `artifacts/ui-review/task-019-removal/`, scoring 8/8/8/9/7. The first language capture exposed macOS Menu flattening that hid effective languages and duplicated chevrons; it was fixed, rebuilt, and recaptured. A live Japanese request using the existing Keychain profile was not run in this pass and is not substituted for the passing mock-payload contract evidence.
+
 ## 11. 发布判定 / Release Decision
 
 ### 中文
 
-0.1.0 只有在所有非 Force Touch 条目通过、没有 P0 崩溃/数据泄漏/焦点破坏问题、五维视觉审查全部至少 7/10、内存硬上限满足，并交付经过检查的固定路径 `.app` 后才能标记完成。任何未验证项必须留为 `[ ]` 并在 `STATUS.md` 中列为阻塞或风险。
+0.1.0 只有在所有条目通过、没有 P0 崩溃/数据泄漏/焦点破坏问题、五维视觉审查全部至少 7/10、内存硬上限满足，并交付经过检查的固定路径 `.app` 后才能标记完成。任何未验证项必须留为 `[ ]` 并在 `STATUS.md` 中列为阻塞或风险。
 
 ### English
 
-0.1.0 may be marked complete only when every non-Force-Touch item passes, no P0 crash/data leak/focus-destruction issue remains, every visual dimension scores at least 7/10, memory hard limit passes, and a verified fixed-path `.app` is delivered. Any unverified item remains `[ ]` and is recorded as a blocker or risk in `STATUS.md`.
+0.1.0 may be marked complete only when every item passes, no P0 crash/data leak/focus-destruction issue remains, every visual dimension scores at least 7/10, memory hard limit passes, and a verified fixed-path `.app` is delivered. Any unverified item remains `[ ]` and is recorded as a blocker or risk in `STATUS.md`.

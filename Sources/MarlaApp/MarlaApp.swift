@@ -476,6 +476,7 @@ struct TranslationCardView: View {
             if let session = store.session {
                 VStack(alignment: .leading, spacing: DesignTokens.spaceM) {
                     cardHeader(session)
+                    languageControls(session)
                     Divider()
                     translationContent(session)
                     if session.isComparisonExpanded {
@@ -524,19 +525,6 @@ struct TranslationCardView: View {
             }
             .menuStyle(.borderlessButton)
             .help("切换翻译配置")
-            Menu {
-                Button("自动") { store.changeTarget(.automatic) }
-                Button("简体中文") { store.changeTarget(.simplifiedChinese) }
-                Button("English") { store.changeTarget(.english) }
-            } label: {
-                Text(session.target.label)
-                    .font(AppFont.caption)
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 5)
-                    .background(DesignTokens.accent.opacity(0.12))
-                    .clipShape(Capsule())
-            }
-            .menuStyle(.borderlessButton)
             Button {
                 store.togglePinned()
             } label: {
@@ -551,6 +539,87 @@ struct TranslationCardView: View {
             .buttonStyle(.borderless)
             .frame(width: 28, height: 28)
             .help("关闭")
+        }
+        .accessibilityElement(children: .contain)
+    }
+
+    private func languageControls(_ session: CardSession) -> some View {
+        HStack(spacing: DesignTokens.spaceS) {
+            Menu {
+                Button {
+                    store.changeSource(.automatic)
+                } label: {
+                    if session.source.mode == .automatic {
+                        Label("自动识别", systemImage: "checkmark")
+                    } else {
+                        Text("自动识别")
+                    }
+                }
+                .disabled(session.source.mode == .automatic)
+                Divider()
+                ForEach(TranslationLanguage.allCases) { language in
+                    Button {
+                        store.changeSource(.explicit(language))
+                    } label: {
+                        if session.source.mode == .explicit, session.source.language == language {
+                            Label(language.label, systemImage: "checkmark")
+                        } else {
+                            Text(language.label)
+                        }
+                    }
+                    .disabled(session.source.mode == .explicit && session.source.language == language)
+                }
+            } label: {
+                TranslationLanguageMenuLabel(
+                    title: "源语言",
+                    value: session.source.mode == .automatic
+                        ? "自动识别：\(session.resolvedSourceLanguage?.label ?? "未知")"
+                        : session.resolvedSourceLanguage?.label ?? "未知",
+                    systemImage: "text.magnifyingglass"
+                )
+            }
+            .menuStyle(.borderlessButton)
+            .help("覆盖本次源语言")
+
+            Image(systemName: "arrow.right")
+                .font(AppFont.caption)
+                .foregroundStyle(DesignTokens.tertiaryText)
+                .accessibilityHidden(true)
+
+            Menu {
+                Button {
+                    store.changeTarget(.automatic)
+                } label: {
+                    let title = "自动（\(session.resolvedTargetLanguage.label)）"
+                    if session.target.mode == .automatic {
+                        Label(title, systemImage: "checkmark")
+                    } else {
+                        Text(title)
+                    }
+                }
+                .disabled(session.target.mode == .automatic)
+                Divider()
+                ForEach(TranslationLanguage.allCases) { language in
+                    Button {
+                        store.changeTarget(.explicit(language))
+                    } label: {
+                        if session.target.mode == .explicit, session.target.language == language {
+                            Label(language.label, systemImage: "checkmark")
+                        } else {
+                            Text(language.label)
+                        }
+                    }
+                    .disabled(session.target.mode == .explicit && session.target.language == language)
+                }
+            } label: {
+                TranslationLanguageMenuLabel(
+                    title: "目标语言",
+                    value: session.resolvedTargetLanguage.label,
+                    systemImage: "character.book.closed"
+                )
+            }
+            .menuStyle(.borderlessButton)
+            .help("覆盖本次目标语言")
         }
         .accessibilityElement(children: .contain)
     }
@@ -665,98 +734,35 @@ struct TranslationCardView: View {
     }
 }
 
-struct InlineTranslationOverlayView: View {
-    @ObservedObject var store: TranslationSessionStore
-    let placementMode: InlineOverlayPlacementMode
-    let onExpand: () -> Void
-    let onClose: () -> Void
-
-    private var displayText: String {
-        guard let session = store.session else { return "正在准备译文…" }
-        if !session.translation.isEmpty { return session.translation }
-        switch session.state {
-        case .idle, .acquiring, .recognizing, .awaitingFirstToken, .streaming:
-            return "正在翻译…"
-        case let .failed(message):
-            return message
-        case .cancelled:
-            return "已取消"
-        case .completed:
-            return "暂无译文"
-        }
-    }
-
-    private var isWorking: Bool {
-        guard let state = store.session?.state else { return false }
-        switch state {
-        case .acquiring, .recognizing, .awaitingFirstToken, .streaming:
-            return true
-        case .idle, .completed, .failed, .cancelled:
-            return false
-        }
-    }
+private struct TranslationLanguageMenuLabel: View {
+    let title: String
+    let value: String
+    let systemImage: String
 
     var body: some View {
         HStack(spacing: DesignTokens.spaceS) {
-            if isWorking {
-                ProgressView()
-                    .controlSize(.mini)
-                    .tint(DesignTokens.accent)
-                    .accessibilityLabel("翻译中")
-            } else {
-                Image(systemName: "character.book.closed.fill")
-                    .font(AppFont.caption)
-                    .foregroundStyle(DesignTokens.accent)
-                    .accessibilityHidden(true)
-            }
-
-            Text(displayText)
-                .font(AppFont.bodyEmphasis)
+            Image(systemName: systemImage)
+                .foregroundStyle(DesignTokens.accent)
+                .frame(width: 16)
+            Text(value)
+                .font(AppFont.caption)
                 .foregroundStyle(DesignTokens.primaryText)
                 .lineLimit(1)
-                .truncationMode(.tail)
-                .frame(maxWidth: .infinity, alignment: .leading)
-
-            if placementMode == .pointerEstimate {
-                Label("附近", systemImage: "location.fill")
-                    .font(AppFont.micro)
-                    .foregroundStyle(DesignTokens.secondaryText)
-                    .labelStyle(.titleAndIcon)
-                    .fixedSize()
-                    .help("选区未提供精确位置，译文显示在鼠标附近")
-                    .accessibilityLabel("近似位置")
-            }
-
-            Button(action: onExpand) {
-                Image(systemName: "arrow.up.left.and.arrow.down.right")
-                    .font(AppFont.caption)
-                    .frame(width: 28, height: 28)
-                    .contentShape(Rectangle())
-            }
-            .buttonStyle(.plain)
-            .foregroundStyle(DesignTokens.secondaryText)
-            .help("展开完整结果卡")
-            .accessibilityLabel("展开完整结果卡")
+                .minimumScaleFactor(0.85)
+            Spacer(minLength: DesignTokens.spaceXS)
         }
-        .padding(.leading, DesignTokens.spaceM)
-        .padding(.trailing, DesignTokens.spaceXS)
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(DesignTokens.background)
+        .padding(.horizontal, DesignTokens.spaceM)
+        .padding(.vertical, DesignTokens.spaceS)
+        .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
+        .background(DesignTokens.secondarySurface)
+        .clipShape(RoundedRectangle(cornerRadius: DesignTokens.radiusS))
         .overlay {
-            RoundedRectangle(cornerRadius: DesignTokens.radiusS, style: .continuous)
-                .stroke(DesignTokens.divider.opacity(0.75), lineWidth: 0.5)
+            RoundedRectangle(cornerRadius: DesignTokens.radiusS)
+                .stroke(DesignTokens.divider.opacity(0.45), lineWidth: 0.5)
         }
-        .clipShape(RoundedRectangle(cornerRadius: DesignTokens.radiusS, style: .continuous))
-        .onChange(of: store.session?.state) { _, state in
-            switch InlineOverlayTransition.terminalAction(for: state) {
-            case .close:
-                onClose()
-            case .expand:
-                onExpand()
-            case nil:
-                break
-            }
-        }
+        .contentShape(Rectangle())
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("\(title)：\(value)")
     }
 }
 
@@ -865,6 +871,7 @@ struct QuickInputView: View {
     @ObservedObject var store: TranslationSessionStore
     let onClose: () -> Void
     @State private var draft = ""
+    @State private var source = TranslationSource.automatic
     @State private var target = TranslationTarget.automatic
     @FocusState private var isFocused: Bool
 
@@ -879,20 +886,39 @@ struct QuickInputView: View {
                     .help("关闭")
             }
             HStack(spacing: DesignTokens.spaceS) {
-                Text(target == .automatic ? "自动：中文 ↔ English" : "目标：\(target.label)")
-                    .font(AppFont.caption)
-                    .foregroundStyle(DesignTokens.accent)
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 5)
-                    .background(DesignTokens.accent.opacity(0.12))
-                    .clipShape(Capsule())
                 Menu {
-                    Button("自动") { target = .automatic }
-                    Button("简体中文") { target = .simplifiedChinese }
-                    Button("English") { target = .english }
+                    Button("自动识别") { source = .automatic }
+                        .disabled(source.mode == .automatic)
+                    Divider()
+                    ForEach(TranslationLanguage.allCases) { language in
+                        Button(language.label) { source = .explicit(language) }
+                            .disabled(source.mode == .explicit && source.language == language)
+                    }
                 } label: {
-                    Label(target.label, systemImage: "globe")
-                        .font(AppFont.caption)
+                    TranslationLanguageMenuLabel(
+                        title: "源语言",
+                        value: source.mode == .automatic ? "自动识别" : source.language?.label ?? "自动识别",
+                        systemImage: "text.magnifyingglass"
+                    )
+                }
+                .menuStyle(.borderlessButton)
+                Image(systemName: "arrow.right")
+                    .font(AppFont.caption)
+                    .foregroundStyle(DesignTokens.tertiaryText)
+                Menu {
+                    Button("自动（\(quickInputTargetLanguage.label)）") { target = .automatic }
+                        .disabled(target.mode == .automatic)
+                    Divider()
+                    ForEach(TranslationLanguage.allCases) { language in
+                        Button(language.label) { target = .explicit(language) }
+                            .disabled(target.mode == .explicit && target.language == language)
+                    }
+                } label: {
+                    TranslationLanguageMenuLabel(
+                        title: "目标语言",
+                        value: quickInputTargetLanguage.label,
+                        systemImage: "character.book.closed"
+                    )
                 }
                 .menuStyle(.borderlessButton)
             }
@@ -940,6 +966,23 @@ struct QuickInputView: View {
 
     private func submit() {
         guard QuickInputValidation.isSubmittable(draft) else { return }
-        store.startText(draft, surface: .quickInput, anchor: nil, pointer: NSEvent.mouseLocation, activate: true, target: target)
+        store.startText(
+            draft,
+            surface: .quickInput,
+            anchor: nil,
+            pointer: NSEvent.mouseLocation,
+            activate: true,
+            source: source,
+            target: target
+        )
+    }
+
+    private var quickInputTargetLanguage: TranslationLanguage {
+        TranslationLanguageRouter.targetLanguage(
+            sourceLanguage: source.language,
+            target: target,
+            nativeLanguage: store.nativeLanguage,
+            secondaryLanguage: store.secondaryLanguage
+        )
     }
 }

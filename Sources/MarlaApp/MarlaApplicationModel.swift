@@ -4,6 +4,7 @@ import Combine
 import Foundation
 import LocalAuthentication
 import MarlaCore
+import NaturalLanguage
 import QuartzCore
 import Security
 import ScreenCaptureKit
@@ -360,18 +361,8 @@ final class MarlaSettingsStore: ObservableObject {
         get { defaultProfile?.modelName ?? "" }
         set { updateProfile(id: defaultProfile?.id, modelName: newValue) }
     }
-    @Published var defaultTarget: TranslationTarget {
-        didSet {
-            defaults.set(defaultTarget.mode.rawValue, forKey: Keys.targetMode)
-            defaults.set(defaultTarget.language, forKey: Keys.targetLanguage)
-        }
-    }
-    @Published var forceTouchExperimental: Bool {
-        didSet { defaults.set(forceTouchExperimental, forKey: Keys.forceTouch) }
-    }
-    @Published var inlineTranslationExperimental: Bool {
-        didSet { defaults.set(inlineTranslationExperimental, forKey: Keys.inlineTranslation) }
-    }
+    @Published private(set) var nativeLanguage: TranslationLanguage
+    @Published private(set) var secondaryLanguage: TranslationLanguage
     @Published var selectionCopyFallbackEnabled: Bool {
         didSet { defaults.set(selectionCopyFallbackEnabled, forKey: Keys.selectionCopyFallback) }
     }
@@ -387,10 +378,8 @@ final class MarlaSettingsStore: ObservableObject {
         static let defaultProfileID = "translationDefaultProfileID"
         static let baseURL = "translationBaseURL"
         static let modelName = "translationModelName"
-        static let targetMode = "translationTargetMode"
-        static let targetLanguage = "translationTargetLanguage"
-        static let forceTouch = "forceTouchExperimental"
-        static let inlineTranslation = "inlineTranslationExperimental"
+        static let nativeLanguage = "translationNativeLanguage.v1"
+        static let secondaryLanguage = "translationSecondaryLanguage.v1"
         static let selectionCopyFallback = "selectionCopyFallbackEnabled"
         static let onboardingSkipped = "onboardingSkipped"
     }
@@ -419,14 +408,40 @@ final class MarlaSettingsStore: ObservableObject {
                 defaultProfileID = nil
             }
         }
-        let mode = TranslationTargetMode(rawValue: defaults.string(forKey: Keys.targetMode) ?? "automatic") ?? .automatic
-        defaultTarget = TranslationTarget(mode: mode, language: defaults.string(forKey: Keys.targetLanguage))
-        forceTouchExperimental = defaults.bool(forKey: Keys.forceTouch)
-        inlineTranslationExperimental = defaults.bool(forKey: Keys.inlineTranslation)
+        let storedNativeLanguage = TranslationLanguage(rawValue: defaults.string(forKey: Keys.nativeLanguage) ?? "") ?? .simplifiedChinese
+        nativeLanguage = storedNativeLanguage
+        let storedSecondaryLanguage = TranslationLanguage(rawValue: defaults.string(forKey: Keys.secondaryLanguage) ?? "") ?? .english
+        secondaryLanguage = storedSecondaryLanguage == storedNativeLanguage
+            ? Self.fallbackLanguage(excluding: storedNativeLanguage)
+            : storedSecondaryLanguage
         selectionCopyFallbackEnabled = defaults.bool(forKey: Keys.selectionCopyFallback)
         onboardingSkipped = defaults.bool(forKey: Keys.onboardingSkipped)
         saveProfiles()
         saveDefaultProfileID()
+        saveLanguagePreferences()
+    }
+
+    var defaultTarget: TranslationTarget { .automatic }
+
+    func setNativeLanguage(_ language: TranslationLanguage) {
+        guard language != secondaryLanguage else { return }
+        nativeLanguage = language
+        saveLanguagePreferences()
+    }
+
+    func setSecondaryLanguage(_ language: TranslationLanguage) {
+        guard language != nativeLanguage else { return }
+        secondaryLanguage = language
+        saveLanguagePreferences()
+    }
+
+    private static func fallbackLanguage(excluding language: TranslationLanguage) -> TranslationLanguage {
+        TranslationLanguage.allCases.first(where: { $0 != language }) ?? .english
+    }
+
+    private func saveLanguagePreferences() {
+        defaults.set(nativeLanguage.rawValue, forKey: Keys.nativeLanguage)
+        defaults.set(secondaryLanguage.rawValue, forKey: Keys.secondaryLanguage)
     }
 
     /// Called only after NSApplication finishes launching. This is the sole
@@ -744,6 +759,10 @@ struct CardSession: Identifiable, Equatable {
     var profileName: String
     var sourceText: String
     var translation: String
+    var nativeLanguage: TranslationLanguage = .simplifiedChinese
+    var secondaryLanguage: TranslationLanguage = .english
+    var source: TranslationSource = .automatic
+    var detectedSourceLanguage: TranslationLanguage?
     var target: TranslationTarget
     var state: TranslationSessionState
     var errorCode: TranslationErrorCode?
@@ -755,6 +774,19 @@ struct CardSession: Identifiable, Equatable {
     var anchor: ScreenRect?
     var pointer: CGPoint?
     var isActivating = false
+
+    var resolvedSourceLanguage: TranslationLanguage? {
+        source.resolved(using: detectedSourceLanguage)
+    }
+
+    var resolvedTargetLanguage: TranslationLanguage {
+        TranslationLanguageRouter.targetLanguage(
+            sourceLanguage: resolvedSourceLanguage,
+            target: target,
+            nativeLanguage: nativeLanguage,
+            secondaryLanguage: secondaryLanguage
+        )
+    }
 
     var statusLabel: String {
         switch state {
@@ -777,7 +809,21 @@ struct RecentTranslation: Identifiable, Equatable {
     let profileName: String
     let sourceText: String
     let translation: String
+    let nativeLanguage: TranslationLanguage
+    let secondaryLanguage: TranslationLanguage
+    let source: TranslationSource
+    let detectedSourceLanguage: TranslationLanguage?
     let target: TranslationTarget
+}
+
+enum SystemSourceLanguageDetector {
+    static func detect(_ text: String) -> TranslationLanguage? {
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return nil }
+        let recognizer = NLLanguageRecognizer()
+        recognizer.processString(trimmed)
+        return TranslationLanguage(normalizing: recognizer.dominantLanguage?.rawValue)
+    }
 }
 
 @MainActor
@@ -789,17 +835,20 @@ final class TranslationSessionStore: ObservableObject {
 
     private let settings: MarlaSettingsStore
     private let client = RustTranslationClient()
+    private let sourceLanguageDetector: (String) -> TranslationLanguage?
     private var handle: RustTranslationClient.Handle?
-    private var lastSource = ""
-    private var lastSurface: TranslationSurface = .selection
-    private var lastAnchor: ScreenRect?
-    private var lastPointer: CGPoint?
 
-    init(settings: MarlaSettingsStore) {
+    init(
+        settings: MarlaSettingsStore,
+        sourceLanguageDetector: @escaping (String) -> TranslationLanguage? = SystemSourceLanguageDetector.detect
+    ) {
         self.settings = settings
+        self.sourceLanguageDetector = sourceLanguageDetector
     }
 
     var availableProfiles: [TranslationAPIProfile] { settings.enabledProfiles }
+    var nativeLanguage: TranslationLanguage { settings.nativeLanguage }
+    var secondaryLanguage: TranslationLanguage { settings.secondaryLanguage }
 
     func beginRecognizing(anchor: ScreenRect?, pointer: CGPoint?) -> UUID {
         cancelCurrentRequest()
@@ -811,15 +860,14 @@ final class TranslationSessionStore: ObservableObject {
             profileName: settings.defaultProfile?.name ?? "未配置",
             sourceText: "",
             translation: "",
+            nativeLanguage: settings.nativeLanguage,
+            secondaryLanguage: settings.secondaryLanguage,
             target: settings.defaultTarget,
             state: .recognizing,
             anchor: anchor,
             pointer: pointer,
             isActivating: false
         )
-        lastSurface = .screenshot
-        lastAnchor = anchor
-        lastPointer = pointer
         return id
     }
 
@@ -841,6 +889,10 @@ final class TranslationSessionStore: ObservableObject {
             profileName: settings.defaultProfile?.name ?? "未配置",
             sourceText: sourceText,
             translation: translation,
+            nativeLanguage: settings.nativeLanguage,
+            secondaryLanguage: settings.secondaryLanguage,
+            source: .automatic,
+            detectedSourceLanguage: sourceLanguageDetector(sourceText),
             target: settings.defaultTarget,
             state: state,
             errorCode: state.isFailure ? .network : nil,
@@ -852,9 +904,6 @@ final class TranslationSessionStore: ObservableObject {
             pointer: NSEvent.mouseLocation,
             isActivating: true
         )
-        lastSource = sourceText
-        lastSurface = surface
-        lastPointer = NSEvent.mouseLocation
         recordRecentTranslationIfEligible(session)
     }
 
@@ -868,16 +917,22 @@ final class TranslationSessionStore: ObservableObject {
             return
         }
         session?.sourceText = text
+        session?.detectedSourceLanguage = sourceLanguageDetector(text)
         startRequest(for: id)
     }
 
-    func startText(_ text: String, surface: TranslationSurface, anchor: ScreenRect?, pointer: CGPoint?, activate: Bool = false, target: TranslationTarget? = nil, profileID: UUID? = nil) {
+    func startText(
+        _ text: String,
+        surface: TranslationSurface,
+        anchor: ScreenRect?,
+        pointer: CGPoint?,
+        activate: Bool = false,
+        source: TranslationSource = .automatic,
+        target: TranslationTarget? = nil,
+        profileID: UUID? = nil
+    ) {
         cancelCurrentRequest()
         let id = UUID()
-        lastSource = text
-        lastSurface = surface
-        lastAnchor = anchor
-        lastPointer = pointer
         session = CardSession(
             id: id,
             surface: surface,
@@ -885,6 +940,10 @@ final class TranslationSessionStore: ObservableObject {
             profileName: settings.profile(id: profileID ?? settings.defaultProfile?.id)?.name ?? "未配置",
             sourceText: text,
             translation: "",
+            nativeLanguage: settings.nativeLanguage,
+            secondaryLanguage: settings.secondaryLanguage,
+            source: source,
+            detectedSourceLanguage: sourceLanguageDetector(text),
             target: target ?? settings.defaultTarget,
             state: .acquiring,
             anchor: anchor,
@@ -901,10 +960,6 @@ final class TranslationSessionStore: ObservableObject {
 
     func startRequest(for id: UUID) {
         guard var current = session, current.id == id else { return }
-        lastSource = current.sourceText
-        lastSurface = current.surface
-        lastAnchor = current.anchor
-        lastPointer = current.pointer
         guard let profile = settings.profile(id: current.profileID),
               let endpoint = settings.endpoint(for: profile.id) else {
             current.state = .failed(message: "请先在设置中配置翻译 API。")
@@ -924,7 +979,8 @@ final class TranslationSessionStore: ObservableObject {
         let request = TranslationFFIRequest(
             requestID: current.id,
             sourceText: current.sourceText,
-            target: current.target,
+            sourceLanguage: current.resolvedSourceLanguage,
+            target: .explicit(current.resolvedTargetLanguage),
             endpoint: endpoint
         )
         do {
@@ -963,16 +1019,16 @@ final class TranslationSessionStore: ObservableObject {
     }
 
     func retry() {
-        guard let current = session, !lastSource.isEmpty else { return }
-        startText(
-            lastSource,
-            surface: lastSurface,
-            anchor: current.anchor ?? lastAnchor,
-            pointer: current.pointer ?? lastPointer,
-            activate: current.isActivating,
-            target: current.target,
-            profileID: current.profileID
-        )
+        guard var current = session, !current.sourceText.isEmpty else { return }
+        cancelCurrentRequest()
+        current.translation = ""
+        current.state = .acquiring
+        current.errorCode = nil
+        current.errorRetryable = false
+        current.recoveryAction = nil
+        current.id = UUID()
+        session = current
+        startRequest(for: current.id)
     }
 
     func changeAPIProfile(_ profileID: UUID) {
@@ -1000,6 +1056,20 @@ final class TranslationSessionStore: ObservableObject {
         current.target = target
         current.translation = ""
         current.state = .acquiring
+        current.id = UUID()
+        session = current
+        startRequest(for: current.id)
+    }
+
+    func changeSource(_ source: TranslationSource) {
+        guard var current = session, !current.sourceText.isEmpty else { return }
+        cancelCurrentRequest()
+        current.source = source
+        current.translation = ""
+        current.state = .acquiring
+        current.errorCode = nil
+        current.errorRetryable = false
+        current.recoveryAction = nil
         current.id = UUID()
         session = current
         startRequest(for: current.id)
@@ -1055,6 +1125,10 @@ final class TranslationSessionStore: ObservableObject {
             profileName: recent.profileName,
             sourceText: recent.sourceText,
             translation: recent.translation,
+            nativeLanguage: recent.nativeLanguage,
+            secondaryLanguage: recent.secondaryLanguage,
+            source: recent.source,
+            detectedSourceLanguage: recent.detectedSourceLanguage,
             target: recent.target,
             state: .completed,
             anchor: nil,
@@ -1062,10 +1136,6 @@ final class TranslationSessionStore: ObservableObject {
             isActivating: true
         )
         session = restored
-        lastSource = restored.sourceText
-        lastSurface = restored.surface
-        lastAnchor = nil
-        lastPointer = restored.pointer
         return restored
     }
 
@@ -1104,6 +1174,10 @@ final class TranslationSessionStore: ObservableObject {
         recentTranslations.removeAll {
             $0.sourceText == candidate.sourceText &&
                 $0.translation == candidate.translation &&
+                $0.nativeLanguage == candidate.nativeLanguage &&
+                $0.secondaryLanguage == candidate.secondaryLanguage &&
+                $0.source == candidate.source &&
+                $0.detectedSourceLanguage == candidate.detectedSourceLanguage &&
                 $0.target == candidate.target
         }
         recentTranslations.insert(
@@ -1114,6 +1188,10 @@ final class TranslationSessionStore: ObservableObject {
                 profileName: candidate.profileName,
                 sourceText: candidate.sourceText,
                 translation: candidate.translation,
+                nativeLanguage: candidate.nativeLanguage,
+                secondaryLanguage: candidate.secondaryLanguage,
+                source: candidate.source,
+                detectedSourceLanguage: candidate.detectedSourceLanguage,
                 target: candidate.target
             ),
             at: 0
@@ -1148,109 +1226,6 @@ enum FloatingPanelStyle {
     }
 }
 
-@MainActor
-enum InlineOverlayPanelStyle {
-    static let cornerRadius = DesignTokens.radiusS
-
-    static func apply(to panel: NSPanel) {
-        panel.isMovable = false
-        panel.isMovableByWindowBackground = false
-        panel.hasShadow = true
-    }
-
-    static func apply(to contentView: NSView) {
-        contentView.wantsLayer = true
-        contentView.layer?.cornerRadius = cornerRadius
-        contentView.layer?.cornerCurve = .continuous
-        contentView.layer?.masksToBounds = true
-    }
-}
-
-enum InlineOverlayPlacementMode: Equatable {
-    case selectionBounds
-    case pointerEstimate
-}
-
-struct InlineOverlayPlacement: Equatable {
-    let frame: NSRect
-    let mode: InlineOverlayPlacementMode
-}
-
-enum InlineOverlayPlacementCalculator {
-    static func placement(
-        visibleFrame visible: NSRect,
-        anchor: ScreenRect?,
-        pointer: CGPoint?,
-        sourceText: String
-    ) -> InlineOverlayPlacement? {
-        let trimmed = sourceText.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty,
-              trimmed.rangeOfCharacter(from: .newlines) == nil
-        else { return nil }
-
-        if let anchor {
-            return exactPlacement(visibleFrame: visible, anchor: anchor)
-        }
-        guard trimmed.count <= 160, let pointer else { return nil }
-        let values = [pointer.x, pointer.y]
-        guard values.allSatisfy(\.isFinite), visible.contains(pointer) else { return nil }
-
-        let width = min(max(CGFloat(trimmed.count) * 8 + 112, 240), min(480, visible.width - 16))
-        let height: CGFloat = 40
-        let preferredX = pointer.x + 14
-        let preferredY = pointer.y + 14
-        let x = min(max(preferredX, visible.minX + 8), visible.maxX - width - 8)
-        let y = min(max(preferredY, visible.minY + 8), visible.maxY - height - 8)
-        return InlineOverlayPlacement(
-            frame: NSRect(x: x, y: y, width: width, height: height),
-            mode: .pointerEstimate
-        )
-    }
-
-    private static func exactPlacement(
-        visibleFrame visible: NSRect,
-        anchor: ScreenRect
-    ) -> InlineOverlayPlacement? {
-        let values = [anchor.x, anchor.y, anchor.width, anchor.height]
-        guard values.allSatisfy(\.isFinite),
-              anchor.width >= 24,
-              anchor.height >= 10,
-              anchor.height <= 36
-        else { return nil }
-
-        let source = NSRect(x: anchor.x, y: anchor.y, width: anchor.width, height: anchor.height)
-        guard visible.contains(source), source.width <= min(720, visible.width - 16) else { return nil }
-
-        let width = min(max(source.width + 40, 160), min(560, visible.width - 16))
-        let height = min(max(source.height + 12, 32), 48)
-        let x = min(max(source.minX - 8, visible.minX + 8), visible.maxX - width - 8)
-        let y = min(max(source.midY - height / 2, visible.minY + 8), visible.maxY - height - 8)
-        return InlineOverlayPlacement(
-            frame: NSRect(x: x, y: y, width: width, height: height),
-            mode: .selectionBounds
-        )
-    }
-}
-
-enum InlineOverlayTerminalAction: Equatable {
-    case expand
-    case close
-}
-
-enum InlineOverlayTransition {
-    static func terminalAction(for state: TranslationSessionState?) -> InlineOverlayTerminalAction? {
-        guard let state else { return .close }
-        switch state {
-        case .failed:
-            return .expand
-        case .cancelled:
-            return .close
-        case .idle, .acquiring, .recognizing, .awaitingFirstToken, .streaming, .completed:
-            return nil
-        }
-    }
-}
-
 struct PanelPlacementCalculator {
     static func frame(
         visibleFrame visible: NSRect,
@@ -1282,40 +1257,25 @@ struct PanelPlacementCalculator {
 
 @MainActor
 final class FloatingPanelCoordinator: NSObject, NSWindowDelegate {
-    private enum SurfaceStyle {
-        case floating
-        case inline
-    }
-
     private weak var model: MarlaApplicationModel?
     private var panel: MarlaPanel?
     private var globalMonitor: Any?
     private var localMonitor: Any?
-    private var isShowingInline = false
 
     init(model: MarlaApplicationModel? = nil, installEventMonitors: Bool = true) {
         self.model = model
         super.init()
         guard installEventMonitors else { return }
-        globalMonitor = NSEvent.addGlobalMonitorForEvents(matching: [.leftMouseDown, .rightMouseDown, .keyDown, .scrollWheel]) { [weak self] event in
+        globalMonitor = NSEvent.addGlobalMonitorForEvents(matching: [.leftMouseDown, .rightMouseDown, .keyDown]) { [weak self] event in
             Task { @MainActor [weak self] in
                 guard let self else { return }
-                if event.type == .scrollWheel {
-                    guard self.isShowingInline else { return }
-                    self.hide()
-                    return
-                }
                 if event.type == .keyDown, event.keyCode != 53 { return }
                 guard self.model?.sessionStore.session?.isPinned != true else { return }
                 self.hide()
             }
         }
-        localMonitor = NSEvent.addLocalMonitorForEvents(matching: [.leftMouseDown, .rightMouseDown, .keyDown, .scrollWheel]) { [weak self] event in
+        localMonitor = NSEvent.addLocalMonitorForEvents(matching: [.leftMouseDown, .rightMouseDown, .keyDown]) { [weak self] event in
             guard let self else { return event }
-            if event.type == .scrollWheel, self.isShowingInline {
-                self.hide()
-                return event
-            }
             if event.type == .keyDown, event.keyCode == 53 {
                 guard self.model?.sessionStore.session?.isPinned != true else { return event }
                 self.hide()
@@ -1334,7 +1294,6 @@ final class FloatingPanelCoordinator: NSObject, NSWindowDelegate {
     }
 
     func showResult(store: TranslationSessionStore, at anchor: ScreenRect?, pointer: CGPoint?, activate: Bool) {
-        isShowingInline = false
         let content = AnyView(
             TranslationCardView(
                 store: store,
@@ -1348,55 +1307,11 @@ final class FloatingPanelCoordinator: NSObject, NSWindowDelegate {
             height: 300,
             anchor: anchor,
             pointer: pointer,
-            activate: activate,
-            style: .floating
+            activate: activate
         )
-    }
-
-    @discardableResult
-    func showInlineResult(
-        store: TranslationSessionStore,
-        sourceText: String,
-        at anchor: ScreenRect?,
-        pointer: CGPoint?,
-        activate: Bool = false
-    ) -> Bool {
-        if let state = store.session?.state, case .failed = state { return false }
-        guard let targetScreen = screen(anchor: anchor, pointer: pointer),
-              let placement = InlineOverlayPlacementCalculator.placement(
-                  visibleFrame: targetScreen.visibleFrame,
-                  anchor: anchor,
-                  pointer: pointer,
-                  sourceText: sourceText
-              )
-        else { return false }
-
-        isShowingInline = true
-        let content = AnyView(
-            InlineTranslationOverlayView(
-                store: store,
-                placementMode: placement.mode,
-                onExpand: { [weak self] in
-                    self?.showResult(store: store, at: anchor, pointer: pointer, activate: false)
-                },
-                onClose: { [weak self] in self?.hide() }
-            )
-        )
-        show(
-            content: content,
-            width: placement.frame.width,
-            height: placement.frame.height,
-            anchor: anchor,
-            pointer: pointer,
-            activate: activate,
-            targetFrame: placement.frame,
-            style: .inline
-        )
-        return true
     }
 
     func showQuickInput(store: TranslationSessionStore, pointer: CGPoint?) {
-        isShowingInline = false
         store.close()
         let content = AnyView(
             QuickInputContainerView(
@@ -1411,13 +1326,11 @@ final class FloatingPanelCoordinator: NSObject, NSWindowDelegate {
             height: 300,
             anchor: nil,
             pointer: pointer,
-            activate: true,
-            style: .floating
+            activate: true
         )
     }
 
     func showMenuAutomationSurface(model: MarlaApplicationModel) {
-        isShowingInline = false
         let content = AnyView(MenuBarView(model: model))
         show(
             content: content,
@@ -1425,13 +1338,11 @@ final class FloatingPanelCoordinator: NSObject, NSWindowDelegate {
             height: 620,
             anchor: nil,
             pointer: CGPoint(x: NSScreen.main?.visibleFrame.maxX ?? 1200, y: NSScreen.main?.visibleFrame.maxY ?? 800),
-            activate: true,
-            style: .floating
+            activate: true
         )
     }
 
     func hide() {
-        isShowingInline = false
         panel?.orderOut(nil)
         model?.sessionStore.close()
         SpeechCoordinator.shared.stop()
@@ -1443,28 +1354,20 @@ final class FloatingPanelCoordinator: NSObject, NSWindowDelegate {
         height: CGFloat,
         anchor: ScreenRect?,
         pointer: CGPoint?,
-        activate: Bool,
-        targetFrame explicitTargetFrame: NSRect? = nil,
-        style: SurfaceStyle
+        activate: Bool
     ) {
         let panel = panel ?? makePanel()
         let forcedReduceMotion = ProcessInfo.processInfo.environment["MARLA_UI_TEST_REDUCE_MOTION"] == "1"
         let hostingView = NSHostingView(
             rootView: content.environment(\.marlaReduceMotionOverride, forcedReduceMotion)
         )
-        switch style {
-        case .floating:
-            FloatingPanelStyle.apply(to: panel)
-            FloatingPanelStyle.apply(to: hostingView)
-        case .inline:
-            InlineOverlayPanelStyle.apply(to: panel)
-            InlineOverlayPanelStyle.apply(to: hostingView)
-        }
+        FloatingPanelStyle.apply(to: panel)
+        FloatingPanelStyle.apply(to: hostingView)
         panel.contentView = hostingView
-        let targetFrame = explicitTargetFrame ?? frame(width: width, height: height, anchor: anchor, pointer: pointer)
+        let targetFrame = frame(width: width, height: height, anchor: anchor, pointer: pointer)
         let reduceMotion = forcedReduceMotion || NSWorkspace.shared.accessibilityDisplayShouldReduceMotion
         var entryFrame = targetFrame
-        if style == .floating, !reduceMotion { entryFrame.origin.y -= 4 }
+        if !reduceMotion { entryFrame.origin.y -= 4 }
         panel.alphaValue = 0
         panel.setFrame(entryFrame, display: true, animate: false)
         panel.orderFrontRegardless()
@@ -1476,7 +1379,7 @@ final class FloatingPanelCoordinator: NSObject, NSWindowDelegate {
             context.duration = reduceMotion ? 0.12 : 0.16
             context.timingFunction = CAMediaTimingFunction(name: .easeOut)
             panel.animator().alphaValue = 1
-            if style == .floating, !reduceMotion { panel.animator().setFrame(targetFrame, display: true) }
+            if !reduceMotion { panel.animator().setFrame(targetFrame, display: true) }
         }
     }
 
@@ -1658,6 +1561,10 @@ private let marlaHotKeySignature: OSType = 0x4D52_4C41 // MRLA
 enum MarlaRuntime {
     static var isXcodePreview: Bool {
         ProcessInfo.processInfo.environment["XCODE_RUNNING_FOR_PREVIEWS"] == "1"
+    }
+
+    static var isUIAutomationSnapshot: Bool {
+        ProcessInfo.processInfo.environment["MARLA_UI_TEST_CAPTURE_PATH"] != nil
     }
 }
 
@@ -2817,14 +2724,17 @@ final class MarlaApplicationModel: ObservableObject {
         accessibilityTrusted: Bool? = nil,
         screenRecordingAuthorized: Bool? = nil
     ) {
+        let installsInteractiveMonitors = enableSystemIntegrations && !MarlaRuntime.isUIAutomationSnapshot
         self.selectionReader = selectionReader
         self.settings = settings
         sessionStore = TranslationSessionStore(settings: settings)
-        panelCoordinator = FloatingPanelCoordinator(installEventMonitors: enableSystemIntegrations)
-        shortcutManager = GlobalShortcutManager(registerHotKeys: enableSystemIntegrations)
+        panelCoordinator = FloatingPanelCoordinator(installEventMonitors: installsInteractiveMonitors)
+        shortcutManager = GlobalShortcutManager(registerHotKeys: installsInteractiveMonitors)
         panelCoordinator.attach(model: self)
         if enableSystemIntegrations {
-            installCredentialVaultLaunchLoad()
+            if !MarlaRuntime.isUIAutomationSnapshot {
+                installCredentialVaultLaunchLoad()
+            }
             refreshPermissions()
         }
         if let accessibilityTrusted {
@@ -2930,16 +2840,7 @@ final class MarlaApplicationModel: ObservableObject {
                 isCancelled: { readCancellation.isCancelled }
             )
             sessionStore.startText(selection.text, surface: .selection, anchor: selection.bounds, pointer: pointer)
-            let didShowInline = settings.inlineTranslationExperimental
-                && panelCoordinator.showInlineResult(
-                    store: sessionStore,
-                    sourceText: selection.text,
-                    at: selection.bounds,
-                    pointer: pointer
-                )
-            if !didShowInline {
-                panelCoordinator.showResult(store: sessionStore, at: selection.bounds, pointer: pointer, activate: false)
-            }
+            panelCoordinator.showResult(store: sessionStore, at: selection.bounds, pointer: pointer, activate: false)
             scheduleSelectionUIAutomationReport(selection: selection, error: nil, audit: selectionAudit)
         } catch let error as SelectionReadingError {
             if error == .selectionCancelled {
@@ -3192,38 +3093,6 @@ final class MarlaApplicationModel: ObservableObject {
                 state: .streaming
             )
             panelCoordinator.showResult(store: sessionStore, at: nil, pointer: NSEvent.mouseLocation, activate: true)
-        case "inline-streaming":
-            let visible = NSScreen.main?.visibleFrame ?? NSRect(x: 0, y: 0, width: 1440, height: 900)
-            let inlineSource = "Translation should stay where your eyes already are."
-            sessionStore.installUIAutomationFixture(
-                surface: .selection,
-                sourceText: inlineSource,
-                translation: "译文应该留在视线已经停留的位置",
-                state: .streaming
-            )
-            _ = panelCoordinator.showInlineResult(
-                store: sessionStore,
-                sourceText: inlineSource,
-                at: ScreenRect(x: visible.midX - 210, y: visible.midY, width: 420, height: 24),
-                pointer: NSEvent.mouseLocation,
-                activate: true
-            )
-        case "inline-estimated":
-            let visible = NSScreen.main?.visibleFrame ?? NSRect(x: 0, y: 0, width: 1440, height: 900)
-            let inlineSource = "Copy compatibility cannot expose exact selection bounds."
-            sessionStore.installUIAutomationFixture(
-                surface: .selection,
-                sourceText: inlineSource,
-                translation: "复制兼容路径无法提供精确选区坐标",
-                state: .streaming
-            )
-            _ = panelCoordinator.showInlineResult(
-                store: sessionStore,
-                sourceText: inlineSource,
-                at: nil,
-                pointer: CGPoint(x: visible.midX, y: visible.midY),
-                activate: true
-            )
         case "comparison":
             sessionStore.installUIAutomationFixture(
                 surface: .screenshot,

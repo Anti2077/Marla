@@ -14,7 +14,7 @@ Transient translation surfaces should use non-activating AppKit panels where pra
 
 ## Prefer reversible overlays
 
-Marla never mutates source content. In 0.1.0, selection translation uses a nearby anchored card. A future in-place surface may visually cover text only after geometry and compatibility are validated.
+Marla never mutates or visually covers source content. Selection translation uses a nearby anchored card with honest pointer fallback when exact geometry is unavailable.
 
 ## Degrade honestly
 

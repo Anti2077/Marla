@@ -106,7 +106,8 @@ final class MarlaCoreTests: XCTestCase {
         let request = TranslationFFIRequest(
             requestID: UUID(uuidString: "00000000-0000-0000-0000-000000000001")!,
             sourceText: "Hello\nworld",
-            target: .english,
+            sourceLanguage: .english,
+            target: .japanese,
             endpoint: TranslationEndpointConfiguration(
                 baseURL: "https://example.com/v1",
                 urlMode: .completeURL,
@@ -116,12 +117,13 @@ final class MarlaCoreTests: XCTestCase {
         )
         let data = try JSONEncoder().encode(request)
         let object = try XCTUnwrap(JSONSerialization.jsonObject(with: data) as? [String: Any])
-        XCTAssertEqual(object["schemaVersion"] as? Int, 1)
+        XCTAssertEqual(object["schemaVersion"] as? Int, 2)
         XCTAssertEqual(
             object["requestID"] as? String,
             "00000000-0000-0000-0000-000000000001"
         )
         XCTAssertNil(object["requestId"])
+        XCTAssertEqual(object["sourceLanguage"] as? String, "en")
         let endpoint = try XCTUnwrap(object["endpoint"] as? [String: Any])
         XCTAssertEqual(endpoint["baseURL"] as? String, "https://example.com/v1")
         XCTAssertEqual(endpoint["urlMode"] as? String, "completeURL")
@@ -129,7 +131,46 @@ final class MarlaCoreTests: XCTestCase {
         XCTAssertEqual(endpoint["apiKey"] as? String, "secret")
         let target = try XCTUnwrap(object["target"] as? [String: Any])
         XCTAssertEqual(target["mode"] as? String, "explicit")
-        XCTAssertEqual(target["language"] as? String, "en")
+        XCTAssertEqual(target["language"] as? String, "ja")
+    }
+
+    func testTranslationLanguageNormalizationAndAutomaticRouting() {
+        XCTAssertEqual(TranslationLanguage(normalizing: "zh-Hant"), .simplifiedChinese)
+        XCTAssertEqual(TranslationLanguage(normalizing: "en-US"), .english)
+        XCTAssertEqual(TranslationLanguage(normalizing: "ja-JP"), .japanese)
+        XCTAssertNil(TranslationLanguage(normalizing: "fr"))
+
+        for nativeLanguage in TranslationLanguage.allCases {
+            for secondaryLanguage in TranslationLanguage.allCases where secondaryLanguage != nativeLanguage {
+                XCTAssertEqual(
+                    TranslationLanguageRouter.targetLanguage(
+                        sourceLanguage: nativeLanguage,
+                        target: .automatic,
+                        nativeLanguage: nativeLanguage,
+                        secondaryLanguage: secondaryLanguage
+                    ),
+                    secondaryLanguage
+                )
+                XCTAssertEqual(
+                    TranslationLanguageRouter.targetLanguage(
+                        sourceLanguage: nil,
+                        target: .automatic,
+                        nativeLanguage: nativeLanguage,
+                        secondaryLanguage: secondaryLanguage
+                    ),
+                    nativeLanguage
+                )
+                XCTAssertEqual(
+                    TranslationLanguageRouter.targetLanguage(
+                        sourceLanguage: secondaryLanguage,
+                        target: .japanese,
+                        nativeLanguage: nativeLanguage,
+                        secondaryLanguage: secondaryLanguage
+                    ),
+                    .japanese
+                )
+            }
+        }
     }
 
     func testModelListRequestEncodesCurrentURLModeAndCredential() throws {

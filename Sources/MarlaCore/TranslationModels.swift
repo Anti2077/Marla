@@ -41,26 +41,98 @@ public enum TranslationTargetMode: String, Codable, Sendable {
     case explicit
 }
 
+public enum TranslationLanguage: String, Codable, CaseIterable, Identifiable, Sendable {
+    case simplifiedChinese = "zh-Hans"
+    case english = "en"
+    case japanese = "ja"
+
+    public var id: String { rawValue }
+
+    public var label: String {
+        switch self {
+        case .simplifiedChinese: "简体中文"
+        case .english: "English"
+        case .japanese: "日本語"
+        }
+    }
+
+    public init?(normalizing identifier: String?) {
+        guard let identifier else { return nil }
+        let normalized = identifier.lowercased()
+        if normalized == "zh" || normalized.hasPrefix("zh-") {
+            self = .simplifiedChinese
+        } else if normalized == "en" || normalized.hasPrefix("en-") {
+            self = .english
+        } else if normalized == "ja" || normalized.hasPrefix("ja-") {
+            self = .japanese
+        } else {
+            return nil
+        }
+    }
+}
+
+public enum TranslationSourceMode: String, Codable, Sendable {
+    case automatic
+    case explicit
+}
+
+public struct TranslationSource: Codable, Equatable, Sendable {
+    public let mode: TranslationSourceMode
+    public let language: TranslationLanguage?
+
+    public init(mode: TranslationSourceMode = .automatic, language: TranslationLanguage? = nil) {
+        self.mode = mode
+        self.language = mode == .explicit ? language : nil
+    }
+
+    public static let automatic = TranslationSource()
+
+    public static func explicit(_ language: TranslationLanguage) -> TranslationSource {
+        TranslationSource(mode: .explicit, language: language)
+    }
+
+    public func resolved(using detectedLanguage: TranslationLanguage?) -> TranslationLanguage? {
+        mode == .explicit ? language : detectedLanguage
+    }
+}
+
 public struct TranslationTarget: Codable, Equatable, Sendable {
     public let mode: TranslationTargetMode
-    public let language: String?
+    public let language: TranslationLanguage?
 
-    public init(mode: TranslationTargetMode = .automatic, language: String? = nil) {
+    public init(mode: TranslationTargetMode = .automatic, language: TranslationLanguage? = nil) {
         self.mode = mode
         self.language = mode == .explicit ? language : nil
     }
 
     public static let automatic = TranslationTarget()
-    public static let simplifiedChinese = TranslationTarget(mode: .explicit, language: "zh-Hans")
-    public static let english = TranslationTarget(mode: .explicit, language: "en")
+    public static let simplifiedChinese = TranslationTarget.explicit(.simplifiedChinese)
+    public static let english = TranslationTarget.explicit(.english)
+    public static let japanese = TranslationTarget.explicit(.japanese)
+
+    public static func explicit(_ language: TranslationLanguage) -> TranslationTarget {
+        TranslationTarget(mode: .explicit, language: language)
+    }
 
     public var label: String {
-        switch (mode, language) {
-        case (.automatic, _): "自动"
-        case (.explicit, "zh-Hans"): "简体中文"
-        case (.explicit, "en"): "English"
-        default: language ?? "自动"
+        switch mode {
+        case .automatic: "自动"
+        case .explicit: language?.label ?? "自动"
         }
+    }
+}
+
+public enum TranslationLanguageRouter {
+    public static func targetLanguage(
+        sourceLanguage: TranslationLanguage?,
+        target: TranslationTarget,
+        nativeLanguage: TranslationLanguage,
+        secondaryLanguage: TranslationLanguage
+    ) -> TranslationLanguage {
+        if target.mode == .explicit, let language = target.language {
+            return language
+        }
+        return sourceLanguage == nativeLanguage ? secondaryLanguage : nativeLanguage
     }
 }
 
@@ -205,6 +277,7 @@ public struct TranslationFFIRequest: Codable, Equatable, Sendable {
     public let schemaVersion: Int
     public let requestID: UUID
     public let sourceText: String
+    public let sourceLanguage: TranslationLanguage?
     public let target: TranslationTarget
     public let endpoint: TranslationEndpointConfiguration
     public let timeouts: TranslationTimeouts
@@ -212,13 +285,15 @@ public struct TranslationFFIRequest: Codable, Equatable, Sendable {
     public init(
         requestID: UUID,
         sourceText: String,
+        sourceLanguage: TranslationLanguage?,
         target: TranslationTarget,
         endpoint: TranslationEndpointConfiguration,
         timeouts: TranslationTimeouts = .default
     ) {
-        self.schemaVersion = 1
+        self.schemaVersion = 2
         self.requestID = requestID
         self.sourceText = sourceText
+        self.sourceLanguage = sourceLanguage
         self.target = target
         self.endpoint = endpoint
         self.timeouts = timeouts

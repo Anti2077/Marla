@@ -19,11 +19,8 @@ The user should be able to notice text, express translation intent, read the res
 ## Initial entry points
 
 1. Translation of selected text in a nearby card, triggered by a configurable shortcut.
-2. Experimental Force Touch trigger for the same selection translation intent.
-3. Screenshot translation of a selected screen region.
-4. Quick input when no source text is already available.
-
-Force Touch is not allowed to replace the keyboard fallback until global cross-application reliability is verified.
+2. Screenshot translation of a selected screen region.
+3. Quick input when no source text is already available.
 
 ## Initial output modes
 
@@ -38,7 +35,7 @@ Force Touch is not allowed to replace the keyboard fallback until global cross-a
 - a full document workspace;
 - local GLM-OCR;
 - cloud structured OCR in 0.1.0; macOS Vision is the only 0.1.0 OCR path;
-- pixel-covering in-place translation in 0.1.0;
+- source-text-covering in-place translation, rejected after the experimental surface performed poorly in real use;
 - contextual window metadata and nearby-text enhancement in 0.1.0;
 - persistent translation history in 0.1.0;
 - arbitrary live-page pixel-perfect replacement;

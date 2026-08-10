@@ -18,17 +18,17 @@
 | ID | 想法 | 状态 | 与当前产品关系 |
 | --- | --- | --- | --- |
 | IDEA-001 | 按需上下文感知翻译 | Accepted direction | 0.1.0 后，ADR-0003 |
-| IDEA-002 | 原位流式覆盖翻译 | Promoted | TASK-017 feasibility；0.1.0 默认仍不启用 |
+| IDEA-002 | 原位流式覆盖翻译 | Rejected | TASK-017 真实试用表现不理想；实现已由 TASK-019 移除 |
 | IDEA-003 | GLM-OCR 结构化截图翻译 | Accepted direction | 0.1.0 后，ADR-0002/0005 |
 | IDEA-004 | 万能文档翻译工作区 | Captured | 长期产品扩展 |
 | IDEA-005 | 用户可控术语表 | Captured | 语境系统的可能组成 |
 | IDEA-006 | 翻译历史、收藏与恢复 | Captured | 0.1.0 明确不持久化 |
-| IDEA-007 | 更可靠的 Force Touch 入口 | Exploring | 当前为非阻塞实验 |
+| IDEA-007 | 更可靠的 Force Touch 入口 | Rejected | 设置实验没有形成可靠产品行为；已由 TASK-019 移除 |
 | IDEA-008 | 更多瞬时翻译入口 | Captured | 保持“不打断工作”原则 |
 | IDEA-009 | 本地 OCR / VLM 能力分档 | Captured | 截图与文档场景的未来选项 |
 | IDEA-010 | 多翻译 API 配置与窗口内切换 | Promoted | TASK-005 已实现核心行为；TASK-006 重构其设置入口 |
 | IDEA-011 | 多路径选区桥接（Copy / PopClip / Service） | Promoted | Bob 式 Copy fallback 已获授权并进入 TASK-015；PopClip/Service 仍待后续决策 |
-| IDEA-012 | 母语/第二语言驱动的自动语言路由与日语支持 | Captured | 推广当前中英固定自动方向，尚未授权开发 |
+| IDEA-012 | 母语/第二语言驱动的自动语言路由与日语支持 | Implemented | TASK-019 完成首期实现与验证 |
 
 ---
 
@@ -114,7 +114,7 @@ Related: `ADR-0003-context-engine.md`、BL-005、`DATA_CONTRACTS.md`
 
 ## IDEA-002：原位流式覆盖翻译
 
-Status: Promoted
+Status: Rejected
 
 Priority: Unranked
 
@@ -126,7 +126,11 @@ Related: `UX_PRINCIPLES.md`、`features/inline-translation.md`、`TASK-017`
 
 ### 一句话描述
 
-用户划词后按快捷键或重按触控板，在原文字所在位置出现覆盖层，并在原位流式显示译文；它与“悬停翻译”合并为同一个瞬时入口概念。
+用户划词后按快捷键，在原文字所在位置出现覆盖层，并在原位流式显示译文；它曾与“悬停翻译”一起被讨论为更贴近原文的瞬时入口概念。
+
+### 最终决定
+
+TASK-017 的精确单行覆盖和缺少 bounds 时的鼠标估算轻量条均进入过固定签名 App。项目所有者真实试用后确认表现不理想，并在 TASK-019 同一开发会话中要求删除。当前产品只保留完整附近结果卡，不再保留实验开关、运行路径或后续提升条件。
 
 ### 用户问题与价值
 
@@ -135,7 +139,7 @@ Related: `UX_PRINCIPLES.md`、`features/inline-translation.md`、`TASK-017`
 ### 预期交互
 
 1. 用户选中文字。
-2. 使用快捷键或可选 Force Touch 触发。
+2. 使用快捷键触发。
 3. 覆盖层在原选区稳定出现，先显示等待状态，再流式填充译文。
 4. 可临时查看原文/译文对照、复制或关闭。
 5. 滚动、窗口移动、内容变化或几何失真时诚实退化到附近卡片。
@@ -170,7 +174,7 @@ Related: `UX_PRINCIPLES.md`、`features/inline-translation.md`、`TASK-017`
 - 译文较长时，何种退化最不打断工作。
 - 视觉上“像原文”与清楚表明这是 Marla 覆盖层之间如何平衡。
 
-### 进入开发的条件
+### 原进入开发的条件（历史）
 
 1. 先做只覆盖单行静态文本的技术原型，不接入正式入口。
 2. 定义支持矩阵和必须退化的条件。
@@ -180,7 +184,7 @@ Related: `UX_PRINCIPLES.md`、`features/inline-translation.md`、`TASK-017`
 
 ### 下一步
 
-已由项目所有者在 2026-08-10 选择进入 `TASK-017`。首个原型只验证“单行整块覆盖 + 自动降级”，默认关闭；真实几何、生命周期和五维视觉证据完成后再决定是否投入逐行覆盖。
+不继续开发。TASK-017 保留试验与证据记录，生产代码和当前产品计划已由 TASK-019 移除；除非项目所有者未来基于新的方案重新明确授权，否则不得重新提升。
 
 ---
 
@@ -396,7 +400,7 @@ Related: `PRODUCT.md`
 
 ## IDEA-007：更可靠的 Force Touch 入口
 
-Status: Exploring
+Status: Rejected
 
 Priority: Unranked
 
@@ -408,7 +412,11 @@ Related: BL-004、IDEA-002
 
 ### 一句话描述
 
-用户划词后重按触控板，触发与键盘快捷键相同的翻译意图，并显示附近卡片或未来原位覆盖层。
+用户划词后重按触控板，触发与键盘快捷键相同的翻译意图并显示附近卡片。
+
+### 最终决定
+
+现有代码只有设置与持久化状态，没有形成可靠的全局压力事件入口。项目所有者在真实试用两个实验设置后认为表现不理想，要求连同 IDEA-002 一并删除。当前产品仅保留可配置键盘快捷键。
 
 ### 用户价值
 
@@ -432,13 +440,13 @@ Related: BL-004、IDEA-002
 
 全局监听不得持续采集文字；只有确认压力阈值并触发后才读取当前选区。事件监控不应明显增加空闲 CPU 或阻止系统睡眠。
 
-### 进入开发的条件
+### 原进入开发的条件（历史）
 
 完成 BL-004 的硬件/应用矩阵。若公共 API 无法达到可预测行为，接受移除实验开关，而不是把它变成发布阻塞项。
 
 ### 下一步
 
-创建纯可行性 Task，记录成功率和冲突，不先优化视觉。
+不创建可行性 Task，BL-004 已从当前 Backlog 删除。除非项目所有者未来提供新的交互方案并重新授权，否则不得恢复开关或压力事件监听。
 
 ---
 
@@ -471,7 +479,7 @@ Related: `PRODUCT.md`、`UX_PRINCIPLES.md`
 
 ### 明确不优先
 
-纯悬停自动翻译暂不优先：意图弱、误触多、可能持续读取屏幕，并且可以被“划词 + 快捷键/Force Touch + 原位呈现”的方案覆盖。
+纯悬停自动翻译暂不优先：意图弱、误触多、可能持续读取屏幕；现有划词快捷键已经提供更明确的用户意图。
 
 ### 选择原则
 
@@ -679,7 +687,7 @@ Related: `TASK-015-deep-selection-reliability.md`、`inline-translation.md`、`S
 
 ## IDEA-012：母语/第二语言驱动的自动语言路由与日语支持
 
-Status: Captured
+Status: Implemented by [TASK-019](../tasks/TASK-019-configurable-language-routing.md)
 
 Priority: Unranked
 
@@ -786,7 +794,7 @@ Related: `SPEC.md` 当前自动方向、macOS `NaturalLanguage`、Rust translati
 
 ### 与当前发布和实现的关系
 
-当前实现和 0.1.0 规范仍保持“中文→英文、非中文→简体中文”，显式目标仅覆盖现有选项。本条目处于 `Captured`，不修改当前 FFI schema、Rust 提示词、设置界面、结果卡、自动化测试或发布验收，也不进入正在进行的 TASK-016。
+项目所有者已在 2026-08-10 明确授权创建分支并开发本想法。首期在 [TASK-019](../tasks/TASK-019-configurable-language-routing.md) 中实现简体中文、English、日本語的全局母语/第二语言设置、本机源语言识别、结果卡源/目标双下拉和一致的 Swift/Rust Provider 路由；繁体中文独立选项、语言质量风格和按 profile 偏好仍不在首期范围。
 
 ### 进入开发的条件
 
@@ -807,7 +815,7 @@ Related: `SPEC.md` 当前自动方向、macOS `NaturalLanguage`、Rust translati
 
 ### 下一步
 
-保持为想法；未来若准备实施，先做不改 UI 的语言识别样本 spike，比较 `NLLanguageRecognizer` 与候选 Provider 在中英日短文本上的结果，再锁定产品行为。
+TASK-019 已完成首期实现、自动化、固定签名 Release 打包和真实 UI 五维审查。本机 `NLLanguageRecognizer` 中英日短文本探测证明常见句子可用；极短、纯汉字与代码混排继续使用未知降级和可见源语言覆盖。繁体中文独立选项、语言质量风格和按 profile 偏好仍需新的明确授权。
 
 
 ## 新想法模板

@@ -147,7 +147,8 @@
 - [ ] 系统朗读可开始、停止和切换新译文，不打包额外模型。
 - [ ] 固定卡片不会因外部点击关闭；取消固定后恢复临时行为。
 - [ ] `Esc` 和外部点击关闭临时卡片并取消请求。
-- [ ] 长文本在卡片内部滚动，卡片锚点不因 delta 跳动。
+- [x] 短译文从紧凑默认高度开始并随 delta 增长；长文本达到当前可见工作区 60% 后在卡片内部滚动，卡片锚定边不因 delta 跳动。
+- [ ] 结果卡以 380pt 作为默认/最小宽度，可从原生边缘或角落调到最多 760pt；窄屏时不超出可见工作区，调宽后译文重排和内容高度更新且不跳回默认宽度；横向 resize 光标在多次显示结果卡和长期使用后仍保持稳定。
 - [ ] 所有图标有 Tooltip、无障碍标签和键盘焦点。
 - [x] 三项准备完成后菜单隐藏权限状态条，并展示最多三条只在内存保留的最近完成翻译。
 - [x] 最近翻译排除失败、取消和空结果；点击恢复完成态卡片且不发起新请求。
@@ -159,7 +160,8 @@
 - [ ] System speech starts, stops, and switches to new translation with no bundled model.
 - [ ] Pinned card survives outside clicks; unpin restores transient behavior.
 - [ ] `Esc` and outside click close transient card and cancel the request.
-- [ ] Long text scrolls inside the card and streaming does not move the anchor.
+- [x] Short translations start compact and grow with deltas; long text scrolls inside the card after the 60% visible-workspace cap, and streaming does not move the anchored edge.
+- [ ] The result card uses 380pt as its default/minimum width and resizes from native edges or corners up to 760pt; narrow screens constrain it to the visible workspace, and width changes reflow text and update content height without snapping back to the default. The horizontal resize cursor remains stable after repeated card presentation and extended use.
 - [ ] Every icon has tooltip, accessibility label, and keyboard focus.
 - [x] Once all three setup items are ready, the menu hides permission status and shows up to three recent completed translations retained in memory only.
 - [x] Recents exclude failed, cancelled, and empty results; selecting one restores a completed card without a new request.
@@ -283,6 +285,12 @@ TASK-015 current automation and artifact evidence: selection-mechanism merging, 
 TASK-019 自动化、产物与视觉证据：全局母语/第二语言、本机中英日识别、未知降级、结果卡与快速输入源/目标覆盖、会话快照，以及通用/Qwen-MT Provider 映射通过测试。最终 `./scripts/check.sh` 为 17 项 Rust、81 项 Swift，并通过 Swift/Xcode Debug、格式、空白与 diff 检查；6 项原位实验专用测试随被拒绝功能一起删除。固定 `artifacts/Marla_dev.app` 保持 Bundle ID `com.marla.app`、0.1.0、macOS 14+、arm64、Authority `API Usage Monitor Dev` 和既有 designated requirement。语言设置、结果卡和快速输入证据位于 `artifacts/ui-review/task-019/`，五维评分 8/8/8/8/7；移除两个实验设置后的“通用”页浅色/深色证据位于 `artifacts/ui-review/task-019-removal/`，复审为 8/8/8/9/7。首轮语言截图发现 macOS Menu 压平复合标签、隐藏实际语言并重复箭头；修复后已重新构建和采集。现有 Keychain profile 的现场日语请求本轮未执行，不用它替代已通过的 mock payload 合同证据。
 
 TASK-019 automation, artifact, and visual evidence: global native/secondary preferences, local Chinese/English/Japanese detection, unknown fallback, result-card and quick-input source/target overrides, session snapshots, and generic/Qwen-MT provider mappings pass tests. The final `./scripts/check.sh` reports 17 Rust and 81 Swift tests and passes Swift/Xcode Debug, formatting, whitespace, and diff checks; six inline-experiment-only tests were removed with the rejected feature. The fixed `artifacts/Marla_dev.app` retains Bundle ID `com.marla.app`, version 0.1.0, macOS 14+, arm64, Authority `API Usage Monitor Dev`, and the existing designated requirement. Language-settings, result-card, and quick-input evidence is under `artifacts/ui-review/task-019/`, scoring 8/8/8/8/7. Final General light/dark captures after both experimental settings were removed are under `artifacts/ui-review/task-019-removal/`, scoring 8/8/8/9/7. The first language capture exposed macOS Menu flattening that hid effective languages and duplicated chevrons; it was fixed, rebuilt, and recaptured. A live Japanese request using the existing Keychain profile was not run in this pass and is not substituted for the passing mock-payload contract evidence.
+
+TASK-020 automation, artifact, and visual evidence: `./scripts/check.sh` passes 17 Rust, 71 MarlaApp Swift, and 13 MarlaCore Swift tests plus Swift/Xcode Debug, formatting, whitespace, and diff checks. The fixed `artifacts/Marla_dev.app` passes Bundle ID/version/minimum-system/arm64/stable-signature/designated-requirement verification. Ephemeral Release captures show 224pt compact, approximately 309pt intermediate growth, approximately 644pt capped growth, dark appearance, and Reduce Motion; five-dimension scores are 8/8/8/9/7. Screenshots remain in `/private/tmp` and are not committed under the project's default ephemeral-screenshot policy.
+
+TASK-021 高度竞态跟进：`ResultCardLayout` 已补偿 AppKit 与 SwiftUI 文本逐行测量差异，协调器在每次高度动画结束后按最新会话再次校正。40ms 非激活流式夹具与真实 `NSHostingView` 回归已在 Swift Package 测试中通过；`./scripts/check.sh` 的 17 项 Rust、80 项 MarlaApp、13 项 MarlaCore、Swift Package、Xcode Debug、格式/空白/diff 阶段均通过。固定 Release 已重新打包并通过包与签名检查；LaunchServices 截图 `/private/tmp/marla-task-021-height-race-final.png` 中译文、分隔线和操作行完整可见，结果卡高度条目仍待项目所有者真实划词确认。
+
+TASK-021 height-race follow-up: `ResultCardLayout` now compensates for the measured per-line difference between AppKit and SwiftUI text, and the coordinator reconciles the latest session after each height animation. The 40ms nonactivating streaming fixture and real `NSHostingView` regression pass in the Swift Package test run; `./scripts/check.sh` passes 17 Rust, 80 MarlaApp, 13 MarlaCore, Swift Package, Xcode Debug, formatting, whitespace, and diff stages. The fixed Release was rebuilt and passes package/signature checks; the LaunchServices capture `/private/tmp/marla-task-021-height-race-final.png` keeps translation, dividers, and actions visible. The result-card height item remains pending project-owner real selection confirmation.
 
 ## 11. 发布判定 / Release Decision
 

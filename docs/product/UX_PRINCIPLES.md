@@ -6,7 +6,13 @@ Translation belongs near the selected text, captured region, or pointer. Marla s
 
 ## Show intent immediately
 
-The stable result surface should appear before network work completes. Streaming content fills an already-positioned container rather than repeatedly changing the surrounding geometry.
+The stable result surface should appear before network work completes. Streaming content grows the card away from its initial anchor while the anchored edge stays fixed; after the visible-workspace limit, only the translation body scrolls.
+
+## Grow with the translation
+
+Short results should not reserve a large empty panel. The result card starts at a compact content-driven height, grows smoothly as streamed text wraps to additional lines, and stops at 60% of the current screen's visible workspace so surrounding work remains visible.
+
+The card also starts at a compact 380pt width. Users may widen it from the native window edges or corners up to 760pt, subject to the visible workspace; reflow updates the content-driven height instead of introducing a separate width control.
 
 ## Preserve focus
 

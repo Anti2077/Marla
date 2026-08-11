@@ -153,6 +153,22 @@ private struct PreviewPanel<Content: View>: View {
     }
 }
 
+#Preview("Card - Long Streaming") {
+    PreviewPanel(width: 560) {
+        TranslationCardView(
+            store: MarlaPreviewFixtures.sessionStore(
+                surface: .selection,
+                translation: Array(repeating: "达到高度上限后，译文会在卡片内部继续滚动。", count: 40).joined(),
+                state: .streaming
+            ),
+            onClose: {},
+            onRecovery: { _ in },
+            maximumPanelHeight: 540
+        )
+        .environment(\.marlaReduceMotionOverride, true)
+    }
+}
+
 #Preview("Card - Comparison Pinned") {
     PreviewPanel(width: 560) {
         TranslationCardView(

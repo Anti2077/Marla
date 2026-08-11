@@ -1,5 +1,6 @@
 import AppKit
 import MarlaCore
+import SwiftUI
 @testable import MarlaApp
 import XCTest
 
@@ -771,6 +772,279 @@ final class MarlaAppTests: XCTestCase {
         XCTAssertLessThanOrEqual(frame.maxY, nearTop.y - 8)
     }
 
+    func testPanelPlacementAcceptsTheResultCardsFullWidthRange() {
+        let visible = NSRect(x: 0, y: 0, width: 1440, height: 900)
+        let frame = PanelPlacementCalculator.frame(
+            visibleFrame: visible,
+            requestedWidth: ResultCardLayout.maximumWidth,
+            requestedHeight: ResultCardLayout.defaultPanelHeight,
+            minimumWidth: ResultCardLayout.minimumWidth,
+            maximumWidth: ResultCardLayout.maximumWidth,
+            anchor: nil,
+            pointer: CGPoint(x: visible.midX, y: visible.midY)
+        )
+
+        XCTAssertEqual(frame.width, ResultCardLayout.maximumWidth)
+        XCTAssertEqual(frame.midX, visible.midX)
+    }
+
+    func testResultCardLayoutGrowsWithTextAndStopsAtScreenLimit() {
+        let maximumHeight = ResultCardLayout.maximumPanelHeight(visibleHeight: 900)
+        let short = CardSession(
+            id: UUID(),
+            surface: .selection,
+            profileID: nil,
+            profileName: "测试",
+            sourceText: "Hello",
+            translation: "你好",
+            target: .automatic,
+            state: .streaming
+        )
+        var medium = short
+        medium.translation = Array(repeating: "译文会随着流式内容逐步增长。", count: 8).joined()
+        var long = short
+        long.translation = Array(repeating: "这是一段用于验证结果卡封顶与内部滚动的长译文。", count: 80).joined()
+
+        let shortHeight = ResultCardLayout.preferredPanelHeight(
+            session: short,
+            cardWidth: 380,
+            maximumPanelHeight: maximumHeight
+        )
+        let mediumHeight = ResultCardLayout.preferredPanelHeight(
+            session: medium,
+            cardWidth: 380,
+            maximumPanelHeight: maximumHeight
+        )
+        let longHeight = ResultCardLayout.preferredPanelHeight(
+            session: long,
+            cardWidth: 380,
+            maximumPanelHeight: maximumHeight
+        )
+
+        XCTAssertEqual(shortHeight, ResultCardLayout.defaultPanelHeight)
+        XCTAssertGreaterThan(mediumHeight, shortHeight)
+        XCTAssertLessThanOrEqual(mediumHeight, maximumHeight)
+        XCTAssertEqual(longHeight, maximumHeight)
+        XCTAssertLessThan(
+            ResultCardLayout.translationViewportHeight(
+                session: long,
+                cardWidth: 380,
+                maximumPanelHeight: maximumHeight
+            ),
+            ResultCardLayout.translationTextHeight(long.translation, width: 380)
+        )
+    }
+
+    @MainActor
+    func testPreferredHeightContainsTheHostedStreamingCardBeforeTheScreenLimit() {
+        let store = makeSessionStore()
+        let translation = """
+        The inspection is complete, and currently no junk code remains that needs to be deleted. \
+        The Carbon cursor experiment, 16/50ms polling, panel mouse monitor, manual cursor stack, \
+        cursor-rect disabling, test-specific counters, and deprecated geometry APIs have been removed. \
+        The remaining event handling belongs to shortcuts and screenshot selection rather than resize.
+        """
+        store.installUIAutomationFixture(
+            surface: .selection,
+            sourceText: "检查完成",
+            translation: translation,
+            state: .streaming
+        )
+        let maximumHeight: CGFloat = 700
+        let layout = ResultPanelLayoutModel(width: 380, maximumPanelHeight: maximumHeight)
+        let preferredHeight = ResultCardLayout.preferredPanelHeight(
+            session: store.session,
+            cardWidth: layout.width,
+            maximumPanelHeight: maximumHeight
+        )
+        let hostingView = NSHostingView(
+            rootView: TranslationCardView(
+                store: store,
+                onClose: {},
+                onRecovery: { _ in },
+                layout: layout
+            )
+        )
+        hostingView.frame = NSRect(x: 0, y: 0, width: layout.width, height: maximumHeight)
+        hostingView.layoutSubtreeIfNeeded()
+
+        let renderedText = (Text(translation) + Text("│"))
+            .font(AppFont.translation)
+            .fixedSize(horizontal: false, vertical: true)
+            .frame(
+                width: layout.width - ResultCardLayout.outerHorizontalPadding,
+                alignment: .leading
+            )
+        let textHostingView = NSHostingView(rootView: renderedText)
+        textHostingView.layoutSubtreeIfNeeded()
+        let viewportHeight = ResultCardLayout.translationViewportHeight(
+            session: store.session!,
+            cardWidth: layout.width,
+            maximumPanelHeight: maximumHeight
+        )
+
+        XCTAssertLessThan(preferredHeight, maximumHeight)
+        XCTAssertEqual(
+            viewportHeight,
+            textHostingView.fittingSize.height,
+            accuracy: 0.5,
+            "viewport=\(viewportHeight), rendered=\(textHostingView.fittingSize.height)"
+        )
+        XCTAssertGreaterThanOrEqual(
+            preferredHeight,
+            hostingView.fittingSize.height,
+            "preferred=\(preferredHeight), fitting=\(hostingView.fittingSize.height)"
+        )
+    }
+
+    func testResultCardWidthUsesCurrentWidthAsMinimumAndTwiceThatAsMaximum() {
+        XCTAssertEqual(ResultCardLayout.minimumWidth, 380)
+        XCTAssertEqual(ResultCardLayout.maximumWidth, 760)
+        XCTAssertEqual(ResultCardLayout.maximumPanelWidth(visibleWidth: 1440), 760)
+        XCTAssertEqual(ResultCardLayout.clampedPanelWidth(200, visibleWidth: 1440), 380)
+        XCTAssertEqual(ResultCardLayout.clampedPanelWidth(900, visibleWidth: 1440), 760)
+    }
+
+    func testResultCardMaximumWidthShrinksToTheVisibleWorkspace() {
+        let visibleWidth: CGFloat = 600
+
+        XCTAssertEqual(ResultCardLayout.maximumPanelWidth(visibleWidth: visibleWidth), 584)
+        XCTAssertEqual(ResultCardLayout.clampedPanelWidth(700, visibleWidth: visibleWidth), 584)
+        XCTAssertEqual(ResultCardLayout.clampedPanelWidth(500, visibleWidth: visibleWidth), 500)
+    }
+
+    func testResultPanelHorizontalResizeKeepsTheOppositeEdgeFixed() {
+        let visible = NSRect(x: 0, y: 0, width: 1440, height: 900)
+        let start = NSRect(x: 500, y: 300, width: 380, height: 224)
+
+        let fromRight = ResultPanelHorizontalResizeCalculator.resized(
+            startFrame: start,
+            currentFrame: start,
+            horizontalDelta: 200,
+            edge: .right,
+            visibleFrame: visible
+        )
+        XCTAssertEqual(fromRight.minX, start.minX)
+        XCTAssertEqual(fromRight.width, 580)
+
+        let fromLeft = ResultPanelHorizontalResizeCalculator.resized(
+            startFrame: start,
+            currentFrame: start,
+            horizontalDelta: -200,
+            edge: .left,
+            visibleFrame: visible
+        )
+        XCTAssertEqual(fromLeft.maxX, start.maxX)
+        XCTAssertEqual(fromLeft.width, 580)
+
+        let clamped = ResultPanelHorizontalResizeCalculator.resized(
+            startFrame: start,
+            currentFrame: start,
+            horizontalDelta: 600,
+            edge: .right,
+            visibleFrame: visible
+        )
+        XCTAssertEqual(clamped.width, ResultCardLayout.maximumWidth)
+    }
+
+    func testWiderResultCardReflowsLongTranslationToALowerPreferredHeight() {
+        let maximumHeight: CGFloat = 700
+        let translation = Array(
+            repeating: "加宽结果卡会减少长译文的换行数量，同时继续遵守内容驱动高度。",
+            count: 18
+        ).joined()
+        let session = CardSession(
+            id: UUID(),
+            surface: .selection,
+            profileID: nil,
+            profileName: "测试",
+            sourceText: "A long source passage",
+            translation: translation,
+            target: .automatic,
+            state: .completed
+        )
+
+        let narrowTextHeight = ResultCardLayout.translationTextHeight(translation, width: 380)
+        let wideTextHeight = ResultCardLayout.translationTextHeight(translation, width: 760)
+        let narrowPanelHeight = ResultCardLayout.preferredPanelHeight(
+            session: session,
+            cardWidth: 380,
+            maximumPanelHeight: maximumHeight
+        )
+        let widePanelHeight = ResultCardLayout.preferredPanelHeight(
+            session: session,
+            cardWidth: 760,
+            maximumPanelHeight: maximumHeight
+        )
+
+        XCTAssertGreaterThan(narrowTextHeight, wideTextHeight)
+        XCTAssertGreaterThan(narrowPanelHeight, widePanelHeight)
+        XCTAssertLessThanOrEqual(narrowPanelHeight, maximumHeight)
+        XCTAssertGreaterThanOrEqual(widePanelHeight, ResultCardLayout.defaultPanelHeight)
+    }
+
+    func testResultCardComparisonReservesVisibleChromeWithinTheSameLimit() {
+        var session = CardSession(
+            id: UUID(),
+            surface: .screenshot,
+            profileID: nil,
+            profileName: "测试",
+            sourceText: Array(repeating: "Original source line.", count: 30).joined(separator: "\n"),
+            translation: Array(repeating: "很长的译文。", count: 80).joined(),
+            target: .automatic,
+            state: .completed
+        )
+        session.isComparisonExpanded = true
+        let maximumHeight: CGFloat = 540
+
+        let panelHeight = ResultCardLayout.preferredPanelHeight(
+            session: session,
+            cardWidth: 380,
+            maximumPanelHeight: maximumHeight
+        )
+        let translationHeight = ResultCardLayout.translationViewportHeight(
+            session: session,
+            cardWidth: 380,
+            maximumPanelHeight: maximumHeight
+        )
+
+        XCTAssertEqual(panelHeight, maximumHeight)
+        XCTAssertGreaterThanOrEqual(translationHeight, ResultCardLayout.minimumTranslationViewportHeight)
+        XCTAssertEqual(
+            ResultCardLayout.sourceViewportHeight(session.sourceText, width: 380),
+            ResultCardLayout.maximumSourceViewportHeight
+        )
+    }
+
+    func testResultPanelGrowthKeepsTheSelectedAnchorEdgeStable() {
+        let visible = NSRect(x: 0, y: 0, width: 1440, height: 900)
+        let currentAbove = NSRect(x: 500, y: 320, width: 380, height: 224)
+        let grownAbove = ResultPanelFrameCalculator.resized(
+            current: currentAbove,
+            height: 420,
+            visibleFrame: visible,
+            anchor: .bottom
+        )
+        XCTAssertEqual(grownAbove.minY, currentAbove.minY)
+
+        let currentBelow = NSRect(x: 500, y: 500, width: 380, height: 224)
+        let grownBelow = ResultPanelFrameCalculator.resized(
+            current: currentBelow,
+            height: 420,
+            visibleFrame: visible,
+            anchor: .top
+        )
+        XCTAssertEqual(grownBelow.maxY, currentBelow.maxY)
+
+        let centered = ResultPanelFrameCalculator.resized(
+            current: currentAbove,
+            height: 420,
+            visibleFrame: visible,
+            anchor: .center
+        )
+        XCTAssertEqual(centered.midY, currentAbove.midY)
+    }
+
     func testAccessibilityCoordinateConverterMapsTopLeftDisplayCoordinatesToAppKit() throws {
         let displays = [
             AccessibilityDisplayGeometry(
@@ -888,9 +1162,94 @@ final class MarlaAppTests: XCTestCase {
 
         XCTAssertTrue(panel.isMovable)
         XCTAssertTrue(panel.isMovableByWindowBackground)
+        XCTAssertTrue(panel.titlebarAppearsTransparent)
+        XCTAssertEqual(panel.titleVisibility, .hidden)
+        XCTAssertEqual(panel.titlebarSeparatorStyle, .none)
         XCTAssertTrue(panel.hasShadow)
         XCTAssertEqual(contentView.layer?.cornerRadius, DesignTokens.radiusL)
         XCTAssertTrue(contentView.layer?.masksToBounds == true)
+    }
+
+    @MainActor
+    func testResultPanelWindowSizingEnablesNativeResizeWithinWidthLimits() {
+        let panel = MarlaPanel(
+            contentRect: NSRect(x: 0, y: 0, width: 380, height: 224),
+            styleMask: [.titled, .nonactivatingPanel, .fullSizeContentView],
+            backing: .buffered,
+            defer: false
+        )
+        let visibleFrame = NSRect(x: 0, y: 0, width: 1440, height: 900)
+
+        ResultPanelWindowSizing.apply(to: panel, enabled: true, visibleFrame: visibleFrame)
+
+        XCTAssertTrue(panel.styleMask.contains(.resizable))
+        XCTAssertEqual(panel.minSize.width, 380)
+        XCTAssertEqual(panel.maxSize.width, 760)
+        XCTAssertEqual(panel.minSize.height, ResultCardLayout.defaultPanelHeight)
+        XCTAssertEqual(panel.maxSize.height, 540)
+
+        ResultPanelWindowSizing.apply(to: panel, enabled: false, visibleFrame: visibleFrame)
+        XCTAssertFalse(panel.styleMask.contains(.resizable))
+    }
+
+    @MainActor
+    func testResultPanelUsesSystemFrameResizeCursors() {
+        let leftResizeHandle = ResultPanelHorizontalResizeHandleView(edge: .left)
+        let rightResizeHandle = ResultPanelHorizontalResizeHandleView(edge: .right)
+
+        if #available(macOS 15.0, *) {
+            let expectedLeft = NSCursor.frameResize(position: .left, directions: .all)
+            let expectedRight = NSCursor.frameResize(position: .right, directions: .all)
+            XCTAssertEqual(leftResizeHandle.resizeCursor.hotSpot, expectedLeft.hotSpot)
+            XCTAssertEqual(
+                leftResizeHandle.resizeCursor.image.tiffRepresentation,
+                expectedLeft.image.tiffRepresentation
+            )
+            XCTAssertEqual(rightResizeHandle.resizeCursor.hotSpot, expectedRight.hotSpot)
+            XCTAssertEqual(
+                rightResizeHandle.resizeCursor.image.tiffRepresentation,
+                expectedRight.image.tiffRepresentation
+            )
+        } else {
+            XCTAssertTrue(leftResizeHandle.resizeCursor === NSCursor.resizeLeftRight)
+            XCTAssertTrue(rightResizeHandle.resizeCursor === NSCursor.resizeLeftRight)
+        }
+    }
+
+    @MainActor
+    func testResultPanelContentViewKeepsResizeHandlesAboveHostedContent() {
+        let hostedView = NSView(frame: NSRect(x: 0, y: 0, width: 380, height: 224))
+        let contentView = ResultPanelContentView(
+            hostedView: hostedView,
+            allowsHorizontalResize: true
+        )
+
+        contentView.layoutSubtreeIfNeeded()
+
+        XCTAssertTrue(contentView.hitTest(NSPoint(x: 2, y: 112)) === contentView.leftResizeHandle)
+        XCTAssertTrue(contentView.hitTest(NSPoint(x: 378, y: 112)) === contentView.rightResizeHandle)
+        XCTAssertTrue(contentView.hitTest(NSPoint(x: 190, y: 112)) === hostedView)
+        XCTAssertTrue(contentView.acceptsFirstMouse(for: nil))
+        XCTAssertTrue(contentView.mouseDownCanMoveWindow)
+        XCTAssertTrue(contentView.leftResizeHandle.acceptsFirstMouse(for: nil))
+        XCTAssertFalse(contentView.leftResizeHandle.mouseDownCanMoveWindow)
+
+        contentView.leftResizeHandle.updateTrackingAreas()
+        let trackingOptions = contentView.leftResizeHandle.trackingAreas.map(\.options)
+        XCTAssertTrue(trackingOptions.contains { options in
+            options.contains(.mouseEnteredAndExited)
+                && options.contains(.activeAlways)
+                && options.contains(.inVisibleRect)
+        })
+
+        contentView.frame.size.width = 760
+        contentView.needsLayout = true
+        contentView.layoutSubtreeIfNeeded()
+        XCTAssertTrue(contentView.hitTest(NSPoint(x: 758, y: 112)) === contentView.rightResizeHandle)
+
+        contentView.allowsHorizontalResize = false
+        XCTAssertTrue(contentView.hitTest(NSPoint(x: 2, y: 112)) === hostedView)
+        XCTAssertFalse(contentView.acceptsFirstMouse(for: nil))
     }
 
     @MainActor

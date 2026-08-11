@@ -130,7 +130,7 @@ Quick input opens a compact activatable card near the pointer on the current dis
 
 ### 中文
 
-结果卡片先稳定定位和显示骨架，再接收流式内容；文本增长不得反复改变锚点。默认显示译文，用户可以展开对照原文。顶部状态行保留入口、当前翻译 API 配置、固定与关闭；其下独立语言行左侧显示源语言，右侧显示实际目标语言。卡片提供：
+结果卡片先稳定定位和显示紧凑骨架，再接收流式内容；短译文不预留大块空白。卡片以 380pt 作为默认和最小宽度，用户可从原生窗口边缘或角落拖动到最多 760pt，实际最大值同时受当前屏幕可见工作区约束；宽度改变后译文按新行宽重排，并重新计算内容驱动高度。流式文本增长只沿远离选区/指针的方向平滑增高，保持初始锚定边和水平位置不变，不重播出现动画；每次高度动画结束后按当前会话和实时宽度做一次无动画最终校正，不能因首个 delta 与入场动画重叠而留下过时外框。达到当前屏幕可见工作区 60% 的最大高度后，外框停止增长，译文正文内部滚动。默认显示译文，用户可以展开对照原文。顶部状态行保留入口、当前翻译 API 配置、固定与关闭；其下独立语言行左侧显示源语言，右侧显示实际目标语言。卡片提供：
 
 - 复制译文；
 - 重试当前请求；
@@ -143,7 +143,7 @@ Quick input opens a compact activatable card near the pointer on the current dis
 
 ### English
 
-The result card establishes a stable position and shell before accepting streamed content; text growth must not repeatedly move its anchor. Translation is shown by default, with source comparison available on demand. The top status row retains the entry, current translation API profile, pin, and close controls. A separate language row below shows source on the left and the effective target on the right. The card provides:
+The result card establishes a stable position and compact shell before accepting streamed content; short translations do not reserve a large empty area. Its default and minimum width is 380pt. Users can drag native window edges or corners up to 760pt, with the actual maximum also constrained by the current screen's visible workspace; changing width reflows translation text and recomputes the content-driven height. As streamed text wraps to additional lines, the card grows smoothly away from the selection/pointer while keeping its initial anchored edge and horizontal position stable, without replaying the entry animation; after each height animation, it performs one no-animation final reconciliation against the current session and live width so an early delta overlapping entry cannot leave a stale outer frame. At 60% of the current screen's visible workspace, the outer frame stops growing and the translation body scrolls internally. Translation is shown by default, with source comparison available on demand. The top status row retains the entry, current translation API profile, pin, and close controls. A separate language row below shows source on the left and the effective target on the right. The card provides:
 
 - copy translation;
 - retry current request;

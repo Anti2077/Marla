@@ -142,7 +142,7 @@ All other spacing follows a 4pt grid. Pointer controls may retain compact macOS 
 
 ### 中文
 
-卡片默认宽 380pt，可根据屏幕空间在 320–520pt 之间调整；最大高度为当前屏幕可见工作区的 60%，超出后正文内部滚动。卡片与选区或指针保持 8pt 安全间隔，并完整限制在可见工作区内。
+卡片默认和最小宽度为 380pt；用户可从原生式窗口边缘或角落拖动到最多 760pt，实际最大宽度取 760pt 与当前屏幕可见工作区减去 16pt 安全边距中的较小值。无边框面板在 SwiftUI 内容上方提供左右各 8pt、覆盖完整高度与角落的透明 AppKit 手柄，持续显示横向 resize 光标并接收首击，但不增加可见控件或无障碍噪声。译文按新行宽重排，总高度随内容重新计算。短译文和等待状态从约 224pt 的紧凑内容高度开始，随着流式译文换行逐步增高。最大高度为当前屏幕可见工作区的 60%，达到上限后外框停止增长、译文正文内部滚动。卡片与选区或指针保持 8pt 安全间隔，并完整限制在可见工作区内。结果卡首次定位后，自动高度增长保持靠近选区/指针的锚定边和水平位置不变，增长只作用于远离锚点的一边；用户调宽时尊重正在拖动的窗口边缘，并继续限制在可见工作区内。
 
 布局从上到下为：
 
@@ -156,11 +156,11 @@ All other spacing follows a 4pt grid. Pointer controls may retain compact macOS 
 
 卡片的标志性细节是“稳定流式游标”：等待首字时在译文首行使用低对比度呼吸点；首个 delta 到达后转为克制的尾部插入游标；完成时在 120ms 内淡出。它只表达状态，不循环播放装饰动画。
 
-卡片出现前计算最终锚点，使用 160ms ease-out 的 4pt 位移与淡入。流式文本只改变内部内容，不重复执行出现动画。固定时使用 180ms 的轻弹性位置确认，不改变卡片尺寸。用户可从非控件区域拖动卡片；外层阴影只由 AppKit 面板绘制，SwiftUI 内容裁切到连续圆角，避免窗口底角出现矩形边缘。
+卡片出现前计算最终锚点，使用 160ms ease-out 的 4pt 位移与淡入。流式文本只改变内部内容，不重复执行出现动画；每次高度动画结束后，协调器必须按当前会话和实时宽度做一次无动画最终校正，避免首个 delta 与出现动画重叠时留下过时外框。固定时使用 180ms 的轻弹性位置确认，不改变卡片尺寸。用户可从非控件区域拖动卡片；外层阴影只由 AppKit 面板绘制，SwiftUI 内容裁切到连续圆角，避免窗口底角出现矩形边缘。
 
 ### English
 
-The card defaults to 380pt wide and adapts between 320–520pt for available screen space. Maximum height is 60% of the current screen's visible work area; body content scrolls beyond that. The card keeps an 8pt safe gap from selection or pointer and remains fully inside the visible work area.
+The card defaults to a minimum width of 380pt. Users can drag native-style window edges or corners up to the smaller of 760pt and the current screen's visible work area minus a 16pt safety inset. Above the SwiftUI content, the borderless panel supplies transparent 8pt AppKit handles covering the full left and right heights including corners. They keep the horizontal resize cursor stable and accept the first click without adding a visible control or accessibility noise. Translation reflows at the new line width and total height is recomputed from content. Short translations and waiting states start at a compact content-driven height of about 224pt and grow as streamed text wraps to more lines. Maximum height is 60% of the current screen's visible work area; the outer frame stops there and the translation body scrolls beyond that. The card keeps an 8pt safe gap from selection or pointer and remains fully inside the visible work area. After first placement, automatic height growth keeps the anchored edge near the selection/pointer and the horizontal position stable, affecting only the edge away from the anchor. User-driven width changes respect the window edge being dragged and remain constrained to the visible work area.
 
 Top-to-bottom structure:
 
@@ -174,7 +174,7 @@ Language menus use one semantic secondary surface, SF Symbols, and the 4/8/12pt 
 
 The card's signature detail is a stable streaming caret. Before first token, a low-contrast breathing dot occupies the first translation line. After the first delta, it becomes a restrained trailing insertion caret and fades out within 120ms on completion. It communicates state and never loops as decoration.
 
-The final anchor is computed before presentation. Entry uses a 160ms ease-out fade with 4pt movement. Streamed text changes internal content only and never replays entry motion. Pinning uses a light 180ms positional confirmation without resizing the card. The card is draggable from non-control regions. AppKit alone owns the outer shadow, while SwiftUI content clips to continuous corners so no rectangular edge protrudes at the bottom.
+The final anchor is computed before presentation. Entry uses a 160ms ease-out fade with 4pt movement. Streamed text changes internal content only and never replays entry motion; after each height animation completes, the coordinator must reconcile once without animation against the current session and live width so an early delta overlapping entry cannot leave a stale outer frame. Pinning uses a light 180ms positional confirmation without resizing the card. The card is draggable from non-control regions. AppKit alone owns the outer shadow, while SwiftUI content clips to continuous corners so no rectangular edge protrudes at the bottom.
 
 ## 5. 截图框选层 / Screenshot Selection Layer
 
@@ -194,13 +194,13 @@ Its signature detail is a single 120ms inward confirmation of the four corners b
 
 ### 中文
 
-快速输入复用结果卡片外壳，初始宽度 420pt。输入区至少显示三行但按内容增长到卡片最大高度；底部清楚显示 `⌘Return` 提交和 `Esc` 关闭。主要动作由键盘完成，不添加巨大提交按钮。
+快速输入复用结果卡片外壳，初始宽度 420pt，并沿用结果卡 380–760pt 的原生边缘/角落调宽范围。输入区至少显示三行但按内容增长到卡片最大高度；底部清楚显示 `⌘Return` 提交和 `Esc` 关闭。主要动作由键盘完成，不添加巨大提交按钮。
 
 输入状态复用结果卡语言行：提交前左侧可选择自动识别或显式源语言，右侧显示按当前母语/第二语言偏好计算的实际目标并允许覆盖。两个菜单保持紧凑，不使用旧固定中英胶囊或渐变。
 
 ### English
 
-Quick input reuses the result-card shell and starts at 420pt wide. The editor shows at least three lines and grows with content up to the card maximum. The footer clearly shows `⌘Return` to submit and `Esc` to close. Keyboard is primary; no oversized submit button is added.
+Quick input reuses the result-card shell, starts at 420pt wide, and inherits the result card's native edge/corner resizing range of 380–760pt. The editor shows at least three lines and grows with content up to the card maximum. The footer clearly shows `⌘Return` to submit and `Esc` to close. Keyboard is primary; no oversized submit button is added.
 
 The input state reuses the result-card language row. Before submission the left menu selects automatic or explicit source, while the right shows the effective target derived from current native/secondary preferences and allows an override. Both menus remain compact, with no fixed Chinese-English capsule or gradient.
 
@@ -276,6 +276,10 @@ TASK-011 真实 Release App 验收：固定路径 `artifacts/Marla_dev.app` 的 
 
 TASK-019 真实 Release App 验收：固定路径 `artifacts/Marla_dev.app` 生成翻译语言设置浅色/深色、结果卡浅色/深色/Reduce Motion、快速输入浅色/深色证据，位于 `artifacts/ui-review/task-019/`。首轮结果卡截图发现 macOS Menu 把复合 label 压平后只显示“源语言 → 目标语言”，设置菜单也出现重复箭头；改为单行实际值并移除重复箭头后已重新构建、签名和采集。最终 380pt 卡片清楚显示“自动识别：English → 简体中文”，API 配置留在顶行，420pt 快速输入无截断。五维评审为 8/8/8/8/7，全部达到门槛。
 
+TASK-020 真实 Release App 验收：固定路径 `artifacts/Marla_dev.app` 的结果卡从 224pt 紧凑高度开始，streaming-growth 中间阶段约 309pt，长译文在约 644pt（当前可见工作区 60%）封顶并保留标题、语言和操作行；浅色、深色和 Reduce Motion 均无布局回归。截图按项目默认规则保存在 `/private/tmp` 临时目录，五维评审为 8/8/8/9/7，全部达到门槛。
+
+TASK-021 Release 证据：当前固定 App 的 380pt 截图为 760px，760pt 截图为 1520px；浅色、深色、Reduce Motion 和长文本封顶无视觉回归，五维评审为 8/8/8/8/7。第一版边缘无法拖动，父内容视图命中区又只让横向光标闪现，后续手工 NSCursor、轮询和 Carbon 方案也被真实非激活面板复验否定。当前版本使用隐藏标题栏的 titled/resizable 几何和位于 SwiftUI 内容上方的 8pt AppKit 手柄；手柄从 `resetCursorRects()` 注册 macOS 15+ frame-resize 光标并接管同一拖动序列，窗口在非 key 状态直接重建全部 cursor rectangles。宽度与既有视觉证据仍有效；本轮增加了高度动画完成后的最新会话 frame reconciliation，并将非激活回归场景提前到 40ms 以覆盖入场竞态。`./scripts/check.sh` 与固定 Release 打包均通过，LaunchServices 竞态截图 `/private/tmp/marla-task-021-height-race-final.png` 中译文、分隔线和操作行完整可见；项目所有者真实划词复验仍待完成。
+
 ### English
 
 After implementation, invoke the `swiftui-design-skill` five-dimension review and retain real-app screenshot evidence for:
@@ -305,3 +309,7 @@ TASK-010 real Release App acceptance: the fixed `artifacts/Marla_dev.app` produc
 TASK-011 real Release App acceptance: the fixed `artifacts/Marla_dev.app` gives the API editor's first row an 8pt scroll-content safety inset. Frontmost light/dark windows captured by verified Core Graphics Window ID show all four sides of the system blue Focus Ring, with no field or bottom-action layout regression; evidence is under `artifacts/ui-review/task-011/`. Five-dimension scores are Philosophy Alignment 8/10, Visual Hierarchy 8/10, Craft Quality 9/10, Functionality 8/10, and Originality 7/10; every dimension meets the threshold.
 
 TASK-019 real Release App acceptance: the fixed `artifacts/Marla_dev.app` produced Translation Languages Settings light/dark, result-card light/dark/Reduce Motion, and quick-input light/dark evidence under `artifacts/ui-review/task-019/`. The first result-card capture exposed macOS Menu flattening that showed only “Source Language → Target Language” and duplicate Settings chevrons. After switching to one visible effective value and removing duplicate chevrons, the app was rebuilt, signed, and fully recaptured. The final 380pt card clearly reads “Auto-detected: English → Simplified Chinese,” retains the API profile in the top row, and fits quick input at 420pt without truncation. Five-dimension scores are 8/8/8/8/7; every dimension meets the threshold.
+
+TASK-020 real Release App acceptance: the fixed `artifacts/Marla_dev.app` starts result cards at 224pt, reaches approximately 309pt in the streaming-growth intermediate stage, and caps long translation at approximately 644pt (60% of the visible workspace) while keeping header, language, and action rows visible. Light, dark, and Reduce Motion show no layout regression. Screenshots remain in `/private/tmp` under the project's ephemeral-screenshot policy; five-dimension scores are 8/8/8/9/7, meeting the threshold in every dimension.
+
+TASK-021 Release evidence: the current fixed App renders 380pt at 760px and 760pt at 1520px. Light, dark, Reduce Motion, and capped long text show no visual regression, scoring 8/8/8/8/7. The first edge implementation could not be dragged, while the parent-content hit zone only flashed the horizontal cursor; later manual NSCursor, polling, and Carbon approaches were also rejected by real nonactivating-panel trials. The current build uses hidden titled/resizable geometry plus 8pt AppKit handles above SwiftUI. Each handle registers the macOS 15+ frame-resize cursor from `resetCursorRects()` and owns the matching drag sequence, while the non-key window directly rebuilds all cursor rectangles. Width and prior visual evidence remain valid; this pass adds latest-session frame reconciliation after each height animation and moves the nonactivating regression scenario to 40ms to cover overlap with entry animation. `./scripts/check.sh` and the fixed Release packaging pass, and the LaunchServices capture `/private/tmp/marla-task-021-height-race-final.png` keeps translation, dividers, and actions fully visible; project-owner real selection retest remains pending.

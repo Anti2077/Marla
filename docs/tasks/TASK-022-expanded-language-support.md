@@ -154,10 +154,10 @@ None for the four-language expansion. Any request to add the remaining Qwen-MT l
 
 ## Completion record
 
-- Verified commit: Pending until the authorized commit completes
+- Verified commit: `978294e` (TASK-022 implementation and documentation)
 - Automated evidence: 2026-08-12 `./scripts/check.sh` 与 `./scripts/build-test-app.sh` 通过；真实图片 XCTest 在 OSStatus -6662 时 skip，沙盒外探针验证日/韩/中/英自动 OCR
 - Manual evidence: `/private/tmp/marla-task-022-languages-light.png` 仅覆盖浅色设置页；深色、Reduce Motion、结果卡长标签和快速输入菜单仍待真实可见窗口
-- Documentation updated: Yes (未提交工作树)
+- Documentation updated: Yes
 - Remaining work promoted to: None
 - Scope changes closed: Yes（Vision 修复已实现；固定 Release 的真实截图 OCR 与路由仍作为发布验收缺口记录）
 - Parallel contributions integrated: None

@@ -31,7 +31,7 @@ No `ContextSnapshot` fields cross the translation boundary in 0.1.0. The type re
 
 ## FFI translation request
 
-The Swift/Rust translation boundary uses UTF-8 JSON request `schemaVersion: 2` while provider events remain schema version 1. A request contains a request ID, exact source text, an optional resolved source language, one explicit resolved target language, endpoint configuration, optional request-scoped credential, and timeouts. Supported language codes are `zh-Hans`, `en`, and `ja`. A missing source means the Provider may detect source; target is never implicit at the Rust boundary. Rust copies request bytes synchronously and never retains a Swift buffer.
+The Swift/Rust translation boundary uses UTF-8 JSON request `schemaVersion: 2` while provider events remain schema version 1. A request contains a request ID, exact source text, an optional resolved source language, one explicit resolved target language, endpoint configuration, optional request-scoped credential, and timeouts. Supported language codes are `zh-Hans`, `en`, `ja`, `fr`, `es`, `de`, and `ko`. A missing source means the Provider may detect source; target is never implicit at the Rust boundary. Rust copies request bytes synchronously and never retains a Swift buffer.
 
 Swift snapshots native/secondary preferences into each card, resolves automatic routing before encoding, and preserves that snapshot across retry or API-profile switching. Source/target UI changes create a new request ID from the existing source text. Detection identifiers and confidence are not persisted.
 

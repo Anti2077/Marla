@@ -4,7 +4,7 @@
 
 版本 / Version: 0.1.0
 
-最后更新 / Last updated: 2026-08-10
+最后更新 / Last updated: 2026-08-12
 
 > 本文每节先给出中文规范，再给出英文镜像。发生歧义时以中文为准；两种语言必须在同一次修改中同步。
 >
@@ -100,7 +100,7 @@ When no text is selected, Marla does not silently use arbitrary existing clipboa
 
 截图入口先在任何框选窗口出现前把所有活动显示器捕获为会话内存中的静态帧，再用这些冻结帧显示覆盖所有显示器的轻量框选层。依赖悬停的弹层保留触发瞬间画面，视频和动画在框选阶段显示为静止帧。系统十字光标旁显示来自同一冻结帧的短生命周期像素放大镜、中心准星和指针坐标，并在显示器边缘自动换位；拖动期间展示清晰边界和尺寸反馈，选区内外不得露出后续实时桌面。`Esc`、右键或未形成有效区域时取消，不进行 OCR、翻译或持久化。`Esc` 由当前截图会话统一处理，并同时保留 View、窗口 `sendEvent`/key-equivalent/`cancelOperation`、本地/全局监听和会话级系统事件 tap 路径，不依赖某一个框选 View 保持键盘焦点；会话结束后必须移除临时按键监听。冻结帧和放大镜采样只存在于当前框选会话内存中。进入框选时，Marla 临时隐藏自己已打开的设置窗口；框选结束后只恢复其原有可见状态，不得让设置窗口越过框选层或抢占源应用焦点。
 
-确认区域后直接从同一组冻结帧按跨屏坐标和显示器缩放合成裁剪，不再次捕获实时桌面。随后释放全屏冻结帧，只在内存中保留裁剪图像，并使用 macOS Vision `VNRecognizeTextRequest` 本地识别。0.1.0 只保留纯文本、行顺序和换行，不承诺表格、公式、代码块、Markdown 或页面布局恢复。识别出的文字进入与其他入口相同的翻译管线，截图像素不进入 Rust 网络请求，也不上传给翻译服务。
+确认区域后直接从同一组冻结帧按跨屏坐标和显示器缩放合成裁剪，不再次捕获实时桌面。随后释放全屏冻结帧，只在内存中保留裁剪图像，并使用 macOS Vision `VNRecognizeTextRequest` 本地识别。Vision 必须开启自动语言检测，并只把当前运行时实际支持的七门产品语言 OCR 标识作为候选；不能用固定中英文配置阻断日语、韩语或其它已适配语言。0.1.0 只保留纯文本、行顺序和换行，不承诺表格、公式、代码块、Markdown 或页面布局恢复。识别出的文字进入与其他入口相同的翻译管线，截图像素不进入 Rust 网络请求，也不上传给翻译服务。
 
 没有识别到文字时显示重新框选和关闭操作，不发送空翻译请求。
 
@@ -108,7 +108,7 @@ When no text is selected, Marla does not silently use arbitrary existing clipboa
 
 Before showing any selection window, the screenshot entry captures every active display into session-only static frames and uses those frozen frames for the lightweight cross-display selection layer. Hover-dependent surfaces retain their trigger-time appearance, and video or animation appears paused during selection. A short-lived pixel loupe from the same frozen frame beside the system crosshair shows a center reticle and pointer coordinates, flipping sides near display edges. Dragging shows a clear boundary and size feedback; neither the selected area nor the dimmed background may reveal the later live desktop. `Esc`, right-click, or an invalid region cancels without OCR, translation, or persistence. The active screenshot session owns `Esc` handling and retains View, window `sendEvent`/key-equivalent/`cancelOperation`, local/global monitor, and session-scoped system event-tap routes instead of relying on any one selection view to retain keyboard focus; all temporary key monitors are removed when the session finishes. Frozen frames and loupe sampling exist only in memory for the active selection session. When selection starts, Marla temporarily hides any open Settings window of its own. After selection, it only restores the previous visibility state; Settings may not rise above the selection layer or steal focus from the source application.
 
-After confirmation, Marla composites the crop directly from the same frozen frames using cross-display coordinates and display scales; it does not recapture the live desktop. It then releases the full-display frames, keeps only the crop in memory, and uses macOS Vision `VNRecognizeTextRequest` for local recognition. 0.1.0 preserves plain text, line order, and line breaks only; it does not promise table, formula, code-block, Markdown, or page-layout recovery. Recognized text enters the same translation pipeline as other entries. Screenshot pixels never enter the Rust network request and are never uploaded to the translation service.
+After confirmation, Marla composites the crop directly from the same frozen frames using cross-display coordinates and display scales; it does not recapture the live desktop. It then releases the full-display frames, keeps only the crop in memory, and uses macOS Vision `VNRecognizeTextRequest` for local recognition. Vision must enable automatic language detection and use only the seven product-language OCR identifiers that the current runtime actually supports; a fixed Chinese/English configuration may not block Japanese, Korean, or another adapted language. 0.1.0 preserves plain text, line order, and line breaks only; it does not promise table, formula, code-block, Markdown, or page-layout recovery. Recognized text enters the same translation pipeline as other entries. Screenshot pixels never enter the Rust network request and are never uploaded to the translation service.
 
 When no text is recognized, the result offers reselect and close actions and sends no empty translation request.
 
@@ -158,21 +158,21 @@ Selection and screenshot cards do not activate Marla when first presented. Click
 
 ### 中文
 
-设置中的“翻译语言”页面提供全局母语和第二语言，首批选项为简体中文（`zh-Hans`）、English（`en`）和日本語（`ja`），两者不能相同，默认分别为简体中文和 English。设置变化只影响之后的新翻译，不静默重译已经打开的卡片。
+设置中的“翻译语言”页面提供全局母语和第二语言，产品选项为简体中文（`zh-Hans`）、English（`en`）、日本語（`ja`）、Français（`fr`）、Español（`es`）、Deutsch（`de`）和 한국어（`ko`），两者不能相同，默认分别为简体中文和 English。设置变化只影响之后的新翻译，不静默重译已经打开的卡片。
 
-Swift 在本机用 `NLLanguageRecognizer` 处理本次明确触发的原文。系统识别到的中文家族在首期归一为简体中文；支持的识别结果在请求前进入会话。自动目标规则为：源语言等于母语时译成第二语言，其他支持语言或未知源语言译成母语。无法映射为首期语言时显示“自动识别：未知”，目标仍明确为母语，并让 Provider 自动识别源语言。
+Swift 在本机用 `NLLanguageRecognizer` 处理本次明确触发的原文。系统识别到的中文家族归一为简体中文；支持的识别结果在请求前进入会话。自动目标规则为：源语言等于母语时译成第二语言，其他支持语言或未知源语言译成母语。无法映射为产品语言时显示“自动识别：未知”，目标仍明确为母语，并让 Provider 自动识别源语言。
 
-结果卡源语言菜单提供自动识别和三个首期语言，目标菜单提供自动路由和三个首期语言。源语言覆盖只在目标仍为自动时重新路由；手动目标始终具有最高优先级。语言切换使用已有原文重新翻译。
+结果卡源语言菜单提供自动识别和全部七门产品语言，目标菜单提供自动路由和全部七门产品语言。源语言覆盖只在目标仍为自动时重新路由；手动目标始终具有最高优先级。语言切换使用已有原文重新翻译。
 
 提示词必须把源文本明确标记为数据而不是指令，并要求尽量保留换行、标点、专有名词、代码标识符和终端参数。
 
 ### English
 
-The Translation Languages Settings page provides one global native language and one different secondary language. The first choices are Simplified Chinese (`zh-Hans`), English (`en`), and Japanese (`ja`), defaulting to Simplified Chinese and English. Setting changes affect future translations only and do not silently retranslate an open card.
+The Translation Languages Settings page provides one global native language and one different secondary language. Product choices are Simplified Chinese (`zh-Hans`), English (`en`), Japanese (`ja`), French (`fr`), Spanish (`es`), German (`de`), and Korean (`ko`), defaulting to Simplified Chinese and English. Setting changes affect future translations only and do not silently retranslate an open card.
 
 Swift uses `NLLanguageRecognizer` locally on the explicitly triggered source. System-detected Chinese variants normalize to the Simplified Chinese product option, and supported results enter the session before the request. Automatic routing sends the native language to the secondary language and every other supported or unknown source to the native language. An unmapped result is shown as “Auto-detected: Unknown”; the target is still explicitly the native language while the Provider detects source.
 
-The result-card source menu provides automatic detection and all three initial languages. The target menu provides automatic routing and all three languages. A source override recomputes direction only while target remains automatic; an explicit target always wins. Language changes retranslate already acquired source text.
+The result-card source menu provides automatic detection and all seven product languages. The target menu provides automatic routing and all seven languages. A source override recomputes direction only while target remains automatic; an explicit target always wins. Language changes retranslate already acquired source text.
 
 The prompt must clearly delimit source text as data rather than instructions and request preservation of line breaks, punctuation, proper nouns, code identifiers, and terminal arguments when practical.
 

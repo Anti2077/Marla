@@ -138,7 +138,11 @@ final class MarlaCoreTests: XCTestCase {
         XCTAssertEqual(TranslationLanguage(normalizing: "zh-Hant"), .simplifiedChinese)
         XCTAssertEqual(TranslationLanguage(normalizing: "en-US"), .english)
         XCTAssertEqual(TranslationLanguage(normalizing: "ja-JP"), .japanese)
-        XCTAssertNil(TranslationLanguage(normalizing: "fr"))
+        XCTAssertEqual(TranslationLanguage(normalizing: "fr-FR"), .french)
+        XCTAssertEqual(TranslationLanguage(normalizing: "es-MX"), .spanish)
+        XCTAssertEqual(TranslationLanguage(normalizing: "de-DE"), .german)
+        XCTAssertEqual(TranslationLanguage(normalizing: "ko-KR"), .korean)
+        XCTAssertNil(TranslationLanguage(normalizing: "it"))
 
         for nativeLanguage in TranslationLanguage.allCases {
             for secondaryLanguage in TranslationLanguage.allCases where secondaryLanguage != nativeLanguage {

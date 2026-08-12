@@ -794,7 +794,7 @@ Related: `SPEC.md` 当前自动方向、macOS `NaturalLanguage`、Rust translati
 
 ### 与当前发布和实现的关系
 
-项目所有者已在 2026-08-10 明确授权创建分支并开发本想法。首期在 [TASK-019](../tasks/TASK-019-configurable-language-routing.md) 中实现简体中文、English、日本語的全局母语/第二语言设置、本机源语言识别、结果卡源/目标双下拉和一致的 Swift/Rust Provider 路由；繁体中文独立选项、语言质量风格和按 profile 偏好仍不在首期范围。
+项目所有者已在 2026-08-10 明确授权创建分支并开发本想法。首期在 [TASK-019](../tasks/TASK-019-configurable-language-routing.md) 中实现简体中文、English、日本語的全局母语/第二语言设置、本机源语言识别、结果卡源/目标双下拉和一致的 Swift/Rust Provider 路由；2026-08-11 的 [TASK-022](../tasks/TASK-022-expanded-language-support.md) 在同一边界上扩展 Français、Español、Deutsch、한국어。繁体中文独立选项、语言质量风格和按 profile 偏好仍不在当前范围。
 
 ### 进入开发的条件
 
@@ -815,7 +815,7 @@ Related: `SPEC.md` 当前自动方向、macOS `NaturalLanguage`、Rust translati
 
 ### 下一步
 
-TASK-019 已完成首期实现、自动化、固定签名 Release 打包和真实 UI 五维审查。本机 `NLLanguageRecognizer` 中英日短文本探测证明常见句子可用；极短、纯汉字与代码混排继续使用未知降级和可见源语言覆盖。繁体中文独立选项、语言质量风格和按 profile 偏好仍需新的明确授权。
+TASK-019 已完成首期实现、自动化、固定签名 Release 打包和真实 UI 五维审查。本机 `NLLanguageRecognizer` 中英日短文本探测证明常见句子可用；极短、纯汉字与代码混排继续使用未知降级和可见源语言覆盖。TASK-022 正在把产品集合扩展到法、西、德、韩，并将其余 Qwen-MT 语言留作后续候选。繁体中文独立选项、语言质量风格和按 profile 偏好仍需新的明确授权。
 
 
 ## 新想法模板

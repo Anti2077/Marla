@@ -1,8 +1,10 @@
 import AppKit
+import CoreText
 import MarlaCore
 import SwiftUI
 @testable import MarlaApp
 import XCTest
+import Vision
 
 @MainActor
 private final class FakeSelectionClipboard: SelectionClipboardAccess {
@@ -110,23 +112,105 @@ final class MarlaAppTests: XCTestCase {
         XCTAssertEqual(settings.nativeLanguage, .simplifiedChinese)
         XCTAssertEqual(settings.secondaryLanguage, .english)
 
-        settings.setNativeLanguage(.japanese)
-        settings.setSecondaryLanguage(.simplifiedChinese)
-        settings.setSecondaryLanguage(.japanese)
+        settings.setNativeLanguage(.korean)
+        settings.setSecondaryLanguage(.french)
+        settings.setSecondaryLanguage(.korean)
 
-        XCTAssertEqual(settings.nativeLanguage, .japanese)
-        XCTAssertEqual(settings.secondaryLanguage, .simplifiedChinese)
+        XCTAssertEqual(settings.nativeLanguage, .korean)
+        XCTAssertEqual(settings.secondaryLanguage, .french)
 
         let restored = MarlaSettingsStore(defaults: defaults, keychain: keychain)
-        XCTAssertEqual(restored.nativeLanguage, .japanese)
-        XCTAssertEqual(restored.secondaryLanguage, .simplifiedChinese)
+        XCTAssertEqual(restored.nativeLanguage, .korean)
+        XCTAssertEqual(restored.secondaryLanguage, .french)
     }
 
-    func testSystemSourceLanguageDetectorCoversCommonChineseEnglishAndJapanese() {
+    func testSystemSourceLanguageDetectorCoversSupportedLanguages() {
         XCTAssertEqual(SystemSourceLanguageDetector.detect("Hello world"), .english)
         XCTAssertEqual(SystemSourceLanguageDetector.detect("这是中文"), .simplifiedChinese)
         XCTAssertEqual(SystemSourceLanguageDetector.detect("これは日本語です"), .japanese)
+        XCTAssertEqual(
+            SystemSourceLanguageDetector.detect("Ceci est une phrase courte au sujet du logiciel."),
+            .french
+        )
+        XCTAssertEqual(
+            SystemSourceLanguageDetector.detect("Esta es una frase corta sobre software."),
+            .spanish
+        )
+        XCTAssertEqual(
+            SystemSourceLanguageDetector.detect("Dies ist ein kurzer Satz über Software."),
+            .german
+        )
+        XCTAssertEqual(
+            SystemSourceLanguageDetector.detect("이것은 소프트웨어에 대한 짧은 문장입니다."),
+            .korean
+        )
         XCTAssertNil(SystemSourceLanguageDetector.detect("1234 --"))
+    }
+
+    func testVisionOCRConfigurationCoversAvailableProductLanguages() {
+        XCTAssertEqual(
+            VisionOCRConfiguration.productRecognitionLanguages,
+            ["zh-Hans", "en-US", "ja-JP", "fr-FR", "es-ES", "de-DE", "ko-KR"]
+        )
+        XCTAssertEqual(
+            VisionOCRConfiguration.availableRecognitionLanguages(
+                from: ["ko-KR", "en-US", "ar-SA", "ja-JP", "zh-Hans"]
+            ),
+            ["zh-Hans", "en-US", "ja-JP", "ko-KR"]
+        )
+
+        let request = VNRecognizeTextRequest()
+        VisionOCRConfiguration.configure(request)
+
+        XCTAssertEqual(request.recognitionLevel, .accurate)
+        XCTAssertTrue(request.usesLanguageCorrection)
+        XCTAssertTrue(request.automaticallyDetectsLanguage)
+        let supportedLanguages = (try? request.supportedRecognitionLanguages()) ?? []
+        if !supportedLanguages.isEmpty {
+            XCTAssertEqual(
+                request.recognitionLanguages,
+                VisionOCRConfiguration.availableRecognitionLanguages(from: supportedLanguages)
+            )
+        }
+        if supportedLanguages.contains("ja-JP") {
+            XCTAssertTrue(request.recognitionLanguages.contains("ja-JP"))
+        }
+        if supportedLanguages.contains("ko-KR") {
+            XCTAssertTrue(request.recognitionLanguages.contains("ko-KR"))
+        }
+    }
+
+    @MainActor
+    func testVisionOCRRecognizesJapaneseScreenshotText() async throws {
+        try requireVisionRecognitionLanguage("ja-JP")
+        let document = try await recognizeVision(
+            makeTextImage("これは日本語の文章です。画面の文字を認識します。")
+        )
+        XCTAssertTrue(document.plainText.contains("日本語"), document.plainText)
+    }
+
+    @MainActor
+    func testVisionOCRRecognizesKoreanScreenshotText() async throws {
+        try requireVisionRecognitionLanguage("ko-KR")
+        let document = try await recognizeVision(
+            makeTextImage("이것은 한국어 문장입니다. 화면의 글자를 인식합니다.")
+        )
+        XCTAssertTrue(document.plainText.contains("한국어"), document.plainText)
+    }
+
+    @MainActor
+    func testVisionOCRStillRecognizesChineseAndEnglishScreenshotText() async throws {
+        try requireVisionRecognitionLanguage("zh-Hans")
+        try requireVisionRecognitionLanguage("en-US")
+        let chinese = try await recognizeVision(
+            makeTextImage("这是简体中文句子。识别屏幕上的文字。")
+        )
+        let english = try await recognizeVision(
+            makeTextImage("This is an English sentence for screen recognition.")
+        )
+
+        XCTAssertTrue(chinese.plainText.contains("简体中文"), chinese.plainText)
+        XCTAssertTrue(english.plainText.contains("English"), english.plainText)
     }
 
     @MainActor
@@ -1967,5 +2051,59 @@ final class MarlaAppTests: XCTestCase {
         context.setFillColor(color.cgColor)
         context.fill(CGRect(x: 0, y: 0, width: width, height: height))
         return try XCTUnwrap(context.makeImage())
+    }
+
+    private func requireVisionRecognitionLanguage(_ language: String) throws {
+        let request = VNRecognizeTextRequest()
+        request.recognitionLevel = .accurate
+        let supportedLanguages = try request.supportedRecognitionLanguages()
+        guard supportedLanguages.contains(language) else {
+            throw XCTSkip("The current Vision runtime does not support \(language).")
+        }
+    }
+
+    @MainActor
+    private func makeTextImage(_ text: String) throws -> CGImage {
+        let width = 1_200
+        let height = 180
+        let context = try XCTUnwrap(
+            CGContext(
+                data: nil,
+                width: width,
+                height: height,
+                bitsPerComponent: 8,
+                bytesPerRow: 0,
+                space: CGColorSpaceCreateDeviceRGB(),
+                bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+            )
+        )
+        context.setFillColor(NSColor.white.cgColor)
+        context.fill(CGRect(x: 0, y: 0, width: width, height: height))
+
+        let font = try XCTUnwrap(CTFontCreateUIFontForLanguage(.system, 42, nil))
+        let attributedText = NSAttributedString(
+            string: text,
+            attributes: [
+                .font: font,
+                .foregroundColor: NSColor.black.cgColor
+            ]
+        )
+        let line = CTLineCreateWithAttributedString(attributedText)
+        context.textPosition = CGPoint(x: 24, y: 58)
+        CTLineDraw(line, context)
+        return try XCTUnwrap(context.makeImage())
+    }
+
+    @MainActor
+    private func recognizeVision(_ image: CGImage) async throws -> OCRDocument {
+        do {
+            return try await VisionOCRService().recognize(image)
+        } catch let error as NSError
+            where error.domain == NSOSStatusErrorDomain && error.code == -6662
+        {
+            throw XCTSkip(
+                "Vision's xctest process cannot create a CVPixelBuffer on this host (OSStatus -6662); run the same image probe outside XCTest."
+            )
+        }
     }
 }

@@ -2,7 +2,7 @@
 
 ## Status
 
-Implemented under TASK-019; fixed-App visual and live-provider verification is in progress.
+Implemented under TASK-019 and expanded under TASK-022; current expanded-language artifact verification is in progress.
 
 ## Goal
 
@@ -10,7 +10,9 @@ Choose a predictable translation direction from one global native language and o
 
 ## Supported languages
 
-The first product set is Simplified Chinese (`zh-Hans`), English (`en`), and Japanese (`ja`). System-detected Chinese variants normalize to the Simplified Chinese product option; Traditional Chinese is not yet an independent preference.
+The product set is Simplified Chinese (`zh-Hans`), English (`en`), Japanese (`ja`), French (`fr`), Spanish (`es`), German (`de`), and Korean (`ko`). System-detected Chinese variants normalize to the Simplified Chinese product option; Traditional Chinese is not yet an independent preference.
+
+macOS Natural Language recognized representative full-sentence samples for all seven product languages on the TASK-022 development system. Qwen-MT's current provider documentation lists 92 languages, including the four TASK-022 additions, but languages outside Marla's product set are not treated as supported until local detection, Swift/Rust validation, UI density, and provider mapping are explicitly verified.
 
 ## Routing
 
@@ -22,7 +24,7 @@ The first product set is Simplified Chinese (`zh-Hans`), English (`en`), and Jap
 
 ## Detection and degradation
 
-Swift uses macOS `NLLanguageRecognizer` on the explicitly triggered source text before starting the network request. The recognized text, identifier, and hypotheses are not persisted. Common Chinese, English, and Japanese results map into the supported set. Unsupported or non-linguistic results are shown as unknown; Marla then routes to the native language and lets the Provider detect source unless the user selects an explicit source.
+For screenshot input, Vision first enables automatic language detection and intersects the seven product OCR identifiers with the current runtime's supported recognition languages. Swift then uses macOS `NLLanguageRecognizer` on the resulting plain text, or on text acquired by another entry, before starting the network request. The recognized text, identifier, and hypotheses are not persisted. Common results from all seven product languages map into the supported set. Unsupported or non-linguistic results are shown as unknown; Marla then routes to the native language and lets the Provider detect source unless the user selects an explicit source.
 
 ## Provider boundary
 

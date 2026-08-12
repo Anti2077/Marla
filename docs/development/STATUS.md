@@ -1,6 +1,6 @@
 # Project Status
 
-Last updated: 2026-08-11
+Last updated: 2026-08-12
 
 Release target: 0.1.0 Alpha
 
@@ -15,7 +15,9 @@ Blocked tasks:
 
 ## Current objective
 
-TASK-021 已完成：结果卡支持 380–760pt 横向调整，流式译文在未达到 60% 高度上限前完整推动窗口增长，动画竞态会在完成后按最新会话和宽度校正，且非激活划词路径的光标与拖动已完成实机复验。当前没有 Active implementation Task；TASK-016 与 TASK-013 继续保持 Blocked。
+TASK-022 已完成实现并收束：Français、Español、Deutsch、한국어 已接入既有语言路由、UI 菜单和 Swift/Rust 请求合同；Vision 已改为自动语言检测并按运行时能力过滤七门产品 OCR 候选。真实固定 Release 的日语/韩语截图路由仍是发布验收缺口；其余 Qwen-MT 语言暂不视为已适配。后续工作回到发布验证清单。
+
+TASK-021 已完成：结果卡支持 380–760pt 横向调整，流式译文在未达到 60% 高度上限前完整推动窗口增长，动画竞态会在完成后按最新会话和宽度校正，且非激活划词路径的光标与拖动已完成实机复验。TASK-016 与 TASK-013 继续保持 Blocked。
 
 ## Current implemented baseline
 
@@ -25,7 +27,7 @@ TASK-021 已完成：结果卡支持 380–760pt 横向调整，流式译文在�
 - Accessibility selection reader with standard range and Web Text Marker support, trigger-time frontmost-app binding, frontmost-app/window/focused roots, identity-checked system focused-application roots, dual application/system-wide pointer hit paths, renderer/helper identity checks, global graph deduplication, ungated AX child probes, and bounded pointer fallback.
 - Default-off Copy compatibility that snapshots every readable pasteboard representation, accepts only a new Copy result, restores on success/failure/cancellation, avoids overwriting a newer external write, rejects focus changes, and reports only redacted lifecycle evidence.
 - Selection translation always uses the complete nearby result card; the rejected single-line source-covering and pointer-estimate prototype has been removed together with its setting and runtime path.
-- Pre-selection full-display ScreenCaptureKit freezing with Marla-window exclusion, same-frame cross-display selection/loupe/crop composition, in-memory Vision OCR, stable line order, and text-only translation requests.
+- Pre-selection full-display ScreenCaptureKit freezing with Marla-window exclusion, same-frame cross-display selection/loupe/crop composition, in-memory Vision OCR with automatic language detection and runtime-filtered candidates for the seven product languages, stable line order, and text-only translation requests.
 - Embedded Rust static library with versioned C ABI, shared async runtime, generic OpenAI-compatible SSE, Qwen-MT adaptation, timeouts, cancellation, and stale-event isolation.
 - Grouped Settings, Carbon shortcuts, Keychain credential storage, permission guidance, light/dark appearance, Reduce Motion, and verified test-app packaging.
 - Xcode SwiftUI previews for the main menu, Settings, translation-card states, and quick input, with preview-safe fixtures that avoid system integrations.
@@ -36,7 +38,7 @@ TASK-021 已完成：结果卡支持 380–760pt 横向调整，流式译文在�
 - Every API profile supports explicit Base URL or Complete URL semantics. The editor uses an inline Base/Complete switch and can fetch a Rust-owned `/models` list with the current profile credential, then expand and select a model at the bottom of the form.
 - The API editor gives its first scroll-content row an 8pt focus-ring safety inset, keeping the native macOS Focus Ring complete in light and dark appearance.
 - Settings use a five-page native sidebar including Translation Languages, plus a summary-only API list and independently clipped editor sheet; global shortcuts have persistent switches, result cards support background dragging, and screenshot selection includes an in-memory 6× pointer magnifier.
-- Global native/secondary preferences support Simplified Chinese, English, and Japanese. New sessions locally detect source language, route native to secondary and other/unknown source to native, expose source/target overrides in the result card and quick input, and send consistent explicit target semantics through generic and Qwen-MT providers.
+- Global native/secondary preferences support Simplified Chinese, English, Japanese, French, Spanish, German, and Korean under TASK-022. New sessions locally detect source language, route native to secondary and other/unknown source to native, expose source/target overrides in the result card and quick input, and send consistent explicit target semantics through generic and Qwen-MT providers; expanded-language Release UI verification remains pending.
 - Settings use a transparent full-size title bar with traffic lights inside one continuous four-corner surface, hidden scroll indicators, and a fixed `Esc` screenshot-cancellation row. Screenshot selection temporarily suspends an open Settings window and restores it without activating it; `Esc` cancellation is owned by the active selection session rather than a single view's first-responder state, with window key-equivalent/cancel-operation routing and a listen-only event-tap fallback.
 - Translation API profiles have persistent enabled states and only enabled profiles can be selected or invoked. The summary list uses native switches, a Set Default/Delete menu, accessibility move actions, and a trailing reorder handle. Settings content no longer moves the window; the newest fixed App uses a complete-row drag preview and 220ms animated hover reordering, pending owner confirmation of that final pointer feedback.
 - Project-scoped Serena 1.6.1 provides read-only Swift/Rust semantic navigation through Codex. A custom Context and fixed tool allowlist expose only nine retrieval/diagnostic tools; source edits, shell, project switching, onboarding, memories, Dashboard, and Headroom remain disabled.
@@ -48,6 +50,7 @@ Implementation baseline commit: `27203b5`.
 - Full release selection verification remains incomplete in Terminal, Safari, TextEdit, Zen, Ghostty, and the final VSCodium build.
 - Real screenshot `Esc` cancellation needs re-verification after the project owner reproduced a regression against the older TASK-009 evidence.
 - Real screenshot crop accuracy and Screen Recording permission persistence remain unverified across representative display layouts.
+- Real Japanese, Korean, Chinese, and English screenshot OCR plus source-language routing require final verification in the fixed Release App after the TASK-022 Vision repair.
 - P95 shell latency, Rust-delta-to-visible-Swift latency, and idle/translation/Vision memory budgets have not been measured.
 - The unchecked items in `docs/versions/0.1.0/ACCEPTANCE.md` remain authoritative release gaps.
 
@@ -70,10 +73,12 @@ TASK-015 已完成；剩余发布矩阵继续保留在 BL-001，截图 `Esc` 与
 - Screenshot coordinate conversion has unit coverage but not a final visual comparison against the real selected region.
 - The fixed-path development App is locally signed, not Developer ID signed or notarized; it is not a public distribution artifact.
 - Real DashScope Qwen-MT translation succeeded, but representative TTFT, throughput, and live error mapping remain unmeasured.
+- TASK-022 的 Swift/Rust 语言合同与 Vision 修复已实现：七门语言的归一/路由、设置持久化、通用提示词、Qwen-MT 映射、未适配代码拒绝和 Vision 配置均有回归测试。最新固定 Release 已重建并签名通过；当前 xctest 图形服务无法创建 Vision CVPixelBuffer（OSStatus -6662），沙盒外探针已证明自动检测下日/韩/中/英样本有结果；现场固定 App 截图 OCR、长标签和完整窗口验收保留在发布缺口，不阻止本 Task 收束。
 
 ## Latest verification
 
 - TASK-021 已完成：宽度、非激活光标/拖动、源应用焦点和多次结果替换均已验收；本轮针对未封顶高度少算，增加了按 SwiftUI 实际行高补足的 `ResultCardLayout` 测量、真实 `NSHostingView` 回归，以及每次高度动画结束后按最新会话/宽度执行一次无动画 frame reconciliation。40ms 非激活场景覆盖了首个 delta 与 160ms 入场动画重叠的竞态。`./scripts/check.sh` 通过 17 Rust、80 MarlaApp、13 MarlaCore、Swift Package、Xcode Debug、格式/空白/diff；固定 Release 与 `/private/tmp/marla-task-021-height-race-final.png` 均验证通过。
+- TASK-022：`./scripts/check.sh` 通过 18 Rust、84 MarlaApp（3 项 Vision 图片回归因 OSStatus -6662 明确 skip）、13 MarlaCore、Swift Package、非沙盒 Xcode Debug、格式/空白/diff；`./scripts/build-test-app.sh` 重建并验证固定签名 `artifacts/Marla_dev.app`。沙盒外探针验证自动检测下日/韩/中/英样本；现场固定 App 截图 OCR 和窗口视觉验收仍待完成。实现已按项目所有者授权收束，待本轮提交并推送。
 - TASK-020 is complete. `./scripts/check.sh` passes 17 Rust, 71 MarlaApp Swift, and 13 MarlaCore Swift tests plus Swift/Xcode Debug, formatting, whitespace, and diff checks; the fixed Release `artifacts/Marla_dev.app` passes Bundle ID/version/minimum-system/arm64/stable-signature/designated-requirement verification. Real Release captures in `/private/tmp` show 224pt compact, approximately 309pt intermediate growth, approximately 644pt capped growth, dark appearance, and Reduce Motion; five-dimension review scores 8/8/8/9/7. Screenshots remain ephemeral per project policy and were not added to the repository.
 - TASK-019 is complete on `Anti2077/ideas-012-translation-languages` with uncommitted branch changes. After the project-owner removal decision, `./scripts/check.sh` passes 17 Rust and 81 Swift tests plus Swift/Xcode Debug, formatting, whitespace, and diff checks; six dedicated inline-experiment tests were removed with that feature. The stable-signed fixed Release passes Bundle ID/version/minimum-system/arm64/signature/designated-requirement verification. Language settings, result-card, and quick-input captures under `artifacts/ui-review/task-019/` retain scores 8/8/8/8/7; final General light/dark captures without the Experimental section are under `artifacts/ui-review/task-019-removal/` and score 8/8/8/9/7. A live Japanese request against the Keychain-backed profile was not run because a new acceptance process raised system authorization; mock-provider payload tests verify `ja` mapping without exposing credentials.
 - TASK-018 is complete at implementation commit `27203b5`. It captures every active display before presenting selection windows, excludes Marla's own windows, redraws the background/undimmed selection/loupe from the same frozen frame set, and composites the final crop without a second live capture. Cross-display mixed-scale layout tests pass; `./scripts/check.sh` passes 17 Rust and 83 Swift tests plus Swift/Xcode Debug, and the stable-signed fixed Release passes packaging. Three 3420×2224 Release captures under `artifacts/ui-review/task-018/` cover light, dark, and Reduce Motion and score 8/8/8/7/7. The project owner accepted Task closure; remaining real-environment evidence is tracked by BL-002/BL-003 rather than reported as verified.

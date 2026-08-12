@@ -446,6 +446,10 @@ fn language_name(language: &str) -> Option<&'static str> {
         "en" => Some("English"),
         "zh-Hans" => Some("Simplified Chinese"),
         "ja" => Some("Japanese"),
+        "fr" => Some("French"),
+        "es" => Some("Spanish"),
+        "de" => Some("German"),
+        "ko" => Some("Korean"),
         _ => None,
     }
 }
@@ -455,6 +459,10 @@ fn qwen_language_name(language: &str) -> Option<&'static str> {
         "en" => Some("English"),
         "zh-Hans" => Some("Chinese"),
         "ja" => Some("Japanese"),
+        "fr" => Some("French"),
+        "es" => Some("Spanish"),
+        "de" => Some("German"),
+        "ko" => Some("Korean"),
         _ => None,
     }
 }
@@ -1161,9 +1169,10 @@ mod tests {
     use super::{
         Endpoint, EndpointURLMode, MarlaTranslationEventCallback, SseDecoder, SseEvent,
         StreamContentMode, Surface, Target, Timeouts, TranslationEvent, TranslationRequest,
-        classify_surface, endpoint_url, marla_model_list_start, marla_translation_cancel,
-        marla_translation_release, marla_translation_start, model_list_url,
-        normalized_stream_delta, request_json, system_prompt, validate_request,
+        classify_surface, endpoint_url, language_name, marla_model_list_start,
+        marla_translation_cancel, marla_translation_release, marla_translation_start,
+        model_list_url, normalized_stream_delta, qwen_language_name, request_json, system_prompt,
+        validate_request,
     };
     use std::io::{Read, Write};
     use std::net::TcpListener;
@@ -1239,6 +1248,39 @@ mod tests {
     }
 
     #[test]
+    fn maps_every_product_language_for_generic_and_qwen_requests() {
+        let mappings = [
+            ("en", "English", "English"),
+            ("zh-Hans", "Simplified Chinese", "Chinese"),
+            ("ja", "Japanese", "Japanese"),
+            ("fr", "French", "French"),
+            ("es", "Spanish", "Spanish"),
+            ("de", "German", "German"),
+            ("ko", "Korean", "Korean"),
+        ];
+
+        for (code, generic_name, qwen_name) in mappings {
+            assert_eq!(language_name(code), Some(generic_name));
+            assert_eq!(qwen_language_name(code), Some(qwen_name));
+
+            let mut request = valid_request();
+            request.endpoint.model = "qwen-mt-flash".to_string();
+            request.source_language = Some(code.to_string());
+            request.target = Target {
+                mode: "explicit".to_string(),
+                language: Some(code.to_string()),
+            };
+            assert!(validate_request(&request).is_ok());
+            let prompt = system_prompt(&request);
+            assert!(prompt.contains(&format!("The source language is {generic_name}.")));
+            assert!(prompt.contains(&format!("Translate to {generic_name}.")));
+            let payload = request_json(&request);
+            assert_eq!(payload["translation_options"]["source_lang"], qwen_name);
+            assert_eq!(payload["translation_options"]["target_lang"], qwen_name);
+        }
+    }
+
+    #[test]
     fn validates_schema_target_and_endpoint() {
         let mut request = valid_request();
         assert_eq!(
@@ -1248,7 +1290,7 @@ mod tests {
 
         request.target = Target {
             mode: "explicit".to_string(),
-            language: Some("fr".to_string()),
+            language: Some("it".to_string()),
         };
         assert!(validate_request(&request).is_err());
 

@@ -45,6 +45,10 @@ public enum TranslationLanguage: String, Codable, CaseIterable, Identifiable, Se
     case simplifiedChinese = "zh-Hans"
     case english = "en"
     case japanese = "ja"
+    case french = "fr"
+    case spanish = "es"
+    case german = "de"
+    case korean = "ko"
 
     public var id: String { rawValue }
 
@@ -53,6 +57,10 @@ public enum TranslationLanguage: String, Codable, CaseIterable, Identifiable, Se
         case .simplifiedChinese: "简体中文"
         case .english: "English"
         case .japanese: "日本語"
+        case .french: "Français"
+        case .spanish: "Español"
+        case .german: "Deutsch"
+        case .korean: "한국어"
         }
     }
 
@@ -65,6 +73,14 @@ public enum TranslationLanguage: String, Codable, CaseIterable, Identifiable, Se
             self = .english
         } else if normalized == "ja" || normalized.hasPrefix("ja-") {
             self = .japanese
+        } else if normalized == "fr" || normalized.hasPrefix("fr-") {
+            self = .french
+        } else if normalized == "es" || normalized.hasPrefix("es-") {
+            self = .spanish
+        } else if normalized == "de" || normalized.hasPrefix("de-") {
+            self = .german
+        } else if normalized == "ko" || normalized.hasPrefix("ko-") {
+            self = .korean
         } else {
             return nil
         }
@@ -109,6 +125,10 @@ public struct TranslationTarget: Codable, Equatable, Sendable {
     public static let simplifiedChinese = TranslationTarget.explicit(.simplifiedChinese)
     public static let english = TranslationTarget.explicit(.english)
     public static let japanese = TranslationTarget.explicit(.japanese)
+    public static let french = TranslationTarget.explicit(.french)
+    public static let spanish = TranslationTarget.explicit(.spanish)
+    public static let german = TranslationTarget.explicit(.german)
+    public static let korean = TranslationTarget.explicit(.korean)
 
     public static func explicit(_ language: TranslationLanguage) -> TranslationTarget {
         TranslationTarget(mode: .explicit, language: language)

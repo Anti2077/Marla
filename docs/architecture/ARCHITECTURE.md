@@ -60,7 +60,7 @@ Uses ScreenCaptureKit to capture every active display before presenting selectio
 
 ### OCR provider
 
-macOS Vision is the only 0.1.0 OCR provider. It normalizes recognized lines into stable plain-text blocks and reading order. Cloud GLM-OCR and layout-aware blocks remain post-0.1.0 under ADR-0002 and ADR-0005.
+macOS Vision is the only 0.1.0 OCR provider. It enables automatic language detection, limits explicit candidates to the seven product-language identifiers supported by the current Vision runtime, and normalizes recognized lines into stable plain-text blocks and reading order. Cloud GLM-OCR and layout-aware blocks remain post-0.1.0 under ADR-0002 and ADR-0005.
 
 ### Context engine
 
@@ -70,7 +70,7 @@ The accepted future engine may build bounded context only when translation is tr
 
 Version 0.1.0 exposes multiple named OpenAI-compatible Chat Completions streaming profiles, with an ordered enabled subset, one enabled default for new sessions when available, and explicit switching among enabled profiles on result cards. Each profile supplies a URL mode, address, model, optional API Key, and persisted enabled state. Base URL mode appends `/chat/completions`; Complete URL mode preserves the supplied request URL. Rust also derives and requests the standard `/models` endpoint for the current URL mode, returning provider-independent model IDs through the versioned asynchronous C ABI. Swift persists non-sensitive profile data and enabled/order/default invariants in preferences, while all profile credentials use independent logical entries inside one versioned Keychain vault item. The vault is loaded after application launch and cached for the process so translation and profile switching perform no Keychain lookup. Model discovery and connection testing receive the current non-empty editor key draft before falling back to the cached profile credential. Rust owns URL resolution, model discovery, request prompting, SSE parsing, timeouts, explicit retry, cancellation, and normalized events. No default vendor or automatic fallback is selected.
 
-Swift also persists one global native language and a different secondary language from the `zh-Hans`/`en`/`ja` product set. For each explicitly triggered source, Swift uses macOS Natural Language locally, snapshots the detected/overridden source plus preferences into the card, resolves automatic target routing, and sends JSON request schema v2 with optional source and explicit target. Rust validates those codes and owns the final generic prompt or Qwen-MT parameter mapping. An unknown source uses Provider source detection but still has an explicit native-language target; detection text, identifier, and confidence are not persisted.
+Swift also persists one global native language and a different secondary language from the `zh-Hans`/`en`/`ja`/`fr`/`es`/`de`/`ko` product set. For each explicitly triggered source, Swift uses macOS Natural Language locally, snapshots the detected/overridden source plus preferences into the card, resolves automatic target routing, and sends JSON request schema v2 with optional source and explicit target. Rust validates those codes and owns the final generic prompt or Qwen-MT parameter mapping. An unknown source uses Provider source detection but still has an explicit native-language target; detection text, identifier, and confidence are not persisted.
 
 ### Presentation
 

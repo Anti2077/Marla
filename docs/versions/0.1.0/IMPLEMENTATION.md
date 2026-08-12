@@ -18,7 +18,7 @@
 
 翻译 API profile 由 Swift 按稳定 UUID 有序持久化，启用状态和其它非敏感字段保存在偏好；全部 profile Key 作为独立逻辑条目保存在一个版本化 Keychain vault item 中。`MarlaSettingsStore` 不在构造期读取 Keychain；`MarlaApplicationModel` 在 App 完成启动后调用 vault 加载和旧 item 迁移，成功写入完整 vault 后才删除旧凭据。所有 scoped store 共享进程内 account→Key 缓存，翻译和配置切换只读取缓存，拒绝回退到物理 profile item。`MarlaSettingsStore` 保证默认 profile 属于启用集合；全部停用时默认值为空。结果卡只读取启用集合，`endpoint(for:)` 和切换入口再次拒绝停用项。API 列表由本地拖动 ID 驱动 `DropDelegate` 的悬停重排，`dropEntered` 在动画事务内持久化新顺序；被拖稳定 ID 的行隐藏内容但保留等高空槽，使空槽随顺序更新移动。AppKit `NSDraggingItem` 只携带透明 1×1pt 图像维持原生 drop；独立的非激活无边框 `NSPanel` 以固定 580×76pt 绘制可见整行，并由 `draggingSession(_:movedTo:)` 根据屏幕指针坐标与最初手柄抓取点直接移动，因此不进入系统拖拽图缩放管线。拖动结束后 Panel 立即隐藏，原行内容以短促淡入恢复到空槽，设置内容背景不参与窗口拖动。API 编辑器的模型获取与连接测试共用 `APIKeyDraftResolver`，非空草稿优先且不会先读取 Keychain 回退值。
 
-TASK-019 增加全局母语/第二语言偏好（`zh-Hans`、`en`、`ja`），Swift 在每次明确触发的原文上运行 `NLLanguageRecognizer`，把支持的识别结果和偏好快照写入 `CardSession`，并在网络请求前解析明确目标。结果卡顶部只保留 API profile 与窗口控制，第二行提供源/目标菜单；未知源语言显示可见降级并路由到母语。源覆盖只重算自动目标，显式目标保持最高优先级；重试和 API 切换保留当前卡片语言快照。
+TASK-019/TASK-022 增加全局母语/第二语言偏好（`zh-Hans`、`en`、`ja`、`fr`、`es`、`de`、`ko`），Swift 在每次明确触发的原文上运行 `NLLanguageRecognizer`，把支持的识别结果和偏好快照写入 `CardSession`，并在网络请求前解析明确目标。结果卡顶部只保留 API profile 与窗口控制，第二行提供源/目标菜单；未知源语言显示可见降级并路由到母语。源覆盖只重算自动目标，显式目标保持最高优先级；重试和 API 切换保留当前卡片语言快照。
 
 TASK-020 将结果卡从固定 300pt 改为内容驱动布局：`ResultCardLayout` 用系统字体换行测量短/中/长译文，默认约 224pt，最大不超过当前可见工作区 60%。`FloatingPanelCoordinator` 在会话发布新流式内容后按同一策略调整 AppKit 面板；有选区时保持靠近选区的边，指针降级时保持中心，Reduce Motion 下不做尺寸动画。达到上限后，译文 `ScrollView` 保留滚动视口，标题、语言、对照与操作区不被挤出。测量同时按实际渲染行高补足 AppKit `boundingRect` 与 SwiftUI `Text` 的逐行差值。
 
@@ -34,7 +34,7 @@ Credential migration runs from `applicationDidFinishLaunching`, reusing one `LAC
 
 Swift persists translation API profiles in order under stable UUIDs, with enabled state and other non-sensitive fields in preferences. All profile keys live as independent logical entries inside one versioned Keychain vault item. `MarlaSettingsStore` does not read the Keychain during construction; after the App finishes launching, `MarlaApplicationModel` loads the vault and migrates legacy physical items, deleting them only after the complete vault is written. All scoped stores share an in-process account-to-key cache, and translation/profile switching never falls back to a physical profile item. `MarlaSettingsStore` keeps the default inside the enabled set and uses no default when every profile is disabled. Result cards read only the enabled set, while `endpoint(for:)` and the switch entry reject disabled profiles again. The API list feeds a local drag identifier into a `DropDelegate` for hover reordering, and `dropEntered` persists the new order inside an animation transaction. The row carrying the dragged stable ID hides its content but retains a full-height empty slot, so the slot moves with the updated order. The AppKit `NSDraggingItem` carries only a transparent 1×1pt image to preserve native drop handling. A separate nonactivating borderless `NSPanel` renders the visible row at a fixed 580×76pt and moves through `draggingSession(_:movedTo:)` using the screen pointer and original handle grab point, bypassing the system drag-image scaling pipeline. When dragging ends, the panel hides immediately and row content fades back into the slot. The Settings content background never participates in window dragging. Model discovery and connection testing in the API editor share `APIKeyDraftResolver`, preferring a non-empty draft without first reading the Keychain fallback.
 
-TASK-019 adds global native/secondary preferences (`zh-Hans`, `en`, and `ja`). Swift runs `NLLanguageRecognizer` only on each explicitly triggered source, snapshots supported detection plus preferences into `CardSession`, and resolves one explicit target before networking. The card header now keeps only API profile and window controls; a second row contains source and target menus. Unknown source is a visible degradation routed to native. A source override recomputes automatic target only, explicit target remains highest priority, and retry/API switching preserve the card's language snapshot.
+TASK-019/TASK-022 add global native/secondary preferences (`zh-Hans`, `en`, `ja`, `fr`, `es`, `de`, and `ko`). Swift runs `NLLanguageRecognizer` only on each explicitly triggered source, snapshots supported detection plus preferences into `CardSession`, and resolves one explicit target before networking. The card header now keeps only API profile and window controls; a second row contains source and target menus. Unknown source is a visible degradation routed to native. A source override recomputes automatic target only, explicit target remains highest priority, and retry/API switching preserve the card's language snapshot.
 
 TASK-020 changes the result card from a fixed 300pt frame to content-driven layout. `ResultCardLayout` measures wrapped short/medium/long translations with the system font, starting around 224pt and never exceeding 60% of the current visible workspace. `FloatingPanelCoordinator` resizes the AppKit panel when the session publishes new stream content; it keeps the edge nearest a selection fixed, keeps the pointer fallback centered, and skips size animation with Reduce Motion. The measurement also compensates for the per-line difference between AppKit `boundingRect` and SwiftUI `Text`. Once capped, the translation `ScrollView` keeps a body viewport while header, language, comparison, and actions remain visible.
 
@@ -201,7 +201,7 @@ Rules:
 }
 ```
 
-翻译请求 schema v2 的 `sourceLanguage` 可以为空，或为 `zh-Hans`、`en`、`ja`；空值表示 Provider 继续识别源语言。`target.mode` 在 Rust 边界必须为 `explicit`，且 `language` 为同一首期语言集合之一。自动策略已经由 Swift 按当前卡片的母语/第二语言快照解析。所有文本按 UTF-8 传输；去除首尾纯空白只用于空值校验，实际翻译内容保留用户原始换行。事件 schema 继续使用版本 1。
+翻译请求 schema v2 的 `sourceLanguage` 可以为空，或为 `zh-Hans`、`en`、`ja`、`fr`、`es`、`de`、`ko`；空值表示 Provider 继续识别源语言。`target.mode` 在 Rust 边界必须为 `explicit`，且 `language` 为同一产品语言集合之一。自动策略已经由 Swift 按当前卡片的母语/第二语言快照解析。所有文本按 UTF-8 传输；去除首尾纯空白只用于空值校验，实际翻译内容保留用户原始换行。事件 schema 继续使用版本 1。
 
 事件 schema 同样固定为版本 1：
 
@@ -244,7 +244,7 @@ Request schema is fixed at version 1:
 }
 ```
 
-Translation request schema v2 allows `sourceLanguage` to be absent or one of `zh-Hans`, `en`, and `ja`; absence lets the Provider detect source. At the Rust boundary `target.mode` must be `explicit`, with `language` from the same initial set. Swift has already resolved automatic policy against the card's native/secondary snapshot. All text is UTF-8; leading/trailing whitespace is trimmed only for empty validation, and the translated payload preserves original line breaks. Event schema remains version 1.
+Translation request schema v2 allows `sourceLanguage` to be absent or one of `zh-Hans`, `en`, `ja`, `fr`, `es`, `de`, and `ko`; absence lets the Provider detect source. At the Rust boundary `target.mode` must be `explicit`, with `language` from the same product set. Swift has already resolved automatic policy against the card's native/secondary snapshot. All text is UTF-8; leading/trailing whitespace is trimmed only for empty validation, and the translated payload preserves original line breaks. Event schema remains version 1.
 
 Event schema is also fixed at version 1:
 
@@ -268,9 +268,9 @@ Rust 使用单个进程级异步运行时和一个共享 HTTP Client。OpenAI-co
 
 SSE 解析接受 `data:` 帧、空行分隔、跨网络分片的 UTF-8、`[DONE]` 和 `finish_reason` 完成。通用端点读取 `choices[0].delta.content` 并容忍没有内容的角色帧。无法解析的有效 HTTP 响应返回 `invalid_response`；HTTP 200 流内的 Provider 错误也必须映射为失败事件，不得把原始响应体直接展示给用户或写入日志。
 
-通用模型的系统提示词把用户输入视为待翻译数据，使用 Swift 解析后的可选源语言和明确目标语言；源语言未知时才要求模型识别。目标支持简体中文、English 和日本語。提示词只允许输出译文，并要求保留换行、标点、专有名词、代码标识符和终端参数；源文本继续使用明确分隔符包裹。
+通用模型的系统提示词把用户输入视为待翻译数据，使用 Swift 解析后的可选源语言和明确目标语言；源语言未知时才要求模型识别。目标支持七门产品语言：简体中文、English、日本語、Français、Español、Deutsch 和 한국어。提示词只允许输出译文，并要求保留换行、标点、专有名词、代码标识符和终端参数；源文本继续使用明确分隔符包裹。
 
-当模型名以 `qwen-mt-` 开头时，Rust 使用 Qwen-MT 的兼容协议：不发送 `system` 角色，把 `zh-Hans`/`en`/`ja` 映射为 `Chinese`/`English`/`Japanese` 的 `translation_options.source_lang` / `target_lang`，未知源语言使用 `auto`，并把 Provider 返回的累计 `delta.content` 归一化为 Marla 的增量事件。其他模型使用上述通用 OpenAI-compatible 系统提示词。
+当模型名以 `qwen-mt-` 开头时，Rust 使用 Qwen-MT 的兼容协议：不发送 `system` 角色，把 `zh-Hans`/`en`/`ja`/`fr`/`es`/`de`/`ko` 映射为 `Chinese`/`English`/`Japanese`/`French`/`Spanish`/`German`/`Korean` 的 `translation_options.source_lang` / `target_lang`，未知源语言使用 `auto`，并把 Provider 返回的累计 `delta.content` 归一化为 Marla 的增量事件。其他模型使用上述通用 OpenAI-compatible 系统提示词。
 
 不做可能造成重复计费的静默自动重试。连接失败、超时、429 和流中断都产生可重试错误，只有用户按“重试”才创建新 request ID。首个 delta 后的部分内容保留在 Swift 会话中。
 
@@ -280,9 +280,9 @@ Rust uses one process-wide asynchronous runtime and one shared HTTP client. The 
 
 SSE parsing accepts `data:` frames, blank-line separation, UTF-8 split across network chunks, `[DONE]`, and `finish_reason` completion. Generic endpoints read `choices[0].delta.content` while tolerating role frames with no content. An unparseable successful HTTP response becomes `invalid_response`; provider errors carried inside an HTTP 200 stream also become failed events. Raw response bodies are neither shown to the user nor logged.
 
-The generic-model system prompt treats user input as translation data and uses Swift's optional resolved source plus explicit target; it asks the model to detect source only when source is unknown. Targets support Simplified Chinese, English, and Japanese. Output is translation only, preserving line breaks, punctuation, proper nouns, code identifiers, and terminal arguments, with clear source delimiters.
+The generic-model system prompt treats user input as translation data and uses Swift's optional resolved source plus explicit target; it asks the model to detect source only when source is unknown. Targets support the seven product languages: Simplified Chinese, English, Japanese, French, Spanish, German, and Korean. Output is translation only, preserving line breaks, punctuation, proper nouns, code identifiers, and terminal arguments, with clear source delimiters.
 
-When the model name starts with `qwen-mt-`, Rust uses the Qwen-MT-compatible protocol with no `system` role. It maps `zh-Hans`/`en`/`ja` to `Chinese`/`English`/`Japanese` in `translation_options.source_lang` / `target_lang`, uses `auto` only for unknown source, and normalizes cumulative `delta.content` into Marla incremental events. Other models use the generic OpenAI-compatible prompt above.
+When the model name starts with `qwen-mt-`, Rust uses the Qwen-MT-compatible protocol with no `system` role. It maps `zh-Hans`/`en`/`ja`/`fr`/`es`/`de`/`ko` to `Chinese`/`English`/`Japanese`/`French`/`Spanish`/`German`/`Korean` in `translation_options.source_lang` / `target_lang`, uses `auto` only for unknown source, and normalizes cumulative `delta.content` into Marla incremental events. Other models use the generic OpenAI-compatible prompt above.
 
 There is no silent automatic retry that could duplicate billing. Connection failure, timeout, 429, and interrupted stream produce retryable errors; only the Retry action creates a new request ID. Partial content after the first delta remains in the Swift session.
 
@@ -292,21 +292,21 @@ There is no silent automatic retry that could duplicate billing. Connection fail
 
 **划词**：从触发瞬间的前台进程和聚焦 Accessibility 元素开始，在有界后代树内读取 `AXSelectedText`、`AXSelectedTextRange` / `AXStringForRange`，或 Electron/WebArea 使用的 `AXSelectedTextMarkerRange` / `AXStringForTextMarkerRange`。标准范围优先用 `AXBoundsForRange`，Text Marker 优先用 `AXBoundsForTextMarkerRange`。不读取附近文字和窗口标题，不把已有 Rust 应用分类放入请求；坐标不可用时使用触发时指针位置。
 
-**截图**：在创建任何框选窗口前，每个活动显示器分别使用 ScreenCaptureKit 捕获完整静态帧，并明确排除 Marla 自身应用窗口。AppKit 框选层、未调暗选区和像素放大镜只绘制这些会话内冻结帧。确认后不再次捕获实时桌面，而是把 AppKit 全局左下原点选区与各显示器 frame 相交，按冻结图像像素缩放中的最高值合成最终裁剪；全屏帧随框选会话释放，裁剪立即交给 Vision。`VNRecognizeTextRequest` 使用 `.accurate`，配置简体中文和 English 识别，并把候选按屏幕阅读顺序归一化为带稳定行 ID、边界和置信度的 `OCRDocument`。只有其换行纯文本进入翻译请求；不调用 GLM-OCR，不上传像素。
+**截图**：在创建任何框选窗口前，每个活动显示器分别使用 ScreenCaptureKit 捕获完整静态帧，并明确排除 Marla 自身应用窗口。AppKit 框选层、未调暗选区和像素放大镜只绘制这些会话内冻结帧。确认后不再次捕获实时桌面，而是把 AppKit 全局左下原点选区与各显示器 frame 相交，按冻结图像像素缩放中的最高值合成最终裁剪；全屏帧随框选会话释放，裁剪立即交给 Vision。`VNRecognizeTextRequest` 使用 `.accurate` 和语言校正，开启自动语言检测，并把当前运行时支持列表与 `zh-Hans`、`en-US`、`ja-JP`、`fr-FR`、`es-ES`、`de-DE`、`ko-KR` 求交集后作为候选；能力查询失败或交集为空时保留 Vision 默认候选，避免强写不支持的标识。候选按屏幕阅读顺序归一化为带稳定行 ID、边界和置信度的 `OCRDocument`。只有其换行纯文本进入翻译请求；不调用 GLM-OCR，不上传像素。
 
 **快速输入**：SwiftUI 编辑器本地持有草稿；提交前不跨 FFI。空白校验通过后创建与其他入口相同的翻译请求。
 
-**语言识别**：所有入口取得纯文本后在 Swift 主流程中用 `NLLanguageRecognizer` 识别一次。系统中文家族归一为 `zh-Hans`；只有 `zh-Hans`、`en`、`ja` 进入明确源语言字段，其他结果降级为未知。识别结果与偏好随卡片存在，不写入磁盘或日志。
+**语言识别**：所有入口取得纯文本后在 Swift 主流程中用 `NLLanguageRecognizer` 识别一次。系统中文家族归一为 `zh-Hans`；`zh-Hans`、`en`、`ja`、`fr`、`es`、`de`、`ko` 进入明确源语言字段，其他结果降级为未知。识别结果与偏好随卡片存在，不写入磁盘或日志。
 
 ### English
 
 **Selection**: starting from the trigger-time frontmost process and focused Accessibility element, search a bounded descendant tree for `AXSelectedText`, `AXSelectedTextRange` / `AXStringForRange`, or the `AXSelectedTextMarkerRange` / `AXStringForTextMarkerRange` attributes used by Electron WebAreas. Standard ranges prefer `AXBoundsForRange`; Text Markers prefer `AXBoundsForTextMarkerRange`. Do not read nearby text or window title, and do not include the existing Rust app classification in the request. Use the trigger-time pointer when geometry is unavailable.
 
-**Screenshot**: before creating any selection window, ScreenCaptureKit captures a complete static frame for every active display while explicitly excluding Marla's own application windows. The AppKit selection layer, undimmed selected region, and pixel loupe draw only these session-frozen frames. Confirmation does not recapture the live desktop. Instead, it intersects the AppKit global bottom-left selection with each display frame and composites the final crop at the highest frozen-image pixel scale. Full-display frames are released with the selection session and the crop immediately enters Vision. `VNRecognizeTextRequest` uses `.accurate`, is configured for Simplified Chinese and English, and normalizes candidates into an `OCRDocument` with stable line IDs, bounds, confidence, and reading order. Only its newline-joined text enters the translation request; do not call GLM-OCR or upload pixels.
+**Screenshot**: before creating any selection window, ScreenCaptureKit captures a complete static frame for every active display while explicitly excluding Marla's own application windows. The AppKit selection layer, undimmed selected region, and pixel loupe draw only these session-frozen frames. Confirmation does not recapture the live desktop. Instead, it intersects the AppKit global bottom-left selection with each display frame and composites the final crop at the highest frozen-image pixel scale. Full-display frames are released with the selection session and the crop immediately enters Vision. `VNRecognizeTextRequest` uses `.accurate` with language correction, enables automatic language detection, and intersects the current runtime support list with `zh-Hans`, `en-US`, `ja-JP`, `fr-FR`, `es-ES`, `de-DE`, and `ko-KR`; if capability lookup fails or the intersection is empty, it preserves Vision's default candidates rather than forcing unsupported identifiers. Candidates become an `OCRDocument` with stable line IDs, bounds, confidence, and reading order. Only its newline-joined text enters the translation request; do not call GLM-OCR or upload pixels.
 
 **Quick input**: the SwiftUI editor owns its draft locally and crosses no FFI boundary before submission. After whitespace validation, it creates the same translation request as other entries.
 
-**Language detection**: after every entry obtains plain text, Swift runs `NLLanguageRecognizer` once in the local flow. System Chinese variants normalize to `zh-Hans`; only `zh-Hans`, `en`, and `ja` enter the explicit source field, while other results degrade to unknown. Detection and preferences live with the card and enter neither disk nor logs.
+**Language detection**: after every entry obtains plain text, Swift runs `NLLanguageRecognizer` once in the local flow. System Chinese variants normalize to `zh-Hans`; `zh-Hans`, `en`, `ja`, `fr`, `es`, `de`, and `ko` enter the explicit source field, while other results degrade to unknown. Detection and preferences live with the card and enter neither disk nor logs.
 
 ## 8. 会话状态 / Session State
 

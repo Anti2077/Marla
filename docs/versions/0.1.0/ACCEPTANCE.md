@@ -63,6 +63,7 @@
 - [ ] 真实 `Esc` 在普通框选和设置已打开的焦点场景中取消，且不产生 OCR、网络请求或文件（TASK-009 的旧证据已被项目所有者在后续固定 App 中复现为失败，当前由 TASK-018 复验）。
 - [ ] 右键和无效区域取消，且不产生 OCR、网络请求或文件。
 - [ ] Vision 对短句、多行和长截图文字输出稳定阅读顺序。
+- [ ] Vision 开启自动语言检测，并只配置当前运行时支持的七门产品 OCR 标识；真实渲染图片回归和固定 Release 截图均证明日语、韩语可识别，中文、英文不回归。
 - [ ] 空 OCR 显示重新框选操作，不发送空请求。
 - [ ] 翻译失败后仍保留 Vision 源文本。
 - [ ] 网络抓包或 Provider 模拟证明请求只含文字，不含图片字节或完整屏幕。
@@ -76,6 +77,7 @@
 - [ ] A real `Esc` cancels both ordinary selection and the open-Settings focus scenario, with no OCR, network request, or file (the project owner reproduced a failure in a later fixed App after the older TASK-009 evidence; TASK-018 now owns the re-verification).
 - [ ] Right-click and invalid regions cancel with no OCR, network request, or file.
 - [ ] Vision produces stable reading order for short, multiline, and long captured text.
+- [ ] Vision enables automatic language detection and configures only the seven product OCR identifiers supported by the current runtime; rendered-image regressions and fixed Release captures prove Japanese and Korean recognition without regressing Chinese or English.
 - [ ] Empty OCR offers reselect and sends no empty request.
 - [ ] Translation failure preserves Vision source text.
 - [ ] Network capture or provider mock proves requests contain text only, with no image bytes or full screen.
@@ -87,24 +89,24 @@
 - [ ] `⌃⌥Space` 在当前指针屏幕打开并聚焦输入区。
 - [ ] 中文 IME、英文、多行、粘贴和 `⌘Return` 提交正常，原剪贴板保持不变。
 - [ ] 空白内容不可提交，`Esc` 可关闭。
-- [x] 设置“翻译语言”页面可将互不相同的简体中文、English、日本語保存为母语和第二语言；默认是简体中文/English。
-- [x] 新翻译在本机识别常见中英日原文；自动规则将母语译到第二语言，其它或未知源语言译到母语，未知状态不伪装成已识别。
+- [ ] 设置“翻译语言”页面可将互不相同的简体中文、English、日本語、Français、Español、Deutsch、한국어保存为母语和第二语言；默认是简体中文/English。
+- [ ] 新翻译在本机识别常见中英日法西德韩原文；自动规则将母语译到第二语言，其它或未知源语言译到母语，未知状态不伪装成已识别。
 - [x] 结果卡顶部只保留 API profile 与窗口控制，第二行左源右目标显示例如“自动识别：English → 简体中文”。
-- [x] 源语言可恢复自动或覆盖为三个首期语言；覆盖只重算自动目标。目标可恢复自动或显式覆盖，显式目标优先。
+- [ ] 源语言可恢复自动或覆盖为七门产品语言；覆盖只重算自动目标。目标可恢复自动或显式覆盖，显式目标优先。
 - [x] 切换源/目标取消旧请求、复用源文本，划词不重复取词，截图入口不重复捕获或 OCR。
-- [x] 通用模型提示词与 Qwen-MT 的源/目标参数对 `zh-Hans`、`en`、`ja` 一致，未知源语言只在 source 使用 `auto`。
+- [ ] 通用模型提示词与 Qwen-MT 的源/目标参数对七门产品语言一致，未知源语言只在 source 使用 `auto`。
 
 ### English
 
 - [ ] `⌃⌥Space` opens on the pointer's display and focuses the editor.
 - [ ] Chinese IME, English, multiline, paste, and `⌘Return` submission work; clipboard remains unchanged.
 - [ ] Whitespace cannot submit and `Esc` closes.
-- [x] Translation Languages Settings persists different Simplified Chinese, English, or Japanese values as Native and Secondary; defaults are Simplified Chinese/English.
-- [x] New translations locally detect common Chinese, English, and Japanese. Automatic routing sends native to secondary and every other or unknown source to native, without pretending unknown is recognized.
+- [ ] Translation Languages Settings persists different Simplified Chinese, English, Japanese, French, Spanish, German, or Korean values as Native and Secondary; defaults are Simplified Chinese/English.
+- [ ] New translations locally detect common Chinese, English, Japanese, French, Spanish, German, and Korean. Automatic routing sends native to secondary and every other or unknown source to native, without pretending unknown is recognized.
 - [x] The card header keeps only API profile and window controls; a second row shows source-left/target-right, for example “Auto-detected: English → Simplified Chinese.”
-- [x] Source can return to automatic or override to any initial language, recomputing automatic target only. Target can return to automatic or be explicit, and explicit target wins.
+- [ ] Source can return to automatic or override to any of the seven product languages, recomputing automatic target only. Target can return to automatic or be explicit, and explicit target wins.
 - [x] Source/target changes cancel the old request and reuse source without repeating selection acquisition, screenshot capture, or OCR.
-- [x] Generic prompts and Qwen-MT source/target parameters agree for `zh-Hans`, `en`, and `ja`; unknown source uses `auto` for source only.
+- [ ] Generic prompts and Qwen-MT source/target parameters agree for all seven product languages; unknown source uses `auto` for source only.
 
 ## 5. 翻译、错误与取消 / Translation, Errors, and Cancellation
 
@@ -287,6 +289,10 @@ TASK-019 自动化、产物与视觉证据：全局母语/第二语言、本机�
 TASK-019 automation, artifact, and visual evidence: global native/secondary preferences, local Chinese/English/Japanese detection, unknown fallback, result-card and quick-input source/target overrides, session snapshots, and generic/Qwen-MT provider mappings pass tests. The final `./scripts/check.sh` reports 17 Rust and 81 Swift tests and passes Swift/Xcode Debug, formatting, whitespace, and diff checks; six inline-experiment-only tests were removed with the rejected feature. The fixed `artifacts/Marla_dev.app` retains Bundle ID `com.marla.app`, version 0.1.0, macOS 14+, arm64, Authority `API Usage Monitor Dev`, and the existing designated requirement. Language-settings, result-card, and quick-input evidence is under `artifacts/ui-review/task-019/`, scoring 8/8/8/8/7. Final General light/dark captures after both experimental settings were removed are under `artifacts/ui-review/task-019-removal/`, scoring 8/8/8/9/7. The first language capture exposed macOS Menu flattening that hid effective languages and duplicated chevrons; it was fixed, rebuilt, and recaptured. A live Japanese request using the existing Keychain profile was not run in this pass and is not substituted for the passing mock-payload contract evidence.
 
 TASK-020 automation, artifact, and visual evidence: `./scripts/check.sh` passes 17 Rust, 71 MarlaApp Swift, and 13 MarlaCore Swift tests plus Swift/Xcode Debug, formatting, whitespace, and diff checks. The fixed `artifacts/Marla_dev.app` passes Bundle ID/version/minimum-system/arm64/stable-signature/designated-requirement verification. Ephemeral Release captures show 224pt compact, approximately 309pt intermediate growth, approximately 644pt capped growth, dark appearance, and Reduce Motion; five-dimension scores are 8/8/8/9/7. Screenshots remain in `/private/tmp` and are not committed under the project's default ephemeral-screenshot policy.
+
+TASK-022 Vision OCR repair evidence: `VisionOCRConfiguration` enables automatic language detection and intersects the seven product OCR identifiers with the current Vision runtime support list before configuring the request. The configuration regression verifies accurate recognition, language correction, runtime filtering, and Japanese/Korean candidate inclusion when available. Rendered Japanese, Korean, Chinese, and English image tests call the real `VisionOCRService`; on this host XCTest's graphics service cannot create a Vision CVPixelBuffer (OSStatus -6662), so those three tests explicitly skip instead of weakening their assertions. A sandbox-external probe using the same rendered samples verified that the old fixed Chinese/English, automatic-detection-off configuration returned empty Japanese/Korean text while the repaired automatic configuration recognized all four scripts. The fixed Release `artifacts/Marla_dev.app` was rebuilt and passed package/signature verification. Real Release screenshot OCR, source-language routing, and the remaining light/dark/Reduce Motion language-surface review remain unchecked.
+
+TASK-022 Vision OCR repair evidence: `VisionOCRConfiguration` 现在开启自动语言检测，并在配置请求前把七门产品 OCR 标识与当前 Vision 运行时支持列表求交集。配置回归验证了准确识别、语言校正、运行时过滤，以及运行时支持时日语/韩语候选会进入请求。日语、韩语、中文和英文的真实渲染图片测试直接调用 `VisionOCRService`；本机 XCTest 图形服务无法创建 Vision CVPixelBuffer（OSStatus -6662），因此三项图片测试明确 skip，没有弱化断言。使用同一图片样本的沙盒外探针证明：旧的固定中英文、关闭自动检测配置对日语/韩语为空，而修复后的自动配置能识别四种文字。固定 Release `artifacts/Marla_dev.app` 已重建并通过包/签名校验；真实 Release 截图 OCR、源语言路由，以及浅色/深色/Reduce Motion 语言表面复验仍未勾选。
 
 TASK-021 高度竞态跟进：`ResultCardLayout` 已补偿 AppKit 与 SwiftUI 文本逐行测量差异，协调器在每次高度动画结束后按最新会话再次校正。40ms 非激活流式夹具与真实 `NSHostingView` 回归已在 Swift Package 测试中通过；`./scripts/check.sh` 的 17 项 Rust、80 项 MarlaApp、13 项 MarlaCore、Swift Package、Xcode Debug、格式/空白/diff 阶段均通过。固定 Release 已重新打包并通过包与签名检查；LaunchServices 截图 `/private/tmp/marla-task-021-height-race-final.png` 中译文、分隔线和操作行完整可见，结果卡高度条目仍待项目所有者真实划词确认。
 

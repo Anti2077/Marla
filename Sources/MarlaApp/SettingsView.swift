@@ -498,21 +498,20 @@ private struct LanguageRouteSummary: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: DesignTokens.spaceS) {
-            route(source: nativeLanguage, target: secondaryLanguage, emphasis: true)
-            ForEach(TranslationLanguage.allCases.filter { $0 != nativeLanguage }) { language in
-                route(source: language, target: nativeLanguage, emphasis: false)
-            }
+            route(sourceLabel: nativeLanguage.label, target: secondaryLanguage, emphasis: true)
+            route(sourceLabel: secondaryLanguage.label, target: nativeLanguage, emphasis: false)
+            route(sourceLabel: "其它语言 / 未知", target: nativeLanguage, emphasis: false)
         }
     }
 
     private func route(
-        source: TranslationLanguage,
+        sourceLabel: String,
         target: TranslationLanguage,
         emphasis: Bool
     ) -> some View {
         HStack(spacing: DesignTokens.spaceS) {
-            Text(source.label)
-                .frame(width: 92, alignment: .trailing)
+            Text(sourceLabel)
+                .frame(width: 120, alignment: .trailing)
             Image(systemName: "arrow.right")
                 .foregroundStyle(DesignTokens.accent)
             Text(target.label)

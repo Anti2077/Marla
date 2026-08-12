@@ -152,7 +152,7 @@ All other spacing follows a 4pt grid. Pointer controls may retain compact macOS 
 4. 对照区：默认折叠，展开后显示原文并与译文保持稳定顺序；
 5. 操作行：朗读、复制、重试和更多状态。
 
-语言菜单使用单层语义浅表面、SF Symbols 和 4/8/12pt Token，不使用旧目标胶囊或第二套强调色。源语言自动状态必须显示“自动识别：语言”或“自动识别：未知”，让识别与覆盖关系可见。
+语言菜单使用单层语义浅表面、SF Symbols 和 4/8/12pt Token，不使用旧目标胶囊或第二套强调色。菜单提供七门产品语言；源语言自动状态必须显示“自动识别：语言”或“自动识别：未知”，让识别与覆盖关系可见。
 
 卡片的标志性细节是“稳定流式游标”：等待首字时在译文首行使用低对比度呼吸点；首个 delta 到达后转为克制的尾部插入游标；完成时在 120ms 内淡出。它只表达状态，不循环播放装饰动画。
 
@@ -170,7 +170,7 @@ Top-to-bottom structure:
 4. comparison area: collapsed by default, preserving stable source/translation order when expanded;
 5. action row: speech, copy, retry, and secondary state.
 
-Language menus use one semantic secondary surface, SF Symbols, and the 4/8/12pt tokens, without the previous target capsule or a second accent color. Automatic source visibly reads “Auto-detected: Language” or “Auto-detected: Unknown” so detection and override remain understandable.
+Language menus use one semantic secondary surface, SF Symbols, and the 4/8/12pt tokens, without the previous target capsule or a second accent color. Menus provide all seven product languages. Automatic source visibly reads “Auto-detected: Language” or “Auto-detected: Unknown” so detection and override remain understandable.
 
 The card's signature detail is a stable streaming caret. Before first token, a low-contrast breathing dot occupies the first translation line. After the first delta, it becomes a restrained trailing insertion caret and fades out within 120ms on completion. It communicates state and never loops as decoration.
 

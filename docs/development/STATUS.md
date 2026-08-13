@@ -8,6 +8,10 @@ Overall state: In Progress — implementation baseline exists; release verificat
 
 Active task: None
 
+TASK-025 已立项：按职责把 `MarlaApplicationModel.swift` 拆分到分层目录，新增 `scripts/check-structure.sh` 结构门禁并接入 `check.sh`，新建 ADR-0007 并更新 `AGENTS.md` 与 `TASK_TEMPLATE.md`，防止单文件巨型化复发。
+
+TASK-025 已完成源码职责拆分、Xcode 工程引用同步、结构门禁与固定 Release App 验证：`MarlaApplicationModel.swift` 已降至约 771 行，所有 Swift 源文件均低于 800 行，Models 目录无 UI framework import。`./scripts/check.sh` 全绿，固定 `artifacts/Marla_dev.app` 通过 Bundle ID、版本、arm64、稳定签名和 designated requirement 验证。
+
 TASK-024 已完成第一阶段结构改造并合并到 `main`：新增 `MarlaApplicationServices` 集中构造应用级 Settings、Session、Floating Panel、Screenshot、Vision、Shortcut 与 Settings Window 服务；`MarlaApplicationModel` 保留兼容访问器和入口行为，不改变产品流程或 Swift/Rust 合同。授权环境下 `./scripts/check.sh` 已通过 20 项 Rust、97 项 Swift（3 项 Vision 图形服务限制 skip）、Swift Package、Xcode Debug、脚本语法、空白与 diff 检查；`artifacts/Marla_dev.app` 已通过固定 Release 打包、稳定签名和 designated requirement 验证。后续仍可按职责继续拆分同一大文件。
 
 Blocked tasks:

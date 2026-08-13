@@ -13,6 +13,26 @@
 		A10000000000000000000003 /* AccessibilitySelectionReader.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000003 /* AccessibilitySelectionReader.swift */; };
 		A1000000000000000000000F /* ClipboardSelectionFallback.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000013 /* ClipboardSelectionFallback.swift */; };
 		A10000000000000000000004 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000004 /* SettingsView.swift */; };
+		A10000000000000000000015 /* App/MarlaApplicationModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000015 /* App/MarlaApplicationModel.swift */; };
+		A10000000000000000000016 /* Models/TranslationAPIProfile.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000016 /* Models/TranslationAPIProfile.swift */; };
+		A10000000000000000000017 /* Persistence/KeychainCredentialStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000017 /* Persistence/KeychainCredentialStore.swift */; };
+		A10000000000000000000018 /* Persistence/MarlaSettingsStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000018 /* Persistence/MarlaSettingsStore.swift */; };
+		A10000000000000000000019 /* Settings/SettingsWindow.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000019 /* Settings/SettingsWindow.swift */; };
+		A1000000000000000000001A /* Sessions/TranslationSessionStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2000000000000000000001A /* Sessions/TranslationSessionStore.swift */; };
+		A1000000000000000000001B /* Panel/FloatingPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2000000000000000000001B /* Panel/FloatingPanel.swift */; };
+		A1000000000000000000001C /* Shortcuts/GlobalShortcuts.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2000000000000000000001C /* Shortcuts/GlobalShortcuts.swift */; };
+		A1000000000000000000001D /* Screenshot/ScreenshotCapture.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2000000000000000000001D /* Screenshot/ScreenshotCapture.swift */; };
+		A1000000000000000000001E /* Screenshot/ScreenshotSelection.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2000000000000000000001E /* Screenshot/ScreenshotSelection.swift */; };
+		A1000000000000000000001F /* OCR/VisionOCR.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2000000000000000000001F /* OCR/VisionOCR.swift */; };
+		A10000000000000000000020 /* Selection/AccessibilitySelectionReader.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000020 /* Selection/AccessibilitySelectionReader.swift */; };
+		A10000000000000000000021 /* Selection/ClipboardSelectionFallback.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000021 /* Selection/ClipboardSelectionFallback.swift */; };
+		A10000000000000000000022 /* App/ResultPanelLayout.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000022 /* App/ResultPanelLayout.swift */; };
+		A10000000000000000000023 /* Panel/TranslationCardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000023 /* Panel/TranslationCardView.swift */; };
+		A10000000000000000000024 /* Sessions/QuickInputView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000024 /* Sessions/QuickInputView.swift */; };
+		A10000000000000000000025 /* Selection/AccessibilitySelectionModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000025 /* Selection/AccessibilitySelectionModels.swift */; };
+		A10000000000000000000026 /* Settings/SettingsShared.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000026 /* SettingsShared.swift */; };
+		A10000000000000000000027 /* Settings/SettingsEditor.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000027 /* SettingsEditor.swift */; };
+		A10000000000000000000028 /* Settings/SettingsSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000028 /* SettingsSupport.swift */; };
 		A1000000000000000000000E /* MarlaPreviews.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000011 /* MarlaPreviews.swift */; };
 		A10000000000000000000005 /* ContentModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000005 /* ContentModels.swift */; };
 		A10000000000000000000006 /* ContextModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000006 /* ContextModels.swift */; };
@@ -42,6 +62,26 @@
 		A20000000000000000000003 /* AccessibilitySelectionReader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccessibilitySelectionReader.swift; sourceTree = "<group>"; };
 		A20000000000000000000013 /* ClipboardSelectionFallback.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardSelectionFallback.swift; sourceTree = "<group>"; };
 		A20000000000000000000004 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+		A20000000000000000000015 /* App/MarlaApplicationModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MarlaApplicationModel.swift; sourceTree = "<group>"; };
+		A20000000000000000000016 /* Models/TranslationAPIProfile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TranslationAPIProfile.swift; sourceTree = "<group>"; };
+		A20000000000000000000017 /* Persistence/KeychainCredentialStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainCredentialStore.swift; sourceTree = "<group>"; };
+		A20000000000000000000018 /* Persistence/MarlaSettingsStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MarlaSettingsStore.swift; sourceTree = "<group>"; };
+		A20000000000000000000019 /* Settings/SettingsWindow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsWindow.swift; sourceTree = "<group>"; };
+		A2000000000000000000001A /* Sessions/TranslationSessionStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TranslationSessionStore.swift; sourceTree = "<group>"; };
+		A2000000000000000000001B /* Panel/FloatingPanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FloatingPanel.swift; sourceTree = "<group>"; };
+		A2000000000000000000001C /* Shortcuts/GlobalShortcuts.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GlobalShortcuts.swift; sourceTree = "<group>"; };
+		A2000000000000000000001D /* Screenshot/ScreenshotCapture.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreenshotCapture.swift; sourceTree = "<group>"; };
+		A2000000000000000000001E /* Screenshot/ScreenshotSelection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreenshotSelection.swift; sourceTree = "<group>"; };
+		A2000000000000000000001F /* OCR/VisionOCR.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VisionOCR.swift; sourceTree = "<group>"; };
+		A20000000000000000000020 /* Selection/AccessibilitySelectionReader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccessibilitySelectionReader.swift; sourceTree = "<group>"; };
+		A20000000000000000000021 /* Selection/ClipboardSelectionFallback.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardSelectionFallback.swift; sourceTree = "<group>"; };
+		A20000000000000000000022 /* App/ResultPanelLayout.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ResultPanelLayout.swift; sourceTree = "<group>"; };
+		A20000000000000000000023 /* Panel/TranslationCardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TranslationCardView.swift; sourceTree = "<group>"; };
+		A20000000000000000000024 /* Sessions/QuickInputView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuickInputView.swift; sourceTree = "<group>"; };
+		A20000000000000000000025 /* Selection/AccessibilitySelectionModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccessibilitySelectionModels.swift; sourceTree = "<group>"; };
+		A20000000000000000000026 /* SettingsShared.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsShared.swift; sourceTree = "<group>"; };
+		A20000000000000000000027 /* SettingsEditor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsEditor.swift; sourceTree = "<group>"; };
+		A20000000000000000000028 /* SettingsSupport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsSupport.swift; sourceTree = "<group>"; };
 		A20000000000000000000011 /* MarlaPreviews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MarlaPreviews.swift; sourceTree = "<group>"; };
 		A20000000000000000000005 /* ContentModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentModels.swift; sourceTree = "<group>"; };
 		A20000000000000000000006 /* ContextModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContextModels.swift; sourceTree = "<group>"; };
@@ -99,9 +139,16 @@
 		A70000000000000000000003 /* MarlaApp */ = {
 			isa = PBXGroup;
 			children = (
-				A20000000000000000000003 /* AccessibilitySelectionReader.swift */,
-				A20000000000000000000013 /* ClipboardSelectionFallback.swift */,
-				A20000000000000000000002 /* MarlaApplicationModel.swift */,
+				A70000000000000000000008 /* App */,
+				A70000000000000000000009 /* Models */,
+				A7000000000000000000000A /* Persistence */,
+				A7000000000000000000000B /* Settings */,
+				A7000000000000000000000C /* Sessions */,
+				A7000000000000000000000D /* Panel */,
+				A7000000000000000000000E /* Shortcuts */,
+				A7000000000000000000000F /* Screenshot */,
+				A70000000000000000000010 /* OCR */,
+				A70000000000000000000011 /* Selection */,
 				A20000000000000000000014 /* MarlaApplicationServices.swift */,
 				A20000000000000000000001 /* MarlaApp.swift */,
 				A20000000000000000000011 /* MarlaPreviews.swift */,
@@ -110,6 +157,16 @@
 			path = MarlaApp;
 			sourceTree = "<group>";
 		};
+		A70000000000000000000008 /* App */ = {isa = PBXGroup; children = (A20000000000000000000015 /* MarlaApplicationModel.swift */, A20000000000000000000022 /* ResultPanelLayout.swift */); path = App; sourceTree = "<group>"; };
+		A70000000000000000000009 /* Models */ = {isa = PBXGroup; children = (A20000000000000000000016 /* TranslationAPIProfile.swift */); path = Models; sourceTree = "<group>"; };
+		A7000000000000000000000A /* Persistence */ = {isa = PBXGroup; children = (A20000000000000000000017 /* KeychainCredentialStore.swift */, A20000000000000000000018 /* MarlaSettingsStore.swift */); path = Persistence; sourceTree = "<group>"; };
+		A7000000000000000000000B /* Settings */ = {isa = PBXGroup; children = (A20000000000000000000019 /* SettingsWindow.swift */, A20000000000000000000026 /* SettingsShared.swift */, A20000000000000000000027 /* SettingsEditor.swift */, A20000000000000000000028 /* SettingsSupport.swift */); path = Settings; sourceTree = "<group>"; };
+		A7000000000000000000000C /* Sessions */ = {isa = PBXGroup; children = (A2000000000000000000001A /* TranslationSessionStore.swift */, A20000000000000000000024 /* QuickInputView.swift */); path = Sessions; sourceTree = "<group>"; };
+		A7000000000000000000000D /* Panel */ = {isa = PBXGroup; children = (A2000000000000000000001B /* FloatingPanel.swift */, A20000000000000000000023 /* TranslationCardView.swift */); path = Panel; sourceTree = "<group>"; };
+		A7000000000000000000000E /* Shortcuts */ = {isa = PBXGroup; children = (A2000000000000000000001C /* GlobalShortcuts.swift */); path = Shortcuts; sourceTree = "<group>"; };
+		A7000000000000000000000F /* Screenshot */ = {isa = PBXGroup; children = (A2000000000000000000001D /* ScreenshotCapture.swift */, A2000000000000000000001E /* ScreenshotSelection.swift */); path = Screenshot; sourceTree = "<group>"; };
+		A70000000000000000000010 /* OCR */ = {isa = PBXGroup; children = (A2000000000000000000001F /* VisionOCR.swift */); path = OCR; sourceTree = "<group>"; };
+		A70000000000000000000011 /* Selection */ = {isa = PBXGroup; children = (A20000000000000000000020 /* AccessibilitySelectionReader.swift */, A20000000000000000000021 /* ClipboardSelectionFallback.swift */, A20000000000000000000025 /* AccessibilitySelectionModels.swift */); path = Selection; sourceTree = "<group>"; };
 		A70000000000000000000004 /* MarlaCore */ = {
 			isa = PBXGroup;
 			children = (
@@ -264,9 +321,26 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				A10000000000000000000003 /* AccessibilitySelectionReader.swift in Sources */,
-				A1000000000000000000000F /* ClipboardSelectionFallback.swift in Sources */,
-				A10000000000000000000002 /* MarlaApplicationModel.swift in Sources */,
+				A10000000000000000000015 /* App/MarlaApplicationModel.swift in Sources */,
+				A10000000000000000000022 /* App/ResultPanelLayout.swift in Sources */,
+				A10000000000000000000016 /* Models/TranslationAPIProfile.swift in Sources */,
+				A10000000000000000000017 /* Persistence/KeychainCredentialStore.swift in Sources */,
+				A10000000000000000000018 /* Persistence/MarlaSettingsStore.swift in Sources */,
+				A10000000000000000000019 /* Settings/SettingsWindow.swift in Sources */,
+				A1000000000000000000001A /* Sessions/TranslationSessionStore.swift in Sources */,
+				A10000000000000000000024 /* Sessions/QuickInputView.swift in Sources */,
+				A1000000000000000000001B /* Panel/FloatingPanel.swift in Sources */,
+				A10000000000000000000023 /* Panel/TranslationCardView.swift in Sources */,
+				A1000000000000000000001C /* Shortcuts/GlobalShortcuts.swift in Sources */,
+				A1000000000000000000001D /* Screenshot/ScreenshotCapture.swift in Sources */,
+				A1000000000000000000001E /* Screenshot/ScreenshotSelection.swift in Sources */,
+				A1000000000000000000001F /* OCR/VisionOCR.swift in Sources */,
+				A10000000000000000000020 /* Selection/AccessibilitySelectionReader.swift in Sources */,
+				A10000000000000000000021 /* Selection/ClipboardSelectionFallback.swift in Sources */,
+				A10000000000000000000025 /* Selection/AccessibilitySelectionModels.swift in Sources */,
+				A10000000000000000000026 /* Settings/SettingsShared.swift in Sources */,
+				A10000000000000000000027 /* Settings/SettingsEditor.swift in Sources */,
+				A10000000000000000000028 /* Settings/SettingsSupport.swift in Sources */,
 				A10000000000000000000010 /* MarlaApplicationServices.swift in Sources */,
 				A10000000000000000000001 /* MarlaApp.swift in Sources */,
 				A1000000000000000000000E /* MarlaPreviews.swift in Sources */,

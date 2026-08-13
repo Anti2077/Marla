@@ -1,4 +1,4 @@
-#if DEBUG
+#if DEBUG && !MARLA_CHECK_BUILD
 import MarlaCore
 import SwiftUI
 

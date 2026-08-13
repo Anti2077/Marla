@@ -11,7 +11,7 @@ The native application and three vertical slices are implemented. The remaining 
 - latency and memory measurement;
 - all remaining acceptance checks.
 
-The complete contract is under `docs/versions/0.1.0/`; executable candidates are listed as BL-001 through BL-003.
+The complete contract is under `docs/versions/0.1.0/`; current evidence work is listed as RV-001 through RV-003 in `docs/development/VERIFICATION.md`.
 
 ## Next: strengthen the instantaneous translation layer
 

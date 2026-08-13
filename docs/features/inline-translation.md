@@ -2,7 +2,7 @@
 
 ## Status
 
-Implemented; live compatibility verification remains in progress. The nearby result card and real translation path are present, while the complete cross-application matrix is not yet accepted. The TASK-017 single-line in-place prototype was removed after real use showed that both exact and pointer-estimate variants performed poorly.
+Implemented; the project owner accepted the current cross-application selection outcome and closed verification as `RV-001`. The TASK-017 single-line in-place prototype was removed after real use showed that both exact and pointer-estimate variants performed poorly. Future app-specific regressions require a new Task; they do not reopen the closed verification item.
 
 ## Goal
 
@@ -32,7 +32,7 @@ Translate selected text in a nearby anchored card without unnecessarily activati
 - Presents the shared non-activating result card, streams the real Rust result, and preserves request-ID cancellation rules.
 - Selection translation always uses the complete nearby result card. The removed TASK-017 prototype no longer contributes a setting, panel style, placement branch, or runtime fallback.
 
-A stable signed Xcode application bundle exists and has passed build, signature, and launch checks. The redacted audit compares complete pre/post pasteboard snapshots and reports only whether they match; it never serializes pasteboard or selected text. The project owner confirmed a formerly failing Codex selection plus clipboard restoration, confirmed a WeChat selection reached the real translation request, and accepted TASK-015 complete after observing a high success rate. The downstream `unauthorized` is a missing local profile credential, not a selection failure. Full Zen/Ghostty, Terminal, Safari, TextEdit, VSCodium, focus, and anchor evidence remains release work under BL-001.
+A stable signed Xcode application bundle exists and has passed build, signature, and launch checks. The redacted audit compares complete pre/post pasteboard snapshots and reports only whether they match; it never serializes pasteboard or selected text. The project owner confirmed a formerly failing Codex selection plus clipboard restoration, confirmed a WeChat selection reached the real translation request, and accepted TASK-015 complete after observing a high success rate. The downstream `unauthorized` is a missing local profile credential, not a selection failure. The broad cross-application verification is closed as RV-001; a later app-specific regression should be tracked as a new Task.
 
 ## Degradation
 

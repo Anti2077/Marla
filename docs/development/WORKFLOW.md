@@ -11,7 +11,7 @@ When a conversation produces a future possibility:
 3. Keep it `Captured` or `Exploring` unless the project owner explicitly confirms the direction.
 4. Do not add the idea to current implementation scope.
 
-When the project owner confirms work should eventually be done, promote it to `docs/backlog/BACKLOG.md`. This confirms intent, not schedule.
+When the project owner confirms a future product capability should eventually be done, promote it to `docs/backlog/BACKLOG.md`. This confirms intent, not schedule. Current-release testing, manual acceptance, and performance measurement belong in `docs/development/VERIFICATION.md`, not in the product Backlog.
 
 ## Starting a development conversation
 

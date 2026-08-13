@@ -126,7 +126,7 @@ None。若唯一合理候选需要改变产品或架构合同，将先向项目�
 
 ## Completion record
 
-- Verified commit: pending commit on `codex/task-023-codebase-audit` before merge to `main`
+- Verified commit: `a131956` on `codex/task-023-codebase-audit`, merged into local `main` by merge commit `be19ca8`
 - Automated evidence: `./scripts/check.sh` passed 20 Rust and 97 Swift tests, strict Clippy, Rust/Swift/Xcode builds, shell syntax, whitespace and diff checks
 - Manual evidence: Fixed Release `artifacts/Marla_dev.app` delivered for project-owner inspection
 - Documentation updated: Task, STATUS, and bilingual 0.1.0 implementation contract

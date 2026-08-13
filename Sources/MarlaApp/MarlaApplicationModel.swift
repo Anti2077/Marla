@@ -3159,13 +3159,14 @@ final class MarlaApplicationModel: ObservableObject {
     @Published private(set) var selectionProbeResult: SelectionProbeResult = .idle
     @Published var bannerMessage: String?
 
-    let settings: MarlaSettingsStore
-    let sessionStore: TranslationSessionStore
-    let panelCoordinator: FloatingPanelCoordinator
-    let screenshotCoordinator = ScreenshotCaptureCoordinator()
-    let visionOCR = VisionOCRService()
-    let shortcutManager: GlobalShortcutManager
-    let settingsWindowCoordinator = MarlaSettingsWindowCoordinator()
+    let services: MarlaApplicationServices
+    var settings: MarlaSettingsStore { services.settings }
+    var sessionStore: TranslationSessionStore { services.sessionStore }
+    var panelCoordinator: FloatingPanelCoordinator { services.panelCoordinator }
+    var screenshotCoordinator: ScreenshotCaptureCoordinator { services.screenshotCoordinator }
+    var visionOCR: VisionOCRService { services.visionOCR }
+    var shortcutManager: GlobalShortcutManager { services.shortcutManager }
+    var settingsWindowCoordinator: MarlaSettingsWindowCoordinator { services.settingsWindowCoordinator }
 
     private let selectionReader: AccessibilitySelectionReader
     private var activeSelectionReadCancellation: SelectionReadCancellation?
@@ -3179,12 +3180,11 @@ final class MarlaApplicationModel: ObservableObject {
         accessibilityTrusted: Bool? = nil,
         screenRecordingAuthorized: Bool? = nil
     ) {
-        let installsInteractiveMonitors = enableSystemIntegrations && !MarlaRuntime.isUIAutomationSnapshot
         self.selectionReader = selectionReader
-        self.settings = settings
-        sessionStore = TranslationSessionStore(settings: settings)
-        panelCoordinator = FloatingPanelCoordinator(installEventMonitors: installsInteractiveMonitors)
-        shortcutManager = GlobalShortcutManager(registerHotKeys: installsInteractiveMonitors)
+        services = MarlaApplicationServices(
+            settings: settings,
+            enableSystemIntegrations: enableSystemIntegrations
+        )
         panelCoordinator.attach(model: self)
         if enableSystemIntegrations {
             if !MarlaRuntime.isUIAutomationSnapshot {

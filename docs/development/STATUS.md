@@ -1,12 +1,14 @@
 # Project Status
 
-Last updated: 2026-08-13
+Last updated: 2026-08-14
 
 Release target: 0.1.0 Alpha
 
 Overall state: In Progress — implementation baseline exists; release verification gaps remain
 
 Active task: None
+
+TASK-024 已完成第一阶段结构改造并合并到 `main`：新增 `MarlaApplicationServices` 集中构造应用级 Settings、Session、Floating Panel、Screenshot、Vision、Shortcut 与 Settings Window 服务；`MarlaApplicationModel` 保留兼容访问器和入口行为，不改变产品流程或 Swift/Rust 合同。授权环境下 `./scripts/check.sh` 已通过 20 项 Rust、97 项 Swift（3 项 Vision 图形服务限制 skip）、Swift Package、Xcode Debug、脚本语法、空白与 diff 检查；`artifacts/Marla_dev.app` 已通过固定 Release 打包、稳定签名和 designated requirement 验证。后续仍可按职责继续拆分同一大文件。
 
 Blocked tasks:
 

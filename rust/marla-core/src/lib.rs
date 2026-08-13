@@ -8,6 +8,7 @@ use std::sync::{
 };
 use std::time::Duration;
 use tokio::runtime::Runtime;
+use tokio::sync::Notify;
 use tokio::task::JoinHandle;
 use tokio::time::Instant;
 
@@ -16,6 +17,7 @@ pub const API_VERSION: u32 = 2;
 const CONNECT_TIMEOUT_SECONDS: u64 = 10;
 const FIRST_TOKEN_TIMEOUT_SECONDS: u64 = 30;
 const OVERALL_TIMEOUT_SECONDS: u64 = 120;
+const MAX_SSE_FRAME_BYTES: usize = 1024 * 1024;
 
 type MarlaTranslationEventCallback = unsafe extern "C" fn(*const u8, usize, *mut std::ffi::c_void);
 
@@ -81,6 +83,11 @@ pub extern "C" fn marla_core_api_version() -> u32 {
 /// Classifies a UTF-8, null-terminated application Bundle ID.
 ///
 /// A null pointer or invalid UTF-8 safely degrades to `Surface::Unknown`.
+///
+/// # Safety
+///
+/// `bundle_id` must be null or point to a valid NUL-terminated C string for the duration of this
+/// call.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn marla_core_classify_surface(bundle_id: *const c_char) -> u32 {
     std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
@@ -227,8 +234,31 @@ struct ModelListEvent<'a> {
 }
 
 pub struct MarlaTranslationHandle {
-    cancelled: Arc<AtomicBool>,
+    cancellation: Arc<CancellationSignal>,
     join: Option<JoinHandle<()>>,
+}
+
+#[derive(Default)]
+struct CancellationSignal {
+    cancelled: AtomicBool,
+    notified: Notify,
+}
+
+impl CancellationSignal {
+    fn cancel(&self) {
+        self.cancelled.store(true, Ordering::Release);
+        self.notified.notify_one();
+    }
+
+    fn is_cancelled(&self) -> bool {
+        self.cancelled.load(Ordering::Acquire)
+    }
+
+    async fn wait(&self) {
+        while !self.is_cancelled() {
+            self.notified.notified().await;
+        }
+    }
 }
 
 fn runtime() -> Option<&'static Runtime> {
@@ -337,6 +367,7 @@ enum SseEvent {
 struct SseDecoder {
     buffered_bytes: Vec<u8>,
     data_lines: Vec<String>,
+    frame_bytes: usize,
 }
 
 impl SseDecoder {
@@ -345,6 +376,11 @@ impl SseDecoder {
         let mut events = Vec::new();
 
         while let Some(newline) = self.buffered_bytes.iter().position(|byte| *byte == b'\n') {
+            self.frame_bytes = self
+                .frame_bytes
+                .checked_add(newline.saturating_add(1))
+                .filter(|size| *size <= MAX_SSE_FRAME_BYTES)
+                .ok_or(())?;
             let mut line = self.buffered_bytes.drain(..=newline).collect::<Vec<_>>();
             line.pop();
             if line.last() == Some(&b'\r') {
@@ -355,6 +391,7 @@ impl SseDecoder {
                 if let Some(event) = self.finish_frame()? {
                     events.push(event);
                 }
+                self.frame_bytes = 0;
                 continue;
             }
             if line.starts_with(b":") {
@@ -366,6 +403,10 @@ impl SseDecoder {
             let payload = payload.strip_prefix(b" ").unwrap_or(payload);
             let payload = std::str::from_utf8(payload).map_err(|_| ())?;
             self.data_lines.push(payload.to_owned());
+        }
+
+        if self.frame_bytes.saturating_add(self.buffered_bytes.len()) > MAX_SSE_FRAME_BYTES {
+            return Err(());
         }
 
         Ok(events)
@@ -601,15 +642,9 @@ fn emit_cancelled(
     );
 }
 
-async fn wait_for_cancellation(cancelled: &AtomicBool) {
-    while !cancelled.load(Ordering::Acquire) {
-        tokio::time::sleep(Duration::from_millis(10)).await;
-    }
-}
-
 async fn run_translation(
     request: TranslationRequest,
-    cancelled: Arc<AtomicBool>,
+    cancellation: Arc<CancellationSignal>,
     callback: MarlaTranslationEventCallback,
     context_value: usize,
 ) {
@@ -663,7 +698,7 @@ async fn run_translation(
     let overall_deadline = started_at + Duration::from_secs(timeouts.overall_seconds.max(1));
     let send_deadline = connect_deadline.min(overall_deadline);
     let response = tokio::select! {
-        _ = wait_for_cancellation(&cancelled) => {
+        _ = cancellation.wait() => {
             emit_cancelled(callback, context(), &request_id);
             return;
         }
@@ -685,7 +720,7 @@ async fn run_translation(
             }
         }
     };
-    if cancelled.load(Ordering::Acquire) {
+    if cancellation.is_cancelled() {
         emit_cancelled(callback, context(), &request_id);
         return;
     }
@@ -735,7 +770,7 @@ async fn run_translation(
             first_token_deadline.min(overall_deadline)
         };
         let chunk = tokio::select! {
-            _ = wait_for_cancellation(&cancelled) => {
+            _ = cancellation.wait() => {
                 emit_cancelled(callback, context(), &request_id);
                 return;
             }
@@ -856,7 +891,7 @@ async fn run_translation(
 
 async fn run_model_list(
     request: ModelListRequest,
-    cancelled: Arc<AtomicBool>,
+    cancellation: Arc<CancellationSignal>,
     callback: MarlaTranslationEventCallback,
     context_value: usize,
 ) {
@@ -902,7 +937,7 @@ async fn run_model_list(
         builder = builder.header(AUTHORIZATION, format!("Bearer {key}"));
     }
     let response = tokio::select! {
-        _ = wait_for_cancellation(&cancelled) => {
+        _ = cancellation.wait() => {
             emit_model_list(
                 callback,
                 context(),
@@ -929,7 +964,7 @@ async fn run_model_list(
             }
         }
     };
-    if cancelled.load(Ordering::Acquire) {
+    if cancellation.is_cancelled() {
         emit_model_list(
             callback,
             context(),
@@ -976,7 +1011,7 @@ async fn run_model_list(
         return;
     }
     let decoded = tokio::select! {
-        _ = wait_for_cancellation(&cancelled) => {
+        _ = cancellation.wait() => {
             emit_model_list(
                 callback,
                 context(),
@@ -1026,6 +1061,11 @@ async fn run_model_list(
 }
 
 /// Starts one request. The caller owns the returned handle and must release it exactly once.
+///
+/// # Safety
+///
+/// `request_json` must reference `request_json_length` readable bytes for the duration of this
+/// call. `context` must remain valid for callback use until the returned handle is released.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn marla_translation_start(
     request_json: *const u8,
@@ -1054,8 +1094,8 @@ pub unsafe extern "C" fn marla_translation_start(
             );
             return std::ptr::null_mut();
         };
-        let cancelled = Arc::new(AtomicBool::new(false));
-        let thread_cancelled = Arc::clone(&cancelled);
+        let cancellation = Arc::new(CancellationSignal::default());
+        let task_cancellation = Arc::clone(&cancellation);
         let context_value = context as usize;
         let request_id = request.request_id.clone();
         let Some(runtime) = runtime() else {
@@ -1069,10 +1109,10 @@ pub unsafe extern "C" fn marla_translation_start(
             return std::ptr::null_mut();
         };
         let join = runtime.spawn(async move {
-            run_translation(request, thread_cancelled, callback, context_value).await;
+            run_translation(request, task_cancellation, callback, context_value).await;
         });
         Box::into_raw(Box::new(MarlaTranslationHandle {
-            cancelled,
+            cancellation,
             join: Some(join),
         }))
     }));
@@ -1080,6 +1120,11 @@ pub unsafe extern "C" fn marla_translation_start(
 }
 
 /// Starts one model-list request. The returned handle uses the shared cancel/release functions.
+///
+/// # Safety
+///
+/// `request_json` must reference `request_json_length` readable bytes for the duration of this
+/// call. `context` must remain valid for callback use until the returned handle is released.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn marla_model_list_start(
     request_json: *const u8,
@@ -1107,8 +1152,8 @@ pub unsafe extern "C" fn marla_model_list_start(
             );
             return std::ptr::null_mut();
         };
-        let cancelled = Arc::new(AtomicBool::new(false));
-        let thread_cancelled = Arc::clone(&cancelled);
+        let cancellation = Arc::new(CancellationSignal::default());
+        let task_cancellation = Arc::clone(&cancellation);
         let context_value = context as usize;
         let request_id = request.request_id.clone();
         let Some(runtime) = runtime() else {
@@ -1122,16 +1167,22 @@ pub unsafe extern "C" fn marla_model_list_start(
             return std::ptr::null_mut();
         };
         let join = runtime.spawn(async move {
-            run_model_list(request, thread_cancelled, callback, context_value).await;
+            run_model_list(request, task_cancellation, callback, context_value).await;
         });
         Box::into_raw(Box::new(MarlaTranslationHandle {
-            cancelled,
+            cancellation,
             join: Some(join),
         }))
     }));
     result.unwrap_or(std::ptr::null_mut())
 }
 
+/// Marks a live request handle as cancelled. Repeated calls before release are idempotent.
+///
+/// # Safety
+///
+/// `handle` must be null or a live handle returned by a Marla start function that has not been
+/// released. The caller must prevent this call from racing with release of the same handle.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn marla_translation_cancel(handle: *mut MarlaTranslationHandle) {
     let _ = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
@@ -1140,11 +1191,17 @@ pub unsafe extern "C" fn marla_translation_cancel(handle: *mut MarlaTranslationH
         }
         // SAFETY: The handle is owned by the caller and valid for this call.
         unsafe {
-            (*handle).cancelled.store(true, Ordering::Release);
+            (*handle).cancellation.cancel();
         }
     }));
 }
 
+/// Cancels, drains, and destroys one request handle.
+///
+/// # Safety
+///
+/// `handle` must be null or a live handle returned by a Marla start function. Each non-null
+/// handle must be released exactly once, with no concurrent cancel or release call.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn marla_translation_release(handle: *mut MarlaTranslationHandle) {
     let _ = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
@@ -1153,7 +1210,7 @@ pub unsafe extern "C" fn marla_translation_release(handle: *mut MarlaTranslation
         }
         // SAFETY: Release takes ownership of exactly one handle allocation.
         let mut handle = unsafe { Box::from_raw(handle) };
-        handle.cancelled.store(true, Ordering::Release);
+        handle.cancellation.cancel();
         if let Some(join) = handle.join.take() {
             if let Some(runtime) = runtime() {
                 let _ = runtime.block_on(join);
@@ -1167,17 +1224,17 @@ pub unsafe extern "C" fn marla_translation_release(handle: *mut MarlaTranslation
 #[cfg(test)]
 mod tests {
     use super::{
-        Endpoint, EndpointURLMode, MarlaTranslationEventCallback, SseDecoder, SseEvent,
-        StreamContentMode, Surface, Target, Timeouts, TranslationEvent, TranslationRequest,
-        classify_surface, endpoint_url, language_name, marla_model_list_start,
-        marla_translation_cancel, marla_translation_release, marla_translation_start,
-        model_list_url, normalized_stream_delta, qwen_language_name, request_json, system_prompt,
-        validate_request,
+        CancellationSignal, Endpoint, EndpointURLMode, MAX_SSE_FRAME_BYTES,
+        MarlaTranslationEventCallback, SseDecoder, SseEvent, StreamContentMode, Surface, Target,
+        Timeouts, TranslationEvent, TranslationRequest, classify_surface, endpoint_url,
+        language_name, marla_model_list_start, marla_translation_cancel, marla_translation_release,
+        marla_translation_start, model_list_url, normalized_stream_delta, qwen_language_name,
+        request_json, system_prompt, validate_request,
     };
     use std::io::{Read, Write};
     use std::net::TcpListener;
     use std::ptr;
-    use std::sync::{Mutex, mpsc};
+    use std::sync::{Arc, Mutex, mpsc};
     use std::thread;
     use std::time::Duration;
 
@@ -1360,6 +1417,33 @@ mod tests {
                 finished: false
             }]
         );
+    }
+
+    #[test]
+    fn rejects_an_unbounded_incomplete_sse_frame() {
+        let mut decoder = SseDecoder::default();
+        assert_eq!(decoder.push(&vec![b'x'; MAX_SSE_FRAME_BYTES]), Ok(vec![]));
+        assert_eq!(decoder.push(b"x"), Err(()));
+
+        let mut decoder = SseDecoder::default();
+        let oversized_data_frame = format!("data: {}\n", "x".repeat(MAX_SSE_FRAME_BYTES));
+        assert_eq!(decoder.push(oversized_data_frame.as_bytes()), Err(()));
+    }
+
+    #[tokio::test]
+    async fn cancellation_signal_wakes_waiters_and_remains_cancelled() {
+        let cancellation = Arc::new(CancellationSignal::default());
+        let waiter_cancellation = Arc::clone(&cancellation);
+        let waiter = tokio::spawn(async move { waiter_cancellation.wait().await });
+
+        cancellation.cancel();
+        tokio::time::timeout(Duration::from_millis(100), waiter)
+            .await
+            .expect("cancellation should wake without polling")
+            .expect("waiter task should complete");
+        tokio::time::timeout(Duration::from_millis(100), cancellation.wait())
+            .await
+            .expect("future waiters should observe persistent cancellation");
     }
 
     #[test]

@@ -15,6 +15,8 @@ Blocked tasks:
 
 ## Current objective
 
+TASK-023 已完成整体代码审查、自动化验证与固定 Release 测试 App 交付：Rust 翻译与模型列表取消从 10ms 轮询改为事件驱动唤醒，SSE 单个未完成帧增加 1 MiB 内存上限，严格 Clippy 与 shell 语法检查纳入统一验证，5 个公开 unsafe FFI 函数补齐安全合同；`artifacts/Marla_dev.app` 已重建并通过稳定签名验证。
+
 TASK-022 已完成实现并收束：Français、Español、Deutsch、한국어 已接入既有语言路由、UI 菜单和 Swift/Rust 请求合同；Vision 已改为自动语言检测并按运行时能力过滤七门产品 OCR 候选。真实固定 Release 的日语/韩语截图路由仍是发布验收缺口；其余 Qwen-MT 语言暂不视为已适配。后续工作回到发布验证清单。
 
 TASK-021 已完成：结果卡支持 380–760pt 横向调整，流式译文在未达到 60% 高度上限前完整推动窗口增长，动画竞态会在完成后按最新会话和宽度校正，且非激活划词路径的光标与拖动已完成实机复验。TASK-016 与 TASK-013 继续保持 Blocked。
@@ -77,6 +79,7 @@ TASK-015 已完成；剩余发布矩阵继续保留在 BL-001，截图 `Esc` 与
 
 ## Latest verification
 
+- TASK-023：`./scripts/check.sh` 通过严格 Rust formatting/Clippy、20 项 Rust、84 项 MarlaApp（3 项 Vision 图形服务限制 skip）、13 项 MarlaCore、Swift Package、Xcode Debug、3 个 shell 脚本语法、空白与 diff 检查。新增回归证明事件驱动取消会即时唤醒并保持幂等，SSE 未完成帧在 1 MiB 边界后被拒绝。`./scripts/build-test-app.sh` 随后成功重建固定 Release；`artifacts/Marla_dev.app` 通过 Bundle ID `com.marla.app`、版本 0.1.0、macOS 14.0+、arm64、稳定签名 `API Usage Monitor Dev` 和 designated requirement 验证，已交付项目所有者现场查看。
 - TASK-021 已完成：宽度、非激活光标/拖动、源应用焦点和多次结果替换均已验收；本轮针对未封顶高度少算，增加了按 SwiftUI 实际行高补足的 `ResultCardLayout` 测量、真实 `NSHostingView` 回归，以及每次高度动画结束后按最新会话/宽度执行一次无动画 frame reconciliation。40ms 非激活场景覆盖了首个 delta 与 160ms 入场动画重叠的竞态。`./scripts/check.sh` 通过 17 Rust、80 MarlaApp、13 MarlaCore、Swift Package、Xcode Debug、格式/空白/diff；固定 Release 与 `/private/tmp/marla-task-021-height-race-final.png` 均验证通过。
 - TASK-022：`./scripts/check.sh` 通过 18 Rust、84 MarlaApp（3 项 Vision 图片回归因 OSStatus -6662 明确 skip）、13 MarlaCore、Swift Package、非沙盒 Xcode Debug、格式/空白/diff；`./scripts/build-test-app.sh` 重建并验证固定签名 `artifacts/Marla_dev.app`。沙盒外探针验证自动检测下日/韩/中/英样本；现场固定 App 截图 OCR 和窗口视觉验收仍待完成。实现已按项目所有者授权收束，实现提交为 `978294e`，收束记录为 `c212400`。
 - TASK-020 is complete. `./scripts/check.sh` passes 17 Rust, 71 MarlaApp Swift, and 13 MarlaCore Swift tests plus Swift/Xcode Debug, formatting, whitespace, and diff checks; the fixed Release `artifacts/Marla_dev.app` passes Bundle ID/version/minimum-system/arm64/stable-signature/designated-requirement verification. Real Release captures in `/private/tmp` show 224pt compact, approximately 309pt intermediate growth, approximately 644pt capped growth, dark appearance, and Reduce Motion; five-dimension review scores 8/8/8/9/7. Screenshots remain ephemeral per project policy and were not added to the repository.

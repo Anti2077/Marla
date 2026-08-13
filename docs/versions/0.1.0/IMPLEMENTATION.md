@@ -176,7 +176,7 @@ Rules:
 
 ### 中文
 
-请求 schema 固定为版本 1：
+请求 schema 固定为版本 2：
 
 ```json
 {
@@ -219,7 +219,7 @@ Rules:
 
 ### English
 
-Request schema is fixed at version 1:
+Request schema is fixed at version 2:
 
 ```json
 {
@@ -266,7 +266,7 @@ Logs may contain request ID, phase, duration, HTTP status, and error code, but n
 
 Rust 使用单个进程级异步运行时和一个共享 HTTP Client。OpenAI-compatible 请求发送到规范化的 `{baseURL}/chat/completions`，设置 `stream: true`。Key 非空时添加 Bearer Header；不支持自定义 Header。
 
-SSE 解析接受 `data:` 帧、空行分隔、跨网络分片的 UTF-8、`[DONE]` 和 `finish_reason` 完成。通用端点读取 `choices[0].delta.content` 并容忍没有内容的角色帧。无法解析的有效 HTTP 响应返回 `invalid_response`；HTTP 200 流内的 Provider 错误也必须映射为失败事件，不得把原始响应体直接展示给用户或写入日志。
+SSE 解析接受 `data:` 帧、空行分隔、跨网络分片的 UTF-8、`[DONE]` 和 `finish_reason` 完成，并把单个未完成帧限制在 1 MiB；超限响应返回 `invalid_response`，不能持续占用内存。通用端点读取 `choices[0].delta.content` 并容忍没有内容的角色帧。无法解析的有效 HTTP 响应返回 `invalid_response`；HTTP 200 流内的 Provider 错误也必须映射为失败事件，不得把原始响应体直接展示给用户或写入日志。
 
 通用模型的系统提示词把用户输入视为待翻译数据，使用 Swift 解析后的可选源语言和明确目标语言；源语言未知时才要求模型识别。目标支持七门产品语言：简体中文、English、日本語、Français、Español、Deutsch 和 한국어。提示词只允许输出译文，并要求保留换行、标点、专有名词、代码标识符和终端参数；源文本继续使用明确分隔符包裹。
 
@@ -278,7 +278,7 @@ SSE 解析接受 `data:` 帧、空行分隔、跨网络分片的 UTF-8、`[DONE]
 
 Rust uses one process-wide asynchronous runtime and one shared HTTP client. The OpenAI-compatible request goes to normalized `{baseURL}/chat/completions` with `stream: true`. A non-empty key adds a Bearer Header. Custom headers are unsupported.
 
-SSE parsing accepts `data:` frames, blank-line separation, UTF-8 split across network chunks, `[DONE]`, and `finish_reason` completion. Generic endpoints read `choices[0].delta.content` while tolerating role frames with no content. An unparseable successful HTTP response becomes `invalid_response`; provider errors carried inside an HTTP 200 stream also become failed events. Raw response bodies are neither shown to the user nor logged.
+SSE parsing accepts `data:` frames, blank-line separation, UTF-8 split across network chunks, `[DONE]`, and `finish_reason` completion, while limiting one incomplete frame to 1 MiB; an oversized response becomes `invalid_response` instead of retaining memory indefinitely. Generic endpoints read `choices[0].delta.content` while tolerating role frames with no content. An unparseable successful HTTP response becomes `invalid_response`; provider errors carried inside an HTTP 200 stream also become failed events. Raw response bodies are neither shown to the user nor logged.
 
 The generic-model system prompt treats user input as translation data and uses Swift's optional resolved source plus explicit target; it asks the model to detect source only when source is unknown. Targets support the seven product languages: Simplified Chinese, English, Japanese, French, Spanish, German, and Korean. Output is translation only, preserving line breaks, punctuation, proper nouns, code identifiers, and terminal arguments, with clear source delimiters.
 

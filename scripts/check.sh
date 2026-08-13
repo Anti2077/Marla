@@ -16,8 +16,12 @@ export SWIFTPM_MODULECACHE_OVERRIDE="${cache_root}/swiftpm"
 cd "${project_root}"
 
 cargo fmt --all --check
+cargo clippy --workspace --all-targets -- -D warnings
 cargo test --workspace
 cargo build --workspace
+for script in scripts/*.sh; do
+    /bin/zsh -n "${script}"
+done
 swift build --disable-sandbox
 swift test --disable-sandbox
 /usr/bin/xcodebuild \

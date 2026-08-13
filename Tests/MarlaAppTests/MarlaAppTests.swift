@@ -489,6 +489,49 @@ final class MarlaAppTests: XCTestCase {
     }
 
     @MainActor
+    func testConnectionTestPersistsAndResolvesTheSameProfileEndpoint() throws {
+        let suite = "com.marla.tests.connection-test-persistence.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suite)!
+        defaults.removePersistentDomain(forName: suite)
+        let items = FakeKeychainItems()
+        let settings = MarlaSettingsStore(
+            defaults: defaults,
+            keychain: KeychainCredentialStore(
+                service: "com.marla.tests.connection-test-persistence",
+                backend: items.backend
+            )
+        )
+        let profileID = settings.addProfile()
+
+        let endpoint = try APIProfileEditorPersistence.saveAndResolveEndpoint(
+            settings: settings,
+            profileID: profileID,
+            name: "Qwen MT",
+            baseURL: "https://dashscope.example/v1",
+            urlMode: .completeURL,
+            modelName: "qwen-mt-turbo",
+            apiKeyDraft: "draft-key"
+        )
+
+        XCTAssertEqual(settings.profile(id: profileID)?.name, "Qwen MT")
+        XCTAssertEqual(endpoint.baseURL, settings.endpoint(for: profileID)?.baseURL)
+        XCTAssertEqual(endpoint.urlMode, settings.endpoint(for: profileID)?.urlMode)
+        XCTAssertEqual(endpoint.model, settings.endpoint(for: profileID)?.model)
+        XCTAssertEqual(endpoint.apiKey, settings.endpoint(for: profileID)?.apiKey)
+        XCTAssertNotNil(endpoint.apiKey)
+        XCTAssertEqual(Set(items.items.keys), [KeychainCredentialStore.vaultAccount])
+    }
+
+    @MainActor
+    func testMissingCredentialFailureNamesTheProfileAndSaveAction() {
+        let message = TranslationSessionStore.missingCredentialMessage(profileName: "Qwen MT")
+
+        XCTAssertTrue(message.contains("Qwen MT"))
+        XCTAssertTrue(message.contains("保存并测试"))
+        XCTAssertFalse(message.contains("draft-key"))
+    }
+
+    @MainActor
     func testConnectionTesterResetClearsStaleValidationResult() {
         let tester = TranslationConnectionTester()
         tester.test(endpoint: TranslationEndpointConfiguration(baseURL: "invalid", model: ""))

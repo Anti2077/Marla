@@ -274,10 +274,11 @@ struct APIProfileEditorView: View {
                 .foregroundStyle(DesignTokens.secondaryText)
                 .frame(width: 120, alignment: .trailing)
             HStack(alignment: .center, spacing: DesignTokens.spaceS) {
-                Button("测试连接", action: testConnection)
+                Button("保存并测试", action: testConnection)
                     .buttonStyle(.bordered)
                     .controlSize(.small)
                     .disabled(connectionTester.isTesting)
+                    .help("先保存当前配置与非空 API Key，再使用同一份已保存配置测试连接")
                 if connectionTester.isTesting {
                     ProgressView().controlSize(.small)
                     Text("测试中…")
@@ -350,12 +351,20 @@ struct APIProfileEditorView: View {
 
     private func testConnection() {
         saveErrorMessage = nil
-        connectionTester.test(endpoint: TranslationEndpointConfiguration(
-            baseURL: baseURL,
-            urlMode: urlMode,
-            model: modelName,
-            apiKey: resolvedAPIKey
-        ))
+        do {
+            let endpoint = try APIProfileEditorPersistence.saveAndResolveEndpoint(
+                settings: settings,
+                profileID: profile.id,
+                name: name,
+                baseURL: baseURL,
+                urlMode: urlMode,
+                modelName: modelName,
+                apiKeyDraft: apiKeyDraft
+            )
+            connectionTester.test(endpoint: endpoint)
+        } catch {
+            saveErrorMessage = error.localizedDescription
+        }
     }
 
     private func fetchModels() {
@@ -378,6 +387,37 @@ struct APIProfileEditorView: View {
     private func resetEndpointResults(resetModels: Bool) {
         connectionTester.reset()
         if resetModels { modelListFetcher.reset() }
+    }
+}
+
+@MainActor
+enum APIProfileEditorPersistence {
+    static func saveAndResolveEndpoint(
+        settings: MarlaSettingsStore,
+        profileID: UUID,
+        name: String,
+        baseURL: String,
+        urlMode: TranslationEndpointURLMode,
+        modelName: String,
+        apiKeyDraft: String
+    ) throws -> TranslationEndpointConfiguration {
+        settings.updateProfile(
+            id: profileID,
+            name: name,
+            baseURL: baseURL,
+            urlMode: urlMode,
+            modelName: modelName
+        )
+        if !apiKeyDraft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            try settings.updateAPIKey(apiKeyDraft, for: profileID)
+        }
+        let savedProfile = settings.profile(id: profileID)
+        return TranslationEndpointConfiguration(
+            baseURL: savedProfile?.baseURL ?? "",
+            urlMode: savedProfile?.urlMode ?? .baseURL,
+            model: savedProfile?.modelName ?? "",
+            apiKey: settings.apiKey(for: profileID)
+        )
     }
 }
 
@@ -544,4 +584,3 @@ final class TranslationConnectionTester: ObservableObject {
         self.message = message
     }
 }
-

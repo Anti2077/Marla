@@ -300,6 +300,10 @@ TASK-021 height-race follow-up: `ResultCardLayout` now compensates for the measu
 
 ## 11. 发布判定 / Release Decision
 
+TASK-026 验收补充：连接测试先持久化 profile 与 Key，再从已保存 endpoint 测试；缺少已保存凭据时给出 profile-specific 且不含 Key 的保存引导。勾选前必须有自动化回归证据。
+
+TASK-026 acceptance addendum: Connection Test persists the profile and key before testing the saved endpoint; missing saved credentials produce a profile-specific, key-free save instruction. Automated regression coverage is required before this item is checked.
+
 ### 中文
 
 0.1.0 只有在所有条目通过、没有 P0 崩溃/数据泄漏/焦点破坏问题、五维视觉审查全部至少 7/10、内存硬上限满足，并交付经过检查的固定路径 `.app` 后才能标记完成。任何未验证项必须留为 `[ ]` 并在 `STATUS.md` 中列为阻塞或风险。

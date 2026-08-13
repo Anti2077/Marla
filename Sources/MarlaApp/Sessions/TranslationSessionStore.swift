@@ -291,6 +291,11 @@ final class TranslationSessionStore: ObservableObject {
             current.errorCode = event.code
             current.errorRetryable = event.retryable ?? false
             current.recoveryAction = recoveryAction(for: event.code, retryable: current.errorRetryable)
+            if event.code == .unauthorized,
+               let profileID = current.profileID,
+               !settings.hasCredential(for: profileID) {
+                current.state = .failed(message: Self.missingCredentialMessage(profileName: current.profileName))
+            }
         }
         if current.state.isTerminal {
             handle?.release()
@@ -444,6 +449,10 @@ final class TranslationSessionStore: ObservableObject {
         case nil:
             retryable ? .retry : nil
         }
+    }
+
+    static func missingCredentialMessage(profileName: String) -> String {
+        "配置“\(profileName)”没有已保存的 API Key。请打开设置，使用“保存并测试”后重试。"
     }
 
     private func recordRecentTranslationIfEligible(_ candidate: CardSession?) {

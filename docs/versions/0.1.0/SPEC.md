@@ -304,6 +304,12 @@ The UI must distinguish “local recognition with Vision” from “recognized t
 
 ## 13. 测试产物 / Test Artifact
 
+### TASK-026 凭据一致性补充 / Credential Consistency Addendum
+
+中文：连接测试使用“保存并测试”语义，先保存当前 profile 与非空 Key 草稿，再使用已保存 endpoint；真实请求在 profile 没有已保存凭据时显示不含 Key 的保存引导。
+
+English: Connection Test uses “Save and Test”, persisting the current profile and non-empty key draft before testing the saved endpoint; a missing saved credential produces a key-free save instruction in the result card.
+
 ### 中文
 
 应用内部版本为 `0.1.0`，Bundle Identifier 固定为 `com.marla.app`，最低系统为 macOS 14，首版只构建 Apple Silicon。日常测试 App 使用钥匙串中的稳定本地开发签名，并固定为：

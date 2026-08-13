@@ -16,7 +16,11 @@ Marla 应当像 macOS 自身长出来的一层安静工具：出现迅速、层�
 
 在规划阶段已经比较过“克制原生精致”“未来透明感”和“专业工具感”三个方向；0.1.0 锁定第一个。不得在实现时重新引入大面积透明光晕、霓虹暗色或密集开发者面板。
 
+TASK-026：API 编辑器把操作标为“保存并测试”；它先持久化当前 profile 与非空 Key 草稿，再从已保存 endpoint 测试，并保留既有的同行测试中/成功/失败状态。
+
 ### English
+
+TASK-026: The API editor labels the action “Save and Test”; it persists the current profile and non-empty key draft before testing the saved endpoint, while keeping the existing inline testing/success/failure status.
 
 Marla should feel like a quiet layer grown from macOS itself: immediate, clearly ordered, and precisely crafted without competing with the content being read. 0.1.0 adopts the Warm Minimal school, calibrated by functional restraint. System materials, clear typography, breathing room, and one intentional streaming detail define its character.
 

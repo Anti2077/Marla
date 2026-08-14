@@ -12,6 +12,8 @@
 4. 任务施工单的 `Required Reading`，再检查相关代码和测试。
 5. 仅在涉及长期决策时读取或新增相关 ADR。
 
+UI/UX 工作的 skill 路由和使用示例见 [`development/UI_UX_SKILLS.md`](development/UI_UX_SKILLS.md)。
+
 ## 文档分层
 
 | 目录或文件 | 回答的问题 | 何时更新 |

@@ -68,6 +68,8 @@ The release succeeds only when all of the following are true:
 
 三个快捷键均可在设置中独立关闭或重新录制；关闭只停止对应全局监听，不隐藏菜单入口。录制时必须检测与 Marla 其他入口的内部冲突；如果系统或其他应用已经占用组合键但无法可靠检测，界面应明确提示用户实际试用并提供恢复默认值操作。
 
+Marla 处于激活状态时，标准 macOS `⌘,` 应打开设置并复用已存在的设置窗口。该命令属于应用设置命令，不是跨应用全局监听，也不进入上述三个可录制翻译快捷键。
+
 ### English
 
 0.1.0 provides three independent global entry points:
@@ -79,6 +81,8 @@ The release succeeds only when all of the following are true:
 | Quick input | `⌃⌥Space` | Open a paste-and-type translation card near the pointer |
 
 Each shortcut can be independently disabled or recorded in Settings. Disabling stops only that global listener and does not hide the menu entry. Recording must detect conflicts among Marla actions. When reliable detection of a system or third-party conflict is impossible, the UI must ask the user to test the shortcut and provide a restore-defaults action.
+
+When Marla is active, the standard macOS `⌘,` command opens Settings and reuses an existing Settings window. This is an application Settings command, not a cross-application global listener or a fourth recordable translation shortcut.
 
 ## 4. 划词翻译 / Selection Translation
 
@@ -303,6 +307,12 @@ The UI must distinguish “local recognition with Vision” from “recognized t
 - application UI localization; the 0.1.0 UI is Simplified Chinese.
 
 ## 13. 测试产物 / Test Artifact
+
+### TASK-026 凭据一致性补充 / Credential Consistency Addendum
+
+中文：连接测试使用“保存并测试”语义，先保存当前 profile 与非空 Key 草稿，再使用已保存 endpoint；真实请求在 profile 没有已保存凭据时显示不含 Key 的保存引导。
+
+English: Connection Test uses “Save and Test”, persisting the current profile and non-empty key draft before testing the saved endpoint; a missing saved credential produces a key-free save instruction in the result card.
 
 ### 中文
 

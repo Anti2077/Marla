@@ -19,6 +19,7 @@ cargo fmt --all --check
 cargo clippy --workspace --all-targets -- -D warnings
 cargo test --workspace
 cargo build --workspace
+./scripts/check-structure.sh
 for script in scripts/*.sh; do
     /bin/zsh -n "${script}"
 done
@@ -30,6 +31,7 @@ swift test --disable-sandbox
     -configuration Debug \
     -derivedDataPath "${cache_root}/xcode" \
     -destination 'platform=macOS,arch=arm64' \
+    SWIFT_ACTIVE_COMPILATION_CONDITIONS='$(inherited) DEBUG MARLA_CHECK_BUILD' \
     CODE_SIGNING_ALLOWED=NO \
     build
 

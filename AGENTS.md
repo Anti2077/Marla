@@ -23,6 +23,7 @@ Each implementation-focused development conversation maps to one Task. Keep usin
 - Use Swift 6, SwiftUI, and AppKit for presentation and macOS integration. Use the embedded Rust core for business logic according to ADR-0004. Do not introduce Tauri, Python, a localhost sidecar, or a bundled local VLM without an accepted ADR.
 - Screenshots are ephemeral by default and must not be persisted without an explicit product decision.
 - Do not add unrelated features merely because they are convenient to implement.
+- New strongly related types or a new subsystem must be placed in a new source file under the matching application layer; do not append them to `MarlaApplicationModel.swift` or any file near a structure-gate limit.
 
 ## Working discipline
 

@@ -174,11 +174,13 @@
 
 - [ ] 三个默认快捷键正确注册、可修改、可恢复默认值。
 - [ ] Marla 内部重复组合键被阻止，并解释冲突。
+- [x] Marla 激活时 `⌘,` 打开或复用现有设置窗口，且不成为第四个全局翻译快捷键。
 
 ### English
 
 - [ ] Three default shortcuts register correctly, can be changed, and restore defaults.
 - [ ] Duplicate Marla combinations are rejected with a conflict explanation.
+- [x] While Marla is active, `⌘,` opens or reuses the existing Settings window and does not become a fourth global translation shortcut.
 
 ## 8. 视觉与交互 / Visual and Interaction Quality
 
@@ -299,6 +301,10 @@ TASK-021 高度竞态跟进：`ResultCardLayout` 已补偿 AppKit 与 SwiftUI �
 TASK-021 height-race follow-up: `ResultCardLayout` now compensates for the measured per-line difference between AppKit and SwiftUI text, and the coordinator reconciles the latest session after each height animation. The 40ms nonactivating streaming fixture and real `NSHostingView` regression pass in the Swift Package test run; `./scripts/check.sh` passes 17 Rust, 80 MarlaApp, 13 MarlaCore, Swift Package, Xcode Debug, formatting, whitespace, and diff stages. The fixed Release was rebuilt and passes package/signature checks; the LaunchServices capture `/private/tmp/marla-task-021-height-race-final.png` keeps translation, dividers, and actions visible. The result-card height item remains pending project-owner real selection confirmation.
 
 ## 11. 发布判定 / Release Decision
+
+TASK-026 验收补充：连接测试先持久化 profile 与 Key，再从已保存 endpoint 测试；缺少已保存凭据时给出 profile-specific 且不含 Key 的保存引导。勾选前必须有自动化回归证据。
+
+TASK-026 acceptance addendum: Connection Test persists the profile and key before testing the saved endpoint; missing saved credentials produce a profile-specific, key-free save instruction. Automated regression coverage is required before this item is checked.
 
 ### 中文
 

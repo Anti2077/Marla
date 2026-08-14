@@ -43,6 +43,7 @@
 		A1000000000000000000000B /* TranslationModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2000000000000000000000B /* TranslationModels.swift */; };
 		A1000000000000000000000C /* MarlaRustFFI.c in Sources */ = {isa = PBXBuildFile; fileRef = A2000000000000000000000C /* MarlaRustFFI.c */; };
 		A1000000000000000000000D /* libMarlaCore.a in Frameworks */ = {isa = PBXBuildFile; fileRef = A2000000000000000000000F /* libMarlaCore.a */; };
+		A10000000000000000000029 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000029 /* Assets.xcassets */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -94,6 +95,7 @@
 		A2000000000000000000000D /* MarlaRustFFI.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = MarlaRustFFI.h; sourceTree = "<group>"; };
 		A2000000000000000000000E /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		A20000000000000000000012 /* Info-Debug.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "Info-Debug.plist"; sourceTree = "<group>"; };
+		A20000000000000000000029 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		A2000000000000000000000F /* libMarlaCore.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = libMarlaCore.a; sourceTree = BUILT_PRODUCTS_DIR; };
 		A20000000000000000000010 /* Marla.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Marla.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
@@ -193,6 +195,7 @@
 		A70000000000000000000006 /* Resources */ = {
 			isa = PBXGroup;
 			children = (
+				A20000000000000000000029 /* Assets.xcassets */,
 				A20000000000000000000012 /* Info-Debug.plist */,
 				A2000000000000000000000E /* Info.plist */,
 			);
@@ -289,6 +292,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				A10000000000000000000029 /* Assets.xcassets in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -481,6 +485,7 @@
 		AA0000000000000000000003 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_IDENTITY = "-";
 				CODE_SIGN_STYLE = Manual;
 				CURRENT_PROJECT_VERSION = 1;
@@ -513,6 +518,7 @@
 		AA0000000000000000000004 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_IDENTITY = "-";
 				CODE_SIGN_STYLE = Manual;
 				CURRENT_PROJECT_VERSION = 1;

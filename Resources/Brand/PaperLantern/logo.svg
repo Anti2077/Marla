@@ -1,0 +1,63 @@
+<svg xmlns="http://www.w3.org/2000/svg"
+     viewBox="0 0 512 512"
+     role="img"
+     aria-labelledby="title desc">
+  <title id="title">Marla Paper Lantern</title>
+  <desc id="desc">A softly uneven paper lantern shell holding a quiet warm opening, like a small reading light.</desc>
+
+  <g id="icon">
+    <g id="lantern-shell" aria-label="deep blue-purple lantern shell">
+      <path fill="#393554" d="M226 72
+        C214 77 203 89 194 103
+        C168 112 145 130 129 156
+        C110 187 102 226 104 270
+        C106 321 120 368 147 402
+        C169 429 206 443 251 446
+        C297 449 338 436 364 408
+        C390 380 405 333 407 281
+        C409 229 400 185 380 154
+        C363 128 340 111 315 102
+        C306 87 294 76 281 71
+        C263 66 244 67 226 72 Z" />
+    </g>
+
+    <g id="paper-body" aria-label="terracotta paper body">
+      <path fill="#C86652" d="M194 103
+        C211 115 232 121 255 121
+        C279 121 299 114 315 102
+        C305 86 293 76 281 71
+        C263 66 244 67 226 72
+        C213 79 203 90 194 103 Z" />
+      <path fill="#C86652" d="M187 123
+        C167 136 151 153 139 175
+        C123 204 117 238 119 278
+        C121 321 132 358 154 386
+        C176 411 208 423 253 426
+        C293 428 328 417 350 393
+        C374 367 387 328 389 282
+        C391 239 384 202 367 175
+        C354 153 336 135 315 122
+        C299 133 279 140 255 140
+        C230 140 207 134 187 123 Z" />
+      <path fill="#C86652" d="M154 386
+        C176 411 208 423 253 426
+        C293 428 328 417 350 393
+        C343 413 329 429 311 437
+        C292 445 271 448 251 446
+        C206 443 169 429 147 402
+        C150 398 152 392 154 386 Z" />
+    </g>
+
+    <g id="light-opening" aria-label="warm central reading light">
+      <path fill="#E6B86A" d="M232 148
+        C244 137 266 137 279 148
+        C293 160 299 183 300 216
+        L302 286
+        C302 321 294 351 278 371
+        C266 386 249 387 236 372
+        C220 354 213 324 212 288
+        L213 214
+        C214 181 219 159 232 148 Z" />
+    </g>
+  </g>
+</svg>

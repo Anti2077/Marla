@@ -1,5 +1,9 @@
 # UX Principles
 
+## Be a quiet light
+
+Marla is a paper lantern beside the reader: it illuminates unfamiliar language without becoming the destination. The brand metaphor reinforces behavior rather than decoration. Marla appears only after explicit intent, stays near the source, keeps functional controls native, and leaves the reading context intact when dismissed.
+
 ## Stay in place
 
 Translation belongs near the selected text, captured region, or pointer. Marla should not make a main window the default destination.

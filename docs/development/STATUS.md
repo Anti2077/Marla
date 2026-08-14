@@ -6,9 +6,11 @@ Release target: 0.1.0 Alpha
 
 Overall state: In Progress — implementation baseline exists; release verification gaps remain
 
-Active task: [TASK-026](../tasks/TASK-026-credential-consistency.md)
+Active task: None
 
-TASK-026 已修复设置连接测试与真实翻译凭据语义分叉：编辑器现在以“保存并测试”保存当前 profile 与非空 Key 草稿后，从同一份已保存 endpoint 发起测试；真实请求在 profile 缺少已保存凭据时显示不泄露 Key 的 profile-specific 引导。项目所有者随后追加的标准 `⌘,` 设置命令已通过真实固定 App 验证，重复触发复用同一设置窗口；统一检查和固定 Release 包均已通过。用户自行输入现有 Key 的真实网络复验仍保留为 live credential gap。
+TASK-027 已完成：Paper Lantern 是 Marla 的正式品牌标志和产品意象；品牌 SVG、参考 PNG、产品/UX 约束与 ADR 已落地。macOS 标准 10 槽位 AppIcon asset catalog 已接入 Xcode Debug/Release，所有后续 App 构建默认使用该图标；固定签名 `artifacts/Marla_dev.app` 已重建，并通过图标声明、`AppIcon.icns`、`Assets.car` 和 10 个 Paper Lantern rendition 验证。
+
+TASK-026 已完成设置连接测试与真实翻译凭据语义一致性修复：编辑器现在以“保存并测试”保存当前 profile 与非空 Key 草稿后，从同一份已保存 endpoint 发起测试；真实请求在 profile 缺少已保存凭据时显示不泄露 Key 的 profile-specific 引导。项目所有者随后追加的标准 `⌘,` 设置命令已通过真实固定 App 验证，重复触发复用同一设置窗口。手动降低玻璃层 opacity 的实验因焦点/失焦时过透已回退，当前恢复原有系统默认玻璃，不保留自定义玻璃档位。用户自行输入现有 Key 的真实网络复验已迁入 `RV-004`，不再保持实现 Task 为 Active。
 
 TASK-025 已立项：按职责把 `MarlaApplicationModel.swift` 拆分到分层目录，新增 `scripts/check-structure.sh` 结构门禁并接入 `check.sh`，新建 ADR-0007 并更新 `AGENTS.md` 与 `TASK_TEMPLATE.md`，防止单文件巨型化复发。
 
@@ -52,6 +54,7 @@ TASK-021 已完成：结果卡支持 380–760pt 横向调整，流式译文在�
 - Settings use a transparent full-size title bar with traffic lights inside one continuous four-corner surface, hidden scroll indicators, and a fixed `Esc` screenshot-cancellation row. Screenshot selection temporarily suspends an open Settings window and restores it without activating it; `Esc` cancellation is owned by the active selection session rather than a single view's first-responder state, with window key-equivalent/cancel-operation routing and a listen-only event-tap fallback.
 - Translation API profiles have persistent enabled states and only enabled profiles can be selected or invoked. The summary list uses native switches, a Set Default/Delete menu, accessibility move actions, and a trailing reorder handle. Settings content no longer moves the window; the newest fixed App uses a complete-row drag preview and 220ms animated hover reordering, pending owner confirmation of that final pointer feedback.
 - Project-scoped Serena 1.6.1 provides read-only Swift/Rust semantic navigation through Codex. A custom Context and fixed tool allowlist expose only nine retrieval/diagnostic tools; source edits, shell, project switching, onboarding, memories, Dashboard, and Headroom remain disabled.
+- Paper Lantern is the selected Marla brand mark and product metaphor: “a little light beside the reader.” The canonical SVG and reference PNG exports live under `Resources/Brand/PaperLantern/`; the 10-slot macOS AppIcon catalog is compiled into Debug and Release builds, while functional controls continue to use SF Symbols.
 
 Implementation baseline commit: `27203b5`.
 
@@ -69,6 +72,7 @@ TASK-013 is not selectable until the project owner confirms its pending drag-pre
 
 1. `RV-002` — real screenshot crop and TCC permission verification.
 2. `RV-003` — latency and memory measurement.
+3. `RV-004` — owner-entered saved-credential connection test followed by one real translation.
 
 TASK-014 is complete; remaining product verification gaps stay separately selectable.
 
@@ -122,7 +126,7 @@ TASK-015 已完成；项目所有者已确认关闭跨应用划词验证（RV-00
 
 ## Pending product decisions
 
-Default translation vendor, contextual translation controls, cloud structured OCR controls, persistent history, final app icon, public signing/notarization, and public distribution remain outside the current Task. Their context is recorded in `docs/backlog/IDEAS.md` or accepted ADRs.
+Default translation vendor, contextual translation controls, cloud structured OCR controls, persistent history, public signing/notarization, and public distribution remain outside the current Task. Paper Lantern brand selection and AppIcon integration are complete under ADR-0008 and TASK-027.
 
 ## Required Reading
 

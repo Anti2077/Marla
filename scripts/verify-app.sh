@@ -9,6 +9,7 @@ fi
 
 app_path=${1:A}
 info_plist="${app_path}/Contents/Info.plist"
+resources_path="${app_path}/Contents/Resources"
 
 if [[ ! -d ${app_path} ]]; then
     print -u2 "App bundle does not exist: ${app_path}"
@@ -41,11 +42,46 @@ minimum_system=$(read_plist_value LSMinimumSystemVersion)
 agent_app=$(read_plist_value LSUIElement)
 executable_name=$(read_plist_value CFBundleExecutable)
 executable_path="${app_path}/Contents/MacOS/${executable_name}"
+icon_name=$(read_plist_value CFBundleIconName)
+icon_file=$(read_plist_value CFBundleIconFile)
 
 require_value "Bundle identifier" "${bundle_id}" "com.marla.app"
 require_value "Marketing version" "${version}" "0.1.0"
 require_value "Minimum system" "${minimum_system}" "14.0"
 require_value "LSUIElement" "${agent_app}" "true"
+require_value "App icon name" "${icon_name}" "AppIcon"
+require_value "App icon file" "${icon_file}" "AppIcon"
+
+icon_path="${resources_path}/AppIcon.icns"
+asset_catalog_path="${resources_path}/Assets.car"
+if [[ ! -s ${icon_path} ]]; then
+    print -u2 "Compiled Paper Lantern icon is missing or empty: ${icon_path}"
+    exit 1
+fi
+if [[ ! -s ${asset_catalog_path} ]]; then
+    print -u2 "Compiled asset catalog is missing or empty: ${asset_catalog_path}"
+    exit 1
+fi
+
+asset_info=$(DEVELOPER_DIR="${DEVELOPER_DIR:-/Applications/Xcode.app/Contents/Developer}" /usr/bin/xcrun assetutil --info "${asset_catalog_path}")
+paper_lantern_renditions=(
+    paper-lantern-16.png
+    paper-lantern-16@2x.png
+    paper-lantern-32.png
+    paper-lantern-32@2x.png
+    paper-lantern-128.png
+    paper-lantern-128@2x.png
+    paper-lantern-256.png
+    paper-lantern-256@2x.png
+    paper-lantern-512.png
+    paper-lantern-512@2x.png
+)
+for rendition in "${paper_lantern_renditions[@]}"; do
+    if ! print -r -- "${asset_info}" | rg -F -q -- "\"RenditionName\" : \"${rendition}\""; then
+        print -u2 "Compiled asset catalog is missing Paper Lantern rendition: ${rendition}"
+        exit 1
+    fi
+done
 
 if [[ ! -x ${executable_path} ]]; then
     print -u2 "App executable is missing or not executable: ${executable_path}"
@@ -78,4 +114,5 @@ print "  Bundle ID: ${bundle_id}"
 print "  Version: ${version}"
 print "  Minimum macOS: ${minimum_system}"
 print "  Architecture: ${architectures}"
+print "  App icon: ${icon_name} (Paper Lantern, ${#paper_lantern_renditions} renditions)"
 print "  Signing: valid (${signature_summary})"

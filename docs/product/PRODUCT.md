@@ -10,6 +10,12 @@ Marla is a native macOS instantaneous translation layer. Its primary surface is 
 
 The user should be able to notice text, express translation intent, read the result near the original content, dismiss it, and continue working with minimal context switching.
 
+## Product metaphor
+
+Marla is a paper lantern beside the reader: a small, warm light that reveals unfamiliar language without taking over the page. It appears only when invited, stays close to the source, preserves the reader's context, and recedes when the translation is no longer needed.
+
+The metaphor describes product behavior, not decoration. Marla does not turn the reading surface into a branded destination or spread brand colors across functional controls. The selected Paper Lantern mark and its usage boundaries are defined in [`BRAND.md`](BRAND.md).
+
 ## Initial users
 
 - people reading multilingual web pages, software interfaces, terminal output, documentation, email, and chat;

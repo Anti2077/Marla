@@ -14,6 +14,8 @@
 
 Marla 应当像 macOS 自身长出来的一层安静工具：出现迅速、层级清楚、细节精确，但不会用视觉装饰争夺正在阅读的内容。0.1.0 选择 Warm Minimal 设计学派，并以功能克制校准它：系统材质、清楚排版、充足留白和一个明确的流式状态细节构成产品性格。
 
+Paper Lantern 是 Marla 已选定的品牌标志和产品意象：像阅读旁边的一盏纸灯，只在用户明确邀请时照亮陌生语言，不接管页面。这个意象约束行为而不是装饰；品牌色不得替代系统强调色，也不得为了呼应纸灯而在功能界面增加发光、阴影或暖色底板。
+
 在规划阶段已经比较过“克制原生精致”“未来透明感”和“专业工具感”三个方向；0.1.0 锁定第一个。不得在实现时重新引入大面积透明光晕、霓虹暗色或密集开发者面板。
 
 TASK-026：API 编辑器把操作标为“保存并测试”；它先持久化当前 profile 与非空 Key 草稿，再从已保存 endpoint 测试，并保留既有的同行测试中/成功/失败状态。
@@ -23,6 +25,8 @@ TASK-026：API 编辑器把操作标为“保存并测试”；它先持久化�
 TASK-026: The API editor labels the action “Save and Test”; it persists the current profile and non-empty key draft before testing the saved endpoint, while keeping the existing inline testing/success/failure status.
 
 Marla should feel like a quiet layer grown from macOS itself: immediate, clearly ordered, and precisely crafted without competing with the content being read. 0.1.0 adopts the Warm Minimal school, calibrated by functional restraint. System materials, clear typography, breathing room, and one intentional streaming detail define its character.
+
+Paper Lantern is Marla's selected brand mark and product metaphor: a small light beside the reader that reveals unfamiliar language only when explicitly invited, without taking over the page. The metaphor constrains behavior rather than adding decoration. Brand colors do not replace the system accent, and functional surfaces do not gain glow, shadow, or warm backplates merely to echo the lantern.
 
 Planning compared Restrained Native, Futuristic Transparency, and Professional Utility directions; 0.1.0 locks the first. Implementation must not reintroduce broad translucent glow, neon-dark styling, or dense developer panels.
 
@@ -41,7 +45,7 @@ Planning compared Restrained Native, Futuristic Transparency, and Professional U
 - 为了“高级感”堆叠模糊、玻璃和阴影；
 - AI 生成的 SVG 插画或装饰性人物图形。
 
-所有图标优先使用同一字重的 SF Symbols。没有正式 App 图标前使用清楚标记的占位资源，不临时生成低质量品牌图。
+所有功能图标优先使用同一字重的 SF Symbols。Paper Lantern 已选为正式品牌标志，主文件和使用边界见 `docs/product/BRAND.md`；菜单、工具栏和设置操作不得用品牌标志替代 SF Symbols。macOS AppIcon asset catalog 已覆盖标准 1x/2x 槽位并接入 Debug 与 Release；所有 App 构建默认使用 Paper Lantern。
 
 ### English
 
@@ -56,7 +60,7 @@ Production UI forbids:
 - blur, glass, and shadow stacked merely to look premium;
 - AI-generated SVG illustrations or decorative people graphics.
 
-Icons use SF Symbols at a consistent weight. Until a final app icon exists, use a clearly labeled placeholder rather than an improvised low-quality brand asset.
+Functional icons use SF Symbols at a consistent weight. Paper Lantern is the selected brand mark; its master asset and usage boundaries are defined in `docs/product/BRAND.md`. Menus, toolbars, and Settings actions may not replace SF Symbols with the brand mark. The macOS AppIcon catalog covers the standard 1x/2x slots and is integrated into Debug and Release, so all App builds use Paper Lantern by default.
 
 ## 3. 设计 Token / Design Tokens
 
@@ -232,7 +236,7 @@ First launch does not show a large welcome hero. It directly presents a three-it
 
 The menu's setup status exists only while any item is incomplete. Once all are ready, the same region becomes Recent Translations: up to three rows, each showing an entry-point icon, one translation line, one source line, and a disclosure chevron. An empty state remains restrained and the section always states that quitting clears it. Screenshot translation consistently uses the `viewfinder` SF Symbol available on the target systems.
 
-General contains only permissions, Copy compatibility, and the privacy boundary; it has no Force Touch, single-line in-place translation, or generic Experimental section.
+General contains permissions, Copy compatibility, and the privacy boundary; it has no Force Touch, single-line in-place translation, or generic Experimental section.
 
 ## 8. 状态、主题与无障碍 / States, Themes, and Accessibility
 

@@ -130,6 +130,14 @@ struct MarlaApplication: App {
                 .accessibilityLabel("Marla")
         }
         .menuBarExtraStyle(.window)
+        .commands {
+            CommandGroup(replacing: .appSettings) {
+                Button("设置…") {
+                    model.openSettings()
+                }
+                .keyboardShortcut(",", modifiers: .command)
+            }
+        }
 
         Settings {
             SettingsView(settings: model.settings, appModel: model)

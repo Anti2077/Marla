@@ -174,11 +174,13 @@
 
 - [ ] 三个默认快捷键正确注册、可修改、可恢复默认值。
 - [ ] Marla 内部重复组合键被阻止，并解释冲突。
+- [x] Marla 激活时 `⌘,` 打开或复用现有设置窗口，且不成为第四个全局翻译快捷键。
 
 ### English
 
 - [ ] Three default shortcuts register correctly, can be changed, and restore defaults.
 - [ ] Duplicate Marla combinations are rejected with a conflict explanation.
+- [x] While Marla is active, `⌘,` opens or reuses the existing Settings window and does not become a fourth global translation shortcut.
 
 ## 8. 视觉与交互 / Visual and Interaction Quality
 

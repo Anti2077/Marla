@@ -26,9 +26,13 @@ TASK-021 让同一结果面板支持原生式宽度调整：`ResultCardLayout` �
 
 TASK-026 凭据一致性：编辑器的“保存并测试”先持久化 profile 与非空 Key 草稿，再从已保存 endpoint 测试。若真实请求返回 `unauthorized` 且 profile 无已保存凭据，结果卡显示 profile-specific 且不含 Key 的保存引导。
 
+应用场景用 `CommandGroup(replacing: .appSettings)` 提供标准 `⌘,` 设置命令，动作统一进入 `MarlaApplicationModel.openSettings()`，由 `MarlaSettingsWindowCoordinator` 打开或复用现有设置窗口；它不注册 Carbon 全局监听。
+
 ### English
 
 TASK-026 credential consistency: the editor's “Save and Test” path persists the profile and non-empty key draft before testing the saved endpoint. If a real request is unauthorized while the profile has no saved credential, the result card shows a profile-specific, key-free save instruction.
+
+The application scene provides the standard `⌘,` Settings command through `CommandGroup(replacing: .appSettings)`. It routes through `MarlaApplicationModel.openSettings()` so `MarlaSettingsWindowCoordinator` opens or reuses the existing Settings window; it does not register a Carbon global listener.
 
 The repository now contains a buildable Swift Package, a native Xcode macOS App target, the real Rust streaming translation core, and the complete 0.1.0 UI shell. The menu bar, onboarding checklist, three in-session recent translations, selection/screenshot/quick-input entries, non-activating result card, cross-display ScreenCaptureKit selection, Vision `OCRDocument`, Carbon shortcuts, Keychain settings, permission guidance, error recovery, speech, pinning, comparison, and Reduce Motion handling are wired and covered by the current automated tests. Recent translations are appended only by Swift's `TranslationSessionStore` after completion into a bounded array; failed, cancelled, and empty results are excluded. Selecting an item constructs a completed card without a network request, and the array touches no persistence API. The menu, Settings, result card, quick input, and screenshot-selection labels use SwiftUI Liquid Glass on macOS 26+ and a single material fallback on macOS 14–25. The Xcode target has produced and verified an arm64 `.app` with stable identity `com.marla.app`; Debug and Release link the matching Cargo debug and release products. By default, the packaging script safely replaces `artifacts/Marla_dev.app` using the existing fixed App's stable local signing identity, reducing repeated TCC prompts caused by path or signing-identity changes.
 

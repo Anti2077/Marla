@@ -8,7 +8,7 @@ Overall state: In Progress — implementation baseline exists; release verificat
 
 Active task: [TASK-026](../tasks/TASK-026-credential-consistency.md)
 
-TASK-026 已修复设置连接测试与真实翻译凭据语义分叉：编辑器现在以“保存并测试”保存当前 profile 与非空 Key 草稿后，从同一份已保存 endpoint 发起测试；真实请求在 profile 缺少已保存凭据时显示不泄露 Key 的 profile-specific 引导。新增回归、统一检查和固定 Release 包验证均已通过；项目所有者自行输入现有 Key 的真实网络复验仍保留为 live credential gap。
+TASK-026 已修复设置连接测试与真实翻译凭据语义分叉：编辑器现在以“保存并测试”保存当前 profile 与非空 Key 草稿后，从同一份已保存 endpoint 发起测试；真实请求在 profile 缺少已保存凭据时显示不泄露 Key 的 profile-specific 引导。项目所有者随后追加的标准 `⌘,` 设置命令已通过真实固定 App 验证，重复触发复用同一设置窗口；统一检查和固定 Release 包均已通过。用户自行输入现有 Key 的真实网络复验仍保留为 live credential gap。
 
 TASK-025 已立项：按职责把 `MarlaApplicationModel.swift` 拆分到分层目录，新增 `scripts/check-structure.sh` 结构门禁并接入 `check.sh`，新建 ADR-0007 并更新 `AGENTS.md` 与 `TASK_TEMPLATE.md`，防止单文件巨型化复发。
 

@@ -115,7 +115,7 @@ None
 
 ## Completion record
 
-- Verified commit: Pending
+- Verified commits: `37cc7b4`, `9b41fbd`
 - Automated evidence: 两项新增凭据一致性测试通过；追加设置命令后 `./scripts/check.sh` 再次通过 Rust 20、Swift 86+13、SwiftPM/Xcode Debug、结构门禁、脚本语法、空白与 diff 检查；`./scripts/build-test-app.sh` 通过固定 Release 包/签名验证。
 - Manual evidence: `/private/tmp/marla-task-026-settings-editor.png` 为固定 Release settings-editor 截图；`/private/tmp/marla-task-026-command-settings.png` 记录 `⌘,` 打开后的设置窗口，重复触发只保留一个窗口，五维复核为 8/8/8/8/7。真实凭据输入与网络翻译保留为项目所有者 live credential gap。
 - Documentation updated: 本 Task、0.1.0 规格/实现/UI/验收、`STATUS.md`。

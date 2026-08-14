@@ -191,7 +191,7 @@ None。三个推荐默认已由项目所有者确认并写入 In Scope：阈值�
 
 ## Completion record
 
-- Verified commit: pending commit on `codex/task-025-app-layer-modularity`
+- Verified commit: `e368004`
 - Automated evidence: `./scripts/check.sh` passed; Rust 20 tests, Swift 97 tests with 3 explicit Vision skips, Xcode Debug build, structure gate, shell syntax, whitespace and diff checks all passed. `./scripts/build-test-app.sh` passed fixed Release packaging and signing verification.
 - Manual evidence: fixed Release artifact is ready at `artifacts/Marla_dev.app`; no new UI behavior was introduced. Live menu/settings/translation interaction remains the existing product verification surface.
 - Documentation updated: ADR-0007, `AGENTS.md`, `TASK_TEMPLATE.md`, `STATUS.md`, this Task.

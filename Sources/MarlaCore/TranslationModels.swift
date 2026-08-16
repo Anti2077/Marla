@@ -22,6 +22,29 @@ public enum TranslationInput: Equatable, Sendable {
     }
 }
 
+public enum TranslationContentFormat: String, Codable, CaseIterable, Sendable {
+    case plainText
+    case semanticMarkdown
+}
+
+public struct TranslationContent: Codable, Equatable, Sendable {
+    public let format: TranslationContentFormat
+    public let text: String
+
+    public init(format: TranslationContentFormat, text: String) {
+        self.format = format
+        self.text = text
+    }
+
+    public static func plainText(_ text: String) -> TranslationContent {
+        TranslationContent(format: .plainText, text: text)
+    }
+
+    public static func semanticMarkdown(_ text: String) -> TranslationContent {
+        TranslationContent(format: .semanticMarkdown, text: text)
+    }
+}
+
 public enum TranslationSurface: String, Codable, CaseIterable, Sendable {
     case selection
     case screenshot
@@ -32,6 +55,13 @@ public enum TranslationSurface: String, Codable, CaseIterable, Sendable {
         case .selection: "划词翻译"
         case .screenshot: "截图翻译"
         case .quickInput: "快速输入"
+        }
+    }
+
+    public var defaultContentFormat: TranslationContentFormat {
+        switch self {
+        case .selection, .screenshot: .plainText
+        case .quickInput: .semanticMarkdown
         }
     }
 }
@@ -296,7 +326,7 @@ public struct TranslationEndpointConfiguration: Codable, Equatable, Sendable {
 public struct TranslationFFIRequest: Codable, Equatable, Sendable {
     public let schemaVersion: Int
     public let requestID: UUID
-    public let sourceText: String
+    public let sourceContent: TranslationContent
     public let sourceLanguage: TranslationLanguage?
     public let target: TranslationTarget
     public let endpoint: TranslationEndpointConfiguration
@@ -304,15 +334,15 @@ public struct TranslationFFIRequest: Codable, Equatable, Sendable {
 
     public init(
         requestID: UUID,
-        sourceText: String,
+        sourceContent: TranslationContent,
         sourceLanguage: TranslationLanguage?,
         target: TranslationTarget,
         endpoint: TranslationEndpointConfiguration,
         timeouts: TranslationTimeouts = .default
     ) {
-        self.schemaVersion = 2
+        self.schemaVersion = 3
         self.requestID = requestID
-        self.sourceText = sourceText
+        self.sourceContent = sourceContent
         self.sourceLanguage = sourceLanguage
         self.target = target
         self.endpoint = endpoint

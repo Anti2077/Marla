@@ -1,12 +1,12 @@
 # Project Status
 
-Last updated: 2026-08-14
+Last updated: 2026-08-16
 
 Release target: 0.1.0 Alpha
 
 Overall state: In Progress — implementation baseline exists; release verification gaps remain
 
-Active task: None
+Active task: [TASK-028](../tasks/TASK-028-structured-translation-foundation.md) — 结构化翻译合同与 Markdown 快速输入闭环
 
 TASK-027 已完成：Paper Lantern 是 Marla 的正式品牌标志和产品意象；品牌 SVG、参考 PNG、产品/UX 约束与 ADR 已落地。macOS 标准 10 槽位 AppIcon asset catalog 已接入 Xcode Debug/Release，所有后续 App 构建默认使用该图标；固定签名 `artifacts/Marla_dev.app` 已重建，并通过图标声明、`AppIcon.icns`、`Assets.car` 和 10 个 Paper Lantern rendition 验证。
 
@@ -25,6 +25,8 @@ Blocked tasks:
 
 ## Current objective
 
+TASK-028 的工作树实现与自动化已覆盖完整结构化入口：翻译边界使用 schema v3 的 `plainText` / `semanticMarkdown` 合同，Provider capability 集中决定通用模型与 Qwen-MT 的请求/流策略；Quick Input 原生 Paste 会选择并清洗 Markdown、HTML、RTF/RTFD 或纯文本。项目所有者确认旧固定 App 的 FluxMarkdown 划词已能得到 Markdown，但 Zen/GitHub 的 AX 选区仍被压平，因此进一步授权生产划词内容统一改为受保护模拟 Copy：只接受本次新 representation，AX 不再提供内容或失败兜底，事务失败不发送请求。Vision 保持 `plainText`。流式阶段显示原始 Markdown，只有 `semanticMarkdown + completed` 使用安全原生富文本投影；规范字符串继续用于重试、语言/profile 切换和最近记录。项目所有者随后追加正式状态栏图标：沿用 Paper Lantern，制作 18pt 单色 template 并替换 `character.bubble` 状态项占位符，且已确认真实 App 中可见；MenuBarExtra 面板标题区也已用 33.6pt 全彩 Paper Lantern 替换蓝色 `character.bubble.fill`，向下偏移 2pt，项目所有者确认最终尺寸和位置“刚刚好”。功能 SF Symbols 与菜单行为不变。完成态 GFM 表格、显式粗体、跨块连续拖选、Markdown/纯文本复制入口与短促勾选反馈已进入固定 App；表格占满正文可用宽度、按各列最长可见内容分配受限比例并自然换行，不引入水平滚动，窗口内表头和单元格统一居中但规范 Markdown 仍保留原始对齐标记。混合内容布局递归崩溃及随后暴露的“表格横跳、滚动条反复显隐、无法纵向滚动”已改为单一原生 `NSScrollView` 所有者并由项目所有者确认恢复正常。Task 仍为 Active：新的 Copy-only 固定 App 还需项目所有者复验 Zen/GitHub 和 Pasteboard 恢复，真实 Provider 请求仍待使用既有 Keychain profile 验收；截图结构 OCR、实时增量渲染和同次 HTML/RTF 多 representation 输出复制不在本阶段。
+
 TASK-023 已完成整体代码审查、自动化验证与固定 Release 测试 App 交付：Rust 翻译与模型列表取消从 10ms 轮询改为事件驱动唤醒，SSE 单个未完成帧增加 1 MiB 内存上限，严格 Clippy 与 shell 语法检查纳入统一验证，5 个公开 unsafe FFI 函数补齐安全合同；`artifacts/Marla_dev.app` 已重建并通过稳定签名验证。
 
 TASK-022 已完成实现并收束：Français、Español、Deutsch、한국어 已接入既有语言路由、UI 菜单和 Swift/Rust 请求合同；Vision 已改为自动语言检测并按运行时能力过滤七门产品 OCR 候选。真实固定 Release 的日语/韩语截图路由仍是发布验收缺口；其余 Qwen-MT 语言暂不视为已适配。后续工作回到发布验证清单。
@@ -36,8 +38,8 @@ TASK-021 已完成：结果卡支持 380–760pt 横向调整，流式译文在�
 - Native SwiftUI/AppKit menu-bar application with selection translation, screenshot translation, and quick input.
 - Nearby result card with streaming, comparison, copy, retry, system speech, pinning, cancellation, target switching, and actionable error states.
 - Result cards start at a compact 380pt width and content-driven height, resize horizontally up to 760pt or the visible-workspace limit, reflow height with streamed wrapping while keeping their anchored edge stable, and cap at 60% of the visible workspace before scrolling translation content internally.
-- Accessibility selection reader with standard range and Web Text Marker support, trigger-time frontmost-app binding, frontmost-app/window/focused roots, identity-checked system focused-application roots, dual application/system-wide pointer hit paths, renderer/helper identity checks, global graph deduplication, ungated AX child probes, and bounded pointer fallback.
-- Default-off Copy compatibility that snapshots every readable pasteboard representation, accepts only a new Copy result, restores on success/failure/cancellation, avoids overwriting a newer external write, rejects focus changes, and reports only redacted lifecycle evidence.
+- Production selection content comes only from one protected simulated-Copy transaction bound to the trigger-time frontmost application. It snapshots every readable Pasteboard representation, accepts only the new Copy result, restores and verifies the original snapshot on every controlled exit, refuses to overwrite a newer external write, rejects focus changes, and reports only redacted lifecycle evidence.
+- Accessibility remains the permission and optional non-content positioning substrate. Its standard range, Web Text Marker, bounded graph, identity, and geometry helpers are not allowed to provide or fall back to translation content.
 - Selection translation always uses the complete nearby result card; the rejected single-line source-covering and pointer-estimate prototype has been removed together with its setting and runtime path.
 - Pre-selection full-display ScreenCaptureKit freezing with Marla-window exclusion, same-frame cross-display selection/loupe/crop composition, in-memory Vision OCR with automatic language detection and runtime-filtered candidates for the seven product languages, stable line order, and text-only translation requests.
 - Embedded Rust static library with versioned C ABI, shared async runtime, generic OpenAI-compatible SSE, Qwen-MT adaptation, timeouts, cancellation, and stale-event isolation.
@@ -54,7 +56,8 @@ TASK-021 已完成：结果卡支持 380–760pt 横向调整，流式译文在�
 - Settings use a transparent full-size title bar with traffic lights inside one continuous four-corner surface, hidden scroll indicators, and a fixed `Esc` screenshot-cancellation row. Screenshot selection temporarily suspends an open Settings window and restores it without activating it; `Esc` cancellation is owned by the active selection session rather than a single view's first-responder state, with window key-equivalent/cancel-operation routing and a listen-only event-tap fallback.
 - Translation API profiles have persistent enabled states and only enabled profiles can be selected or invoked. The summary list uses native switches, a Set Default/Delete menu, accessibility move actions, and a trailing reorder handle. Settings content no longer moves the window; the newest fixed App uses a complete-row drag preview and 220ms animated hover reordering, pending owner confirmation of that final pointer feedback.
 - Project-scoped Serena 1.6.1 provides read-only Swift/Rust semantic navigation through Codex. A custom Context and fixed tool allowlist expose only nine retrieval/diagnostic tools; source edits, shell, project switching, onboarding, memories, Dashboard, and Headroom remain disabled.
-- Paper Lantern is the selected Marla brand mark and product metaphor: “a little light beside the reader.” The canonical SVG and reference PNG exports live under `Resources/Brand/PaperLantern/`; the 10-slot macOS AppIcon catalog is compiled into Debug and Release builds, while functional controls continue to use SF Symbols.
+- Paper Lantern is the selected Marla brand mark and product metaphor: “a little light beside the reader.” The canonical SVG and reference PNG exports live under `Resources/Brand/PaperLantern/`; the 10-slot macOS AppIcon catalog is compiled into Debug and Release builds. The menu-bar identity item uses a separate 18pt monochrome Paper Lantern template, and the MenuBarExtra panel header uses a separate 33.6pt full-color rendition with a 2pt downward optical offset; functional controls continue to use SF Symbols.
+- Quick Input preserves complete semantic Markdown through the Provider and session. Awaiting and streaming states show raw characters; completed Markdown uses a native heading/list/quote/code/link projection while copy and request-changing actions retain the canonical string. Plain-text sessions and failed partial output remain unrendered.
 
 Implementation baseline commit: `27203b5`.
 
@@ -80,8 +83,8 @@ TASK-015 已完成；项目所有者已确认关闭跨应用划词验证（RV-00
 
 ## Current risks
 
-- A visible VSCodium selection failed in an earlier live build; the latest AX/Copy chain passes automation and the project owner has now confirmed one formerly failing Codex selection plus clipboard restoration. A WeChat selection also reached the real translation request and returned Provider `unauthorized`, proving text acquisition. The project owner has now accepted the cross-application verification outcome; any future app-specific regression should become a new Task rather than reopen RV-001.
-- Community evidence (SelectedTextKit/Easydict and portable-translator) and project-owner testing of Bob identify simulated `⌘C` with pasteboard backup/restore as the key compatibility path for custom Electron/WeChat surfaces. TASK-015 implements that path behind a default-off setting and RV-001 is closed. Copy-menu, browser, and PopClip/Service bridges remain future IDEA-011 slices.
+- TASK-015's historical AX-first/optional-Copy route improved VSCodium, Codex, and WeChat acquisition and closed RV-001 for that superseded contract. Those results do not verify TASK-028's Copy-only production route; the new fixed App still requires FluxMarkdown and Zen/GitHub acquisition plus Pasteboard-restoration evidence.
+- Community evidence and project-owner testing identify simulated `⌘C` with Pasteboard backup/restore as the reliable cross-application content path. TASK-015's historical default-off fallback has been superseded in TASK-028: protected Copy is now the sole production selection content source. Copy-menu, browser-extension, and PopClip/Service bridges remain future IDEA-011 slices.
 - Screenshot coordinate conversion has unit coverage but not a final visual comparison against the real selected region.
 - The fixed-path development App is locally signed, not Developer ID signed or notarized; it is not a public distribution artifact.
 - Real DashScope Qwen-MT translation succeeded, but representative TTFT, throughput, and live error mapping remain unmeasured.
@@ -89,6 +92,8 @@ TASK-015 已完成；项目所有者已确认关闭跨应用划词验证（RV-00
 
 ## Latest verification
 
+- TASK-028（此前 Copy-only 收口基线）：`./scripts/check.sh` 曾通过严格 Rust formatting/Clippy、20 项 Rust、122 项 Swift（其中 3 项既有 Vision 图形服务限制 skip）、Swift Package、Xcode Debug、结构门禁、shell 语法、空白与 diff 检查。该基线覆盖受保护 Copy、schema v3、Provider capability、通用/Qwen-MT Markdown、完成态渲染、富 representation 清洗/恢复和 Quick Input 富/纯 Paste；固定 Release、Paper Lantern 菜单身份位和既有五维视觉证据保持有效。真实 FluxMarkdown/Zen-GitHub/Pasteboard 恢复仍待项目所有者复验。
+- TASK-028（2026-08-16 最新跟进）：项目所有者报告“段落+表格”选择后重复触发会使 Marla 崩溃。两份最新 `DiagnosticReports` 均定位为 `MarkdownSelectableTextView.layout()` 中的 `invalidateIntrinsicContentSize()` 造成 AppKit/SwiftUI 布局递归，已移除该布局回调中的自失效；项目所有者确认重新构建后同类真实选择不再崩溃。其后出现的表格宽度横跳、右侧纵向滚动条反复显隐和无法上下滚动，已通过单一原生 `NSScrollView`、overlay 纵向 scroller、关闭水平 scroller/弹性及等价文档输入快照修复；3 项定向回归通过，项目所有者确认新固定 App“正常啦”。浅色/深色固定 fixture 位于 `/private/tmp/marla-task028-table-scroll-fixed-light.png` 与 `/private/tmp/marla-task028-table-scroll-fixed-dark.png`，五维复审为 8/8/8/9/7。新增混合段落/HTML table/后续段落归一测试，`NativeFormattedContentTests` 13/13 通过；Rust、其余 Swift 测试和 `./scripts/build-test-app.sh` 均通过。当前无界面环境的 `./scripts/check.sh` 仍有 2 个系统 Pasteboard 复制用例无法读回内容（3 个断言失败），不代表混合内容、布局或滚动修复失败；Zen/GitHub、Pasteboard 恢复和 Provider 请求仍待项目所有者复验。
 - TASK-023：`./scripts/check.sh` 通过严格 Rust formatting/Clippy、20 项 Rust、84 项 MarlaApp（3 项 Vision 图形服务限制 skip）、13 项 MarlaCore、Swift Package、Xcode Debug、3 个 shell 脚本语法、空白与 diff 检查。新增回归证明事件驱动取消会即时唤醒并保持幂等，SSE 未完成帧在 1 MiB 边界后被拒绝。`./scripts/build-test-app.sh` 随后成功重建固定 Release；`artifacts/Marla_dev.app` 通过 Bundle ID `com.marla.app`、版本 0.1.0、macOS 14.0+、arm64、稳定签名 `API Usage Monitor Dev` 和 designated requirement 验证，已交付项目所有者现场查看。
 - TASK-021 已完成：宽度、非激活光标/拖动、源应用焦点和多次结果替换均已验收；本轮针对未封顶高度少算，增加了按 SwiftUI 实际行高补足的 `ResultCardLayout` 测量、真实 `NSHostingView` 回归，以及每次高度动画结束后按最新会话/宽度执行一次无动画 frame reconciliation。40ms 非激活场景覆盖了首个 delta 与 160ms 入场动画重叠的竞态。`./scripts/check.sh` 通过 17 Rust、80 MarlaApp、13 MarlaCore、Swift Package、Xcode Debug、格式/空白/diff；固定 Release 与 `/private/tmp/marla-task-021-height-race-final.png` 均验证通过。
 - TASK-022：`./scripts/check.sh` 通过 18 Rust、84 MarlaApp（3 项 Vision 图片回归因 OSStatus -6662 明确 skip）、13 MarlaCore、Swift Package、非沙盒 Xcode Debug、格式/空白/diff；`./scripts/build-test-app.sh` 重建并验证固定签名 `artifacts/Marla_dev.app`。沙盒外探针验证自动检测下日/韩/中/英样本；现场固定 App 截图 OCR 和窗口视觉验收仍待完成。实现已按项目所有者授权收束，实现提交为 `978294e`，收束记录为 `c212400`。

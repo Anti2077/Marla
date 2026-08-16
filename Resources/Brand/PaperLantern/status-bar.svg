@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg"
+     viewBox="0 0 18 18"
+     role="img"
+     aria-labelledby="title desc">
+  <title id="title">Marla Paper Lantern status icon</title>
+  <desc id="desc">A compact monochrome paper lantern with a central opening.</desc>
+
+  <g id="icon" fill="#000000" stroke="#000000">
+    <path fill="none" stroke-width="1.5" stroke-linecap="round" d="M6.15 2.65
+      C4.2 3.48 3.35 5.58 3.35 8.86
+      C3.35 12.37 4.45 14.54 6.65 15.42
+      C8.08 15.99 9.85 15.99 11.3 15.42
+      C13.54 14.53 14.65 12.35 14.65 8.84
+      C14.65 5.58 13.78 3.48 11.83 2.65
+      C10.25 3.24 7.73 3.24 6.15 2.65 Z" />
+    <path stroke="none" d="M8.18 4.5
+      C8.62 4.02 9.42 4.02 9.86 4.5
+      C10.43 5.12 10.56 6.72 10.56 9.2
+      C10.56 12.17 10.03 13.72 9 14.05
+      C7.97 13.72 7.44 12.17 7.44 9.2
+      C7.44 6.72 7.57 5.12 8.18 4.5 Z" />
+    <path fill="none" stroke-width="1.35" stroke-linecap="round" d="M6.55 1.35 H11.45 M6.55 16.65 H11.45" />
+  </g>
+</svg>

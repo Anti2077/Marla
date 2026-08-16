@@ -4,7 +4,7 @@
 
 版本 / Version: 0.1.0
 
-最后更新 / Last updated: 2026-08-14
+最后更新 / Last updated: 2026-08-16
 
 > 本文每节先给出中文规范，再给出英文镜像。发生歧义时以中文为准；两种语言必须在同一次修改中同步。
 >
@@ -62,7 +62,7 @@ The release succeeds only when all of the following are true:
 
 | 入口 | 默认快捷键 | 行为 |
 | --- | --- | --- |
-| 划词翻译 | `⌃⌥D` | 读取当前前台应用的选中文本，在选区附近显示结果卡片 |
+| 划词翻译 | `⌃⌥D` | 通过受保护 Copy 取得当前前台应用的选中内容，在选区附近显示结果卡片 |
 | 截图翻译 | `⌃⌥S` | 进入跨屏框选，使用 Vision 本地识别后翻译文字 |
 | 快速输入 | `⌃⌥Space` | 在指针附近打开可输入和粘贴的翻译卡片 |
 
@@ -76,7 +76,7 @@ Marla 处于激活状态时，标准 macOS `⌘,` 应打开设置并复用已存
 
 | Entry | Default shortcut | Behavior |
 | --- | --- | --- |
-| Selection translation | `⌃⌥D` | Read selected text from the frontmost app and present a result card near the selection |
+| Selection translation | `⌃⌥D` | Acquire selected content from the frontmost app through protected Copy and present a result card near the selection |
 | Screenshot translation | `⌃⌥S` | Enter cross-display region selection, recognize locally with Vision, then translate the text |
 | Quick input | `⌃⌥Space` | Open a paste-and-type translation card near the pointer |
 
@@ -88,15 +88,19 @@ When Marla is active, the standard macOS `⌘,` command opens Settings and reuse
 
 ### 中文
 
-触发后，Marla 通过 Accessibility 读取选中文字和可用的选区范围。检索同时考虑前台应用、窗口和系统焦点，以及应用/system-wide 指针命中及其有界父链；标准选区与 Web Text Marker 必须在同一元素上合并评估，不能因为某一机制为空而跳过其它机制。检索必须有全局去重、元素与总耗时上限，并把 renderer/helper AX 节点绑定到触发时前台应用。0.1.0 不把译文覆盖到原文字体和位置，而是在选区的上方或下方放置非激活结果卡片；空间不足时选择可见面积更大的方向。无法得到可靠选区坐标时，卡片降级到指针附近。
+触发后，Marla 固定当前前台应用并验证 Accessibility 权限，然后把一次受保护模拟 `⌘C` 作为生产划词内容的唯一来源。Copy 前必须在内存中完整备份 `NSPasteboard.general` 的全部可读 item、类型、顺序和数据，并确认快照期间 `changeCount` 稳定；发送 Copy 前和接受结果前都必须确认触发时应用仍在前台。Marla 只接受本次 Copy 产生的新 `changeCount` 和非空内容，绝不把未变化或既有剪贴板值当作选区。
 
-没有选中文字时，不自动把任意既有剪贴板内容当成输入。默认关闭的“兼容性取词”设置允许用户明确授权 Marla 模拟一次 `⌘C`：它必须先在内存中备份 `NSPasteboard.general` 的全部可读 item、类型、顺序和数据，且快照前后 `changeCount` 保持稳定；只接受源应用仍在前台且本次 `changeCount` 变化后获得的非空文本，并在成功、空结果、异常、取消和超时路径恢复原内容。恢复后必须重新读取并比较完整快照。若恢复前检测到其他进程已再次写入，则不覆盖更新后的剪贴板并报告脱敏状态；快照不完整、恢复不一致或恢复失败时不发送翻译请求。重复划词快捷键取消当前兼容事务并先完成清理。兼容模式关闭时，Marla 只使用 Accessibility 并显示快速输入提示。
+恢复前读取本次新增的 Markdown、HTML、RTF/RTFD 和纯文本 representation。富 representation 只有在可见文字与同一 Pasteboard item 内的本次新纯文本一致时才可归一为 `semanticMarkdown`；冲突或不支持的结构降级为该 item 本次已验证的 `plainText`。HTML 必须结构化本地解析并移除脚本、样式、显式隐藏节点、图片资源和不安全链接，不执行内容、不加载远程资源。原 Pasteboard 在成功、空结果、异常、取消和超时路径恢复，并重新读取比较完整快照；若其他进程在 Marla Copy 后写入，则保留较新的内容而不覆盖。快照、焦点、Copy、超时、内容或恢复失败都不得发送翻译请求，必须显示具体错误和快速输入入口；重复划词快捷键先取消并清理当前事务。
+
+Accessibility 只保留权限与非内容定位职责。它可以用选区 range 或 Text Marker range 请求边界，但不得把 `AXSelectedText`、attributed value、`AXStringForRange`、`AXStringForTextMarkerRange` 或任何其它 AX 内容用于输入或兜底。无法得到可靠坐标时，完整结果卡降级到指针附近；内容仍只来自受保护 Copy。旧的默认关闭“兼容性取词”设置以及 AX-first/Copy-fallback 行为不再属于 0.1.0 合同。
 
 ### English
 
-On invocation, Marla reads selected text and available selection bounds through Accessibility. Retrieval considers the frontmost application, window and system focus, plus application/system-wide pointer hits and bounded ancestor paths. Standard selection and Web Text Marker mechanisms must be evaluated together on the same element; an empty result from one mechanism may not suppress another. The search uses global deduplication, element/time budgets, and binds renderer/helper AX nodes to the trigger-time frontmost application. 0.1.0 does not cover the source text in place. It places a non-activating result card above or below the selection, choosing the side with more visible space. If reliable selection geometry is unavailable, the card falls back to the pointer.
+On invocation, Marla binds the current frontmost application, verifies Accessibility permission, and uses one protected simulated `⌘C` as the only production source of selected content. Before Copy it snapshots every readable item, type, order, and data representation in `NSPasteboard.general` and verifies that `changeCount` remained stable; it verifies the trigger-time application before sending Copy and immediately before accepting the result. Marla accepts only non-empty content written under a new `changeCount` by this Copy and never treats an unchanged or pre-existing clipboard value as the selection.
 
-When no text is selected, Marla does not silently use arbitrary existing clipboard content. An off-by-default “Copy compatibility” setting lets the user explicitly authorize one simulated `⌘C`: Marla must first snapshot every readable item, type, order, and data representation in `NSPasteboard.general` while `changeCount` remains stable, accept non-empty text only after this trigger changes the count and while the source app remains frontmost, and restore the original contents on success, empty result, error, cancellation, and timeout. It must re-read and compare the complete restored snapshot. If another process writes again before restoration, Marla must not overwrite the newer clipboard and reports only a redacted status; incomplete, mismatched, or failed restoration sends no translation request. A repeated selection shortcut cancels the active compatibility transaction and finishes cleanup first. With compatibility disabled, Marla uses Accessibility only and shows the quick-input action.
+Before restoration, Marla reads the new Markdown, HTML, RTF/RTFD, and plain-text representations. Rich content normalizes to `semanticMarkdown` only when its visible text agrees with the newly copied plain text from the same Pasteboard item; conflict or unsupported structure degrades to that item's verified new `plainText`. HTML is parsed structurally in-process with scripts, styles, explicitly hidden nodes, image resources, and unsafe links removed, with no content execution or remote loading. The original Pasteboard is restored on success, empty result, error, cancellation, and timeout, then re-read and compared completely. A newer external write after Marla's Copy is preserved rather than overwritten. Snapshot, focus, Copy, timeout, content, or restoration failure sends no translation request and must show a specific error plus a Quick Input action. A repeated selection shortcut first cancels and cleans up the active transaction.
+
+Accessibility retains permission and non-content positioning duties only. It may use selection ranges or Text Marker ranges to request bounds, but `AXSelectedText`, attributed values, `AXStringForRange`, `AXStringForTextMarkerRange`, and all other AX content are forbidden as input or fallback. Without reliable geometry the complete card falls back near the pointer; content still comes only from protected Copy. The former off-by-default “Copy compatibility” setting and AX-first/Copy-fallback behavior are no longer part of the 0.1.0 contract.
 
 ## 5. 截图翻译 / Screenshot Translation
 
@@ -120,15 +124,15 @@ When no text is recognized, the result offers reselect and close actions and sen
 
 ### 中文
 
-快速输入在指针所在屏幕附近打开紧凑、可激活的输入卡片并立即聚焦编辑区。它支持中文输入法、英文输入、多行文字和粘贴，不修改已有剪贴板内容。
+快速输入在指针所在屏幕附近打开紧凑、可激活的输入卡片并立即聚焦编辑区。它支持中文输入法、英文输入、多行文字和粘贴，不修改已有剪贴板内容。显式输入或粘贴的 Markdown 源码原样进入草稿；原生 Paste 命令从 Markdown、HTML、RTF/RTFD 和纯文本 representation 中选择，富文本经会话内清洗并归一为语义 Markdown 源码后插入。富 representation 的可见文字必须与纯文本一致；冲突、不安全或无法解析时降级为可见纯文本。HTML 处理不得执行内容、加载远程资源或持久化输入。完整草稿按 `semanticMarkdown` 进入翻译合同；普通文本是其合法子集。
 
-`⌘Return` 提交翻译，`Esc` 关闭。空白输入不能提交。提交后同一卡片平滑转为结果状态，保留原文以供对照和重试。
+`⌘Return` 提交翻译，`Esc` 关闭。空白输入不能提交。提交后同一卡片平滑转为结果状态，保留原文格式以供对照、重试、语言切换和 API profile 切换。`semanticMarkdown` 在等待和流式阶段直接显示原始 Markdown 字符与流式游标；只有会话进入 `completed` 后，结果正文才切换为安全的原生富文本投影。解析失败时完成态必须诚实降级为原始字符。完整 Markdown 字符串始终用于会话状态与复制；不承诺 HTML/RTF 多 representation 输出复制或流式实时富渲染。
 
 ### English
 
-Quick input opens a compact activatable card near the pointer on the current display and immediately focuses the editor. It supports Chinese IME input, English input, multiline text, and paste without modifying existing clipboard contents.
+Quick input opens a compact activatable card near the pointer on the current display and immediately focuses the editor. It supports Chinese IME input, English input, multiline text, and paste without modifying existing clipboard contents. Explicitly typed or pasted Markdown source enters the draft unchanged. The native Paste command chooses among Markdown, HTML, RTF/RTFD, and plain-text representations, cleaning rich content and inserting normalized semantic Markdown source. A rich representation's visible text must agree with plain text; conflict, unsafe content, or parse failure degrades to visible plain text. HTML handling may not execute content, load remote resources, or persist the input. The complete draft enters the translation contract as `semanticMarkdown`, with ordinary text as a valid subset.
 
-`⌘Return` submits and `Esc` closes. Whitespace-only input cannot be submitted. After submission, the same card transitions smoothly into the result state and retains the source for comparison and retry.
+`⌘Return` submits and `Esc` closes. Whitespace-only input cannot be submitted. After submission, the same card transitions smoothly into the result state and retains the source format for comparison, retry, language changes, and API-profile switching. A `semanticMarkdown` session displays raw Markdown characters and the streaming cursor while awaiting or streaming; only after it enters `completed` does the result body switch to a safe native rich-text projection. A parse failure must honestly fall back to the raw characters. The complete Markdown string always backs session state and copy; multi-representation HTML/RTF output copy and real-time rich rendering during streaming are not promised.
 
 ## 7. 结果卡片 / Result Card
 
@@ -143,7 +147,11 @@ Quick input opens a compact activatable card near the pointer on the current dis
 - 覆盖源语言或目标语言并重新翻译；
 - 关闭或取消进行中的请求。
 
-选择翻译和截图翻译的卡片首次出现时不激活 Marla。用户点击卡片控件时可以主动激活。临时卡片在 `Esc` 或外部点击时关闭并取消未完成请求；固定卡片不会因外部点击关闭。关闭、重试或切换语言都必须先取消旧请求，迟到事件不得覆盖新会话。源/目标语言切换只复用已取得的原文，不重复 Accessibility、Copy fallback、截图捕获或 Vision OCR。
+完成态富文本只是只读展示投影，应由一个连续的原生可选中文本表面呈现标题、段落、强调、列表、引用、代码和链接，选择可以跨越多个 block。规范支持格式良好的 GFM pipe table（表头、行、列、空单元格、转义/代码 pipe 与对齐信息）；解析继续识别并在 canonical Markdown 与复制 Markdown 中保留 GFM 对齐标记，但完成态本地投影视觉上将表头和所有单元格统一居中，不按 `:---` / `---:` 做左/右对齐。表格固定在结果卡正文可用宽度内；每列根据该列表头和全部单元格中最长的可见文本自适应计算相对列宽，并设置合理的最低/最高权重，超出列宽的单元格自然换行。标题、段落、列表、引用和代码保持固定不移动；完成态连续原生表面与跨块选择合同不变。并在段落、列表、链接和斜体组合中保持 `**strong**`/`__strong__` 可见加粗；畸形表格或解析失败时回退原始 Markdown。该表格能力仅针对翻译结果渲染，不意味着 Vision/OCR 识别截图表格。原始 Markdown 字符串和 `semanticMarkdown` 格式仍是复制、重试、源/目标语言切换、API profile 切换和会话内最近记录恢复的规范内容；投影不得反向改写它们。`plainText` 的流式和完成态显示保持不变，失败后的部分结果与取消态也不得进入 Markdown 富渲染。投影必须使用原生 SwiftUI/AppKit 能力，不使用 WebView，不执行 HTML 或脚本，也不自动加载远程图片或其它资源。
+
+主复制动作复制规范 Markdown，仅移除末尾非语义的 `\n`/`\r`；菜单中的纯文本复制是只读派生投影，链接只保留可见标签、Markdown 表格转为 TSV。选区内 `⌘C` 同样只移除末尾非语义换行，不产生 HTML/RTF 多 representation 输出；规范会话字符串保留原样及所有有意义的换行。
+
+选择翻译和截图翻译的卡片首次出现时不激活 Marla。用户点击卡片控件时可以主动激活。临时卡片在 `Esc` 或外部点击时关闭并取消未完成请求；固定卡片不会因外部点击关闭。关闭、重试或切换语言都必须先取消旧请求，迟到事件不得覆盖新会话。源/目标语言切换只复用已取得的原文，不重复受保护选择 Copy、截图捕获或 Vision OCR。
 
 ### English
 
@@ -156,7 +164,11 @@ The result card establishes a stable position and compact shell before accepting
 - override source or target language and retranslate;
 - close or cancel in-flight work.
 
-Selection and screenshot cards do not activate Marla when first presented. Clicking card controls may intentionally activate it. `Esc` or outside click closes a transient card and cancels unfinished work; pinned cards remain open. Close, retry, and language changes cancel the old request first, and late events may never overwrite a newer session. Source/target changes reuse acquired text without repeating Accessibility, Copy fallback, screenshot capture, or Vision OCR.
+Completed rich text is a read-only projection rendered by one continuous native selectable text surface for headings, paragraphs, emphasis, lists, blockquotes, code, and links, allowing selection across blocks. Well-formed GFM pipe tables support headers, rows, columns, empty cells, escaped/code pipes, and alignment metadata. Parsing recognizes GFM alignment markers and canonical Markdown plus canonical Markdown copy retain them, while the completed local projection centers the header and every cell uniformly rather than visually left/right-aligning from `:---` or `---:`. Tables remain within the result card's usable body width. Each column adapts to the longest visible text among its header and all cells, bounded by reasonable minimum and maximum weights; cell text beyond its column width wraps naturally. Headings, paragraphs, lists, blockquotes, and code remain fixed, while the completed surface and cross-block selection contract remain unchanged. `**strong**`/`__strong__` remains visibly bold in paragraphs, lists, links, and italic combinations; malformed tables or parse failure fall back to raw Markdown. This table behavior applies to translated-result rendering only and does not make Vision/OCR recover screenshot tables. The raw Markdown string and `semanticMarkdown` format remain canonical for copy, retry, source/target changes, API-profile switching, and in-memory recent-result restoration; the projection may not write back into them. Streaming and completed `plainText` presentation stays unchanged, while failed partial output and cancelled sessions do not enter Markdown rich rendering. The projection must use native SwiftUI/AppKit facilities, with no WebView, HTML or script execution, or automatic loading of remote images or other resources.
+
+The primary copy action copies canonical Markdown, removing only terminal non-semantic `\n`/`\r`. Menu plain-text copy is a read-only derived projection (visible link labels only; Markdown tables as TSV). Selection `⌘C` applies the same terminal-newline rule and emits no HTML/RTF multi-representation output; canonical session text retains its original meaningful line breaks.
+
+Selection and screenshot cards do not activate Marla when first presented. Clicking card controls may intentionally activate it. `Esc` or outside click closes a transient card and cancels unfinished work; pinned cards remain open. Close, retry, and language changes cancel the old request first, and late events may never overwrite a newer session. Source/target changes reuse acquired text without repeating protected selection Copy, screenshot capture, or Vision OCR.
 
 ## 8. 语言规则 / Language Rules
 
@@ -231,6 +243,7 @@ First launch uses a compact checklist for API configuration, Accessibility permi
 以下情况必须有独立、可操作的状态，而不是笼统显示“失败”：
 
 - 没有选中文字：提示如何选择或使用快速输入；
+- 受保护 Copy 无新内容、焦点变化、超时或无法安全恢复：不发请求，说明具体状态并提供快速输入；
 - 缺少权限：说明需要哪项权限，并提供前往系统设置操作；
 - Vision 无文字：提供重新框选；
 - API 未配置或配置无效：打开设置并保留源文本；
@@ -246,6 +259,7 @@ First launch uses a compact checklist for API configuration, Accessibility permi
 The following conditions require distinct actionable states rather than a generic “failed” message:
 
 - no selected text: explain selection or quick input;
+- protected Copy produced no new content, lost source focus, timed out, or could not restore safely: send no request, explain the specific state, and offer Quick Input;
 - missing permission: identify the permission and provide a System Settings action;
 - no Vision text: offer region re-selection;
 - missing or invalid API configuration: open Settings while preserving source text;
@@ -261,7 +275,8 @@ No failure may discard completed Vision recognition. 0.1.0 performs no unbounded
 ### 中文
 
 - 截图只存在于内存，Vision 完成或会话取消后释放；
-- 只有用户明确触发的源文本发送到配置的翻译端点；
+- 只有用户明确触发并在本机归一化后的源内容发送到配置的翻译端点；
+- 划词触发会短暂读写通用 Pasteboard，但只接受本次受保护 Copy 的新内容，并在安全时完整恢复原快照；
 - 不发送窗口标题、附近文字、应用分类或完整屏幕；
 - 不把翻译历史、截图、原文或译文写入磁盘；菜单最多保留三条内存最近翻译并在退出时清空；
 - API Key 不写入日志、UserDefaults、错误消息或诊断文件；
@@ -272,7 +287,8 @@ No failure may discard completed Vision recognition. 0.1.0 performs no unbounded
 ### English
 
 - screenshots exist in memory only and are released after Vision completes or the session is cancelled;
-- only source text from an explicit user action is sent to the configured translation endpoint;
+- only locally normalized source content from an explicit user action is sent to the configured translation endpoint;
+- a selection trigger temporarily reads and writes the general Pasteboard, accepts only the new protected-Copy result, and fully restores the original snapshot when safe;
 - window titles, nearby text, application classification, and full-screen imagery are not sent;
 - translation history, screenshots, source, and translation are never written to disk; the menu keeps at most three in-memory recent translations and clears them on termination;
 - API Keys never enter logs, UserDefaults, error messages, or diagnostic files;
@@ -285,11 +301,12 @@ The UI must distinguish “local recognition with Vision” from “recognized t
 ### 中文
 
 - 任何覆盖原文位置或以鼠标估算位置显示的轻量原位译文界面；
-- 云端 GLM-OCR、Markdown、表格或版面结构恢复；
+- 云端 GLM-OCR，以及从截图或文档恢复 Markdown、表格或版面结构；
 - 语境增强、附近文字、窗口缓存、术语记忆和提示词缓存；
 - 持久历史、收藏、账号、同步和统计；
 - PDF、Office、多页文档、批处理和主文档工作区；
 - 浏览器 DOM 改写、可编辑原文替换和持续跟随滚动；
+- 流式阶段的 Markdown 实时富渲染、增量 AST，以及 HTML/RTF 多 representation 复制；
 - 本地大语言模型、本地 OCR VLM 和自带 TTS 模型；
 - Intel Mac、公开 DMG、Developer ID、公证、自动更新和 App Store 发布；
 - 应用界面国际化；0.1.0 UI 使用简体中文。
@@ -297,11 +314,12 @@ The UI must distinguish “local recognition with Vision” from “recognized t
 ### English
 
 - any lightweight translation surface that covers source text or estimates an in-place position from the pointer;
-- cloud GLM-OCR, Markdown, table, or layout reconstruction;
+- cloud GLM-OCR, plus Markdown, table, or layout reconstruction from screenshots or documents;
 - context enhancement, nearby text, window caches, terminology memory, or prompt caching;
 - persistent history, favorites, accounts, sync, or analytics;
 - PDF, Office, multipage documents, batch work, or a main document workspace;
 - browser DOM rewriting, editable source replacement, or continuous scroll tracking;
+- real-time rich Markdown rendering or an incremental AST during streaming, and multi-representation HTML/RTF copy;
 - local LLMs, local OCR VLMs, or bundled TTS models;
 - Intel Mac, public DMG, Developer ID, notarization, auto-update, or App Store release;
 - application UI localization; the 0.1.0 UI is Simplified Chinese.

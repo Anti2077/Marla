@@ -49,7 +49,7 @@ enum SelectionMechanism: String, Codable, Equatable {
 }
 
 enum SelectionTextLookup: Equatable {
-    case found(String, SelectionMechanism)
+    case found(TranslationContent, SelectionMechanism)
     case empty
     case unavailable
 }
@@ -62,7 +62,7 @@ enum SelectionSearchTermination: String, Codable, Equatable {
 }
 
 enum SelectionGraphLookup<Node> {
-    case found(String, SelectionMechanism, Node)
+    case found(TranslationContent, SelectionMechanism, Node)
     case empty
     case unavailable
 }
@@ -118,9 +118,9 @@ struct SelectionGraphSearch {
             visitedElementCount += 1
 
             switch selection(node) {
-            case let .found(text, mechanism):
+            case let .found(content, mechanism):
                 return SelectionSearchOutcome(
-                    lookup: .found(text, mechanism, node),
+                    lookup: .found(content, mechanism, node),
                     visitedElementCount: visitedElementCount,
                     termination: .found
                 )
@@ -160,5 +160,4 @@ struct SelectionCandidateRoots {
         }
     }
 }
-
 

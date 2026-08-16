@@ -45,7 +45,7 @@ Planning compared Restrained Native, Futuristic Transparency, and Professional U
 - 为了“高级感”堆叠模糊、玻璃和阴影；
 - AI 生成的 SVG 插画或装饰性人物图形。
 
-所有功能图标优先使用同一字重的 SF Symbols。Paper Lantern 已选为正式品牌标志，主文件和使用边界见 `docs/product/BRAND.md`；菜单、工具栏和设置操作不得用品牌标志替代 SF Symbols。macOS AppIcon asset catalog 已覆盖标准 1x/2x 槽位并接入 Debug 与 Release；所有 App 构建默认使用 Paper Lantern。
+所有功能图标优先使用同一字重的 SF Symbols。Paper Lantern 已选为正式品牌标志，主文件和使用边界见 `docs/product/BRAND.md`；菜单命令、工具栏和设置操作不得用品牌标志替代 SF Symbols。菜单栏状态项作为 App 身份入口，使用专门简化的 18pt 单色 Paper Lantern template，由 macOS 自动适配浅色、深色和选中状态；MenuBarExtra 面板标题区右上角是第二个非交互身份位，使用由主 SVG 派生的 33.6pt 全彩标志，并向下偏移 2pt 做视觉对齐，邻近的 “Marla” 标题承担可访问名称。macOS AppIcon asset catalog 已覆盖标准 1x/2x 槽位并接入 Debug 与 Release；所有 App 构建默认使用 Paper Lantern。
 
 ### English
 
@@ -60,7 +60,7 @@ Production UI forbids:
 - blur, glass, and shadow stacked merely to look premium;
 - AI-generated SVG illustrations or decorative people graphics.
 
-Functional icons use SF Symbols at a consistent weight. Paper Lantern is the selected brand mark; its master asset and usage boundaries are defined in `docs/product/BRAND.md`. Menus, toolbars, and Settings actions may not replace SF Symbols with the brand mark. The macOS AppIcon catalog covers the standard 1x/2x slots and is integrated into Debug and Release, so all App builds use Paper Lantern by default.
+Functional icons use SF Symbols at a consistent weight. Paper Lantern is the selected brand mark; its master asset and usage boundaries are defined in `docs/product/BRAND.md`. Menu commands, toolbars, and Settings actions may not replace SF Symbols with the brand mark. As the App identity entry point, the menu-bar status item uses a purpose-built simplified 18pt monochrome Paper Lantern template whose light, dark, and selected appearances are supplied by macOS. The trailing header of the MenuBarExtra panel is the second non-interactive identity surface; it uses a 33.6pt full-color mark derived from the master SVG and offset 2pt downward for optical alignment, while the adjacent “Marla” title supplies the accessible name. The macOS AppIcon catalog covers the standard 1x/2x slots and is integrated into Debug and Release, so all App builds use Paper Lantern by default.
 
 ## 3. 设计 Token / Design Tokens
 
@@ -164,6 +164,8 @@ All other spacing follows a 4pt grid. Pointer controls may retain compact macOS 
 
 卡片的标志性细节是“稳定流式游标”：等待首字时在译文首行使用低对比度呼吸点；首个 delta 到达后转为克制的尾部插入游标；完成时在 120ms 内淡出。它只表达状态，不循环播放装饰动画。
 
+`semanticMarkdown` 在等待与流式阶段显示完整原始 Markdown 字符和游标，不在未闭合内容上实时富渲染。只有会话进入 `completed` 后，译文区才切换为一个连续的原生可选中文本表面，覆盖标题、段落、强调、列表、引用、代码、链接和跨 block 选择。格式良好的 GFM pipe table 支持表头、行、列、空单元格、转义/代码 pipe 与对齐信息；解析继续识别并在 canonical Markdown 与复制 Markdown 中保留 GFM 对齐标记，但完成态本地投影视觉上将表头和所有单元格统一居中，不按 `:---` / `---:` 做左/右对齐。表格固定在结果卡正文可用宽度内，每列根据表头和全部单元格中最长的可见文本自适应相对列宽，并设置合理的最低/最高权重，超出列宽的单元格自然换行。标题、段落、列表、引用和代码保持固定不移动，连续选择合同保持不变。`**strong**`/`__strong__` 在段落、列表、链接和斜体组合中保持可见加粗，畸形表格或解析失败时回退原始 Markdown。该能力只针对翻译结果渲染，不意味着 Vision/OCR 恢复截图表格。`plainText`、失败部分输出和取消状态不进入该投影。完整 Markdown 字符串是复制、重试、语言/API 配置切换和最近记录恢复的唯一规范内容，渲染投影不得回写会话。主复制动作只复制规范 Markdown 并移除末尾非语义 `\n`/`\r`；纯文本复制是只读派生文本（链接标签、表格 TSV），选区 `⌘C` 采用同一换行规则，不输出 HTML/RTF 多 representation。
+
 卡片出现前计算最终锚点，使用 160ms ease-out 的 4pt 位移与淡入。流式文本只改变内部内容，不重复执行出现动画；每次高度动画结束后，协调器必须按当前会话和实时宽度做一次无动画最终校正，避免首个 delta 与出现动画重叠时留下过时外框。固定时使用 180ms 的轻弹性位置确认，不改变卡片尺寸。用户可从非控件区域拖动卡片；外层阴影只由 AppKit 面板绘制，SwiftUI 内容裁切到连续圆角，避免窗口底角出现矩形边缘。
 
 ### English
@@ -181,6 +183,8 @@ Top-to-bottom structure:
 Language menus use one semantic secondary surface, SF Symbols, and the 4/8/12pt tokens, without the previous target capsule or a second accent color. Menus provide all seven product languages. Automatic source visibly reads “Auto-detected: Language” or “Auto-detected: Unknown” so detection and override remain understandable.
 
 The card's signature detail is a stable streaming caret. Before first token, a low-contrast breathing dot occupies the first translation line. After the first delta, it becomes a restrained trailing insertion caret and fades out within 120ms on completion. It communicates state and never loops as decoration.
+
+While `semanticMarkdown` is awaiting or streaming, the translation area shows the complete raw Markdown characters and caret; it does not richly render potentially unclosed content in real time. Only after the session enters `completed` does the area switch to one continuous native selectable text surface for headings, paragraphs, emphasis, lists, blockquotes, code, links, and cross-block selection. Well-formed GFM pipe tables support headers, rows, columns, empty cells, escaped/code pipes, and alignment metadata. Parsing recognizes GFM alignment markers and canonical Markdown plus canonical Markdown copy retain them, while the completed local projection centers the header and every cell uniformly rather than visually left/right-aligning from `:---` or `---:`. Tables remain within the result card's usable body width. Each column adapts to the longest visible text among its header and all cells, bounded by reasonable minimum and maximum weights; cell text beyond its column width wraps naturally. Headings, paragraphs, lists, blockquotes, and code remain fixed, and the continuous selection contract remains unchanged. `**strong**`/`__strong__` remains visibly bold in paragraphs, lists, links, and italic combinations, while malformed tables or parse failure fall back to raw Markdown. This applies only to translated-result rendering and does not make Vision/OCR recover screenshot tables. `plainText`, failed partial output, and cancelled sessions never enter that projection. The complete Markdown string is the sole canonical content for copy, retry, language or API-profile changes, and recent-result restoration; rendering never writes back into the session. The primary copy action removes only terminal non-semantic `\n`/`\r` from canonical Markdown; plain-text copy is a read-only derived projection (link labels, tables as TSV), and selection `⌘C` follows the same rule without HTML/RTF multi-representation output.
 
 The final anchor is computed before presentation. Entry uses a 160ms ease-out fade with 4pt movement. Streamed text changes internal content only and never replays entry motion; after each height animation completes, the coordinator must reconcile once without animation against the current session and live width so an early delta overlapping entry cannot leave a stale outer frame. Pinning uses a light 180ms positional confirmation without resizing the card. The card is draggable from non-control regions. AppKit alone owns the outer shadow, while SwiftUI content clips to continuous corners so no rectangular edge protrudes at the bottom.
 
@@ -206,17 +210,21 @@ Its signature detail is a single 120ms inward confirmation of the four corners b
 
 输入状态复用结果卡语言行：提交前左侧可选择自动识别或显式源语言，右侧显示按当前母语/第二语言偏好计算的实际目标并允许覆盖。两个菜单保持紧凑，不使用旧固定中英胶囊或渐变。
 
+原生编辑器的 Paste 命令可将本次 Markdown、HTML 或 RTF/RTFD 富 representation 清洗并转为 Markdown 源码插入草稿；纯文本保持原样。可见文本不一致、不安全或无法解析的富内容降级为本次可见纯文本，不修改 Pasteboard、执行内容或加载远程资源。提交后沿用结果卡的“流式原始 Markdown，完成态原生投影”状态合同。
+
 ### English
 
 Quick input reuses the result-card shell, starts at 420pt wide, and inherits the result card's native edge/corner resizing range of 380–760pt. The editor shows at least three lines and grows with content up to the card maximum. The footer clearly shows `⌘Return` to submit and `Esc` to close. Keyboard is primary; no oversized submit button is added.
 
 The input state reuses the result-card language row. Before submission the left menu selects automatic or explicit source, while the right shows the effective target derived from current native/secondary preferences and allows an override. Both menus remain compact, with no fixed Chinese-English capsule or gradient.
 
+The native editor's Paste command may sanitize and convert this paste's Markdown, HTML, or RTF/RTFD rich representation into Markdown source inserted into the draft; plain text remains unchanged. Rich content that is visibly inconsistent, unsafe, or unparseable degrades to this paste's visible plain text without modifying the Pasteboard, executing content, or loading remote resources. After submission, Quick Input follows the result card's raw-Markdown-during-streaming and native-projection-after-completion contract.
+
 ## 7. 设置与首次启动 / Settings and First Launch
 
 ### 中文
 
-“通用”页只保留权限、兼容性取词和隐私边界，不显示 Force Touch、单行原位译文或通用“实验功能”区。
+“通用”页只保留权限、受保护取词披露和隐私边界，不显示旧的兼容开关、Force Touch、单行原位译文或通用“实验功能”区。受保护取词区明确说明每次划词会备份 Pasteboard、模拟 Copy、读取本次新内容并恢复原内容。
 
 Marla 激活时，标准 `⌘,` 打开或复用同一个设置窗口，不产生重复设置表面，也不改变三个可配置的全局翻译快捷键。
 
@@ -236,7 +244,7 @@ First launch does not show a large welcome hero. It directly presents a three-it
 
 The menu's setup status exists only while any item is incomplete. Once all are ready, the same region becomes Recent Translations: up to three rows, each showing an entry-point icon, one translation line, one source line, and a disclosure chevron. An empty state remains restrained and the section always states that quitting clears it. Screenshot translation consistently uses the `viewfinder` SF Symbol available on the target systems.
 
-General contains permissions, Copy compatibility, and the privacy boundary; it has no Force Touch, single-line in-place translation, or generic Experimental section.
+General contains permissions, the protected-Copy disclosure, and the privacy boundary. It has no former compatibility toggle, Force Touch, single-line in-place translation, or generic Experimental section. The disclosure states that every selection trigger snapshots the Pasteboard, simulates Copy, reads only the new content, and restores the original value.
 
 ## 8. 状态、主题与无障碍 / States, Themes, and Accessibility
 

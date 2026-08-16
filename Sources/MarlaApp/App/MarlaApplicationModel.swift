@@ -23,6 +23,7 @@ final class MarlaApplicationModel: ObservableObject {
         let result: String
         let errorCode: String?
         let textUTF16Length: Int?
+        let contentFormat: TranslationContentFormat?
         let hasBounds: Bool?
         let sourceApplicationBundleID: String?
         let frontmostApplicationBundleIDAfterPresentation: String?
@@ -167,12 +168,16 @@ final class MarlaApplicationModel: ObservableObject {
             return
         }
         do {
-            let selection = try selectionReader.readSelection(
+            let selection = try selectionReader.readSelectionUsingProtectedCopy(
                 from: triggerApplication,
-                allowCopyFallback: settings.selectionCopyFallbackEnabled,
                 isCancelled: { readCancellation.isCancelled }
             )
-            sessionStore.startText(selection.text, surface: .selection, anchor: selection.bounds, pointer: pointer)
+            sessionStore.startContent(
+                selection.content,
+                surface: .selection,
+                anchor: selection.bounds,
+                pointer: pointer
+            )
             panelCoordinator.showResult(store: sessionStore, at: selection.bounds, pointer: pointer, activate: false)
             scheduleSelectionUIAutomationReport(selection: selection, error: nil, audit: selectionAudit)
         } catch let error as SelectionReadingError {
@@ -236,9 +241,8 @@ final class MarlaApplicationModel: ObservableObject {
         }
 
         do {
-            let selection = try selectionReader.readSelection(
+            let selection = try selectionReader.readSelectionUsingProtectedCopy(
                 from: triggerApplication ?? audit.sourceApplication,
-                allowCopyFallback: settings.selectionCopyFallbackEnabled,
                 isCancelled: isCancelled
             )
             scheduleSelectionUIAutomationReport(selection: selection, error: nil, audit: audit)
@@ -270,6 +274,7 @@ final class MarlaApplicationModel: ObservableObject {
                 result: selection == nil ? "failure" : "success",
                 errorCode: error.map(Self.selectionErrorCode),
                 textUTF16Length: selection?.text.utf16.count,
+                contentFormat: selection?.content.format,
                 hasBounds: selection.map { $0.bounds != nil },
                 sourceApplicationBundleID: selection?.applicationBundleID ?? audit.sourceApplicationBundleID,
                 frontmostApplicationBundleIDAfterPresentation: frontmostBundleID,
@@ -512,6 +517,13 @@ final class MarlaApplicationModel: ObservableObject {
                 pinned: true
             )
             panelCoordinator.showResult(store: sessionStore, at: nil, pointer: NSEvent.mouseLocation, activate: true)
+        case "markdown-completed":
+            presentCompletedMarkdownUIAutomationFixture()
+        case "markdown-completed-wide":
+            presentCompletedMarkdownUIAutomationFixture()
+            DispatchQueue.main.async { [weak self] in
+                self?.panelCoordinator.setResultWidthForUIAutomation(ResultCardLayout.maximumWidth)
+            }
         case "error":
             sessionStore.installUIAutomationFixture(
                 surface: .quickInput,
@@ -687,9 +699,8 @@ final class MarlaApplicationModel: ObservableObject {
 
     func probeCurrentSelection() {
         do {
-            let selection = try selectionReader.readSelection(
-                from: NSWorkspace.shared.frontmostApplication,
-                allowCopyFallback: settings.selectionCopyFallbackEnabled
+            let selection = try selectionReader.readSelectionUsingProtectedCopy(
+                from: NSWorkspace.shared.frontmostApplication
             )
             selectionProbeResult = .success(
                 text: selection.text,
@@ -748,10 +759,10 @@ final class MarlaApplicationModel: ObservableObject {
         case .emptySelection: "当前没有选中文字。试试 ⌃⌥Space 快速输入。"
         case .selectionSearchLimitReached: "当前应用的选区结构过于复杂，读取已安全停止。"
         case .selectionSearchTimedOut: "当前应用响应选区读取超时，请重试或使用快速输入。"
-        case .selectionCancelled: "已取消本次兼容取词。"
-        case .copyFallbackUnavailable: "兼容取词没有取得新的选区文本，请重试或使用快速输入。"
-        case .copyFallbackTimedOut: "兼容取词等待应用响应超时，请重试或使用快速输入。"
-        case .clipboardRestoreFailed: "兼容取词未能安全恢复剪贴板，已停止翻译请求。"
+        case .selectionCancelled: "已取消本次受保护取词。"
+        case .copyFallbackUnavailable: "受保护 Copy 没有取得新的选区内容，请重试或使用快速输入。"
+        case .copyFallbackTimedOut: "受保护 Copy 等待应用响应超时，请重试或使用快速输入。"
+        case .clipboardRestoreFailed: "受保护取词未能安全恢复剪贴板，已停止翻译请求。"
         }
     }
 }

@@ -536,7 +536,7 @@ final class TranslationConnectionTester: ObservableObject {
         message = nil
         let request = TranslationFFIRequest(
             requestID: id,
-            sourceText: "Hello",
+            sourceContent: .plainText("Hello"),
             sourceLanguage: .english,
             target: .simplifiedChinese,
             endpoint: endpoint,

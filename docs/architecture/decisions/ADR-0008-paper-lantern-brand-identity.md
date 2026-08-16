@@ -21,8 +21,10 @@ Adopt Paper Lantern as Marla's primary brand mark and product metaphor.
 - The canonical mark is the self-contained flat SVG at `Resources/Brand/PaperLantern/logo.svg`.
 - The mark uses lantern-frame indigo `#393554`, paper terracotta `#C86652`, and warm-light gold `#E6B86A`.
 - The Paper Lantern mark remains separate from functional UI iconography; menus, toolbars, settings, and translation controls continue to use native SF Symbols and semantic colors.
+- The menu-bar status item is an application-identity surface rather than a functional command. It uses the purpose-built monochrome Paper Lantern template at `Resources/Brand/PaperLantern/status-bar.svg`; macOS supplies the foreground color for light, dark, selected, and accessibility appearances.
+- The MenuBarExtra panel header is also an application-identity surface. Its trailing, non-interactive 33.6pt mark uses full-color 34px/68px renditions derived from the canonical SVG and is offset 2pt downward for optical alignment; the adjacent title supplies accessible identity text.
 - The macOS AppIcon catalog uses the Paper Lantern master shape across the standard 16, 32, 128, 256 and 512pt slots at 1x and 2x. Xcode Debug and Release both compile `AppIcon` by default.
-- Fixed-App verification requires `CFBundleIconName`, `CFBundleIconFile`, `AppIcon.icns`, `Assets.car`, and all 10 Paper Lantern renditions; a missing or substituted icon fails packaging verification.
+- Fixed-App verification requires `CFBundleIconName`, `CFBundleIconFile`, `AppIcon.icns`, `Assets.car`, all 10 AppIcon renditions, both status-bar renditions, and both menu-panel brand renditions; a missing or substituted icon fails packaging verification.
 
 ## Consequences
 
@@ -30,4 +32,6 @@ Adopt Paper Lantern as Marla's primary brand mark and product metaphor.
 - The mark can be versioned and exported without changing the running application's functional UI or accent behavior.
 - Brand warmth does not justify glow, shadows, decorative glass, gradients, mascots, or widespread brand-color use inside the app.
 - The fixed development App and subsequent Xcode App builds use Paper Lantern without a manual post-build copy step.
+- The status item remains recognizable as Marla without shrinking the three-color AppIcon or introducing an independently colored menu-bar control.
+- The open menu panel reinforces the same identity with the canonical three-color mark while leaving every actionable icon in the native functional system.
 - Public trademark clearance, App Store naming, Developer ID signing, notarization, and distribution remain separate decisions.

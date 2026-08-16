@@ -63,7 +63,7 @@ struct PasteboardSnapshot: Equatable {
 protocol SelectionClipboardAccess: AnyObject {
     var changeCount: Int { get }
     func snapshot() throws -> PasteboardSnapshot
-    func plainText() -> String?
+    func translationContent() -> TranslationContent?
     func restore(_ snapshot: PasteboardSnapshot, ifUnchangedFrom expectedChangeCount: Int) -> ClipboardRestoreStatus
 }
 
@@ -81,8 +81,8 @@ final class SystemSelectionClipboardAccess: SelectionClipboardAccess {
         try PasteboardSnapshot.capture(from: pasteboard)
     }
 
-    func plainText() -> String? {
-        pasteboard.string(forType: .string)
+    func translationContent() -> TranslationContent? {
+        NativeFormattedContentNormalizer.content(from: pasteboard)
     }
 
     func restore(
@@ -127,7 +127,7 @@ struct ClipboardSelectionFallbackResult {
 /// pasteboard value and never restores over a newer external write.
 @MainActor
 final class ClipboardSelectionFallback {
-    private static let defaultTimeout: TimeInterval = 0.35
+    private static let defaultTimeout: TimeInterval = 0.8
     private static let pollInterval: TimeInterval = 0.01
 
     private let clipboard: SelectionClipboardAccess
@@ -194,7 +194,7 @@ final class ClipboardSelectionFallback {
 
         let deadline = now() + max(0, timeout)
         var copyChangeCount: Int?
-        var text: String?
+        var content: TranslationContent?
         var pendingAbort: ClipboardSelectionFallbackError?
 
         while now() < deadline {
@@ -225,8 +225,8 @@ final class ClipboardSelectionFallback {
 
             if pendingAbort == nil,
                currentChangeCount != initialChangeCount,
-               let candidate = clipboard.plainText(),
-               !candidate.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+               let candidate = clipboard.translationContent(),
+               !candidate.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
                 // RunLoop pumping permits focus and cancellation events to be
                 // delivered while Copy is pending. Recheck both immediately
                 // before accepting the pasteboard text.
@@ -235,7 +235,7 @@ final class ClipboardSelectionFallback {
                 } else if !isFrontmost(application) {
                     pendingAbort = .sourceApplicationChanged
                 } else {
-                    text = candidate
+                    content = candidate
                     break
                 }
             }
@@ -261,7 +261,7 @@ final class ClipboardSelectionFallback {
             throw ClipboardSelectionFallbackError.timedOut
         }
 
-        guard let text else {
+        guard let content else {
             lastRestoreStatus = restore(snapshot, afterChange: copyChangeCount)
             if lastRestoreStatus == .failed {
                 throw ClipboardSelectionFallbackError.restoreFailed
@@ -276,7 +276,7 @@ final class ClipboardSelectionFallback {
 
         return ClipboardSelectionFallbackResult(
             selection: TextSelection(
-                text: text,
+                content: content,
                 bounds: nil,
                 applicationBundleID: application.bundleIdentifier,
                 applicationName: application.localizedName

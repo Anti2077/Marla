@@ -33,9 +33,8 @@
 ### 中文
 
 - [ ] `⌃⌥D` 在 Terminal、Safari、代码编辑器和 TextEdit 中触发。
-- [ ] 成功读取选中文字，原文不被修改；兼容模式关闭时剪贴板不被触碰，开启时完整恢复原剪贴板。
-- [ ] 兼容模式默认关闭；开启后，AX 读取失败的 Codex/微信场景可通过模拟 `⌘C` 获取文本，不得使用触发前已有剪贴板内容。
-- [ ] Copy fallback 的全部 item、类型、顺序和可读数据均在内存中备份；成功、空结果、错误、取消、超时和恢复失败均有清理验证，检测到外部新写入时不覆盖它。
+- [ ] 成功通过受保护模拟 `⌘C` 读取选区，原文不被修改，原剪贴板完整恢复；不得使用 AX 内容或触发前已有剪贴板内容兜底。
+- [ ] 受保护 Copy 的全部 item、类型、顺序和可读数据均在内存中备份；成功、空结果、错误、取消、超时和恢复失败均有清理验证，检测到外部新写入时不覆盖它也不发送请求。
 - [ ] 坐标可用时卡片靠近选区且完全位于可见工作区。
 - [ ] 坐标不可用时卡片回退到触发时指针附近。
 - [ ] 无选区时显示可操作提示，不发送翻译请求。
@@ -44,9 +43,8 @@
 ### English
 
 - [ ] `⌃⌥D` triggers in Terminal, Safari, a code editor, and TextEdit.
-- [ ] Selected text is read and source is unchanged; with compatibility disabled the clipboard is untouched, and with it enabled the original clipboard is fully restored.
-- [ ] Compatibility is off by default; when enabled, AX failures in Codex/WeChat can use simulated `⌘C`, and pre-existing clipboard content is never accepted as the selection.
-- [ ] Every pasteboard item, type, order, and readable data representation is snapshotted in memory; success, empty result, error, cancellation, timeout, restore failure, and concurrent external writes have explicit cleanup evidence.
+- [ ] Protected simulated `⌘C` reads the selection without changing source content and fully restores the original Pasteboard; AX content and pre-existing clipboard values are never accepted as fallback.
+- [ ] Every Pasteboard item, type, order, and readable data representation is snapshotted in memory; success, empty result, error, cancellation, timeout, restore failure, and concurrent external writes have explicit cleanup evidence, and an external write prevents the request.
 - [ ] With geometry, the card anchors near selection and remains in the visible work area.
 - [ ] Without geometry, the card falls back to trigger-time pointer position.
 - [ ] No selection shows an actionable message and sends no translation request.
@@ -120,6 +118,11 @@
 - [ ] API Key 存在 Keychain，不出现在 UserDefaults、日志、错误或诊断输出。
 - [ ] 全部 profile Key 存在一个版本化 Keychain vault item 中；应用完成启动后、首次翻译前只读取该 vault，切换配置不再访问其它 Keychain item。
 - [ ] 首字前显示等待状态，delta 增量显示，完成后内容与 Provider 一致。
+- [x] `semanticMarkdown` 在等待/流式阶段显示原始字符，只有 `completed` 切换原生富文本投影；解析失败回退原始 Markdown，`plainText`、失败部分输出和取消状态不富渲染。
+- [ ] 完成态使用一个连续原生可选中文本表面，`⌘C` 可跨标题、段落、列表、引用、代码和表格选择，且选择结果不含语义上的末尾换行。
+- [ ] 完成态 GFM pipe table 正确显示表头、行、列、空单元格、转义/代码 pipe，并识别且在 canonical Markdown/复制 Markdown 中保留 GFM 对齐标记；完成态本地投影视觉统一居中表头和所有单元格，不按 `:---` / `---:` 做左/右对齐。畸形表格安全回退原始 Markdown，且该能力不被描述为截图/OCR 表格识别。
+- [ ] GFM 表格固定在结果卡正文可用宽度内；每列按表头和全部单元格中最长可见文本计算相对列宽，并设置合理最低/最高权重，超出列宽的单元格自然换行，非表格内容不移动。
+- [ ] `**strong**` 与 `__strong__` 在段落、列表、链接和斜体组合中保持可见加粗，并在浅色/深色外观下可读。
 - [ ] 401/403、429、网络、首字超时、总超时、非法响应和断流显示对应恢复动作。
 - [ ] 取消是幂等的；关闭、重试和语言切换后迟到事件不能更新新卡片。
 - [ ] 部分译文在断流后保留，重试生成新 request ID。
@@ -134,7 +137,12 @@
 - [ ] Model and empty/non-empty key build the specified request; Header is added only for non-empty key.
 - [ ] API Key lives in Keychain and never appears in UserDefaults, logs, errors, or diagnostics.
 - [ ] All profile keys live in one versioned Keychain vault item; after launch and before first translation, the app reads only that vault, and profile switching accesses no additional Keychain item.
-- [ ] Waiting appears before first token, deltas render incrementally, and completion matches provider output.
+- [ ] Waiting appears before first token, raw deltas appear incrementally, and completion matches provider output.
+- [x] `semanticMarkdown` shows raw characters while awaiting/streaming and switches to a native rich-text projection only in `completed`; parse failure falls back to raw Markdown, while `plainText`, failed partial output, and cancelled states remain unrendered.
+- [ ] The completed state uses one continuous native selectable text surface. `⌘C` can span headings, paragraphs, lists, quotes, code, and tables without a semantic trailing newline.
+- [ ] Completed-state GFM pipe tables render headers, rows, columns, and empty/escaped/code-pipe cells, recognize and retain GFM alignment markers in canonical Markdown/canonical Markdown copy, and center the header and every cell uniformly in the completed local projection rather than visually left/right-aligning from `:---` or `---:`. Malformed tables safely fall back to raw Markdown, and this does not claim screenshot/OCR table recognition.
+- [ ] GFM tables fit the result card's usable body width; each column derives a relative width from the longest visible header/cell text with reasonable minimum/maximum weights, overflowing cell text wraps naturally, and non-table content does not move.
+- [ ] `**strong**` and `__strong__` remain visibly bold in paragraphs, lists, links, and italic combinations in both light and dark appearance.
 - [ ] 401/403, 429, network, first-token timeout, total timeout, invalid response, and stream interruption show matching recovery actions.
 - [ ] Cancellation is idempotent; late events after close, retry, or language change cannot update the new card.
 - [ ] Partial translation remains after interruption and Retry creates a new request ID.
@@ -146,11 +154,15 @@
 
 - [ ] 原文对照展开和折叠不重新翻译，内容顺序稳定。
 - [ ] 复制只复制当前译文并提供克制反馈。
+- [ ] 主复制动作复制规范 Markdown，仅移除末尾非语义 `\n`/`\r`；菜单纯文本复制为只读派生文本（链接标签、表格 TSV），不修改规范会话内容。
+- [ ] 选择 `⌘C` 遵循同一末尾非语义换行策略；不产生 HTML/RTF 多 representation 输出，内部和有意义的换行保持不变。
+- [x] Markdown 富渲染不修改规范字符串；复制、重试、语言/API 配置切换和最近记录恢复都使用完整 Markdown 和原格式。
 - [ ] 系统朗读可开始、停止和切换新译文，不打包额外模型。
 - [ ] 固定卡片不会因外部点击关闭；取消固定后恢复临时行为。
 - [ ] `Esc` 和外部点击关闭临时卡片并取消请求。
 - [x] 短译文从紧凑默认高度开始并随 delta 增长；长文本达到当前可见工作区 60% 后在卡片内部滚动，卡片锚定边不因 delta 跳动。
 - [ ] 结果卡以 380pt 作为默认/最小宽度，可从原生边缘或角落调到最多 760pt；窄屏时不超出可见工作区，调宽后译文重排和内容高度更新且不跳回默认宽度；横向 resize 光标在多次显示结果卡和长期使用后仍保持稳定。
+- [ ] 在 380pt、760pt 以及窄屏约束下，表格相对列宽、自然换行和跨块选择均不裁切或互相破坏；浅色、深色和 Reduce Motion 下表格换行、连续选择和复制手势仍可用，且该项保持未完成直到真实 App 验收。
 - [ ] 所有图标有 Tooltip、无障碍标签和键盘焦点。
 - [x] 三项准备完成后菜单隐藏权限状态条，并展示最多三条只在内存保留的最近完成翻译。
 - [x] 最近翻译排除失败、取消和空结果；点击恢复完成态卡片且不发起新请求。
@@ -159,11 +171,15 @@
 
 - [ ] Expanding/collapsing comparison does not retranslate and preserves content order.
 - [ ] Copy copies current translation only and gives restrained feedback.
+- [ ] The primary copy action copies canonical Markdown and removes only terminal non-semantic `\n`/`\r`; menu plain-text copy is a read-only derived projection (link labels, tables as TSV) and never mutates canonical session content.
+- [ ] Selection `⌘C` follows the same terminal-newline policy, emits no HTML/RTF multi-representation output, and preserves internal and meaningful line breaks.
+- [x] Rich Markdown presentation does not mutate the canonical string; copy, retry, language/API-profile changes, and recent restoration use the complete Markdown and original format.
 - [ ] System speech starts, stops, and switches to new translation with no bundled model.
 - [ ] Pinned card survives outside clicks; unpin restores transient behavior.
 - [ ] `Esc` and outside click close transient card and cancel the request.
 - [x] Short translations start compact and grow with deltas; long text scrolls inside the card after the 60% visible-workspace cap, and streaming does not move the anchored edge.
 - [ ] The result card uses 380pt as its default/minimum width and resizes from native edges or corners up to 760pt; narrow screens constrain it to the visible workspace, and width changes reflow text and update content height without snapping back to the default. The horizontal resize cursor remains stable after repeated card presentation and extended use.
+- [ ] At 380pt, 760pt, and narrow-screen constraints, table-relative widths, natural cell wrapping, and cross-block selection remain uncropped and do not break one another. Table wrapping, continuous selection, and copy gestures remain usable in light, dark, and Reduce Motion appearance; this stays unchecked until real-App verification.
 - [ ] Every icon has tooltip, accessibility label, and keyboard focus.
 - [x] Once all three setup items are ready, the menu hides permission status and shows up to three recent completed translations retained in memory only.
 - [x] Recents exclude failed, cancelled, and empty results; selecting one restores a completed card without a new request.

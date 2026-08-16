@@ -21,9 +21,6 @@ final class MarlaSettingsStore: ObservableObject {
     }
     @Published private(set) var nativeLanguage: TranslationLanguage
     @Published private(set) var secondaryLanguage: TranslationLanguage
-    @Published var selectionCopyFallbackEnabled: Bool {
-        didSet { defaults.set(selectionCopyFallbackEnabled, forKey: Keys.selectionCopyFallback) }
-    }
     @Published private(set) var credentialRevision = 0
     @Published private(set) var onboardingSkipped: Bool
 
@@ -38,7 +35,6 @@ final class MarlaSettingsStore: ObservableObject {
         static let modelName = "translationModelName"
         static let nativeLanguage = "translationNativeLanguage.v1"
         static let secondaryLanguage = "translationSecondaryLanguage.v1"
-        static let selectionCopyFallback = "selectionCopyFallbackEnabled"
         static let onboardingSkipped = "onboardingSkipped"
     }
 
@@ -72,7 +68,6 @@ final class MarlaSettingsStore: ObservableObject {
         secondaryLanguage = storedSecondaryLanguage == storedNativeLanguage
             ? Self.fallbackLanguage(excluding: storedNativeLanguage)
             : storedSecondaryLanguage
-        selectionCopyFallbackEnabled = defaults.bool(forKey: Keys.selectionCopyFallback)
         onboardingSkipped = defaults.bool(forKey: Keys.onboardingSkipped)
         saveProfiles()
         saveDefaultProfileID()

@@ -36,4 +36,4 @@ The interface must distinguish image upload, text-only cloud translation, and lo
 
 ## Keep comparison aligned
 
-Source and translated content share stable block identifiers so that comparison mode never relies on visual guesswork or a model-generated reorder.
+Source and translated content share stable block identifiers only where acquisition and presentation retain a reliable correspondence. Generated semantic Markdown may naturally merge, split, move, or omit target-language nodes, so comparison treats it as complete formatted content instead of inventing a one-to-one mapping.

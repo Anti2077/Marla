@@ -10,6 +10,7 @@ import Vision
 private final class FakeSelectionClipboard: SelectionClipboardAccess {
     var changeCount = 0
     var text: String?
+    var contentFormat = TranslationContentFormat.plainText
     var snapshotValue = PasteboardSnapshot(items: [])
     var changeCountAfterSnapshot: Int?
     var restoreResponse = ClipboardRestoreStatus.restored
@@ -23,7 +24,9 @@ private final class FakeSelectionClipboard: SelectionClipboardAccess {
         return snapshotValue
     }
 
-    func plainText() -> String? { text }
+    func translationContent() -> TranslationContent? {
+        text.map { TranslationContent(format: contentFormat, text: $0) }
+    }
 
     func restore(
         _ snapshot: PasteboardSnapshot,
@@ -616,6 +619,46 @@ final class MarlaAppTests: XCTestCase {
     }
 
     @MainActor
+    func testAPIProfileSwitchPreservesMarkdownContentFormat() {
+        let suite = "com.marla.tests.markdown-profile-switch.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suite)!
+        defaults.removePersistentDomain(forName: suite)
+        let settings = MarlaSettingsStore(
+            defaults: defaults,
+            keychain: KeychainCredentialStore(service: "com.marla.tests", account: UUID().uuidString)
+        )
+        let firstID = settings.addProfile()
+        settings.updateProfile(
+            id: firstID,
+            name: "First",
+            baseURL: "http://127.0.0.1:9/v1",
+            modelName: "first-model"
+        )
+        let secondID = settings.addProfile()
+        settings.updateProfile(
+            id: secondID,
+            name: "Second",
+            baseURL: "http://127.0.0.1:9/v1",
+            modelName: "second-model"
+        )
+        let store = TranslationSessionStore(settings: settings)
+        let markdown = "# Release Notes"
+        store.installUIAutomationFixture(
+            surface: .quickInput,
+            sourceText: markdown,
+            translation: "# 发布说明",
+            state: .completed,
+            contentFormat: .semanticMarkdown
+        )
+
+        store.changeAPIProfile(secondID)
+
+        XCTAssertEqual(store.session?.profileID, secondID)
+        XCTAssertEqual(store.session?.sourceContent, .semanticMarkdown(markdown))
+        store.cancelCurrentRequest()
+    }
+
+    @MainActor
     func testProfileDropReorderingPersistsExactOrder() {
         let suite = "com.marla.tests.profile-drag-order.\(UUID().uuidString)"
         let defaults = UserDefaults(suiteName: suite)!
@@ -824,6 +867,53 @@ final class MarlaAppTests: XCTestCase {
     }
 
     @MainActor
+    func testMarkdownFormatSurvivesRestartAndRecentRestoration() {
+        let store = makeSessionStore()
+        let markdown = "# Release Notes\n\n- Keep `TOKEN` unchanged."
+        store.startText(
+            markdown,
+            surface: .quickInput,
+            anchor: nil,
+            pointer: nil
+        )
+
+        XCTAssertEqual(store.session?.sourceContent, .semanticMarkdown(markdown))
+        store.retry()
+        XCTAssertEqual(store.session?.sourceContent, .semanticMarkdown(markdown))
+        store.changeTarget(.english)
+        XCTAssertEqual(store.session?.sourceContent, .semanticMarkdown(markdown))
+
+        store.installUIAutomationFixture(
+            surface: .quickInput,
+            sourceText: markdown,
+            translation: "# 发布说明",
+            state: .completed,
+            contentFormat: .semanticMarkdown
+        )
+        let recentID = try! XCTUnwrap(store.recentTranslations.first?.id)
+        let restored = store.restoreRecentTranslation(id: recentID)
+
+        XCTAssertEqual(restored?.sourceContent, .semanticMarkdown(markdown))
+        XCTAssertEqual(restored?.translatedContent, .semanticMarkdown("# 发布说明"))
+    }
+
+    @MainActor
+    func testSelectionStartsWithItsAcquiredContentFormat() {
+        let store = makeSessionStore()
+        let markdown = "# Heading\n\n**Bold**"
+
+        store.startContent(
+            .semanticMarkdown(markdown),
+            surface: .selection,
+            anchor: nil,
+            pointer: nil
+        )
+
+        XCTAssertEqual(store.session?.surface, .selection)
+        XCTAssertEqual(store.session?.sourceContent, .semanticMarkdown(markdown))
+    }
+
+    @MainActor
     func testRecentTranslationsExcludeFailedCancelledAndEmptyResults() {
         let store = makeSessionStore()
         store.installUIAutomationFixture(
@@ -922,7 +1012,7 @@ final class MarlaAppTests: XCTestCase {
             surface: .selection,
             profileID: nil,
             profileName: "测试",
-            sourceText: "Hello",
+            sourceContent: .plainText("Hello"),
             translation: "你好",
             target: .automatic,
             state: .streaming
@@ -1085,7 +1175,7 @@ final class MarlaAppTests: XCTestCase {
             surface: .selection,
             profileID: nil,
             profileName: "测试",
-            sourceText: "A long source passage",
+            sourceContent: .plainText("A long source passage"),
             translation: translation,
             target: .automatic,
             state: .completed
@@ -1116,7 +1206,7 @@ final class MarlaAppTests: XCTestCase {
             surface: .screenshot,
             profileID: nil,
             profileName: "测试",
-            sourceText: Array(repeating: "Original source line.", count: 30).joined(separator: "\n"),
+            sourceContent: .plainText(Array(repeating: "Original source line.", count: 30).joined(separator: "\n")),
             translation: Array(repeating: "很长的译文。", count: 80).joined(),
             target: .automatic,
             state: .completed
@@ -1615,21 +1705,28 @@ final class MarlaAppTests: XCTestCase {
         XCTAssertEqual(
             AccessibilitySelectionReader.resolveTextLookups([
                 .empty,
-                .found("Electron marker selection", .textMarker)
+                .found(.plainText("Electron marker selection"), .textMarker)
             ]),
-            .found("Electron marker selection", .textMarker)
+            .found(.plainText("Electron marker selection"), .textMarker)
         )
         XCTAssertEqual(
             AccessibilitySelectionReader.resolveTextLookups([
-                .found("   \n", .directText),
+                .found(.plainText("   \n"), .directText),
                 .unavailable,
-                .found("Range selection", .standardRange)
+                .found(.plainText("Range selection"), .standardRange)
             ]),
-            .found("Range selection", .standardRange)
+            .found(.plainText("Range selection"), .standardRange)
         )
         XCTAssertEqual(
             AccessibilitySelectionReader.resolveTextLookups([.unavailable, .empty, .unavailable]),
             .empty
+        )
+        XCTAssertEqual(
+            AccessibilitySelectionReader.resolveTextLookups([
+                .found(.plainText("Heading"), .directText),
+                .found(.semanticMarkdown("# Heading"), .standardRange)
+            ]),
+            .found(.semanticMarkdown("# Heading"), .standardRange)
         )
     }
 
@@ -1644,17 +1741,17 @@ final class MarlaAppTests: XCTestCase {
             maximumElements: 20,
             hasTimeRemaining: { true },
             selection: { node in
-                node == 2 ? .found("selected", .directText) : .unavailable
+                node == 2 ? .found(.plainText("selected"), .directText) : .unavailable
             },
             children: { children[$0] ?? [] }
         )
 
         XCTAssertEqual(outcome.visitedElementCount, 3)
         XCTAssertEqual(outcome.termination, .found)
-        guard case let .found(text, mechanism, node) = outcome.lookup else {
+        guard case let .found(content, mechanism, node) = outcome.lookup else {
             return XCTFail("Expected a selection match")
         }
-        XCTAssertEqual(text, "selected")
+        XCTAssertEqual(content, .plainText("selected"))
         XCTAssertEqual(mechanism, .directText)
         XCTAssertEqual(node, 2)
     }
@@ -1672,7 +1769,7 @@ final class MarlaAppTests: XCTestCase {
             maximumElements: 20,
             hasTimeRemaining: { true },
             selection: { node in
-                node == 7 ? .found("pointer selection", .directText) : .unavailable
+                node == 7 ? .found(.plainText("pointer selection"), .directText) : .unavailable
             },
             children: { _ in [] }
         )
@@ -1686,16 +1783,16 @@ final class MarlaAppTests: XCTestCase {
             maximumElements: 20,
             hasTimeRemaining: { true },
             selection: { node in
-                node == 0 ? .empty : .found("marker", .textMarker)
+                node == 0 ? .empty : .found(.plainText("marker"), .textMarker)
             },
             children: { _ in [] }
         )
 
         XCTAssertEqual(outcome.visitedElementCount, 2)
-        guard case let .found(text, mechanism, node) = outcome.lookup else {
+        guard case let .found(content, mechanism, node) = outcome.lookup else {
             return XCTFail("Expected the later non-empty selection")
         }
-        XCTAssertEqual(text, "marker")
+        XCTAssertEqual(content, .plainText("marker"))
         XCTAssertEqual(mechanism, .textMarker)
         XCTAssertEqual(node, 1)
     }
@@ -1797,6 +1894,99 @@ final class MarlaAppTests: XCTestCase {
         XCTAssertEqual(clipboard.restoreCalls, 1)
         XCTAssertEqual(clipboard.lastRestoredSnapshot, clipboard.snapshotValue)
         XCTAssertGreaterThan(pumpCount, 0)
+    }
+
+    @MainActor
+    func testCopyFallbackReturnsSemanticMarkdownBeforeRestoringSnapshot() throws {
+        let clipboard = FakeSelectionClipboard()
+        clipboard.snapshotValue = PasteboardSnapshot(items: [
+            PasteboardItemSnapshot(representations: [
+                PasteboardRepresentation(type: "public.utf8-plain-text", data: Data("original".utf8)),
+                PasteboardRepresentation(type: "public.rtf", data: Data([1, 2, 3]))
+            ])
+        ])
+        var now = 0.0
+        let fallback = ClipboardSelectionFallback(
+            clipboard: clipboard,
+            timeout: 0.1,
+            now: { now },
+            pump: { _ in
+                now += 0.01
+                clipboard.changeCount = 1
+                clipboard.text = "# Heading\n\n**Bold**"
+                clipboard.contentFormat = .semanticMarkdown
+            },
+            sendCopy: { true },
+            isFrontmost: { _ in true }
+        )
+
+        let result = try fallback.readSelection(from: NSRunningApplication.current)
+
+        XCTAssertEqual(result.selection.content, .semanticMarkdown("# Heading\n\n**Bold**"))
+        XCTAssertEqual(result.restoreStatus, .restored)
+        XCTAssertEqual(clipboard.lastRestoredSnapshot, clipboard.snapshotValue)
+    }
+
+    @MainActor
+    func testProductionSelectionReaderUsesProtectedCopyContent() throws {
+        let clipboard = FakeSelectionClipboard()
+        clipboard.snapshotValue = PasteboardSnapshot(items: [])
+        var now = 0.0
+        let fallback = ClipboardSelectionFallback(
+            clipboard: clipboard,
+            timeout: 0.1,
+            now: { now },
+            pump: { _ in
+                now += 0.01
+                clipboard.changeCount = 1
+                clipboard.text = "# Install\n\n1. Download the package."
+                clipboard.contentFormat = .semanticMarkdown
+            },
+            sendCopy: { true },
+            isFrontmost: { _ in true }
+        )
+        let reader = AccessibilitySelectionReader(
+            copyFallback: fallback,
+            accessibilityTrust: { true }
+        )
+
+        let selection = try reader.readSelectionUsingProtectedCopy(
+            from: NSRunningApplication.current
+        )
+
+        XCTAssertEqual(
+            selection.content,
+            .semanticMarkdown("# Install\n\n1. Download the package.")
+        )
+        XCTAssertEqual(reader.lastDiagnostics?.matchedMechanism, .simulatedCopy)
+        XCTAssertEqual(reader.lastDiagnostics?.copyFallbackStatus, .restored)
+        XCTAssertEqual(clipboard.restoreCalls, 1)
+    }
+
+    @MainActor
+    func testProductionSelectionReaderDoesNotFallBackToAXContent() {
+        let clipboard = FakeSelectionClipboard()
+        var now = 0.0
+        let fallback = ClipboardSelectionFallback(
+            clipboard: clipboard,
+            timeout: 0.03,
+            now: { now },
+            pump: { _ in now += 0.01 },
+            sendCopy: { true },
+            isFrontmost: { _ in true }
+        )
+        let reader = AccessibilitySelectionReader(
+            copyFallback: fallback,
+            accessibilityTrust: { true }
+        )
+
+        XCTAssertThrowsError(
+            try reader.readSelectionUsingProtectedCopy(from: NSRunningApplication.current)
+        ) { error in
+            XCTAssertEqual(error as? SelectionReadingError, .copyFallbackTimedOut)
+        }
+        XCTAssertNil(reader.lastDiagnostics?.matchedMechanism)
+        XCTAssertTrue(reader.lastDiagnostics?.copyFallbackAttempted == true)
     }
 
     @MainActor
@@ -2012,26 +2202,12 @@ final class MarlaAppTests: XCTestCase {
     }
 
     @MainActor
-    func testSelectionCopyFallbackSettingDefaultsOffAndPersists() {
-        let suite = "com.marla.tests.copy-fallback.(UUID().uuidString)"
-        let defaults = UserDefaults(suiteName: suite)!
-        defaults.removePersistentDomain(forName: suite)
-        let keychain = KeychainCredentialStore(service: "com.marla.tests", account: UUID().uuidString)
-
-        let settings = MarlaSettingsStore(defaults: defaults, keychain: keychain)
-        XCTAssertFalse(settings.selectionCopyFallbackEnabled)
-
-        settings.selectionCopyFallbackEnabled = true
-        let reloaded = MarlaSettingsStore(defaults: defaults, keychain: keychain)
-        XCTAssertTrue(reloaded.selectionCopyFallbackEnabled)
-    }
-
-    @MainActor
     func testSelectionUIAutomationReportContainsNoSelectedTextOrClipboardContent() throws {
         let report = MarlaApplicationModel.SelectionUIAutomationReport(
             result: "success",
             errorCode: nil,
             textUTF16Length: 27,
+            contentFormat: .semanticMarkdown,
             hasBounds: true,
             sourceApplicationBundleID: "com.apple.TextEdit",
             frontmostApplicationBundleIDAfterPresentation: "com.apple.TextEdit",
@@ -2059,6 +2235,7 @@ final class MarlaAppTests: XCTestCase {
         XCTAssertFalse(json.contains("Marla selection reliability"))
         XCTAssertFalse(json.contains("clipboardContent"))
         XCTAssertTrue(json.contains("textUTF16Length"))
+        XCTAssertTrue(json.contains("semanticMarkdown"))
         XCTAssertTrue(json.contains("clipboardChangeCountDelta"))
         XCTAssertTrue(json.contains("clipboardPreserved"))
     }

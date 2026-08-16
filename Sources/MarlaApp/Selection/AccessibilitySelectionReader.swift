@@ -70,14 +70,19 @@ final class AccessibilitySelectionReader: SelectionReader {
     private static let applicationMessageTimeout: Float = 0.1
 
     private let copyFallback: ClipboardSelectionFallback
+    private let accessibilityTrust: () -> Bool
     private(set) var lastDiagnostics: SelectionReadDiagnostics?
 
-    init(copyFallback: ClipboardSelectionFallback = ClipboardSelectionFallback()) {
+    init(
+        copyFallback: ClipboardSelectionFallback = ClipboardSelectionFallback(),
+        accessibilityTrust: @escaping () -> Bool = AXIsProcessTrusted
+    ) {
         self.copyFallback = copyFallback
+        self.accessibilityTrust = accessibilityTrust
     }
 
     var isTrusted: Bool {
-        AXIsProcessTrusted()
+        accessibilityTrust()
     }
 
     @discardableResult
@@ -90,17 +95,63 @@ final class AccessibilitySelectionReader: SelectionReader {
     }
 
     func readSelection() throws -> TextSelection {
-        try readSelection(from: nil)
+        try readSelectionUsingProtectedCopy(from: nil)
+    }
+
+    func readSelectionUsingProtectedCopy(
+        from triggerApplication: NSRunningApplication?,
+        isCancelled: () -> Bool = { false }
+    ) throws -> TextSelection {
+        guard isTrusted else {
+            lastDiagnostics = nil
+            throw SelectionReadingError.accessibilityPermissionRequired
+        }
+        guard let application = triggerApplication ?? NSWorkspace.shared.frontmostApplication else {
+            lastDiagnostics = nil
+            throw SelectionReadingError.focusedElementUnavailable
+        }
+
+        let startedAt = ProcessInfo.processInfo.systemUptime
+        do {
+            let result = try copyFallback.readSelection(
+                from: application,
+                isCancelled: isCancelled
+            )
+            updateProtectedCopyDiagnostics(
+                status: result.restoreStatus,
+                matched: true,
+                startedAt: startedAt
+            )
+            return result.selection
+        } catch let error as ClipboardSelectionFallbackError {
+            updateProtectedCopyDiagnostics(
+                status: copyFallback.lastRestoreStatus,
+                matched: false,
+                startedAt: startedAt
+            )
+            switch error {
+            case .timedOut:
+                throw SelectionReadingError.copyFallbackTimedOut
+            case .restoreFailed:
+                throw SelectionReadingError.clipboardRestoreFailed
+            case .cancelled:
+                throw SelectionReadingError.selectionCancelled
+            case .sourceApplicationChanged,
+                 .snapshotUnavailable,
+                 .copyEventUnavailable,
+                 .clipboardChangedDuringCopy,
+                 .selectedTextUnavailable:
+                throw SelectionReadingError.copyFallbackUnavailable
+            }
+        }
     }
 
     /// Reads against the application captured at the shortcut trigger. A
     /// Carbon hot-key callback is delivered to Marla asynchronously; relying
     /// on a later `frontmostApplication` lookup can otherwise bind the AX
     /// search to Marla itself after AppKit has processed the event.
-    func readSelection(
-        from triggerApplication: NSRunningApplication?,
-        allowCopyFallback: Bool = false,
-        isCancelled: () -> Bool = { false }
+    private func readAccessibilitySelection(
+        from triggerApplication: NSRunningApplication?
     ) throws -> TextSelection {
         guard isTrusted else {
             lastDiagnostics = nil
@@ -209,108 +260,66 @@ final class AccessibilitySelectionReader: SelectionReader {
             elapsedMilliseconds: Int((ProcessInfo.processInfo.systemUptime - startedAt) * 1_000)
         )
 
-        if allowCopyFallback {
-            if case .found = outcome.lookup {
-                // Accessibility already found a selection; do not touch the clipboard.
-            } else {
-                do {
-                    let fallback = try copyFallback.readSelection(
-                        from: application,
-                        isCancelled: isCancelled
-                    )
-                    updateCopyFallbackDiagnostics(
-                        status: fallback.restoreStatus,
-                        matched: true,
-                        startedAt: startedAt
-                    )
-                    return fallback.selection
-                } catch let error as ClipboardSelectionFallbackError {
-                    updateCopyFallbackDiagnostics(
-                        status: copyFallback.lastRestoreStatus,
-                        matched: false,
-                        startedAt: startedAt
-                    )
-                    switch error {
-                    case .timedOut:
-                        throw SelectionReadingError.copyFallbackTimedOut
-                    case .restoreFailed:
-                        throw SelectionReadingError.clipboardRestoreFailed
-                    case .cancelled:
-                        throw SelectionReadingError.selectionCancelled
-                    case .sourceApplicationChanged,
-                         .snapshotUnavailable,
-                         .copyEventUnavailable,
-                         .clipboardChangedDuringCopy,
-                         .selectedTextUnavailable:
-                        throw SelectionReadingError.copyFallbackUnavailable
-                    }
-                }
-            }
-        }
-
-        guard case let .found(selectedText, mechanism, selectedNode) = outcome.lookup else {
-            switch outcome.termination {
-            case .elementLimit:
-                throw SelectionReadingError.selectionSearchLimitReached
-            case .timeLimit:
-                throw SelectionReadingError.selectionSearchTimedOut
-            case .found:
-                assertionFailure("A found search must contain a selected node")
-                throw SelectionReadingError.selectedTextUnavailable
-            case .exhausted:
-                break
-            }
-            if case .empty = outcome.lookup {
-                // A pointer-only path is useful for custom-rendered surfaces,
-                // but an empty value there does not prove that the application
-                // exposed a real focused selection. Keep that failure distinct
-                // from an explicitly empty range on a focused AX element.
-                if focusedCandidates.isEmpty {
-                    throw SelectionReadingError.selectedTextUnavailable
-                }
+        if case let .found(selectedContent, mechanism, selectedNode) = outcome.lookup {
+            let selection = TextSelection(
+                content: selectedContent,
+                bounds: copySelectionBounds(from: selectedNode.element, preferred: mechanism),
+                applicationBundleID: application.bundleIdentifier,
+                applicationName: application.localizedName
+            )
+            guard selection.hasVisibleText else {
                 throw SelectionReadingError.emptySelection
             }
+            return selection
+        }
+
+        switch outcome.termination {
+        case .elementLimit:
+            throw SelectionReadingError.selectionSearchLimitReached
+        case .timeLimit:
+            throw SelectionReadingError.selectionSearchTimedOut
+        case .found:
+            assertionFailure("A found search must contain a selected node")
+            throw SelectionReadingError.selectedTextUnavailable
+        case .exhausted:
+            break
+        }
+        if case .empty = outcome.lookup {
+            // A pointer-only path is useful for custom-rendered surfaces,
+            // but an empty value there does not prove that the application
+            // exposed a real focused selection. Keep that failure distinct
+            // from an explicitly empty range on a focused AX element.
             if focusedCandidates.isEmpty {
-                if pointerCandidates.isEmpty {
-                    throw SelectionReadingError.focusedElementUnavailable
-                }
                 throw SelectionReadingError.selectedTextUnavailable
+            }
+            throw SelectionReadingError.emptySelection
+        }
+        if focusedCandidates.isEmpty {
+            if pointerCandidates.isEmpty {
+                throw SelectionReadingError.focusedElementUnavailable
             }
             throw SelectionReadingError.selectedTextUnavailable
         }
-
-        let selection = TextSelection(
-            text: selectedText,
-            bounds: copySelectionBounds(from: selectedNode.element, preferred: mechanism),
-            applicationBundleID: application.bundleIdentifier,
-            applicationName: application.localizedName
-        )
-
-        guard selection.hasVisibleText else {
-            throw SelectionReadingError.emptySelection
-        }
-
-        return selection
+        throw SelectionReadingError.selectedTextUnavailable
     }
 
-    private func updateCopyFallbackDiagnostics(
+    private func updateProtectedCopyDiagnostics(
         status: ClipboardRestoreStatus,
         matched: Bool,
         startedAt: TimeInterval
     ) {
-        guard let diagnostics = lastDiagnostics else { return }
         lastDiagnostics = SelectionReadDiagnostics(
-            rootCount: diagnostics.rootCount,
-            hadFocusedCandidate: diagnostics.hadFocusedCandidate,
-            hadPointerCandidate: diagnostics.hadPointerCandidate,
-            rawPointerHitCount: diagnostics.rawPointerHitCount,
-            hadSystemFocusedElement: diagnostics.hadSystemFocusedElement,
-            hadApplicationFocusedElement: diagnostics.hadApplicationFocusedElement,
-            hadFocusedWindow: diagnostics.hadFocusedWindow,
-            systemFocusedApplicationMatched: diagnostics.systemFocusedApplicationMatched,
-            visitedElementCount: diagnostics.visitedElementCount,
-            termination: diagnostics.termination,
-            matchedMechanism: matched ? .simulatedCopy : diagnostics.matchedMechanism,
+            rootCount: 0,
+            hadFocusedCandidate: false,
+            hadPointerCandidate: false,
+            rawPointerHitCount: 0,
+            hadSystemFocusedElement: false,
+            hadApplicationFocusedElement: false,
+            hadFocusedWindow: false,
+            systemFocusedApplicationMatched: false,
+            visitedElementCount: 0,
+            termination: matched ? .found : .exhausted,
+            matchedMechanism: matched ? .simulatedCopy : nil,
             elapsedMilliseconds: Int((ProcessInfo.processInfo.systemUptime - startedAt) * 1_000),
             copyFallbackAttempted: true,
             copyFallbackStatus: status
@@ -368,7 +377,7 @@ final class AccessibilitySelectionReader: SelectionReader {
         // itself the capability check and returns `.attributeUnsupported` when
         // unavailable; skipping it creates a false negative.
         if let directValue = copyAttribute(kAXSelectedTextAttribute as CFString, from: element) {
-            lookups.append(Self.textLookup(from: stringValue(from: directValue), mechanism: .directText))
+            lookups.append(Self.textLookup(from: contentValue(from: directValue), mechanism: .directText))
         }
 
         if let (rangeValue, range) = copySelectionRange(from: element) {
@@ -378,7 +387,7 @@ final class AccessibilitySelectionReader: SelectionReader {
                 var rangeLookups: [SelectionTextLookup] = []
                 rangeLookups.append(
                     parameterizedTextLookup(
-                        attribute: kAXStringForRangeParameterizedAttribute as CFString,
+                        attribute: "AXAttributedStringForRange" as CFString,
                         parameter: rangeValue,
                         from: element,
                         mechanism: .standardRange
@@ -386,7 +395,7 @@ final class AccessibilitySelectionReader: SelectionReader {
                 )
                 rangeLookups.append(
                     parameterizedTextLookup(
-                        attribute: "AXAttributedStringForRange" as CFString,
+                        attribute: kAXStringForRangeParameterizedAttribute as CFString,
                         parameter: rangeValue,
                         from: element,
                         mechanism: .standardRange
@@ -395,7 +404,7 @@ final class AccessibilitySelectionReader: SelectionReader {
                 if let fullValue = copyStringAttribute(kAXValueAttribute as CFString, from: element) {
                     rangeLookups.append(
                         Self.textLookup(
-                            from: Self.substring(in: fullValue, range: range),
+                            from: Self.substring(in: fullValue, range: range).map(TranslationContent.plainText),
                             mechanism: .standardRange
                         )
                     )
@@ -411,7 +420,7 @@ final class AccessibilitySelectionReader: SelectionReader {
             }
             markerLookups.append(
                 parameterizedTextLookup(
-                    attribute: "AXStringForTextMarkerRange" as CFString,
+                    attribute: "AXAttributedStringForTextMarkerRange" as CFString,
                     parameter: markerRange,
                     from: element,
                     mechanism: .textMarker
@@ -419,7 +428,7 @@ final class AccessibilitySelectionReader: SelectionReader {
             )
             markerLookups.append(
                 parameterizedTextLookup(
-                    attribute: "AXAttributedStringForTextMarkerRange" as CFString,
+                    attribute: "AXStringForTextMarkerRange" as CFString,
                     parameter: markerRange,
                     from: element,
                     mechanism: .textMarker
@@ -433,31 +442,36 @@ final class AccessibilitySelectionReader: SelectionReader {
 
     nonisolated static func resolveTextLookups(_ lookups: [SelectionTextLookup]) -> SelectionTextLookup {
         var observedEmptySelection = false
+        var plainTextFallback: SelectionTextLookup?
         for lookup in lookups {
             switch lookup {
-            case let .found(text, mechanism):
-                guard !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            case let .found(content, mechanism):
+                guard !content.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
                     observedEmptySelection = true
                     continue
                 }
-                return .found(text, mechanism)
+                if content.format == .semanticMarkdown {
+                    return .found(content, mechanism)
+                }
+                plainTextFallback = plainTextFallback ?? .found(content, mechanism)
             case .empty:
                 observedEmptySelection = true
             case .unavailable:
                 break
             }
         }
+        if let plainTextFallback { return plainTextFallback }
         return observedEmptySelection ? .empty : .unavailable
     }
 
     private static func textLookup(
-        from text: String?,
+        from content: TranslationContent?,
         mechanism: SelectionMechanism
     ) -> SelectionTextLookup {
-        guard let text else { return .unavailable }
-        return text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        guard let content else { return .unavailable }
+        return content.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
             ? .empty
-            : .found(text, mechanism)
+            : .found(content, mechanism)
     }
 
     private func parameterizedTextLookup(
@@ -474,7 +488,7 @@ final class AccessibilitySelectionReader: SelectionReader {
             &value
         )
         guard result == .success else { return .unavailable }
-        return Self.textLookup(from: stringValue(from: value), mechanism: mechanism)
+        return Self.textLookup(from: contentValue(from: value), mechanism: mechanism)
     }
 
     private func textMarkerRangeLength(_ markerRange: CFTypeRef, from element: AXUIElement) -> Int? {
@@ -569,6 +583,10 @@ final class AccessibilitySelectionReader: SelectionReader {
             return string
         }
         return (value as? NSAttributedString)?.string
+    }
+
+    private func contentValue(from value: CFTypeRef?) -> TranslationContent? {
+        NativeFormattedContentNormalizer.content(from: value)
     }
 
     private func copyAttribute(_ attribute: CFString, from element: AXUIElement) -> CFTypeRef? {

@@ -44,6 +44,11 @@
 		A1000000000000000000000C /* MarlaRustFFI.c in Sources */ = {isa = PBXBuildFile; fileRef = A2000000000000000000000C /* MarlaRustFFI.c */; };
 		A1000000000000000000000D /* libMarlaCore.a in Frameworks */ = {isa = PBXBuildFile; fileRef = A2000000000000000000000F /* libMarlaCore.a */; };
 		A10000000000000000000029 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000029 /* Assets.xcassets */; };
+		A1000000000000000000002A /* Panel/MarkdownResultText.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2000000000000000000002A /* Panel/MarkdownResultText.swift */; };
+		A1000000000000000000002B /* App/MarkdownResultUIAutomation.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2000000000000000000002B /* App/MarkdownResultUIAutomation.swift */; };
+		A1000000000000000000002C /* Content/NativeFormattedContent.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2000000000000000000002C /* Content/NativeFormattedContent.swift */; };
+		A1000000000000000000002D /* Sessions/QuickInputMarkdownEditor.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2000000000000000000002D /* Sessions/QuickInputMarkdownEditor.swift */; };
+		A1000000000000000000002E /* Panel/MarkdownResultSelectableText.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2000000000000000000002E /* Panel/MarkdownResultSelectableText.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -96,6 +101,11 @@
 		A2000000000000000000000E /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		A20000000000000000000012 /* Info-Debug.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "Info-Debug.plist"; sourceTree = "<group>"; };
 		A20000000000000000000029 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		A2000000000000000000002A /* Panel/MarkdownResultText.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MarkdownResultText.swift; sourceTree = "<group>"; };
+		A2000000000000000000002B /* App/MarkdownResultUIAutomation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MarkdownResultUIAutomation.swift; sourceTree = "<group>"; };
+		A2000000000000000000002C /* Content/NativeFormattedContent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NativeFormattedContent.swift; sourceTree = "<group>"; };
+		A2000000000000000000002D /* Sessions/QuickInputMarkdownEditor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuickInputMarkdownEditor.swift; sourceTree = "<group>"; };
+		A2000000000000000000002E /* Panel/MarkdownResultSelectableText.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MarkdownResultSelectableText.swift; sourceTree = "<group>"; };
 		A2000000000000000000000F /* libMarlaCore.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = libMarlaCore.a; sourceTree = BUILT_PRODUCTS_DIR; };
 		A20000000000000000000010 /* Marla.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Marla.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
@@ -142,6 +152,7 @@
 			isa = PBXGroup;
 			children = (
 				A70000000000000000000008 /* App */,
+				A70000000000000000000012 /* Content */,
 				A70000000000000000000009 /* Models */,
 				A7000000000000000000000A /* Persistence */,
 				A7000000000000000000000B /* Settings */,
@@ -159,16 +170,17 @@
 			path = MarlaApp;
 			sourceTree = "<group>";
 		};
-		A70000000000000000000008 /* App */ = {isa = PBXGroup; children = (A20000000000000000000015 /* MarlaApplicationModel.swift */, A20000000000000000000022 /* ResultPanelLayout.swift */); path = App; sourceTree = "<group>"; };
+		A70000000000000000000008 /* App */ = {isa = PBXGroup; children = (A20000000000000000000015 /* MarlaApplicationModel.swift */, A20000000000000000000022 /* ResultPanelLayout.swift */, A2000000000000000000002B /* MarkdownResultUIAutomation.swift */); path = App; sourceTree = "<group>"; };
 		A70000000000000000000009 /* Models */ = {isa = PBXGroup; children = (A20000000000000000000016 /* TranslationAPIProfile.swift */); path = Models; sourceTree = "<group>"; };
 		A7000000000000000000000A /* Persistence */ = {isa = PBXGroup; children = (A20000000000000000000017 /* KeychainCredentialStore.swift */, A20000000000000000000018 /* MarlaSettingsStore.swift */); path = Persistence; sourceTree = "<group>"; };
 		A7000000000000000000000B /* Settings */ = {isa = PBXGroup; children = (A20000000000000000000019 /* SettingsWindow.swift */, A20000000000000000000026 /* SettingsShared.swift */, A20000000000000000000027 /* SettingsEditor.swift */, A20000000000000000000028 /* SettingsSupport.swift */); path = Settings; sourceTree = "<group>"; };
-		A7000000000000000000000C /* Sessions */ = {isa = PBXGroup; children = (A2000000000000000000001A /* TranslationSessionStore.swift */, A20000000000000000000024 /* QuickInputView.swift */); path = Sessions; sourceTree = "<group>"; };
-		A7000000000000000000000D /* Panel */ = {isa = PBXGroup; children = (A2000000000000000000001B /* FloatingPanel.swift */, A20000000000000000000023 /* TranslationCardView.swift */); path = Panel; sourceTree = "<group>"; };
+		A7000000000000000000000C /* Sessions */ = {isa = PBXGroup; children = (A2000000000000000000001A /* TranslationSessionStore.swift */, A20000000000000000000024 /* QuickInputView.swift */, A2000000000000000000002D /* QuickInputMarkdownEditor.swift */); path = Sessions; sourceTree = "<group>"; };
+		A7000000000000000000000D /* Panel */ = {isa = PBXGroup; children = (A2000000000000000000001B /* FloatingPanel.swift */, A20000000000000000000023 /* TranslationCardView.swift */, A2000000000000000000002A /* MarkdownResultText.swift */, A2000000000000000000002E /* MarkdownResultSelectableText.swift */); path = Panel; sourceTree = "<group>"; };
 		A7000000000000000000000E /* Shortcuts */ = {isa = PBXGroup; children = (A2000000000000000000001C /* GlobalShortcuts.swift */); path = Shortcuts; sourceTree = "<group>"; };
 		A7000000000000000000000F /* Screenshot */ = {isa = PBXGroup; children = (A2000000000000000000001D /* ScreenshotCapture.swift */, A2000000000000000000001E /* ScreenshotSelection.swift */); path = Screenshot; sourceTree = "<group>"; };
 		A70000000000000000000010 /* OCR */ = {isa = PBXGroup; children = (A2000000000000000000001F /* VisionOCR.swift */); path = OCR; sourceTree = "<group>"; };
 		A70000000000000000000011 /* Selection */ = {isa = PBXGroup; children = (A20000000000000000000020 /* AccessibilitySelectionReader.swift */, A20000000000000000000021 /* ClipboardSelectionFallback.swift */, A20000000000000000000025 /* AccessibilitySelectionModels.swift */); path = Selection; sourceTree = "<group>"; };
+		A70000000000000000000012 /* Content */ = {isa = PBXGroup; children = (A2000000000000000000002C /* NativeFormattedContent.swift */); path = Content; sourceTree = "<group>"; };
 		A70000000000000000000004 /* MarlaCore */ = {
 			isa = PBXGroup;
 			children = (
@@ -327,14 +339,19 @@
 			files = (
 				A10000000000000000000015 /* App/MarlaApplicationModel.swift in Sources */,
 				A10000000000000000000022 /* App/ResultPanelLayout.swift in Sources */,
+				A1000000000000000000002B /* App/MarkdownResultUIAutomation.swift in Sources */,
+				A1000000000000000000002C /* Content/NativeFormattedContent.swift in Sources */,
 				A10000000000000000000016 /* Models/TranslationAPIProfile.swift in Sources */,
 				A10000000000000000000017 /* Persistence/KeychainCredentialStore.swift in Sources */,
 				A10000000000000000000018 /* Persistence/MarlaSettingsStore.swift in Sources */,
 				A10000000000000000000019 /* Settings/SettingsWindow.swift in Sources */,
 				A1000000000000000000001A /* Sessions/TranslationSessionStore.swift in Sources */,
 				A10000000000000000000024 /* Sessions/QuickInputView.swift in Sources */,
+				A1000000000000000000002D /* Sessions/QuickInputMarkdownEditor.swift in Sources */,
 				A1000000000000000000001B /* Panel/FloatingPanel.swift in Sources */,
 				A10000000000000000000023 /* Panel/TranslationCardView.swift in Sources */,
+				A1000000000000000000002A /* Panel/MarkdownResultText.swift in Sources */,
+				A1000000000000000000002E /* Panel/MarkdownResultSelectableText.swift in Sources */,
 				A1000000000000000000001C /* Shortcuts/GlobalShortcuts.swift in Sources */,
 				A1000000000000000000001D /* Screenshot/ScreenshotCapture.swift in Sources */,
 				A1000000000000000000001E /* Screenshot/ScreenshotSelection.swift in Sources */,

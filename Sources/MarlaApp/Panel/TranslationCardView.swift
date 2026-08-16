@@ -215,16 +215,20 @@ struct TranslationCardView: View {
                     ProgressView().controlSize(.small)
                 }
             } else {
-                ScrollView {
-                    translationText(session)
-                }
-                .frame(
-                    height: ResultCardLayout.translationViewportHeight(
-                        session: session,
-                        cardWidth: cardWidth,
-                        maximumPanelHeight: maximumPanelHeight
-                    )
+                let viewportHeight = ResultCardLayout.translationViewportHeight(
+                    session: session,
+                    cardWidth: cardWidth,
+                    maximumPanelHeight: maximumPanelHeight
                 )
+                if session.shouldRenderCompletedMarkdown {
+                    translationText(session)
+                        .frame(height: viewportHeight)
+                } else {
+                    ScrollView {
+                        translationText(session)
+                    }
+                    .frame(height: viewportHeight)
+                }
                 if case let .failed(message) = session.state {
                     PartialFailureView(
                         message: message,
@@ -237,7 +241,17 @@ struct TranslationCardView: View {
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 
+    @ViewBuilder
     private func translationText(_ session: CardSession) -> some View {
+        if session.shouldRenderCompletedMarkdown {
+            MarkdownResultText(markdown: session.translation)
+                .transition(.opacity)
+        } else {
+            rawTranslationText(session)
+        }
+    }
+
+    private func rawTranslationText(_ session: CardSession) -> some View {
         let cursor = Text("│").foregroundColor(DesignTokens.accent)
         let text: Text
         if case .streaming = session.state {
@@ -279,11 +293,7 @@ struct TranslationCardView: View {
             .buttonStyle(.borderless)
             .help("切换原文对照")
             Spacer()
-            Button { store.copyTranslation() } label: { Image(systemName: "doc.on.doc") }
-                .buttonStyle(.borderless)
-                .help("复制译文")
-                .accessibilityLabel(session.copyConfirmed ? "已复制译文" : "复制译文")
-                .symbolVariant(session.copyConfirmed ? .fill : .none)
+            copyControl(session)
             Button { store.retry() } label: { Image(systemName: "arrow.clockwise") }
                 .buttonStyle(.borderless)
                 .help("重试")
@@ -298,6 +308,42 @@ struct TranslationCardView: View {
         }
         .font(AppFont.caption)
         .foregroundStyle(DesignTokens.secondaryText)
+    }
+
+    @ViewBuilder
+    private func copyControl(_ session: CardSession) -> some View {
+        if session.shouldRenderCompletedMarkdown,
+           MarkdownResultDocument.parse(session.translation) != nil {
+            Menu {
+                Button("复制 Markdown", systemImage: "doc.text") {
+                    store.copyTranslation(as: .markdown)
+                }
+                Button("复制纯文本", systemImage: "text.alignleft") {
+                    store.copyTranslation(as: .plainText)
+                }
+            } label: {
+                copyControlIcon(session)
+            } primaryAction: {
+                store.copyTranslation(as: .markdown)
+            }
+            .menuStyle(.borderlessButton)
+            .help("单击复制 Markdown；展开菜单可复制纯文本")
+            .accessibilityLabel(copyAccessibilityLabel(session, defaultLabel: "复制 Markdown"))
+            .accessibilityHint("主操作复制 Markdown；菜单中可以选择复制纯文本")
+        } else {
+            Button { store.copyTranslation() } label: { copyControlIcon(session) }
+                .buttonStyle(.borderless)
+                .help(session.sourceContent.format == .semanticMarkdown ? "复制 Markdown" : "复制译文")
+                .accessibilityLabel(copyAccessibilityLabel(session, defaultLabel: "复制译文"))
+        }
+    }
+
+    private func copyControlIcon(_ session: CardSession) -> some View {
+        Image(systemName: session.copyConfirmation == nil ? "doc.on.doc" : "checkmark")
+    }
+
+    private func copyAccessibilityLabel(_ session: CardSession, defaultLabel: String) -> String {
+        session.copyConfirmation?.confirmationLabel ?? defaultLabel
     }
 
     private func speak(_ text: String) {
@@ -415,4 +461,3 @@ struct PartialFailureView: View {
         .clipShape(RoundedRectangle(cornerRadius: DesignTokens.radiusS))
     }
 }
-

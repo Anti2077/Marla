@@ -17,10 +17,12 @@ public struct ScreenRect: Codable, Equatable, Hashable, Sendable {
 
 /// The source material acquired from the currently focused macOS application.
 public struct TextSelection: Equatable, Sendable {
-    public let text: String
+    public let content: TranslationContent
     public let bounds: ScreenRect?
     public let applicationBundleID: String?
     public let applicationName: String?
+
+    public var text: String { content.text }
 
     public init(
         text: String,
@@ -28,7 +30,19 @@ public struct TextSelection: Equatable, Sendable {
         applicationBundleID: String? = nil,
         applicationName: String? = nil
     ) {
-        self.text = text
+        self.content = .plainText(text)
+        self.bounds = bounds
+        self.applicationBundleID = applicationBundleID
+        self.applicationName = applicationName
+    }
+
+    public init(
+        content: TranslationContent,
+        bounds: ScreenRect? = nil,
+        applicationBundleID: String? = nil,
+        applicationName: String? = nil
+    ) {
+        self.content = content
         self.bounds = bounds
         self.applicationBundleID = applicationBundleID
         self.applicationName = applicationName

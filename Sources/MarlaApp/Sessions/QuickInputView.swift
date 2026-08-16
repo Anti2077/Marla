@@ -55,7 +55,7 @@ struct QuickInputView: View {
     @State private var draft = ""
     @State private var source = TranslationSource.automatic
     @State private var target = TranslationTarget.automatic
-    @FocusState private var isFocused: Bool
+    @State private var isEditorFocused = false
 
     init(
         store: TranslationSessionStore,
@@ -114,9 +114,12 @@ struct QuickInputView: View {
                 }
                 .menuStyle(.borderlessButton)
             }
-            TextEditor(text: $draft)
-                .font(AppFont.body)
-                .scrollContentBackground(.hidden)
+            QuickInputMarkdownEditor(
+                text: $draft,
+                isFocused: $isEditorFocused,
+                onSubmit: submit,
+                onCancel: onClose
+            )
                 .frame(minHeight: 104, maxHeight: 128)
                 .overlay(alignment: .topLeading) {
                     if draft.isEmpty {
@@ -135,7 +138,6 @@ struct QuickInputView: View {
                     RoundedRectangle(cornerRadius: DesignTokens.radiusM)
                         .stroke(DesignTokens.divider.opacity(0.65), lineWidth: 0.5)
                 }
-                .focused($isFocused)
             HStack {
                 Text("⌘Return 提交 · Esc 关闭")
                     .font(AppFont.micro)
@@ -152,7 +154,7 @@ struct QuickInputView: View {
         .padding(DesignTokens.spaceL)
         .frame(width: cardWidth)
         .marlaGlassSurface()
-        .onAppear { isFocused = true }
+        .onAppear { isEditorFocused = true }
         .onExitCommand(perform: onClose)
     }
 
@@ -165,7 +167,8 @@ struct QuickInputView: View {
             pointer: NSEvent.mouseLocation,
             activate: true,
             source: source,
-            target: target
+            target: target,
+            contentFormat: .semanticMarkdown
         )
     }
 
@@ -178,4 +181,3 @@ struct QuickInputView: View {
         )
     }
 }
-

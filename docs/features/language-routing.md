@@ -20,7 +20,7 @@ macOS Natural Language recognized representative full-sentence samples for all s
 - Every other supported source and an unknown source route to the native language.
 - An explicit target overrides automatic routing for the current card.
 - An explicit source override recomputes the target only while the target remains automatic.
-- Changing language controls cancels the current request and retranslates the already acquired text; it does not repeat Accessibility acquisition, clipboard fallback, screenshot capture, or Vision OCR.
+- Changing language controls cancels the current request and retranslates the already acquired content; it does not repeat protected Copy, AX positioning, screenshot capture, or Vision OCR.
 
 ## Detection and degradation
 
@@ -28,7 +28,7 @@ For screenshot input, Vision first enables automatic language detection and inte
 
 ## Provider boundary
 
-Swift resolves every request to an optional supported source plus one explicit supported target. Translation JSON schema v2 carries both values to Rust. Generic OpenAI-compatible models receive source/target instructions in the system prompt. Qwen-MT receives matching `translation_options.source_lang` and `target_lang`, using `auto` only when Swift has no supported source.
+Swift resolves every request to an optional supported source plus one explicit supported target. Translation JSON schema v3 carries both values together with formatted `sourceContent` to Rust. Provider capabilities select the language and message strategy: generic OpenAI-compatible models receive source/target and optional Markdown instructions in the System Message, while Qwen-MT receives matching `translation_options.source_lang` and `target_lang`, uses `auto` only when Swift has no supported source, and receives source content through its sole User Message.
 
 ## UI
 

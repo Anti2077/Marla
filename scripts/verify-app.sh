@@ -83,6 +83,28 @@ for rendition in "${paper_lantern_renditions[@]}"; do
     fi
 done
 
+status_bar_renditions=(
+    status-bar-icon.png
+    status-bar-icon@2x.png
+)
+for rendition in "${status_bar_renditions[@]}"; do
+    if ! print -r -- "${asset_info}" | rg -F -q -- "\"RenditionName\" : \"${rendition}\""; then
+        print -u2 "Compiled asset catalog is missing Paper Lantern status-bar rendition: ${rendition}"
+        exit 1
+    fi
+done
+
+menu_brand_renditions=(
+    paper-lantern-mark.png
+    paper-lantern-mark@2x.png
+)
+for rendition in "${menu_brand_renditions[@]}"; do
+    if ! print -r -- "${asset_info}" | rg -F -q -- "\"RenditionName\" : \"${rendition}\""; then
+        print -u2 "Compiled asset catalog is missing Paper Lantern menu-brand rendition: ${rendition}"
+        exit 1
+    fi
+done
+
 if [[ ! -x ${executable_path} ]]; then
     print -u2 "App executable is missing or not executable: ${executable_path}"
     exit 1
@@ -115,4 +137,6 @@ print "  Version: ${version}"
 print "  Minimum macOS: ${minimum_system}"
 print "  Architecture: ${architectures}"
 print "  App icon: ${icon_name} (Paper Lantern, ${#paper_lantern_renditions} renditions)"
+print "  Status-bar icon: Paper Lantern template (${#status_bar_renditions} renditions)"
+print "  Menu brand mark: Paper Lantern color mark (${#menu_brand_renditions} renditions)"
 print "  Signing: valid (${signature_summary})"

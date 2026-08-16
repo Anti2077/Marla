@@ -126,7 +126,9 @@ struct MarlaApplication: App {
         MenuBarExtra {
             MenuBarView(model: model)
         } label: {
-            Image(systemName: "character.bubble")
+            Image("StatusBarIcon")
+                .renderingMode(.template)
+                .frame(width: 18, height: 18)
                 .accessibilityLabel("Marla")
         }
         .menuBarExtraStyle(.window)
@@ -171,9 +173,12 @@ struct MenuBarView: View {
                         .foregroundStyle(DesignTokens.secondaryText)
                 }
                 Spacer()
-                Image(systemName: "character.bubble.fill")
-                    .font(.system(size: 19, weight: .medium))
-                    .foregroundStyle(DesignTokens.accent)
+                Image("PaperLanternMark")
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 33.6, height: 33.6)
+                    .offset(y: 2)
+                    .accessibilityHidden(true)
             }
 
             if !settings.onboardingSkipped,

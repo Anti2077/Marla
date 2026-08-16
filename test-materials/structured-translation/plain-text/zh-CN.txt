@@ -1,0 +1,5 @@
+发布窗口将在星期五下午三点开始。请先确认桌面客户端可以启动、设置窗口可以重复打开，并且翻译结果能够正常复制。
+
+如果网络请求失败，请记录错误发生的时间、当前模型名称和请求编号 BUILD-2048。不要记录任何真实密钥。文档地址是 https://example.com/docs?lang=zh-CN，环境变量名称是 MARLA_API_KEY，占位符是 {{STATUS}}。
+
+完成检查后，请用自然、简洁的语言总结结果。保持命令 launchctl kickstart -k gui/501/com.example.marla、URL、变量名和占位符不变。

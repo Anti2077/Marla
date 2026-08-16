@@ -1,0 +1,5 @@
+The release window begins at 3:00 PM on Friday. First confirm that the desktop client launches, the Settings window can be opened repeatedly, and translated results can be copied normally.
+
+If the network request fails, record the time of the error, the current model name, and request ID BUILD-2048. Do not record any real secret. The documentation URL is https://example.com/docs?lang=en, the environment variable is MARLA_API_KEY, and the placeholder is {{STATUS}}.
+
+After the checks are complete, summarize the result in clear, natural language. Keep the command launchctl kickstart -k gui/501/com.example.marla, the URL, variable names, and placeholders unchanged.

@@ -80,6 +80,7 @@ final class MarlaCoreTests: XCTestCase {
         )
 
         XCTAssertEqual(selection.text, "  port is already in use\n")
+        XCTAssertEqual(selection.content, .plainText("  port is already in use\n"))
         XCTAssertTrue(selection.hasVisibleText)
         XCTAssertEqual(selection.bounds?.width, 100)
     }
@@ -90,8 +91,16 @@ final class MarlaCoreTests: XCTestCase {
         XCTAssertFalse(selection.hasVisibleText)
     }
 
+    func testTextSelectionCanCarrySemanticMarkdown() {
+        let selection = TextSelection(content: .semanticMarkdown("# Heading"))
+
+        XCTAssertEqual(selection.text, "# Heading")
+        XCTAssertEqual(selection.content.format, .semanticMarkdown)
+        XCTAssertTrue(selection.hasVisibleText)
+    }
+
     func testRustCoreBridgeVersionAndSurfaceClassification() {
-        XCTAssertEqual(RustCoreBridge.apiVersion, 2)
+        XCTAssertEqual(RustCoreBridge.apiVersion, 3)
         XCTAssertEqual(
             RustCoreBridge.classifySurface(applicationBundleID: "com.apple.Terminal"),
             .terminal
@@ -105,7 +114,7 @@ final class MarlaCoreTests: XCTestCase {
     func testTranslationRequestEncodesNestedCredentialAndTarget() throws {
         let request = TranslationFFIRequest(
             requestID: UUID(uuidString: "00000000-0000-0000-0000-000000000001")!,
-            sourceText: "Hello\nworld",
+            sourceContent: .semanticMarkdown("# Hello\n\nworld"),
             sourceLanguage: .english,
             target: .japanese,
             endpoint: TranslationEndpointConfiguration(
@@ -117,12 +126,16 @@ final class MarlaCoreTests: XCTestCase {
         )
         let data = try JSONEncoder().encode(request)
         let object = try XCTUnwrap(JSONSerialization.jsonObject(with: data) as? [String: Any])
-        XCTAssertEqual(object["schemaVersion"] as? Int, 2)
+        XCTAssertEqual(object["schemaVersion"] as? Int, 3)
         XCTAssertEqual(
             object["requestID"] as? String,
             "00000000-0000-0000-0000-000000000001"
         )
         XCTAssertNil(object["requestId"])
+        let sourceContent = try XCTUnwrap(object["sourceContent"] as? [String: Any])
+        XCTAssertEqual(sourceContent["format"] as? String, "semanticMarkdown")
+        XCTAssertEqual(sourceContent["text"] as? String, "# Hello\n\nworld")
+        XCTAssertNil(object["sourceText"])
         XCTAssertEqual(object["sourceLanguage"] as? String, "en")
         let endpoint = try XCTUnwrap(object["endpoint"] as? [String: Any])
         XCTAssertEqual(endpoint["baseURL"] as? String, "https://example.com/v1")
@@ -132,6 +145,12 @@ final class MarlaCoreTests: XCTestCase {
         let target = try XCTUnwrap(object["target"] as? [String: Any])
         XCTAssertEqual(target["mode"] as? String, "explicit")
         XCTAssertEqual(target["language"] as? String, "ja")
+    }
+
+    func testTranslationSurfacesDeclareHonestDefaultContentFormats() {
+        XCTAssertEqual(TranslationSurface.selection.defaultContentFormat, .plainText)
+        XCTAssertEqual(TranslationSurface.screenshot.defaultContentFormat, .plainText)
+        XCTAssertEqual(TranslationSurface.quickInput.defaultContentFormat, .semanticMarkdown)
     }
 
     func testTranslationLanguageNormalizationAndAutomaticRouting() {

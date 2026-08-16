@@ -44,9 +44,21 @@ The silhouette is intentionally a little asymmetric. It should feel like folded 
 - Place the transparent mark on quiet light or dark backgrounds with sufficient contrast.
 - Use a purpose-built monochrome adaptation only when a destination cannot reproduce the three flat colors; do not recolor individual planes ad hoc.
 
+## Menu-bar mark
+
+The menu-bar status item is Marla's compact application-identity surface, not a functional action icon. It uses the purpose-built monochrome source at `Resources/Brand/PaperLantern/status-bar.svg` and the 18pt 1x/2x template renditions in `Resources/Assets.xcassets/StatusBarIcon.imageset`.
+
+The adaptation retains the lantern shell and central opening but removes color planes and small details that do not survive menu-bar scale. It must remain a template image so macOS controls its foreground in light, dark, selected, increased-contrast, and other system appearances. Do not use the full-color AppIcon, a fixed brand color, or a surrounding badge in the status area.
+
+## Menu-panel mark
+
+The MenuBarExtra panel header is a second application-identity surface rather than a command. Its trailing 33.6pt `PaperLanternMark` uses 34px/68px full-color renditions derived directly from `Resources/Brand/PaperLantern/logo.svg` and sits 2pt below the initial baseline placement. The adjacent “Marla” title already supplies the accessible identity, so the image is decorative to assistive technologies.
+
+Keep this exception limited to the panel header. It has no badge, accent tint, glow, shadow, or interaction, and it does not replace the SF Symbols used by selection, screenshot, quick-input, Settings, or quit actions.
+
 ## Boundaries
 
-- Paper Lantern is a brand mark, not a universal functional icon. Menus, toolbars, settings rows, screenshot actions, and result-card controls continue to use SF Symbols at a consistent weight.
+- Paper Lantern is a brand mark, not a universal functional icon. The menu-bar status item and menu-panel header are the two identity surfaces described above; menu commands, toolbars, settings rows, screenshot actions, and result-card controls continue to use SF Symbols at a consistent weight.
 - The mark does not authorize a second UI accent palette. Interactive emphasis continues to use `Color.accentColor` and native semantic colors.
 - Do not add gradients, glow, drop shadows, glass, texture, facial features, speech bubbles, language glyphs, or translation arrows.
 - Do not rotate, stretch, crop, outline, or place the mark inside an arbitrary badge.

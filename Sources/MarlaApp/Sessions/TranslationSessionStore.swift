@@ -39,7 +39,7 @@ struct CardSession: Identifiable, Equatable {
     let surface: TranslationSurface
     var profileID: UUID?
     var profileName: String
-    var sourceText: String
+    var sourceContent: TranslationContent
     var translation: String
     var nativeLanguage: TranslationLanguage = .simplifiedChinese
     var secondaryLanguage: TranslationLanguage = .english
@@ -50,12 +50,21 @@ struct CardSession: Identifiable, Equatable {
     var errorCode: TranslationErrorCode?
     var errorRetryable = false
     var recoveryAction: CardRecoveryAction?
-    var copyConfirmed = false
+    var copyConfirmation: TranslationCopyRepresentation?
     var isComparisonExpanded = false
     var isPinned = false
     var anchor: ScreenRect?
     var pointer: CGPoint?
     var isActivating = false
+
+    var sourceText: String {
+        get { sourceContent.text }
+        set { sourceContent = TranslationContent(format: sourceContent.format, text: newValue) }
+    }
+
+    var translatedContent: TranslationContent {
+        TranslationContent(format: sourceContent.format, text: translation)
+    }
 
     var resolvedSourceLanguage: TranslationLanguage? {
         source.resolved(using: detectedSourceLanguage)
@@ -84,18 +93,32 @@ struct CardSession: Identifiable, Equatable {
     }
 }
 
+enum TranslationCopyRepresentation: Equatable {
+    case markdown
+    case plainText
+
+    var confirmationLabel: String {
+        switch self {
+        case .markdown: "已复制 Markdown"
+        case .plainText: "已复制纯文本"
+        }
+    }
+}
+
 struct RecentTranslation: Identifiable, Equatable {
     let id: UUID
     let surface: TranslationSurface
     let profileID: UUID?
     let profileName: String
-    let sourceText: String
+    let sourceContent: TranslationContent
     let translation: String
     let nativeLanguage: TranslationLanguage
     let secondaryLanguage: TranslationLanguage
     let source: TranslationSource
     let detectedSourceLanguage: TranslationLanguage?
     let target: TranslationTarget
+
+    var sourceText: String { sourceContent.text }
 }
 
 enum SystemSourceLanguageDetector {
@@ -119,6 +142,7 @@ final class TranslationSessionStore: ObservableObject {
     private let client = RustTranslationClient()
     private let sourceLanguageDetector: (String) -> TranslationLanguage?
     private var handle: RustTranslationClient.Handle?
+    private var copyConfirmationResetTask: Task<Void, Never>?
 
     init(
         settings: MarlaSettingsStore,
@@ -140,7 +164,7 @@ final class TranslationSessionStore: ObservableObject {
             surface: .screenshot,
             profileID: settings.defaultProfile?.id,
             profileName: settings.defaultProfile?.name ?? "未配置",
-            sourceText: "",
+            sourceContent: .plainText(""),
             translation: "",
             nativeLanguage: settings.nativeLanguage,
             secondaryLanguage: settings.secondaryLanguage,
@@ -160,7 +184,8 @@ final class TranslationSessionStore: ObservableObject {
         state: TranslationSessionState,
         comparisonExpanded: Bool = false,
         pinned: Bool = false,
-        recovery: CardRecoveryAction? = nil
+        recovery: CardRecoveryAction? = nil,
+        contentFormat: TranslationContentFormat = .plainText
     ) {
         cancelCurrentRequest()
         let id = UUID()
@@ -169,7 +194,7 @@ final class TranslationSessionStore: ObservableObject {
             surface: surface,
             profileID: settings.defaultProfile?.id,
             profileName: settings.defaultProfile?.name ?? "未配置",
-            sourceText: sourceText,
+            sourceContent: TranslationContent(format: contentFormat, text: sourceText),
             translation: translation,
             nativeLanguage: settings.nativeLanguage,
             secondaryLanguage: settings.secondaryLanguage,
@@ -211,7 +236,8 @@ final class TranslationSessionStore: ObservableObject {
         activate: Bool = false,
         source: TranslationSource = .automatic,
         target: TranslationTarget? = nil,
-        profileID: UUID? = nil
+        profileID: UUID? = nil,
+        contentFormat: TranslationContentFormat? = nil
     ) {
         cancelCurrentRequest()
         let id = UUID()
@@ -220,7 +246,7 @@ final class TranslationSessionStore: ObservableObject {
             surface: surface,
             profileID: profileID ?? settings.defaultProfile?.id,
             profileName: settings.profile(id: profileID ?? settings.defaultProfile?.id)?.name ?? "未配置",
-            sourceText: text,
+            sourceContent: TranslationContent(format: contentFormat ?? surface.defaultContentFormat, text: text),
             translation: "",
             nativeLanguage: settings.nativeLanguage,
             secondaryLanguage: settings.secondaryLanguage,
@@ -238,6 +264,29 @@ final class TranslationSessionStore: ObservableObject {
             return
         }
         startRequest(for: id)
+    }
+
+    func startContent(
+        _ content: TranslationContent,
+        surface: TranslationSurface,
+        anchor: ScreenRect?,
+        pointer: CGPoint?,
+        activate: Bool = false,
+        source: TranslationSource = .automatic,
+        target: TranslationTarget? = nil,
+        profileID: UUID? = nil
+    ) {
+        startText(
+            content.text,
+            surface: surface,
+            anchor: anchor,
+            pointer: pointer,
+            activate: activate,
+            source: source,
+            target: target,
+            profileID: profileID,
+            contentFormat: content.format
+        )
     }
 
     func startRequest(for id: UUID) {
@@ -260,7 +309,7 @@ final class TranslationSessionStore: ObservableObject {
         session = current
         let request = TranslationFFIRequest(
             requestID: current.id,
-            sourceText: current.sourceText,
+            sourceContent: current.sourceContent,
             sourceLanguage: current.resolvedSourceLanguage,
             target: .explicit(current.resolvedTargetLanguage),
             endpoint: endpoint
@@ -370,15 +419,38 @@ final class TranslationSessionStore: ObservableObject {
         session?.isPinned.toggle()
     }
 
-    func copyTranslation() {
-        guard let id = session?.id, let translation = session?.translation, !translation.isEmpty else { return }
+    func copyTranslation(as requestedRepresentation: TranslationCopyRepresentation? = nil) {
+        guard let current = session, !current.translation.isEmpty else { return }
+        let representation = requestedRepresentation
+            ?? (current.sourceContent.format == .semanticMarkdown ? .markdown : .plainText)
+        let copiedText: String
+        switch representation {
+        case .markdown:
+            copiedText = current.translation.removingTrailingLineBreaks()
+        case .plainText:
+            if current.sourceContent.format == .semanticMarkdown {
+                guard case .completed = current.state,
+                      let document = MarkdownResultDocument.parse(current.translation)
+                else { return }
+                copiedText = document.plainText
+            } else {
+                copiedText = current.translation.removingTrailingLineBreaks()
+            }
+        }
+        guard !copiedText.isEmpty else { return }
+
         NSPasteboard.general.clearContents()
-        NSPasteboard.general.setString(translation, forType: .string)
-        session?.copyConfirmed = true
-        Task { @MainActor [weak self] in
-            try? await Task.sleep(for: .seconds(1.2))
-            guard self?.session?.id == id else { return }
-            self?.session?.copyConfirmed = false
+        NSPasteboard.general.setString(copiedText, forType: .string)
+        session?.copyConfirmation = representation
+        copyConfirmationResetTask?.cancel()
+        let sessionID = current.id
+        copyConfirmationResetTask = Task { @MainActor [weak self] in
+            try? await Task.sleep(for: .milliseconds(700))
+            guard !Task.isCancelled,
+                  self?.session?.id == sessionID,
+                  self?.session?.copyConfirmation == representation
+            else { return }
+            self?.session?.copyConfirmation = nil
         }
     }
 
@@ -410,7 +482,7 @@ final class TranslationSessionStore: ObservableObject {
             surface: recent.surface,
             profileID: recent.profileID,
             profileName: recent.profileName,
-            sourceText: recent.sourceText,
+            sourceContent: recent.sourceContent,
             translation: recent.translation,
             nativeLanguage: recent.nativeLanguage,
             secondaryLanguage: recent.secondaryLanguage,
@@ -463,7 +535,7 @@ final class TranslationSessionStore: ObservableObject {
             return
         }
         recentTranslations.removeAll {
-            $0.sourceText == candidate.sourceText &&
+            $0.sourceContent == candidate.sourceContent &&
                 $0.translation == candidate.translation &&
                 $0.nativeLanguage == candidate.nativeLanguage &&
                 $0.secondaryLanguage == candidate.secondaryLanguage &&
@@ -477,7 +549,7 @@ final class TranslationSessionStore: ObservableObject {
                 surface: candidate.surface,
                 profileID: candidate.profileID,
                 profileName: candidate.profileName,
-                sourceText: candidate.sourceText,
+                sourceContent: candidate.sourceContent,
                 translation: candidate.translation,
                 nativeLanguage: candidate.nativeLanguage,
                 secondaryLanguage: candidate.secondaryLanguage,

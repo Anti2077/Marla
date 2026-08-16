@@ -149,7 +149,7 @@ struct SettingsView: View {
             SettingsSection(title: "权限", systemImage: "lock.shield") {
                 PermissionSettingRow(
                     title: "辅助功能",
-                    detail: "划词翻译需要读取当前应用明确选中的文字。",
+                    detail: "划词翻译需要向当前应用发送一次受保护的 Copy。",
                     isReady: appModel.accessibilityTrusted
                 ) { appModel.requestAccessibilityAccess() }
                 PermissionSettingRow(
@@ -164,9 +164,10 @@ struct SettingsView: View {
                 }
             }
 
-            SettingsSection(title: "兼容性取词", systemImage: "arrow.triangle.2.circlepath") {
-                Toggle("AX 失败时模拟 ⌘C", isOn: $settings.selectionCopyFallbackEnabled)
-                Text("默认关闭。开启后，Marla 会先备份剪贴板，在 AX 无法读取时模拟一次 ⌘C，读取新文本后恢复原内容；检测到其他应用同时写入时不会覆盖更新内容。")
+            SettingsSection(title: "受保护取词", systemImage: "doc.on.clipboard") {
+                Label("模拟 Copy 获取完整选区格式", systemImage: "checkmark.shield")
+                    .font(AppFont.body)
+                Text("每次划词都会先备份剪贴板，再模拟一次 ⌘C；读取本次新增的文本与格式后恢复原内容。检测到其他应用同时写入时，不会覆盖更新内容。")
                     .font(AppFont.caption)
                     .foregroundStyle(DesignTokens.secondaryText)
                     .fixedSize(horizontal: false, vertical: true)

@@ -1,33 +1,37 @@
-# ADR-0006: Opt-in simulated Copy compatibility for selection translation
+# ADR-0006: Protected simulated Copy as the selection content source
 
 Status: Accepted
 
 Date: 2026-08-09
 
+Updated: 2026-08-16
+
 ## Context
 
-Some Electron, chat, and custom-rendered macOS applications visibly highlight text but do not expose a usable Accessibility selection. Bob and open-source tools such as SelectedTextKit demonstrate that simulating `⌘C`, reading the resulting selection, and restoring the original pasteboard can cover these surfaces.
+Some Electron, chat, Markdown-preview, and custom-rendered macOS applications visibly select structured content but expose incomplete, flattened, or inconsistent Accessibility values. The earlier ADR-0006 decision kept Accessibility as the primary content path and offered protected simulated Copy as an explicit default-off compatibility fallback. TASK-028 real-source testing showed that this split still flattened rich content and made acquisition behavior depend on a setting rather than the user's selection trigger.
 
-Marla's original 0.1.0 boundary avoided all clipboard reads and writes. The project owner has now authorized a Bob-compatible fallback, provided it is explicit, disabled by default, bounded to one trigger, and cannot silently overwrite clipboard data.
+The project owner has now authorized one deterministic production path: selection content always comes from the source application's own Copy representations under a protected, bounded transaction. Accessibility remains necessary for trust and may improve placement, but it is no longer a content source or fallback.
 
 ## Decision
 
-Keep Accessibility as the first selection path. Add a user-enabled, default-off compatibility mode owned by Swift/AppKit:
+Use one Swift/AppKit protected simulated Copy transaction for every production selection trigger:
 
 1. Capture every readable `NSPasteboard.general` item, type, order, and data representation in memory. The pasteboard `changeCount` must remain stable across capture; if any representation cannot be captured or the count changes, abort before sending `⌘C`.
 2. Confirm the trigger-time source application is still frontmost before Copy and immediately before accepting text.
-3. Send one public CGEvent `⌘C` and accept only non-empty text observed after a new pasteboard `changeCount`.
+3. Send one public CGEvent `⌘C`; accept content only after a new Pasteboard `changeCount`, recheck that the trigger-time application is still frontmost, and read the new Markdown, HTML, RTF/RTFD, and plain-text representations before any restoration. Validate rich and plain visible text only within the same Pasteboard item. Never accept an unchanged or pre-existing Pasteboard value.
 4. Restore the complete snapshot on success, empty result, error, cancellation, and timeout when the pasteboard still has the expected change count. Re-read every restored representation and treat any mismatch as restoration failure.
-5. If another process writes after Marla's Copy, do not overwrite that newer content; expose only a redacted diagnostic status. If restoration fails, do not send a translation request.
-6. Never log or persist selection text, pasteboard data, API keys, or snapshots. Rust receives only the selected text after Swift completes the transaction.
+5. If another process writes after Marla's Copy, do not overwrite that newer content; expose only a redacted diagnostic status. Snapshot, focus, Copy, timeout, content, or restoration failure sends no translation request and presents a specific error with a Quick Input action.
+6. Normalize reliable rich representations locally to `semanticMarkdown`; otherwise emit `plainText`. HTML parsing removes scripts, styles, explicitly hidden nodes, image resources, and unsafe links without executing content or loading remote resources.
+7. Never log or persist selection content, Pasteboard data, normalized Markdown, API keys, or snapshots. Rust receives only the normalized `TranslationContent` after Swift completes the transaction.
+8. Accessibility may provide trust state, focused-application identity checks, selection ranges, Text Marker ranges, and bounds for non-content positioning. It must not provide selected strings, attributed values, range-derived strings, Text Marker-derived strings, or fallback content.
 
-The compatibility toggle is persisted in application preferences and is off for existing and new installations.
-A repeated selection shortcut while Copy is pending cancels the active read; cleanup completes before another transaction may begin.
+The former Copy-compatibility toggle and its default-off behavior are removed from the product contract. A repeated selection shortcut while Copy is pending cancels the active transaction; cleanup completes before another acquisition may begin.
 
 ## Consequences
 
-- Codex, WeChat, and other custom text surfaces can use the application's own Copy implementation when AX is unavailable.
-- The compatibility mode requires Accessibility permission and temporarily handles sensitive clipboard data in memory.
-- The default path retains the previous no-clipboard privacy behavior.
+- Codex, WeChat, FluxMarkdown, and other custom or rich text surfaces use the same source-owned Copy representation path instead of application-specific AX content behavior.
+- Selection translation requires Accessibility trust and temporarily handles sensitive Pasteboard data in memory after each explicit trigger.
+- The previous no-Pasteboard default path no longer exists for selection translation. This does not authorize continuous clipboard observation or using pre-existing clipboard content.
+- Missing or failed Copy cannot silently fall back to Accessibility content; the user receives an actionable error and can open Quick Input.
 - Complete restoration and concurrent-write checks add latency and require explicit manual validation with a multi-type clipboard.
 - Browser extensions, DOM injection, private APIs, and per-application scripts remain outside this decision.

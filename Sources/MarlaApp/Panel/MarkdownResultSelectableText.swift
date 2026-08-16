@@ -1,8 +1,13 @@
 import AppKit
 import SwiftUI
 
+extension NSAttributedString.Key {
+    static let marlaStreamingCursor = NSAttributedString.Key("com.marla.streaming-cursor")
+}
+
 struct MarkdownResultSelectableText: NSViewRepresentable {
-    let document: MarkdownResultDocument
+    let attributedDocument: NSAttributedString
+    let accessibilityText: String
 
     func makeNSView(context _: Context) -> NSScrollView {
         Self.makeScrollView()
@@ -44,9 +49,8 @@ struct MarkdownResultSelectableText: NSViewRepresentable {
 
     func updateNSView(_ scrollView: NSScrollView, context _: Context) {
         guard let textView = scrollView.documentView as? MarkdownSelectableTextView else { return }
-        let attributed = MarkdownResultAttributedDocument.build(document)
-        textView.replaceContentsIfNeeded(with: attributed)
-        textView.setAccessibilityLabel(document.plainText)
+        textView.replaceContentsIfNeeded(with: attributedDocument)
+        textView.setAccessibilityLabel(accessibilityText)
     }
 }
 
@@ -63,16 +67,32 @@ final class MarkdownSelectableTextView: NSTextView {
         return true
     }
 
-    override func copy(_ sender: Any?) {
+    func selectedTextForCopy() -> String? {
         let selection = selectedRange()
-        guard selection.location != NSNotFound, selection.length > 0 else {
+        guard selection.location != NSNotFound, selection.length > 0, let textStorage else { return nil }
+        let selected = NSMutableAttributedString(
+            attributedString: textStorage.attributedSubstring(from: selection)
+        )
+        var cursorRanges: [NSRange] = []
+        selected.enumerateAttribute(
+            .marlaStreamingCursor,
+            in: NSRange(location: 0, length: selected.length)
+        ) { value, range, _ in
+            if value != nil { cursorRanges.append(range) }
+        }
+        for range in cursorRanges.reversed() {
+            selected.deleteCharacters(in: range)
+        }
+        let selectedText = selected.string
+            .removingTrailingLineBreaks()
+        return selectedText.isEmpty ? nil : selectedText
+    }
+
+    override func copy(_ sender: Any?) {
+        guard let selectedText = selectedTextForCopy() else {
             super.copy(sender)
             return
         }
-        let selectedText = (string as NSString)
-            .substring(with: selection)
-            .removingTrailingLineBreaks()
-        guard !selectedText.isEmpty else { return }
         NSPasteboard.general.clearContents()
         NSPasteboard.general.setString(selectedText, forType: .string)
     }
@@ -88,7 +108,10 @@ enum MarkdownResultAttributedDocument {
     private static let subtleBackground = NSColor.labelColor.withAlphaComponent(0.065)
     private static let alternatingRowBackground = NSColor.labelColor.withAlphaComponent(0.025)
 
-    static func build(_ document: MarkdownResultDocument) -> NSAttributedString {
+    static func build(
+        _ document: MarkdownResultDocument,
+        showsStreamingCursor: Bool = false
+    ) -> NSAttributedString {
         let result = NSMutableAttributedString()
 
         for (index, block) in document.blocks.enumerated() {
@@ -128,7 +151,37 @@ enum MarkdownResultAttributedDocument {
             }
         }
 
+        if showsStreamingCursor {
+            let cursor = NSAttributedString(
+                string: "│",
+                attributes: [
+                    .font: bodyFont,
+                    .foregroundColor: NSColor.controlAccentColor,
+                    .marlaStreamingCursor: true,
+                ]
+            )
+            let insertionIndex = result.string.hasSuffix("\n")
+                ? max(0, result.length - 1)
+                : result.length
+            result.insert(cursor, at: insertionIndex)
+        }
+
         return result
+    }
+
+    static func measuredHeight(_ attributed: NSAttributedString, width: CGFloat) -> CGFloat {
+        let textStorage = NSTextStorage(attributedString: attributed)
+        let layoutManager = NSLayoutManager()
+        let textContainer = NSTextContainer(
+            size: NSSize(width: max(1, width), height: .greatestFiniteMagnitude)
+        )
+        textContainer.lineFragmentPadding = 0
+        textContainer.widthTracksTextView = false
+        textContainer.heightTracksTextView = false
+        layoutManager.addTextContainer(textContainer)
+        textStorage.addLayoutManager(layoutManager)
+        layoutManager.ensureLayout(for: textContainer)
+        return ceil(layoutManager.usedRect(for: textContainer).height)
     }
 
     private static func inline(

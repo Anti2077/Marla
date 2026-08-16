@@ -296,6 +296,7 @@ final class FloatingPanelCoordinator: NSObject, NSWindowDelegate {
     private var globalMonitor: Any?
     private var localMonitor: Any?
     private var resultLayoutCancellable: AnyCancellable?
+    private var markdownProjectionCancellable: AnyCancellable?
     private weak var resultLayoutStore: TranslationSessionStore?
     private var resultLayoutModel: ResultPanelLayoutModel?
     private var resultLayoutVisibleFrame: NSRect?
@@ -362,7 +363,8 @@ final class FloatingPanelCoordinator: NSObject, NSWindowDelegate {
             height: ResultCardLayout.preferredPanelHeight(
                 session: store.session,
                 cardWidth: width,
-                maximumPanelHeight: maximumHeight
+                maximumPanelHeight: maximumHeight,
+                markdownProjection: layout.markdownProjection
             ),
             anchor: anchor,
             pointer: pointer,
@@ -419,6 +421,8 @@ final class FloatingPanelCoordinator: NSObject, NSWindowDelegate {
         resultLayoutResizeGeneration &+= 1
         resultLayoutCancellable?.cancel()
         resultLayoutCancellable = nil
+        markdownProjectionCancellable?.cancel()
+        markdownProjectionCancellable = nil
         resultLayoutStore = nil
         resultLayoutModel = nil
         resultLayoutVisibleFrame = nil
@@ -436,7 +440,10 @@ final class FloatingPanelCoordinator: NSObject, NSWindowDelegate {
     ) -> ResultPanelLayoutModel {
         resultLayoutResizeGeneration &+= 1
         resultLayoutCancellable?.cancel()
+        markdownProjectionCancellable?.cancel()
         let layout = ResultPanelLayoutModel(width: width, maximumPanelHeight: maximumHeight)
+        layout.markdownProjection = MarkdownProjectionInput(session: store.session)
+            .flatMap(MarkdownProjectionSnapshot.init)
         resultLayoutStore = store
         resultLayoutModel = layout
         resultLayoutVisibleFrame = visibleFrame
@@ -449,6 +456,18 @@ final class FloatingPanelCoordinator: NSObject, NSWindowDelegate {
                 self?.resizeResultPanel(for: session)
             }
         }
+        markdownProjectionCancellable = store.$session
+            .map { MarkdownProjectionInput(session: $0) }
+            .removeDuplicates()
+            .throttle(
+                for: .milliseconds(StreamingMarkdownProjectionPolicy.updateIntervalMilliseconds),
+                scheduler: DispatchQueue.main,
+                latest: true
+            )
+            .sink { [weak self, weak layout, weak store] input in
+                layout?.markdownProjection = input.flatMap(MarkdownProjectionSnapshot.init)
+                self?.resizeResultPanel(for: store?.session)
+            }
         return layout
     }
 
@@ -460,7 +479,8 @@ final class FloatingPanelCoordinator: NSObject, NSWindowDelegate {
         let height = ResultCardLayout.preferredPanelHeight(
             session: session,
             cardWidth: layout.width,
-            maximumPanelHeight: layout.maximumPanelHeight
+            maximumPanelHeight: layout.maximumPanelHeight,
+            markdownProjection: layout.markdownProjection
         )
         guard abs(panel.frame.height - height) > 0.5 else { return }
         let targetFrame = ResultPanelFrameCalculator.resized(
@@ -501,7 +521,8 @@ final class FloatingPanelCoordinator: NSObject, NSWindowDelegate {
         let height = ResultCardLayout.preferredPanelHeight(
             session: session,
             cardWidth: layout.width,
-            maximumPanelHeight: layout.maximumPanelHeight
+            maximumPanelHeight: layout.maximumPanelHeight,
+            markdownProjection: layout.markdownProjection
         )
         let targetFrame = ResultPanelFrameCalculator.resized(
             current: panel.frame,
@@ -655,5 +676,3 @@ final class FloatingPanelCoordinator: NSObject, NSWindowDelegate {
         resizeResultPanel(for: resultLayoutStore?.session)
     }
 }
-
-

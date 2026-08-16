@@ -62,11 +62,25 @@ struct TranslationCardView: View {
     @ViewBuilder
     private func cardHeader(_ session: CardSession) -> some View {
         HStack(spacing: DesignTokens.spaceS) {
-            Image(systemName: session.surface.symbolName)
-                .foregroundStyle(DesignTokens.accent)
+            if session.surface == .quickInput {
+                Image(systemName: session.surface.symbolName)
+                    .foregroundStyle(DesignTokens.accent)
+            } else {
+                Image("PaperLanternMark")
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 24, height: 24)
+                    .accessibilityHidden(true)
+            }
             Text(session.surface.displayName)
-                .font(AppFont.caption)
-                .foregroundStyle(DesignTokens.secondaryText)
+                .font(session.surface == .quickInput ? AppFont.caption : AppFont.title)
+                .foregroundStyle(
+                    session.surface == .quickInput
+                        ? DesignTokens.secondaryText
+                        : DesignTokens.primaryText
+                )
+                .lineLimit(1)
+                .fixedSize(horizontal: true, vertical: false)
             Spacer()
             Menu {
                 ForEach(store.availableProfiles) { profile in
@@ -89,6 +103,7 @@ struct TranslationCardView: View {
                     .lineLimit(1)
             }
             .menuStyle(.borderlessButton)
+            .offset(y: 2)
             .help("切换翻译配置")
             Button {
                 store.togglePinned()
@@ -218,14 +233,16 @@ struct TranslationCardView: View {
                 let viewportHeight = ResultCardLayout.translationViewportHeight(
                     session: session,
                     cardWidth: cardWidth,
-                    maximumPanelHeight: maximumPanelHeight
+                    maximumPanelHeight: maximumPanelHeight,
+                    markdownProjection: layout.markdownProjection
                 )
-                if session.shouldRenderCompletedMarkdown {
-                    translationText(session)
+                if let projection = layout.markdownProjection,
+                   projection.matches(session) {
+                    translationText(projection)
                         .frame(height: viewportHeight)
                 } else {
                     ScrollView {
-                        translationText(session)
+                        rawTranslationText(session)
                     }
                     .frame(height: viewportHeight)
                 }
@@ -242,13 +259,9 @@ struct TranslationCardView: View {
     }
 
     @ViewBuilder
-    private func translationText(_ session: CardSession) -> some View {
-        if session.shouldRenderCompletedMarkdown {
-            MarkdownResultText(markdown: session.translation)
-                .transition(.opacity)
-        } else {
-            rawTranslationText(session)
-        }
+    private func translationText(_ projection: MarkdownProjectionSnapshot) -> some View {
+        MarkdownResultText(projection: projection)
+            .transition(.opacity)
     }
 
     private func rawTranslationText(_ session: CardSession) -> some View {

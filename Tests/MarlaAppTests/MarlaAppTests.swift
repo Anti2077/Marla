@@ -1005,6 +1005,7 @@ final class MarlaAppTests: XCTestCase {
         XCTAssertEqual(frame.midX, visible.midX)
     }
 
+    @MainActor
     func testResultCardLayoutGrowsWithTextAndStopsAtScreenLimit() {
         let maximumHeight = ResultCardLayout.maximumPanelHeight(visibleHeight: 900)
         let short = CardSession(
@@ -1164,6 +1165,7 @@ final class MarlaAppTests: XCTestCase {
         XCTAssertEqual(clamped.width, ResultCardLayout.maximumWidth)
     }
 
+    @MainActor
     func testWiderResultCardReflowsLongTranslationToALowerPreferredHeight() {
         let maximumHeight: CGFloat = 700
         let translation = Array(
@@ -1200,6 +1202,7 @@ final class MarlaAppTests: XCTestCase {
         XCTAssertGreaterThanOrEqual(widePanelHeight, ResultCardLayout.defaultPanelHeight)
     }
 
+    @MainActor
     func testResultCardComparisonReservesVisibleChromeWithinTheSameLimit() {
         var session = CardSession(
             id: UUID(),

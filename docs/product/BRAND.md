@@ -40,7 +40,7 @@ The silhouette is intentionally a little asymmetric. It should feel like folded 
 
 - Use the SVG as the canonical editable source; derived PNGs are reference exports.
 - Preserve the original aspect ratio and at least one-eighth of the mark width as clear space.
-- Use the full-color mark at 32px or larger. At 16px, retain the supplied master shape without adding detail.
+- Use the full-color mark at 32px or larger by default. The sanctioned 24pt selection/screenshot result-card identity described below is the only smaller full-color in-product exception. At 16px, retain the supplied master shape without adding detail.
 - Place the transparent mark on quiet light or dark backgrounds with sufficient contrast.
 - Use a purpose-built monochrome adaptation only when a destination cannot reproduce the three flat colors; do not recolor individual planes ad hoc.
 
@@ -52,13 +52,19 @@ The adaptation retains the lantern shell and central opening but removes color p
 
 ## Menu-panel mark
 
-The MenuBarExtra panel header is a second application-identity surface rather than a command. Its trailing 33.6pt `PaperLanternMark` uses 34px/68px full-color renditions derived directly from `Resources/Brand/PaperLantern/logo.svg` and sits 2pt below the initial baseline placement. The adjacent “Marla” title already supplies the accessible identity, so the image is decorative to assistive technologies.
+The MenuBarExtra panel header is an application-identity surface rather than a command. Its “Marla” title and subtitle move 4pt upward together. The trailing 33.6pt `PaperLanternMark` uses 34px/68px full-color renditions derived directly from `Resources/Brand/PaperLantern/logo.svg` and remains at its existing size and position, including its 2pt downward optical offset. The adjacent “Marla” title already supplies the accessible identity, so the image is decorative to assistive technologies.
 
-Keep this exception limited to the panel header. It has no badge, accent tint, glow, shadow, or interaction, and it does not replace the SF Symbols used by selection, screenshot, quick-input, Settings, or quit actions.
+The panel mark has no badge, accent tint, glow, shadow, or interaction, and it does not replace any functional SF Symbol.
+
+## Result-card mark
+
+Selection and screenshot result-card headers use a 24pt full-color `PaperLanternMark` beside the dynamic 17pt semibold entry title. This is a compact identity treatment and the sanctioned exception to the default 32px minimum. The mark is non-interactive and hidden from assistive technologies because the adjacent title already names the entry.
+
+Quick Input does not use this treatment. It keeps the keyboard SF Symbol and its existing compact title styling. The API-profile menu sits 2pt lower for optical alignment; its interaction is unchanged. Pin, close, language-row, and all other controls retain their existing SF Symbols, placement semantics, and behavior.
 
 ## Boundaries
 
-- Paper Lantern is a brand mark, not a universal functional icon. The menu-bar status item and menu-panel header are the two identity surfaces described above; menu commands, toolbars, settings rows, screenshot actions, and result-card controls continue to use SF Symbols at a consistent weight.
+- Paper Lantern is a brand mark, not a universal functional icon. Its in-product identity surfaces are the menu-bar status item, menu-panel header, and selection/screenshot result-card headers described above. Menu commands, toolbars, settings rows, screenshot actions, and result-card controls continue to use SF Symbols at a consistent weight.
 - The mark does not authorize a second UI accent palette. Interactive emphasis continues to use `Color.accentColor` and native semantic colors.
 - Do not add gradients, glow, drop shadows, glass, texture, facial features, speech bubbles, language glyphs, or translation arrows.
 - Do not rotate, stretch, crop, outline, or place the mark inside an arbitrary badge.

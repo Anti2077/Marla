@@ -1,5 +1,6 @@
 sandbox_mode = "workspace-write"
 web_search = "live"
+model_verbosity = "medium"
 [mcp_servers.serena]
 command = "/Users/anti/.local/bin/serena"
 args = [

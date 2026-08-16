@@ -395,6 +395,11 @@ final class MarlaApplicationModel: ObservableObject {
         它会保留换行、代码标识符和终端参数。
         """
 
+        if presentMarkdownUIAutomationFixture(named: scenario) {
+            scheduleUIAutomationSnapshotIfRequested()
+            return
+        }
+
         switch scenario {
         case "menu":
             settings.exposeOnboardingForUIAutomation()
@@ -517,13 +522,6 @@ final class MarlaApplicationModel: ObservableObject {
                 pinned: true
             )
             panelCoordinator.showResult(store: sessionStore, at: nil, pointer: NSEvent.mouseLocation, activate: true)
-        case "markdown-completed":
-            presentCompletedMarkdownUIAutomationFixture()
-        case "markdown-completed-wide":
-            presentCompletedMarkdownUIAutomationFixture()
-            DispatchQueue.main.async { [weak self] in
-                self?.panelCoordinator.setResultWidthForUIAutomation(ResultCardLayout.maximumWidth)
-            }
         case "error":
             sessionStore.installUIAutomationFixture(
                 surface: .quickInput,

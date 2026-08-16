@@ -118,9 +118,11 @@
 - [ ] API Key 存在 Keychain，不出现在 UserDefaults、日志、错误或诊断输出。
 - [ ] 全部 profile Key 存在一个版本化 Keychain vault item 中；应用完成启动后、首次翻译前只读取该 vault，切换配置不再访问其它 Keychain item。
 - [ ] 首字前显示等待状态，delta 增量显示，完成后内容与 Provider 一致。
-- [x] `semanticMarkdown` 在等待/流式阶段显示原始字符，只有 `completed` 切换原生富文本投影；解析失败回退原始 Markdown，`plainText`、失败部分输出和取消状态不富渲染。
-- [ ] 完成态使用一个连续原生可选中文本表面，`⌘C` 可跨标题、段落、列表、引用、代码和表格选择，且选择结果不含语义上的末尾换行。
-- [ ] 完成态 GFM pipe table 正确显示表头、行、列、空单元格、转义/代码 pipe，并识别且在 canonical Markdown/复制 Markdown 中保留 GFM 对齐标记；完成态本地投影视觉统一居中表头和所有单元格，不按 `:---` / `---:` 做左/右对齐。畸形表格安全回退原始 Markdown，且该能力不被描述为截图/OCR 表格识别。
+- [x] 2026-08-16 基线已验证 `semanticMarkdown` 在 `completed` 使用安全原生富文本投影，解析失败回退原始 Markdown，`plainText`、失败部分输出和取消状态不富渲染。
+- [ ] `semanticMarkdown` 在首个非空增量前保持原始显示，随后流式与完成态共用原生投影；过密更新约 40ms 有界合并，未闭合/暂不可解析片段不崩溃、不丢字、不修改 canonical Markdown。
+- [ ] 流式与完成态使用同一连续原生可选中文本表面，`⌘C` 可跨标题、段落、列表、引用、代码和表格选择，排除视觉流式游标且不增加语义上的末尾换行。
+- [ ] 流式与完成态 GFM pipe table 正确显示表头、行、列、空单元格、转义/代码 pipe，并识别且在 canonical Markdown/复制 Markdown 中保留 GFM 对齐标记；本地投影视觉统一居中表头和所有单元格，不按 `:---` / `---:` 做左/右对齐。畸形表格安全回退原始 Markdown，且该能力不被描述为截图/OCR 表格识别。
+- [ ] 正文 viewport 与外层窗口共用当前 attributed document 的 TextKit 高度；完成事件移除游标后重新校正最终 frame，长内容仍受可见工作区 60% 封顶并由单一原生纵向滚动所有者处理。
 - [ ] GFM 表格固定在结果卡正文可用宽度内；每列按表头和全部单元格中最长可见文本计算相对列宽，并设置合理最低/最高权重，超出列宽的单元格自然换行，非表格内容不移动。
 - [ ] `**strong**` 与 `__strong__` 在段落、列表、链接和斜体组合中保持可见加粗，并在浅色/深色外观下可读。
 - [ ] 401/403、429、网络、首字超时、总超时、非法响应和断流显示对应恢复动作。
@@ -138,9 +140,11 @@
 - [ ] API Key lives in Keychain and never appears in UserDefaults, logs, errors, or diagnostics.
 - [ ] All profile keys live in one versioned Keychain vault item; after launch and before first translation, the app reads only that vault, and profile switching accesses no additional Keychain item.
 - [ ] Waiting appears before first token, raw deltas appear incrementally, and completion matches provider output.
-- [x] `semanticMarkdown` shows raw characters while awaiting/streaming and switches to a native rich-text projection only in `completed`; parse failure falls back to raw Markdown, while `plainText`, failed partial output, and cancelled states remain unrendered.
-- [ ] The completed state uses one continuous native selectable text surface. `⌘C` can span headings, paragraphs, lists, quotes, code, and tables without a semantic trailing newline.
-- [ ] Completed-state GFM pipe tables render headers, rows, columns, and empty/escaped/code-pipe cells, recognize and retain GFM alignment markers in canonical Markdown/canonical Markdown copy, and center the header and every cell uniformly in the completed local projection rather than visually left/right-aligning from `:---` or `---:`. Malformed tables safely fall back to raw Markdown, and this does not claim screenshot/OCR table recognition.
+- [x] The 2026-08-16 baseline verified safe native rich-text projection for completed `semanticMarkdown`, raw Markdown fallback on parse failure, and no rich rendering for `plainText`, failed partial output, or cancelled states.
+- [ ] `semanticMarkdown` remains raw before the first non-empty delta, then streaming and completion share the native projection; dense updates are coalesced at about 40ms, and incomplete/temporarily unparseable fragments neither crash, lose text, nor modify canonical Markdown.
+- [ ] Streaming and completion use one continuous native selectable text surface. `⌘C` can span headings, paragraphs, lists, quotes, code, and tables while excluding the visual streaming cursor and adding no semantic trailing newline.
+- [ ] Streaming and completed GFM pipe tables render headers, rows, columns, and empty/escaped/code-pipe cells, recognize and retain GFM alignment markers in canonical Markdown/canonical Markdown copy, and center the header and every cell uniformly in the local projection rather than visually left/right-aligning from `:---` or `---:`. Malformed tables safely fall back to raw Markdown, and this does not claim screenshot/OCR table recognition.
+- [ ] The body viewport and outer window share the current attributed document's TextKit height; completion removes the cursor and reconciles the final frame, while long content remains capped at 60% of the visible workspace under one native vertical scrolling owner.
 - [ ] GFM tables fit the result card's usable body width; each column derives a relative width from the longest visible header/cell text with reasonable minimum/maximum weights, overflowing cell text wraps naturally, and non-table content does not move.
 - [ ] `**strong**` and `__strong__` remain visibly bold in paragraphs, lists, links, and italic combinations in both light and dark appearance.
 - [ ] 401/403, 429, network, first-token timeout, total timeout, invalid response, and stream interruption show matching recovery actions.

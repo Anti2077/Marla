@@ -4,7 +4,7 @@
 
 版本 / Version: 0.1.0
 
-最后更新 / Last updated: 2026-08-16
+最后更新 / Last updated: 2026-08-17
 
 > 本文每节先给出中文规范，再给出英文镜像。发生歧义时以中文为准；两种语言必须在同一次修改中同步。
 >
@@ -68,6 +68,8 @@ The release succeeds only when all of the following are true:
 
 三个快捷键均可在设置中独立关闭或重新录制；关闭只停止对应全局监听，不隐藏菜单入口。录制时必须检测与 Marla 其他入口的内部冲突；如果系统或其他应用已经占用组合键但无法可靠检测，界面应明确提示用户实际试用并提供恢复默认值操作。
 
+MenuBarExtra 标题区把 “Marla” 与副标题作为一组向上移动 4pt；右侧 33.6pt 全彩 Paper Lantern 保持既有尺寸和位置，包括原有的向下 2pt 视觉校正。
+
 Marla 处于激活状态时，标准 macOS `⌘,` 应打开设置并复用已存在的设置窗口。该命令属于应用设置命令，不是跨应用全局监听，也不进入上述三个可录制翻译快捷键。
 
 ### English
@@ -81,6 +83,8 @@ Marla 处于激活状态时，标准 macOS `⌘,` 应打开设置并复用已存
 | Quick input | `⌃⌥Space` | Open a paste-and-type translation card near the pointer |
 
 Each shortcut can be independently disabled or recorded in Settings. Disabling stops only that global listener and does not hide the menu entry. Recording must detect conflicts among Marla actions. When reliable detection of a system or third-party conflict is impossible, the UI must ask the user to test the shortcut and provide a restore-defaults action.
+
+The MenuBarExtra header moves the “Marla” title and subtitle upward by 4pt as one group. The trailing 33.6pt full-color Paper Lantern retains its existing size and position, including its existing 2pt downward optical adjustment.
 
 When Marla is active, the standard macOS `⌘,` command opens Settings and reuses an existing Settings window. This is an application Settings command, not a cross-application global listener or a fourth recordable translation shortcut.
 
@@ -126,19 +130,19 @@ When no text is recognized, the result offers reselect and close actions and sen
 
 快速输入在指针所在屏幕附近打开紧凑、可激活的输入卡片并立即聚焦编辑区。它支持中文输入法、英文输入、多行文字和粘贴，不修改已有剪贴板内容。显式输入或粘贴的 Markdown 源码原样进入草稿；原生 Paste 命令从 Markdown、HTML、RTF/RTFD 和纯文本 representation 中选择，富文本经会话内清洗并归一为语义 Markdown 源码后插入。富 representation 的可见文字必须与纯文本一致；冲突、不安全或无法解析时降级为可见纯文本。HTML 处理不得执行内容、加载远程资源或持久化输入。完整草稿按 `semanticMarkdown` 进入翻译合同；普通文本是其合法子集。
 
-`⌘Return` 提交翻译，`Esc` 关闭。空白输入不能提交。提交后同一卡片平滑转为结果状态，保留原文格式以供对照、重试、语言切换和 API profile 切换。`semanticMarkdown` 在等待和流式阶段直接显示原始 Markdown 字符与流式游标；只有会话进入 `completed` 后，结果正文才切换为安全的原生富文本投影。解析失败时完成态必须诚实降级为原始字符。完整 Markdown 字符串始终用于会话状态与复制；不承诺 HTML/RTF 多 representation 输出复制或流式实时富渲染。
+`⌘Return` 提交翻译，`Esc` 关闭。空白输入不能提交。提交后同一卡片平滑转为结果状态，保留原文格式以供对照、重试、语言切换和 API profile 切换。`semanticMarkdown` 在等待首个非空增量前显示原始字符；从首个非空增量开始，流式与完成态使用同一个安全原生只读投影。过密更新以约 40ms 的有界间隔合并，未闭合或暂不可解析的快照诚实显示当前原始字符，不丢失或修改 canonical Markdown。`completed` 到达时移除只属于视觉投影的流式游标，并按最终 attributed document 重新校正高度。完整 Markdown 字符串始终用于会话状态与复制；不承诺 HTML/RTF 多 representation 输出复制或跨事件持久化的增量 AST。
 
 ### English
 
 Quick input opens a compact activatable card near the pointer on the current display and immediately focuses the editor. It supports Chinese IME input, English input, multiline text, and paste without modifying existing clipboard contents. Explicitly typed or pasted Markdown source enters the draft unchanged. The native Paste command chooses among Markdown, HTML, RTF/RTFD, and plain-text representations, cleaning rich content and inserting normalized semantic Markdown source. A rich representation's visible text must agree with plain text; conflict, unsafe content, or parse failure degrades to visible plain text. HTML handling may not execute content, load remote resources, or persist the input. The complete draft enters the translation contract as `semanticMarkdown`, with ordinary text as a valid subset.
 
-`⌘Return` submits and `Esc` closes. Whitespace-only input cannot be submitted. After submission, the same card transitions smoothly into the result state and retains the source format for comparison, retry, language changes, and API-profile switching. A `semanticMarkdown` session displays raw Markdown characters and the streaming cursor while awaiting or streaming; only after it enters `completed` does the result body switch to a safe native rich-text projection. A parse failure must honestly fall back to the raw characters. The complete Markdown string always backs session state and copy; multi-representation HTML/RTF output copy and real-time rich rendering during streaming are not promised.
+`⌘Return` submits and `Esc` closes. Whitespace-only input cannot be submitted. After submission, the same card transitions smoothly into the result state and retains the source format for comparison, retry, language changes, and API-profile switching. A `semanticMarkdown` session shows raw characters until its first non-empty delta, then uses the same safe native read-only projection for streaming and completion. Dense updates are coalesced on a bounded interval of approximately 40ms. An incomplete or temporarily unparseable snapshot honestly shows its current raw characters without dropping or modifying canonical Markdown. On `completed`, the visual-only streaming cursor is removed and height is reconciled against the final attributed document. The complete Markdown string always backs session state and copy; multi-representation HTML/RTF output copy and a persistent incremental AST are not promised.
 
 ## 7. 结果卡片 / Result Card
 
 ### 中文
 
-结果卡片先稳定定位和显示紧凑骨架，再接收流式内容；短译文不预留大块空白。卡片以 380pt 作为默认和最小宽度，用户可从原生窗口边缘或角落拖动到最多 760pt，实际最大值同时受当前屏幕可见工作区约束；宽度改变后译文按新行宽重排，并重新计算内容驱动高度。流式文本增长只沿远离选区/指针的方向平滑增高，保持初始锚定边和水平位置不变，不重播出现动画；每次高度动画结束后按当前会话和实时宽度做一次无动画最终校正，不能因首个 delta 与入场动画重叠而留下过时外框。达到当前屏幕可见工作区 60% 的最大高度后，外框停止增长，译文正文内部滚动。默认显示译文，用户可以展开对照原文。顶部状态行保留入口、当前翻译 API 配置、固定与关闭；其下独立语言行左侧显示源语言，右侧显示实际目标语言。卡片提供：
+结果卡片先稳定定位和显示紧凑骨架，再接收流式内容；短译文不预留大块空白。卡片以 380pt 作为默认和最小宽度，用户可从原生窗口边缘或角落拖动到最多 760pt，实际最大值同时受当前屏幕可见工作区约束；宽度改变后译文按新行宽重排，并重新计算内容驱动高度。`semanticMarkdown` 的正文 viewport 与外层窗口都以当前 attributed document 的同一 TextKit 测量语义为准，不再用原始字符高度估算富投影。流式文本增长只沿远离选区/指针的方向平滑增高，保持初始锚定边和水平位置不变，不重播出现动画；每次高度动画结束后按当前会话和实时宽度做一次无动画校正，`completed` 到达并移除流式游标后再按最终文档执行最终校正，不能让首个 delta、过密更新或旧动画留下过时外框。达到当前屏幕可见工作区 60% 的最大高度后，外框停止增长，译文正文由单一原生纵向滚动 owner 承担溢出；不启用水平滚动或横向弹性。Reduce Motion 下不为流式投影增加位置动画。默认显示译文，用户可以展开对照原文。选择翻译与截图翻译的顶部状态行以 24pt 全彩 `PaperLanternMark` 作为不可交互的身份标志，旁边的动态入口标题使用 17pt semibold；快速输入继续使用键盘 SF Symbol 和既有紧凑标题样式。当前翻译 API 配置菜单向下移动 2pt。固定、关闭、语言行和所有控制语义保持不变；其下独立语言行左侧显示源语言，右侧显示实际目标语言。卡片提供：
 
 - 复制译文；
 - 重试当前请求；
@@ -147,7 +151,7 @@ Quick input opens a compact activatable card near the pointer on the current dis
 - 覆盖源语言或目标语言并重新翻译；
 - 关闭或取消进行中的请求。
 
-完成态富文本只是只读展示投影，应由一个连续的原生可选中文本表面呈现标题、段落、强调、列表、引用、代码和链接，选择可以跨越多个 block。规范支持格式良好的 GFM pipe table（表头、行、列、空单元格、转义/代码 pipe 与对齐信息）；解析继续识别并在 canonical Markdown 与复制 Markdown 中保留 GFM 对齐标记，但完成态本地投影视觉上将表头和所有单元格统一居中，不按 `:---` / `---:` 做左/右对齐。表格固定在结果卡正文可用宽度内；每列根据该列表头和全部单元格中最长的可见文本自适应计算相对列宽，并设置合理的最低/最高权重，超出列宽的单元格自然换行。标题、段落、列表、引用和代码保持固定不移动；完成态连续原生表面与跨块选择合同不变。并在段落、列表、链接和斜体组合中保持 `**strong**`/`__strong__` 可见加粗；畸形表格或解析失败时回退原始 Markdown。该表格能力仅针对翻译结果渲染，不意味着 Vision/OCR 识别截图表格。原始 Markdown 字符串和 `semanticMarkdown` 格式仍是复制、重试、源/目标语言切换、API profile 切换和会话内最近记录恢复的规范内容；投影不得反向改写它们。`plainText` 的流式和完成态显示保持不变，失败后的部分结果与取消态也不得进入 Markdown 富渲染。投影必须使用原生 SwiftUI/AppKit 能力，不使用 WebView，不执行 HTML 或脚本，也不自动加载远程图片或其它资源。
+流式与完成态富文本只是只读展示投影，应由一个连续的原生可选中文本表面呈现标题、段落、强调、列表、引用、代码和链接，选择可以跨越多个 block。首个非空增量后以约 40ms 的有界间隔合并过密快照，再从当前完整字符串构造 attributed document；不得逐字符重建或把它描述为持久化增量 AST。未闭合或暂不可解析的片段回退当前原始字符。规范支持格式良好的 GFM pipe table（表头、行、列、空单元格、转义/代码 pipe 与对齐信息）；解析继续识别并在 canonical Markdown 与复制 Markdown 中保留 GFM 对齐标记，但本地投影视觉上将表头和所有单元格统一居中，不按 `:---` / `---:` 做左/右对齐。表格固定在结果卡正文可用宽度内；每列根据该列表头和全部单元格中最长的可见文本自适应计算相对列宽，并设置合理的最低/最高权重，超出列宽的单元格自然换行。标题、段落、列表、引用和代码保持固定不移动；连续原生表面与跨块选择合同不变。并在段落、列表、链接和斜体组合中保持 `**strong**`/`__strong__` 可见加粗；畸形表格回退原始 Markdown。该表格能力仅针对翻译结果渲染，不意味着 Vision/OCR 识别截图表格。原始 Markdown 字符串和 `semanticMarkdown` 格式仍是复制、重试、源/目标语言切换、API profile 切换和会话内最近记录恢复的规范内容；流式游标与渲染投影不得反向写入它们。`plainText` 的流式和完成态显示保持不变，失败后的部分结果与取消态也不得进入 Markdown 富渲染。投影必须使用原生 SwiftUI/AppKit 能力，不使用 WebView，不执行 HTML 或脚本，也不自动加载远程图片或其它资源。
 
 主复制动作复制规范 Markdown，仅移除末尾非语义的 `\n`/`\r`；菜单中的纯文本复制是只读派生投影，链接只保留可见标签、Markdown 表格转为 TSV。选区内 `⌘C` 同样只移除末尾非语义换行，不产生 HTML/RTF 多 representation 输出；规范会话字符串保留原样及所有有意义的换行。
 
@@ -155,7 +159,7 @@ Quick input opens a compact activatable card near the pointer on the current dis
 
 ### English
 
-The result card establishes a stable position and compact shell before accepting streamed content; short translations do not reserve a large empty area. Its default and minimum width is 380pt. Users can drag native window edges or corners up to 760pt, with the actual maximum also constrained by the current screen's visible workspace; changing width reflows translation text and recomputes the content-driven height. As streamed text wraps to additional lines, the card grows smoothly away from the selection/pointer while keeping its initial anchored edge and horizontal position stable, without replaying the entry animation; after each height animation, it performs one no-animation final reconciliation against the current session and live width so an early delta overlapping entry cannot leave a stale outer frame. At 60% of the current screen's visible workspace, the outer frame stops growing and the translation body scrolls internally. Translation is shown by default, with source comparison available on demand. The top status row retains the entry, current translation API profile, pin, and close controls. A separate language row below shows source on the left and the effective target on the right. The card provides:
+The result card establishes a stable position and compact shell before accepting streamed content; short translations do not reserve a large empty area. Its default and minimum width is 380pt. Users can drag native window edges or corners up to 760pt, with the actual maximum also constrained by the current screen's visible workspace; changing width reflows translation text and recomputes the content-driven height. For `semanticMarkdown`, the body viewport and outer window both use the current attributed document's TextKit measurement semantics instead of estimating a rich projection from raw-character height. As streamed text wraps to additional lines, the card grows smoothly away from the selection/pointer while keeping its initial anchored edge and horizontal position stable, without replaying the entry animation. It reconciles without animation after each height animation, then reconciles once more against the final document when `completed` removes the streaming cursor, so an early delta, dense update, or stale animation cannot leave an outdated frame. At 60% of the current screen's visible workspace, the outer frame stops growing and one native vertical scrolling owner handles body overflow, with no horizontal scrolling or elasticity. Reduce Motion adds no positional animation for streaming projection. Translation is shown by default, with source comparison available on demand. Selection and screenshot top status rows use a non-interactive 24pt full-color `PaperLanternMark` beside the dynamic entry title in 17pt semibold; Quick Input retains its keyboard SF Symbol and existing compact title treatment. The current translation API-profile menu moves 2pt downward. Pin, close, language-row, and all control semantics remain unchanged. A separate language row below shows source on the left and the effective target on the right. The card provides:
 
 - copy translation;
 - retry current request;
@@ -164,7 +168,7 @@ The result card establishes a stable position and compact shell before accepting
 - override source or target language and retranslate;
 - close or cancel in-flight work.
 
-Completed rich text is a read-only projection rendered by one continuous native selectable text surface for headings, paragraphs, emphasis, lists, blockquotes, code, and links, allowing selection across blocks. Well-formed GFM pipe tables support headers, rows, columns, empty cells, escaped/code pipes, and alignment metadata. Parsing recognizes GFM alignment markers and canonical Markdown plus canonical Markdown copy retain them, while the completed local projection centers the header and every cell uniformly rather than visually left/right-aligning from `:---` or `---:`. Tables remain within the result card's usable body width. Each column adapts to the longest visible text among its header and all cells, bounded by reasonable minimum and maximum weights; cell text beyond its column width wraps naturally. Headings, paragraphs, lists, blockquotes, and code remain fixed, while the completed surface and cross-block selection contract remain unchanged. `**strong**`/`__strong__` remains visibly bold in paragraphs, lists, links, and italic combinations; malformed tables or parse failure fall back to raw Markdown. This table behavior applies to translated-result rendering only and does not make Vision/OCR recover screenshot tables. The raw Markdown string and `semanticMarkdown` format remain canonical for copy, retry, source/target changes, API-profile switching, and in-memory recent-result restoration; the projection may not write back into them. Streaming and completed `plainText` presentation stays unchanged, while failed partial output and cancelled sessions do not enter Markdown rich rendering. The projection must use native SwiftUI/AppKit facilities, with no WebView, HTML or script execution, or automatic loading of remote images or other resources.
+Streaming and completed rich text is a read-only projection rendered by one continuous native selectable text surface for headings, paragraphs, emphasis, lists, blockquotes, code, and links, allowing selection across blocks. After the first non-empty delta, dense snapshots are coalesced on a bounded interval of approximately 40ms before constructing an attributed document from the current complete string; the implementation may not rebuild on every character or describe this as a persistent incremental AST. Incomplete or temporarily unparseable fragments fall back to their current raw characters. Well-formed GFM pipe tables support headers, rows, columns, empty cells, escaped/code pipes, and alignment metadata. Parsing recognizes GFM alignment markers and canonical Markdown plus canonical Markdown copy retain them, while the local projection centers the header and every cell uniformly rather than visually left/right-aligning from `:---` or `---:`. Tables remain within the result card's usable body width. Each column adapts to the longest visible text among its header and all cells, bounded by reasonable minimum and maximum weights; cell text beyond its column width wraps naturally. Headings, paragraphs, lists, blockquotes, and code remain fixed, while the continuous surface and cross-block selection contract remain unchanged. `**strong**`/`__strong__` remains visibly bold in paragraphs, lists, links, and italic combinations; malformed tables fall back to raw Markdown. This table behavior applies to translated-result rendering only and does not make Vision/OCR recover screenshot tables. The raw Markdown string and `semanticMarkdown` format remain canonical for copy, retry, source/target changes, API-profile switching, and in-memory recent-result restoration; neither the visual cursor nor the projection may write back into them. Streaming and completed `plainText` presentation stays unchanged, while failed partial output and cancelled sessions do not enter Markdown rich rendering. The projection must use native SwiftUI/AppKit facilities, with no WebView, HTML or script execution, or automatic loading of remote images or other resources.
 
 The primary copy action copies canonical Markdown, removing only terminal non-semantic `\n`/`\r`. Menu plain-text copy is a read-only derived projection (visible link labels only; Markdown tables as TSV). Selection `⌘C` applies the same terminal-newline rule and emits no HTML/RTF multi-representation output; canonical session text retains its original meaningful line breaks.
 
@@ -306,7 +310,7 @@ The UI must distinguish “local recognition with Vision” from “recognized t
 - 持久历史、收藏、账号、同步和统计；
 - PDF、Office、多页文档、批处理和主文档工作区；
 - 浏览器 DOM 改写、可编辑原文替换和持续跟随滚动；
-- 流式阶段的 Markdown 实时富渲染、增量 AST，以及 HTML/RTF 多 representation 复制；
+- 跨事件持久化的增量 Markdown AST，以及 HTML/RTF 多 representation 复制；
 - 本地大语言模型、本地 OCR VLM 和自带 TTS 模型；
 - Intel Mac、公开 DMG、Developer ID、公证、自动更新和 App Store 发布；
 - 应用界面国际化；0.1.0 UI 使用简体中文。
@@ -319,7 +323,7 @@ The UI must distinguish “local recognition with Vision” from “recognized t
 - persistent history, favorites, accounts, sync, or analytics;
 - PDF, Office, multipage documents, batch work, or a main document workspace;
 - browser DOM rewriting, editable source replacement, or continuous scroll tracking;
-- real-time rich Markdown rendering or an incremental AST during streaming, and multi-representation HTML/RTF copy;
+- a persistent incremental Markdown AST across streaming events, and multi-representation HTML/RTF copy;
 - local LLMs, local OCR VLMs, or bundled TTS models;
 - Intel Mac, public DMG, Developer ID, notarization, auto-update, or App Store release;
 - application UI localization; the 0.1.0 UI is Simplified Chinese.

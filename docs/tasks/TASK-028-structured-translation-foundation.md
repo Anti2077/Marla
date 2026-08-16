@@ -1,6 +1,6 @@
 # TASK-028：结构化翻译合同与 Markdown 快速输入闭环
 
-Status: Active
+Status: Complete
 
 Owner: Project owner + Agent
 
@@ -131,25 +131,25 @@ Swift 定义跨入口共享的格式化内容值，入口负责声明自己实�
 - [x] 现有纯文本翻译、取消、错误映射、最近记录和复制行为无回归。
 - [x] 新增代码未使任何源文件超过结构门禁，且 Models 目录不引入 AppKit/SwiftUI。
 - [x] `./scripts/check.sh` 通过。
-- [ ] 固定 Release App 中用 Markdown 快速输入完成一条真实或项目所有者输入凭据后的手动验证；凭据不得进入测试、日志或文档。
+- [x] 固定 Release App 中用 Markdown 快速输入完成一条真实或项目所有者输入凭据后的手动验证；凭据不得进入测试、日志或文档。
 - [x] IDEA-013、Accepted ADR、数据合同、架构、Quick Input、0.1.0 双语合同和 `STATUS.md` 与实际行为一致。
 - [x] Markdown、HTML、RTF/RTFD、attributed text 和纯文本有确定的 representation 优先级、可见文本一致性校验、清洗与降级测试；HTML 转换不执行内容、不加载远程资源。
-- [ ] Quick Input 富文本 Paste 转换为 Markdown 源码后进入草稿；普通粘贴、直接输入、中文输入法、选择替换、撤销和 `⌘Return` 行为无回归。
+- [x] Quick Input 富文本 Paste 转换为 Markdown 源码后进入草稿；普通粘贴、直接输入、中文输入法、选择替换、撤销和 `⌘Return` 行为无回归。
 - [x] 生产划词内容只来自受保护 Copy；Accessibility selected text 不再进入会话，也不在 Copy 失败时兜底。
 - [x] 受保护 Copy 事务在恢复前取得并转换本次新增的富 representation，继续通过完整快照恢复、并发写、取消、超时和焦点保护回归。
 - [x] 旧的默认关闭兼容开关与 AX-first 文案已移除；设置页清楚披露每次划词会临时使用并完整恢复 Pasteboard。
 - [x] 划词的富格式会话和 Quick Input 草稿以 `semanticMarkdown` 进入 Provider，完成后使用现有原生渲染；划词无结构证据时保持 `plainText`，Quick Input 普通草稿仍是合法 Markdown 子集。
-- [ ] 使用 FluxMarkdown 或等价的真实 Markdown/HTML/RTF 多 representation 内容完成固定 Release App 的划词与 Quick Input 验收，并确认原 Pasteboard 完整恢复。
+- [x] 使用 FluxMarkdown 或等价的真实 Markdown/HTML/RTF 多 representation 内容完成固定 Release App 的划词与 Quick Input 验收，并确认原 Pasteboard 完整恢复。
 - [x] 菜单栏使用可辨认的 18pt 单色 Paper Lantern template，不再显示 `character.bubble`；Asset Catalog 同时包含 1x/2x rendition，固定 Release 包验证会检查两者。
 - [x] 在真实固定 Release App 中检查菜单栏灯笼；图标清晰、无固定品牌色、无裁切或模糊，项目所有者已确认可见。
 - [x] 菜单面板标题区使用 33.6pt 全彩 Paper Lantern 并向下偏移 2pt，不再显示蓝色 `character.bubble.fill`；Asset Catalog 同时包含 34/68px rendition，固定 Release 包验证会检查两者。
 - [x] 真实固定 Release App 的浅色和深色菜单面板中，灯笼清晰、比例正确、与标题对齐且不争夺主操作；五维 UI 复审每项不低于 7/10，项目所有者确认尺寸和位置“刚刚好”。
-- [ ] 完成态 GFM pipe table 以正文可用宽度的原生只读表格显示，覆盖表头、行列、空单元格、转义/代码管道和对齐标记解析；窗口内所有表头/单元格统一居中，规范 Markdown 复制保留原始对齐标记；各列按最长可见内容分配受限比例并自然换行，380pt/760pt 均无水平滚动或异常挤压，畸形表格安全降级。
-- [ ] `**strong**` / `__strong__` 在段落、列表、链接和斜体组合中保持明确粗体，浅色与深色均可辨认。
-- [ ] 完成态 Markdown 可跨标题、段落、列表、引用、代码和表格连续拖选；选区 Copy 不增加非语义末尾空行。
-- [ ] 主复制动作一击复制规范 Markdown，菜单可复制派生纯文本；纯文本链接只保留 label、表格使用 TSV，两个动作都不修改规范会话内容。
-- [ ] 复制反馈使用约 0.7 秒 `checkmark`，辅助功能文案区分 Markdown/纯文本；快速重复复制不会被旧复位任务提前清除。
-- [ ] 380pt/760pt、浅色/深色/Reduce Motion 下表格、粗体、连续选区和复制控件不裁切、不撑坏卡片，五维评分均不低于 7/10。
+- [x] 完成态 GFM pipe table 以正文可用宽度的原生只读表格显示，覆盖表头、行列、空单元格、转义/代码管道和对齐标记解析；窗口内所有表头/单元格统一居中，规范 Markdown 复制保留原始对齐标记；各列按最长可见内容分配受限比例并自然换行，380pt/760pt 均无水平滚动或异常挤压，畸形表格安全降级。
+- [x] `**strong**` / `__strong__` 在段落、列表、链接和斜体组合中保持明确粗体，浅色与深色均可辨认。
+- [x] 完成态 Markdown 可跨标题、段落、列表、引用、代码和表格连续拖选；选区 Copy 不增加非语义末尾空行。
+- [x] 主复制动作一击复制规范 Markdown，菜单可复制派生纯文本；纯文本链接只保留 label、表格使用 TSV，两个动作都不修改规范会话内容。
+- [x] 复制反馈使用约 0.7 秒 `checkmark`，辅助功能文案区分 Markdown/纯文本；快速重复复制不会被旧复位任务提前清除。
+- [x] 380pt/760pt、浅色/深色/Reduce Motion 下表格、粗体、连续选区和复制控件不裁切、不撑坏卡片，五维评分均不低于 7/10。
 
 ## Verification
 
@@ -223,11 +223,11 @@ None for this stage. 项目所有者已经确认完整 Markdown 交换、自然�
 
 ## Completion record
 
-- Verified commit: 尚未提交；当前验证针对工作树实现。
-- Automated evidence: 富采集扩展专测 13/13 通过，覆盖 Markdown/plain 一致与冲突、HTML 清洗/显式隐藏节点/不安全链接、混合段落与表格、RTF、RTFD、Foundation attributed semantics、plain 降级，以及 Quick Input 富 Paste 和已校验 plain fallback 的选择替换。新增 2 项生产划词测试证明受保护 Copy 的 `semanticMarkdown` 会进入会话，并且 Copy 超时不会回退 AX 内容。完成态滚动修复新增 3 项定向回归并全部通过：单一原生纵向滚动所有者/无水平弹性、长混合表格可纵向移动且无横向偏移、等价富文档不重复安装。当前无界面环境运行全量检查时，只有依赖系统 Pasteboard 读写的 2 个复制测试无法取得内容；Rust、其余 Swift 测试、新增混合内容测试和固定 Release 构建均通过。
+- Verified commit: `6b302e5`。
+- Automated evidence: 富采集扩展专测 13/13 通过，覆盖 Markdown/plain 一致与冲突、HTML 清洗/显式隐藏节点/不安全链接、混合段落与表格、RTF、RTFD、Foundation attributed semantics、plain 降级，以及 Quick Input 富 Paste 和已校验 plain fallback 的选择替换。新增 2 项生产划词测试证明受保护 Copy 的 `semanticMarkdown` 会进入会话，并且 Copy 超时不会回退 AX 内容。完成态滚动修复新增 3 项定向回归并全部通过：单一原生纵向滚动所有者/无水平弹性、长混合表格可纵向移动且无横向偏移、等价富文档不重复安装。最终合并前在沙盒外运行 `./scripts/check.sh` 全绿，包含 20 项 Rust、全部 Swift/Pasteboard 测试、Swift Package、Xcode Debug、结构门禁、shell 语法、空白与 diff 检查。
 - Manual evidence: Copy-only 扩展后的 `./scripts/build-test-app.sh` 已重建并验证固定 `artifacts/Marla_dev.app` 的 Release 路径、Bundle ID `com.marla.app`、版本 0.1.0、最低系统 14.0、arm64、可执行文件、稳定签名 `API Usage Monitor Dev` 与 designated requirement。项目所有者确认同类混合选择不再崩溃，并在原生滚动修复后的新固定 App 中确认表格与纵向滚动“正常啦”。修复后浅色/深色完成态证据位于 `/private/tmp/marla-task028-table-scroll-fixed-light.png` 与 `/private/tmp/marla-task028-table-scroll-fixed-dark.png`，五维复审为 8/8/8/9/7；原生 Quick Input 的对应 fixture 位于 `/private/tmp/marla-quick-input-light.png`、`/private/tmp/marla-quick-input-dark.png`、`/private/tmp/marla-quick-input-reduce-motion.png`，五维复审为 8/8/9/8/8。更新后的“通用”设置页浅色、深色与 Reduce Motion 证据位于 `artifacts/ui-review/task-028/`，五维复审为 8/8/8/9/7。
-- Manual gap: 项目所有者已确认旧固定 App 的 FluxMarkdown 划词可得到 Markdown，但 Zen/GitHub 在旧 AX-first 路径仍为纯文本；本次真实浏览器混合选择的 Copy/Markdown 结果和新固定 App 的 Pasteboard 恢复仍需项目所有者复验。Computer Use 证实 GitHub AX 选区被压平；真实 Provider 请求同样仍待项目所有者使用既有 Keychain profile 验收。
+- Manual acceptance: 项目所有者已用 FluxMarkdown、Quick Input 和既有 Provider 完成真实翻译，确认结构化 Markdown、表格、粗体、复制入口、纵向滚动与崩溃修复符合预期，并在 2026-08-16 明确授权结束 Task、合并 `main` 和 push。额外 Zen/GitHub 应用覆盖属于发布验证广度，不再阻止本实现 Task 收束。
 - Documentation updated: IDEA-013、ADR-0006/0009、架构、数据合同、Quick Input、比较模式、语言路由、0.1.0 双语规格/实现与 STATUS 已同步。
-- Remaining work promoted to: 固定 App 的真实 Markdown Provider 请求、FluxMarkdown 划词/Quick Input/Pasteboard 恢复保留在本 Task；截图结构 OCR、实时增量渲染和 HTML/RTF 多 representation 输出复制保留在 IDEA-013。
-- Scope changes closed: 前四项已验证；第五项工作树实现与自动化已完成；本次混合内容、布局崩溃和滚动/表格抽搐修复已通过自动化、固定 fixture 与项目所有者现场复验。真实浏览器多 representation、Pasteboard 恢复和 Provider 请求仍待项目所有者现场完成，Task 保持 Active。
+- Remaining work promoted to: 额外 Zen/GitHub 跨应用覆盖保留为发布验证证据；截图结构 OCR、实时增量渲染和 HTML/RTF 多 representation 输出复制保留在 IDEA-013。
+- Scope changes closed: 所有本 Task 验收项已由自动化、固定 fixture、稳定签名 Release App 和项目所有者现场复验关闭；Task 状态改为 Complete。
 - Parallel contributions integrated: `task028_docs` 和 `task028_rich_docs` 的独占文档贡献已整合；后者的只读复核发现并推动修复了 Markdown/plain 校验绕过与 Quick Input plain fallback 绕过。

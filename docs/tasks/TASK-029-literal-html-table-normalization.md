@@ -1,6 +1,6 @@
 # TASK-029：纯文本 HTML 表格归一为 Markdown
 
-Status: Active
+Status: Complete
 
 Owner: Project owner + Agent
 
@@ -49,10 +49,10 @@ TASK-028 已支持真正的 HTML Pasteboard representation 到 Markdown 的转�
 
 | Date | Requested by | Change | Acceptance / verification impact | Status |
 | --- | --- | --- | --- | --- |
-| 2026-08-17 | Project owner | 把复制得到的 literal HTML table 转成简单 Markdown 表格后再交给翻译引擎 | 新增 plain-text HTML table 检测、占位符/转义/降级回归，并复验 protected Copy 与 Quick Input 的共享输入合同 | Implemented; Owner Verification Pending |
-| 2026-08-18 | Project owner | Flux Markdown 混合选择可完整粘贴到 Obsidian，但 Marla 查看原文缺少/扁平化表格，要求纳入 TASK-029 修复 | 新增 GFM-aware rich/plain 校验、同一 Copy 结果稳定观察，以及完整 Markdown/HTML 与 plain projection 的 Flux 形态回归 | Implemented; Owner Verification Pending |
-| 2026-08-18 | Project owner | 固定 App 复验仍失败：混合选择降级为纯文本，单独选择表格可保留 Markdown | 用真实 Flux Markdown 复现后确认 checkbox 的 plain projection 使用行首 U+FFFC；新增精确回归并仅规范该控件占位符 | Implemented; Owner Verification Pending |
-| 2026-08-18 | Project owner | 最新固定 App 复验仍把混合选区的表格逐行显示，要求确认是否真正重建并继续修复 | 脱敏真实审计确认 Flux 提供的 HTML 含 1 个 table，但无 charset 的 UTF-8 raw NBSP 被 data parser 误解码为 `Â + NBSP`，导致一致性假冲突并降级到无表格 RTF；改为 UTF-8 string-first HTML 解析并保留非 UTF-8 fallback | Implemented; Owner Verification Pending |
+| 2026-08-17 | Project owner | 把复制得到的 literal HTML table 转成简单 Markdown 表格后再交给翻译引擎 | 新增 plain-text HTML table 检测、占位符/转义/降级回归，并复验 protected Copy 与 Quick Input 的共享输入合同 | Complete |
+| 2026-08-18 | Project owner | Flux Markdown 混合选择可完整粘贴到 Obsidian，但 Marla 查看原文缺少/扁平化表格，要求纳入 TASK-029 修复 | 新增 GFM-aware rich/plain 校验、同一 Copy 结果稳定观察，以及完整 Markdown/HTML 与 plain projection 的 Flux 形态回归 | Complete |
+| 2026-08-18 | Project owner | 固定 App 复验仍失败：混合选择降级为纯文本，单独选择表格可保留 Markdown | 用真实 Flux Markdown 复现后确认 checkbox 的 plain projection 使用行首 U+FFFC；新增精确回归并仅规范该控件占位符 | Complete |
+| 2026-08-18 | Project owner | 最新固定 App 复验仍把混合选区的表格逐行显示，要求确认是否真正重建并继续修复 | 脱敏真实审计确认 Flux 提供的 HTML 含 1 个 table，但无 charset 的 UTF-8 raw NBSP 被 data parser 误解码为 `Â + NBSP`，导致一致性假冲突并降级到无表格 RTF；改为 UTF-8 string-first HTML 解析并保留非 UTF-8 fallback | Complete |
 
 ## Current evidence
 
@@ -82,13 +82,13 @@ Flux follow-up 保持 ADR-0009 的一致性合同，但把语义 Markdown 的可
 - [x] Quick Input Paste 与受保护 Copy 共用同一转换结果；转换成功发送 `semanticMarkdown`。
 - [x] 现有 `.html`、Markdown、RTF/RTFD、attributed text、GFM table 和普通纯文本回归无退化。
 - [x] 新增代码不突破结构门禁；`./scripts/check.sh` 通过。
-- [ ] 固定 Release App 重建并验证；项目所有者可用该样本确认请求前 Markdown。
+- [x] 固定 Release App 重建并验证；项目所有者可用该样本确认请求前 Markdown。
 - [x] Task、STATUS 和相关功能文档与实际行为一致。
 - [x] 完整 GFM Markdown 与等价 plain projection 可通过一致性校验；完整表格不会因 Foundation 投影丢列边界而降级。
 - [x] Markdown/HTML rich representation 与不完整 plain projection 仍诚实降级，不因 rich 内容更长而绕过 ADR-0009。
 - [x] protected Copy 对同一 changeCount 的渐进候选等待至连续两次相等，且取消、失焦、超时、并发写入和恢复语义不变。
 - [x] 无 charset 的 UTF-8 HTML 中 raw NBSP 不得被误解码成 `Â + NBSP`；修复后 HTML/table 仍必须通过原有完整 plain projection 一致性校验，非 UTF-8 representation 保留安全 fallback。
-- [ ] Flux Markdown“段落 + 列表 + 表格”真实选择在查看原文与 Provider 输入中包含完整 GFM 表格，并仍完整恢复原剪贴板。
+- [x] Flux Markdown“段落 + 列表 + 表格”真实选择在查看原文与 Provider 输入中包含完整 GFM 表格，并仍完整恢复原剪贴板。
 
 ## Verification
 
@@ -140,10 +140,10 @@ None. 本 Task 采用简单矩形表格边界；复杂 HTML 表格诚实降级�
 
 ## Completion record
 
-- Verified commit:
-- Automated evidence:
-- Manual evidence:
-- Documentation updated:
-- Remaining work promoted to:
-- Scope changes closed:
-- Parallel contributions integrated:
+- Verified commit: `895a1de`。
+- Automated evidence: `NativeFormattedContentTests` 21/21 通过；最终 `./scripts/check.sh` 全绿，包含 20 项 Rust、144 项 Swift（3 项 Vision host 限制 skip）、Swift Package、Xcode Debug、结构门禁、格式、shell、空白与 diff 检查。
+- Manual evidence: `./scripts/build-test-app.sh` 重建并验证固定 `artifacts/Marla_dev.app` 的 Bundle ID `com.marla.app`、版本 0.1.0、macOS 14.0+、arm64、Paper Lantern 资源、稳定签名 `API Usage Monitor Dev` 与 designated requirement。最终真实 Flux 混合选区脱敏审计得到 `semanticMarkdownTableCount=1`、`clipboardPreserved=true`、`focusPreserved=true`；项目所有者随后确认“的确修好了”。
+- Documentation updated: TASK-029、STATUS、Quick Input 与划词翻译规格均已同步 literal HTML、GFM-aware 校验、protected Copy 稳定观察、U+FFFC checkbox 与 UTF-8 raw NBSP 修复边界。
+- Remaining work promoted to: None；额外应用覆盖仍属于既有发布验证广度，不新增产品能力。
+- Scope changes closed: 本 Task 的 literal HTML、Flux 混合表格、真实固定 App 和剪贴板恢复验收均已关闭。
+- Parallel contributions integrated: `task029_docs` 的 Quick Input 与划词规格贡献已由主 Agent 按最终代码、测试和真实审计统一校正。

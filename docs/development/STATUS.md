@@ -6,9 +6,9 @@ Release target: 0.1.0 Alpha
 
 Overall state: In Progress — implementation baseline exists; release verification gaps remain
 
-Active task: [TASK-029](../tasks/TASK-029-literal-html-table-normalization.md)
+Active task: None
 
-TASK-029 的 Flux Markdown follow-up 已实现并通过完整自动化与固定 App 脱敏实测：literal HTML table 继续由严格 table-only parser 转成 GFM；source-owned rich Markdown 改用 Marla 自己的 GFM projection 做 rich/plain 校验；protected Copy 只在同一 Pasteboard `changeCount` 下连续两次候选一致后接受。真实根因是 Flux `public.html` 中无 charset 的 UTF-8 raw NBSP 被 data parser 误解码成 `Â + NBSP`，造成 rich/plain 假冲突后降级到无表格 RTF。HTML 现优先按 UTF-8 原生字符串解析，非 UTF-8 保留原有 fallback；严格可见文本校验未放宽。最终真实 Flux 审计已从 0 个表格变为 1 个，并保持焦点和剪贴板恢复；等待项目所有者查看原文/真实 Provider 界面复验。
+TASK-029 已完成：literal HTML table 由严格 table-only parser 转成 GFM；source-owned rich Markdown 使用 Marla 自己的 GFM projection 做 rich/plain 校验；protected Copy 只在同一 Pasteboard `changeCount` 下连续两次候选一致后接受。Flux `public.html` 中无 charset 的 UTF-8 raw NBSP 现按原生字符串优先解析，非 UTF-8 保留原有 fallback，严格可见文本校验未放宽。最终真实 Flux 审计已从 0 个表格变为 1 个并保持焦点和剪贴板恢复，项目所有者确认修复有效；实现提交为 `895a1de`。
 
 TASK-028 已完成：结构化翻译合同、受保护 Copy-only 划词、Quick Input 富 Paste、完成态原生 Markdown、GFM 表格/粗体、Markdown/纯文本复制、Paper Lantern 菜单身份位，以及混合表格布局崩溃和滚动抽搐修复均已进入固定 Release App。项目所有者完成真实翻译和界面复验后明确授权收束、合并 `main` 与 push；实现提交为 `6b302e5`。
 
@@ -29,7 +29,7 @@ Blocked tasks:
 
 ## Current objective
 
-TASK-029 当前目标是让 literal HTML 与 source-owned rich representation 两条表格输入路径都可靠：literal HTML 继续在请求前归一成简单 GFM；Flux Markdown 等来源的 rich representation 必须按正确字符编码本地解析、通过 GFM-aware 可见文本校验，并在 protected Copy 候选稳定后进入 Provider。复杂、真实冲突或无法解码的输入仍诚实降级，不能用“富内容更长”绕过 plain evidence。
+当前没有 Active implementation Task。下一步从发布验证清单或项目所有者新确认的工作中选择；不得从 Roadmap、Backlog 或 Ideas 自行开始实现。
 
 TASK-023 已完成整体代码审查、自动化验证与固定 Release 测试 App 交付：Rust 翻译与模型列表取消从 10ms 轮询改为事件驱动唤醒，SSE 单个未完成帧增加 1 MiB 内存上限，严格 Clippy 与 shell 语法检查纳入统一验证，5 个公开 unsafe FFI 函数补齐安全合同；`artifacts/Marla_dev.app` 已重建并通过稳定签名验证。
 

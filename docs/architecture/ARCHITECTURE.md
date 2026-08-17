@@ -2,7 +2,7 @@
 
 ## Status
 
-0.1.0 target architecture accepted; its implemented baseline is being extended under the 2026-08-17 reopened TASK-028 for streaming native Markdown projection and unified TextKit height measurement, and release verification remains in progress.
+0.1.0 target architecture accepted. The 2026-08-17 reopened TASK-028 completed streaming native Markdown projection and unified TextKit height measurement; release verification remains in progress.
 
 ## Platform
 

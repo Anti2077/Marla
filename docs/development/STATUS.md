@@ -4,11 +4,11 @@ Last updated: 2026-08-17
 
 Release target: 0.1.0 Alpha
 
-Overall state: In Progress — implementation baseline exists; release verification gaps remain
+Overall state: In Progress — TASK-028 complete; release verification gaps remain
 
-Active task: [TASK-028](../tasks/TASK-028-structured-translation-foundation.md)
+Active task: None. The next implementation task must be selected explicitly by the project owner.
 
-TASK-028 于 2026-08-17 重新激活。此前结构化翻译合同、受保护 Copy-only 划词、Quick Input 富 Paste、完成态原生 Markdown、GFM 表格/粗体、Markdown/纯文本复制、Paper Lantern 菜单身份位，以及混合表格布局崩溃和滚动抽搐修复已经合并；本轮已在工作树实现并通过固定 App fixture 验证：`semanticMarkdown` 从首个非空增量开始实时使用同一原生投影，窗口高度依据真实 TextKit 文档持续增长，并在完成事件后按最终文档重新校正。菜单标题组已上移 4pt；划词/截图结果卡改用 24pt Paper Lantern 和 17pt 动态标题，API profile 下移 2pt，Quick Input 保持键盘功能图标。此前实现基线提交为 `6b302e5`；真实 Provider 流和最新 UI 的最终项目所有者确认仍待完成。
+TASK-028 已完成。此前合并的结构化翻译合同、受保护 Copy-only 划词、Quick Input 富 Paste、完成态原生 Markdown、GFM 表格/粗体、Markdown/纯文本复制、Paper Lantern 菜单身份位，以及混合表格布局崩溃和滚动抽搐修复保持有效；2026-08-17 重开范围进一步完成了实时原生 Markdown 投影、基于真实 TextKit 文档的流式与最终窗口高度校正、展开原文 Markdown、代码块与行内代码样式，以及菜单/结果卡身份层级微调。最终菜单标题组采用 14pt 向上光学校正，使标题字形约 24pt 的上边距为 16pt 左边距的 1.5 倍。自动化、固定 Release App、稳定签名、真实截图五维复审和项目所有者验收均已通过；截图结构 OCR 与同次 HTML/RTF 多 representation 输出复制仍不在本 Task 范围内。
 
 TASK-027 已完成：Paper Lantern 是 Marla 的正式品牌标志和产品意象；品牌 SVG、参考 PNG、产品/UX 约束与 ADR 已落地。macOS 标准 10 槽位 AppIcon asset catalog 已接入 Xcode Debug/Release，所有后续 App 构建默认使用该图标；固定签名 `artifacts/Marla_dev.app` 已重建，并通过图标声明、`AppIcon.icns`、`Assets.car` 和 10 个 Paper Lantern rendition 验证。
 
@@ -27,7 +27,7 @@ Blocked tasks:
 
 ## Current objective
 
-TASK-028 当前目标是在不改变 canonical Markdown、Provider/FFI 合同和 Copy-only 采集边界的前提下，完成有界合并实时原生投影与最新菜单/结果卡身份层级的项目所有者验收。代码、自动化、固定 Release App、动态高度序列、380pt/760pt、浅色/深色、Reduce Motion 和五维复审已经通过；真实 Provider 流仍需确认首个增量后的连续观感、完成态最终高度和最新 UI 手感。截图结构 OCR 与同次 HTML/RTF 多 representation 输出复制仍不在当前范围内。
+当前没有 Active implementation Task。TASK-028 已完成；下一项实现工作必须由项目所有者从发布验证或其他已确认工作中明确选择，Agent 不从 Roadmap、Backlog 或 Ideas 自动激活任务。
 
 TASK-023 已完成整体代码审查、自动化验证与固定 Release 测试 App 交付：Rust 翻译与模型列表取消从 10ms 轮询改为事件驱动唤醒，SSE 单个未完成帧增加 1 MiB 内存上限，严格 Clippy 与 shell 语法检查纳入统一验证，5 个公开 unsafe FFI 函数补齐安全合同；`artifacts/Marla_dev.app` 已重建并通过稳定签名验证。
 
@@ -58,10 +58,10 @@ TASK-021 已完成：结果卡支持 380–760pt 横向调整，流式译文在�
 - Settings use a transparent full-size title bar with traffic lights inside one continuous four-corner surface, hidden scroll indicators, and a fixed `Esc` screenshot-cancellation row. Screenshot selection temporarily suspends an open Settings window and restores it without activating it; `Esc` cancellation is owned by the active selection session rather than a single view's first-responder state, with window key-equivalent/cancel-operation routing and a listen-only event-tap fallback.
 - Translation API profiles have persistent enabled states and only enabled profiles can be selected or invoked. The summary list uses native switches, a Set Default/Delete menu, accessibility move actions, and a trailing reorder handle. Settings content no longer moves the window; the newest fixed App uses a complete-row drag preview and 220ms animated hover reordering, pending owner confirmation of that final pointer feedback.
 - Project-scoped Serena 1.6.1 provides read-only Swift/Rust semantic navigation through Codex. A custom Context and fixed tool allowlist expose only nine retrieval/diagnostic tools; source edits, shell, project switching, onboarding, memories, Dashboard, and Headroom remain disabled.
-- Paper Lantern is the selected Marla brand mark and product metaphor: “a little light beside the reader.” The canonical SVG and reference PNG exports live under `Resources/Brand/PaperLantern/`; the 10-slot macOS AppIcon catalog is compiled into Debug and Release builds. The menu-bar identity item uses a separate 18pt monochrome Paper Lantern template; the MenuBarExtra panel header uses a 33.6pt full-color rendition while its text group sits 4pt higher; selection/screenshot result-card headers use a 24pt full-color identity mark and 17pt title. Quick Input and all functional controls continue to use SF Symbols.
-- Quick Input preserves complete semantic Markdown through the Provider and session. Awaiting remains raw; from the first non-empty streaming delta, Markdown uses the same native heading/list/quote/code/link/table projection and TextKit height semantics as completion. Copy and request-changing actions retain the canonical string, while plain-text sessions and failed partial output remain unrendered. This reopened slice and its latest UI refinement are fixed-App verified in the worktree and awaiting project-owner confirmation.
+- Paper Lantern is the selected Marla brand mark and product metaphor: “a little light beside the reader.” The canonical SVG and reference PNG exports live under `Resources/Brand/PaperLantern/`; the 10-slot macOS AppIcon catalog is compiled into Debug and Release builds. The menu-bar identity item uses a separate 18pt monochrome Paper Lantern template; the MenuBarExtra panel header uses a 33.6pt full-color rendition while its text group has a 14pt upward optical correction that makes the approximately 24pt top inset 1.5 times the 16pt leading inset; selection/screenshot result-card headers use a 24pt full-color identity mark and 17pt title. Quick Input and all functional controls continue to use SF Symbols.
+- Quick Input preserves complete semantic Markdown through the Provider and session. Awaiting remains raw; from the first non-empty streaming delta, Markdown uses the same native heading/list/quote/code/link/table projection and TextKit height semantics as completion. Copy and request-changing actions retain the canonical string, while plain-text sessions and failed partial output remain unrendered. The reopened TASK-028 slice and its latest UI refinement are fixed-App verified and project-owner accepted.
 
-Implementation baseline commit: `6b302e5`.
+Latest committed implementation baseline: `fd38764`; TASK-028 closure refinements remain in the current task branch worktree until explicitly committed or integrated.
 
 ## Release gaps
 
@@ -94,6 +94,10 @@ TASK-015 已完成；项目所有者已确认关闭跨应用划词验证（RV-00
 
 ## Latest verification
 
+- TASK-028 于 2026-08-17 由项目所有者最终确认完成。重开范围此前完整 `./scripts/check.sh` 已通过 20 项 Rust 与 142 项 Swift，另有 3 项 Vision 宿主环境 skip；最终 14pt 菜单标题调整后的 `./scripts/build-test-app.sh` 再次通过 Release、arm64、Bundle、资源、稳定签名和 designated requirement 验证。本轮新增高频投影回归定向通过，证明 40ms 合并窗口内同 session 继续使用上一份原生投影而不闪回 raw。受限沙盒复跑时仅 3 项系统 Pasteboard 复制断言因 `com.apple.hiservices-xpcservice` 不可用失败，沙盒外重跑又在执行前被审批服务 `404`/`503` 阻断；这项当前环境限制不覆盖此前全绿与真实 App 证据。
+- TASK-028 的代码样式 fixture 已在固定 Release App 覆盖 380pt 浅色、760pt 深色和 Reduce Motion：`/private/tmp/marla-task028-code-style-light-380.png`、`/private/tmp/marla-task028-code-style-dark-760.png`、`/private/tmp/marla-task028-code-style-dark-reduce.png`。多行 fenced code block 的 5pt 圆角连续且不裁切；inline code 背景低于正文行高、左右各扩 3pt，并在窄宽相邻两行中保留清楚间隔。五维复审为 8/8/9/9/7；`MarkdownResultTextTests` 26/26 通过，完整 `./scripts/check.sh` 通过 20 项 Rust、142 项 Swift（3 项 Vision 宿主环境跳过）、Swift Package、Xcode Debug、结构与差异检查，固定 Release 包和稳定签名验证通过。
+- TASK-028 的最终菜单标题位置已在新构建的固定 Release App 中以 2x 浅色/深色截图复核：`/private/tmp/marla-task028-menu-top-one-half-light.png` 与 `/private/tmp/marla-task028-menu-top-one-half-dark.png` 中，“Marla” 字形顶部距面板约 46–48px、左侧约 32px，即约 23–24pt 上边距相对 16pt 左边距接近 1.5 倍；标题/副标题无裁切，右侧 33.6pt 灯笼和下方操作区没有移动。五维复审为 8/9/9/9/8。
+- TASK-028 的展开原文已对可靠 `semanticMarkdown` 接入同一原生 Markdown/TextKit 投影，保留 110pt viewport 和单一原生纵向滚动所有者；`plainText`、Vision OCR 和解析失败保持纯文本。新增 3 项测试后 `MarkdownResultTextTests` 24/24 通过，完整 `./scripts/check.sh` 通过 20 项 Rust、140 项 Swift（3 项 Vision 宿主限制跳过）、Swift Package、Xcode Debug、结构和差异检查；380pt 浅色、760pt 深色与 Reduce Motion 固定 App 证据位于 `/private/tmp/marla-task028-source-md-light-380.png`、`/private/tmp/marla-task028-source-md-dark-760.png`、`/private/tmp/marla-task028-source-md-dark-reduce.png`，五维复审为 8/8/8/9/7。
 - TASK-028 本轮菜单/结果卡 UI 微调的固定 Release 截图覆盖菜单浅色/深色、划词 380pt/760pt、截图结果、Quick Input 和 Reduce Motion。24pt 灯笼、17pt 划词/截图标题、下移 2pt 的 API profile 与不变的功能控件均无裁切或重叠；五维复审为 8/9/8/9/8。`./scripts/build-test-app.sh` 重新验证 `artifacts/Marla_dev.app` 的 Release Rust 路径、`com.marla.app`、0.1.0、macOS 14.0、arm64、稳定签名与 designated requirement。
 - TASK-028 的 2026-08-16 基线完成于实现提交 `6b302e5`。最终合并前在沙盒外运行 `./scripts/check.sh` 全绿：严格 Rust formatting/Clippy、20 项 Rust、全部 Swift/Pasteboard 测试、Swift Package、Xcode Debug、结构门禁、shell 语法、空白与 diff 检查均通过；`./scripts/build-test-app.sh` 重建并验证固定稳定签名 Release App。
 - TASK-028 的混合表格崩溃定位为 `MarkdownSelectableTextView.layout()` 中 intrinsic size 自失效造成的 AppKit/SwiftUI 布局递归；后续表格横跳和滚动条显隐抽搐由单一原生 `NSScrollView`、overlay 纵向 scroller、关闭水平弹性及等价文档输入快照修复。项目所有者确认真实混合选择不再崩溃、表格和纵向滚动“正常啦”，并在真实 Provider、FluxMarkdown、Quick Input、复制和完成态渲染复验后授权 Task 收束。浅色/深色固定 fixture 五维复审为 8/8/8/9/7。

@@ -374,12 +374,23 @@ extension CardSession {
 }
 
 struct MarkdownResultText: View {
-    let projection: MarkdownProjectionSnapshot
+    let attributedDocument: NSAttributedString
+    let accessibilityText: String
+
+    init(projection: MarkdownProjectionSnapshot) {
+        attributedDocument = projection.attributedDocument
+        accessibilityText = projection.document.plainText
+    }
+
+    init(sourceProjection: SourceMarkdownProjectionSnapshot) {
+        attributedDocument = sourceProjection.attributedDocument
+        accessibilityText = sourceProjection.document.plainText
+    }
 
     var body: some View {
         MarkdownResultSelectableText(
-            attributedDocument: projection.attributedDocument,
-            accessibilityText: projection.document.plainText
+            attributedDocument: attributedDocument,
+            accessibilityText: accessibilityText
         )
         .frame(maxWidth: .infinity, alignment: .leading)
     }

@@ -444,6 +444,8 @@ final class FloatingPanelCoordinator: NSObject, NSWindowDelegate {
         let layout = ResultPanelLayoutModel(width: width, maximumPanelHeight: maximumHeight)
         layout.markdownProjection = MarkdownProjectionInput(session: store.session)
             .flatMap(MarkdownProjectionSnapshot.init)
+        layout.sourceMarkdownProjection = SourceMarkdownProjectionInput(session: store.session)
+            .flatMap(SourceMarkdownProjectionSnapshot.init)
         resultLayoutStore = store
         resultLayoutModel = layout
         resultLayoutVisibleFrame = visibleFrame
@@ -453,7 +455,12 @@ final class FloatingPanelCoordinator: NSObject, NSWindowDelegate {
         resultLayoutCancellable = store.$session.sink { [weak self] session in
             guard let self else { return }
             DispatchQueue.main.async { [weak self] in
-                self?.resizeResultPanel(for: session)
+                guard let self, let layout = self.resultLayoutModel else { return }
+                let input = SourceMarkdownProjectionInput(session: session)
+                if layout.sourceMarkdownProjection?.input != input {
+                    layout.sourceMarkdownProjection = input.flatMap(SourceMarkdownProjectionSnapshot.init)
+                }
+                self.resizeResultPanel(for: session)
             }
         }
         markdownProjectionCancellable = store.$session
@@ -480,7 +487,8 @@ final class FloatingPanelCoordinator: NSObject, NSWindowDelegate {
             session: session,
             cardWidth: layout.width,
             maximumPanelHeight: layout.maximumPanelHeight,
-            markdownProjection: layout.markdownProjection
+            markdownProjection: layout.markdownProjection,
+            sourceMarkdownProjection: layout.sourceMarkdownProjection
         )
         guard abs(panel.frame.height - height) > 0.5 else { return }
         let targetFrame = ResultPanelFrameCalculator.resized(
@@ -522,7 +530,8 @@ final class FloatingPanelCoordinator: NSObject, NSWindowDelegate {
             session: session,
             cardWidth: layout.width,
             maximumPanelHeight: layout.maximumPanelHeight,
-            markdownProjection: layout.markdownProjection
+            markdownProjection: layout.markdownProjection,
+            sourceMarkdownProjection: layout.sourceMarkdownProjection
         )
         let targetFrame = ResultPanelFrameCalculator.resized(
             current: panel.frame,

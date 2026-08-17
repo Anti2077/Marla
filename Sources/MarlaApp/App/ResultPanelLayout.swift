@@ -114,6 +114,29 @@ enum ResultCardLayout {
         )
     }
 
+    @MainActor
+    static func sourceViewportHeight(
+        session: CardSession,
+        cardWidth: CGFloat,
+        sourceMarkdownProjection: SourceMarkdownProjectionSnapshot?
+    ) -> CGFloat {
+        guard let sourceMarkdownProjection,
+              sourceMarkdownProjection.matches(session)
+        else {
+            return sourceViewportHeight(session.sourceText, width: cardWidth)
+        }
+        return min(
+            maximumSourceViewportHeight,
+            max(
+                18,
+                MarkdownResultAttributedDocument.measuredHeight(
+                    sourceMarkdownProjection.attributedDocument,
+                    width: cardWidth - outerHorizontalPadding
+                )
+            )
+        )
+    }
+
     static func fixedChromeHeight(sourceHeight: CGFloat? = nil) -> CGFloat {
         // Outer padding + header + language row + dividers + actions + 12pt
         // inter-section spacing. The source section is included only when
@@ -128,10 +151,15 @@ enum ResultCardLayout {
         session: CardSession,
         cardWidth: CGFloat,
         maximumPanelHeight: CGFloat,
-        markdownProjection: MarkdownProjectionSnapshot? = nil
+        markdownProjection: MarkdownProjectionSnapshot? = nil,
+        sourceMarkdownProjection: SourceMarkdownProjectionSnapshot? = nil
     ) -> CGFloat {
         let sourceHeight = session.isComparisonExpanded
-            ? sourceViewportHeight(session.sourceText, width: cardWidth)
+            ? sourceViewportHeight(
+                session: session,
+                cardWidth: cardWidth,
+                sourceMarkdownProjection: sourceMarkdownProjection
+            )
             : nil
         let chrome = fixedChromeHeight(sourceHeight: sourceHeight)
         let failureSupplement: CGFloat = session.translation.isEmpty || !session.state.isFailure ? 0 : 47
@@ -149,11 +177,16 @@ enum ResultCardLayout {
         session: CardSession?,
         cardWidth: CGFloat,
         maximumPanelHeight: CGFloat,
-        markdownProjection: MarkdownProjectionSnapshot? = nil
+        markdownProjection: MarkdownProjectionSnapshot? = nil,
+        sourceMarkdownProjection: SourceMarkdownProjectionSnapshot? = nil
     ) -> CGFloat {
         guard let session else { return defaultPanelHeight }
         let sourceHeight = session.isComparisonExpanded
-            ? sourceViewportHeight(session.sourceText, width: cardWidth)
+            ? sourceViewportHeight(
+                session: session,
+                cardWidth: cardWidth,
+                sourceMarkdownProjection: sourceMarkdownProjection
+            )
             : nil
         let chrome = fixedChromeHeight(sourceHeight: sourceHeight)
         let failureSupplement: CGFloat = session.translation.isEmpty || !session.state.isFailure ? 0 : 47
@@ -161,7 +194,8 @@ enum ResultCardLayout {
             session: session,
             cardWidth: cardWidth,
             maximumPanelHeight: maximumPanelHeight,
-            markdownProjection: markdownProjection
+            markdownProjection: markdownProjection,
+            sourceMarkdownProjection: sourceMarkdownProjection
         )
         let preferred = chrome + viewport + failureSupplement
         return min(maximumPanelHeight, max(defaultPanelHeight, ceil(preferred)))
@@ -172,6 +206,7 @@ final class ResultPanelLayoutModel: ObservableObject {
     @Published var width: CGFloat
     @Published var maximumPanelHeight: CGFloat
     @Published var markdownProjection: MarkdownProjectionSnapshot?
+    @Published var sourceMarkdownProjection: SourceMarkdownProjectionSnapshot?
 
     init(
         width: CGFloat = ResultCardLayout.defaultWidth,
@@ -180,6 +215,7 @@ final class ResultPanelLayoutModel: ObservableObject {
         self.width = width
         self.maximumPanelHeight = maximumPanelHeight
         markdownProjection = nil
+        sourceMarkdownProjection = nil
     }
 }
 

@@ -1,6 +1,6 @@
 # Marla 0.1.0 实施规格 / Implementation Specification
 
-状态 / Status: Implemented baseline — TASK-028 streaming Markdown projection and unified height verification in progress
+状态 / Status: Implemented baseline — TASK-028 complete; release verification in progress
 
 架构 / Architecture: SwiftUI/AppKit host + embedded Rust static library
 
@@ -24,7 +24,7 @@ TASK-020 将结果卡从固定 300pt 改为内容驱动布局：`ResultCardLayou
 
 TASK-021 让同一结果面板支持原生式宽度调整：`ResultCardLayout` 把 380pt 定义为默认/最小宽度、760pt 定义为最大宽度，并按可见工作区减去 16pt 安全边距进一步限制上限。`ResultPanelLayoutModel` 在 AppKit 与 SwiftUI 间发布实时宽度和高度上限；`FloatingPanelCoordinator` 保留 `.resizable`、窗口尺寸委托和 380–760pt min/max 约束。结果面板使用隐藏标题栏的 `titled + fullSizeContentView` 组合，并把两个 8pt 透明 `ResultPanelHorizontalResizeHandleView` 放在 SwiftUI hosting view 上方，覆盖左右完整高度和角落、接收首击并拥有同一次 mouse-down/drag/up 序列。每个手柄只在 `resetCursorRects()` 中通过 `addCursorRect` 注册窗口框架 resize 光标：macOS 15+ 使用 `NSCursor.frameResize(position:directions:)`，macOS 14 使用横向 resize 回退。由于 `invalidateCursorRects(for:)` 对非 key `.nonactivatingPanel` 只延迟标记，`ResultPanelContentView` 在装载、布局与可调状态变化后直接调用窗口 `resetCursorRects()`，立即重建全部 WindowServer cursor rectangles。当前路径不使用 Carbon、定时轮询、事件监视器、手工 `NSCursor.set()/push()/pop()` 或 cursor-rectangle 禁用。宽度变化后，SwiftUI 重新排版，协调器按相同内容测量重新设置锚定高度；每次高度动画完成后再按最新会话和宽度无动画校正一次，旧 generation 的完成回调不会覆盖新结果；用户实时拖动与 Reduce Motion 都不执行尺寸动画。快速输入从 420pt 开始并复用同一范围。
 
-TASK-028 已实现 schema v3 的 `plainText` / `semanticMarkdown` 边界、Provider capability、Quick Input 富文本 Paste，以及流式和完成态共用的原生 Markdown 投影。生产划词采集已统一使用受保护模拟 `⌘C`：只有本次 Copy 的新 Markdown、HTML、RTF/RTFD 或纯文本 representation 可以生成 `TranslationContent`，Accessibility 不再提供或兜底内容，只保留权限和非内容定位。旧的 default-off AX-first/Copy-fallback 产品合同已被废止；2026-08-17 重开的流式投影与统一 TextKit 高度切片仍在固定 App 验收中。
+TASK-028 已实现并验证 schema v3 的 `plainText` / `semanticMarkdown` 边界、Provider capability、Quick Input 富文本 Paste，以及流式和完成态共用的原生 Markdown 投影。生产划词采集已统一使用受保护模拟 `⌘C`：只有本次 Copy 的新 Markdown、HTML、RTF/RTFD 或纯文本 representation 可以生成 `TranslationContent`，Accessibility 不再提供或兜底内容，只保留权限和非内容定位。旧的 default-off AX-first/Copy-fallback 产品合同已被废止；2026-08-17 重开的流式投影与统一 TextKit 高度切片已通过自动化、固定 App 视觉证据和项目所有者验收。
 
 TASK-026 凭据一致性：编辑器的“保存并测试”先持久化 profile 与非空 Key 草稿，再从已保存 endpoint 测试。若真实请求返回 `unauthorized` 且 profile 无已保存凭据，结果卡显示 profile-specific 且不含 Key 的保存引导。
 
@@ -50,7 +50,7 @@ TASK-020 changes the result card from a fixed 300pt frame to content-driven layo
 
 TASK-021 adds native-style width adjustment to the same result panel. `ResultCardLayout` defines 380pt as the default/minimum and 760pt as the maximum, further constraining the maximum to the visible workspace minus a 16pt safety inset. `ResultPanelLayoutModel` publishes live width and the height cap between AppKit and SwiftUI. `FloatingPanelCoordinator` retains `.resizable`, window resize delegates, and 380–760pt min/max constraints. The panel uses a hidden `titled + fullSizeContentView` combination and places two transparent 8pt `ResultPanelHorizontalResizeHandleView`s above the SwiftUI hosting view. They cover the complete left/right heights including corners, accept the first click, and own one mouse-down/drag/up sequence. Each handle registers its frame-resize cursor only from `resetCursorRects()` via `addCursorRect`: macOS 15+ uses `NSCursor.frameResize(position:directions:)`, while macOS 14 uses the horizontal-resize fallback. Because `invalidateCursorRects(for:)` only defers invalidation for a non-key `.nonactivatingPanel`, `ResultPanelContentView` calls the window's `resetCursorRects()` directly after attachment, layout, and resize-state changes so all WindowServer cursor rectangles are rebuilt immediately. The current path uses no Carbon cursor call, polling timer, event monitor, manual `NSCursor.set()/push()/pop()`, or cursor-rectangle disabling. Width changes reflow SwiftUI, then the coordinator reapplies the same content measurement at the anchored height; each height animation finishes with one latest-session, no-animation frame reconciliation, while stale generations cannot overwrite newer text. Live dragging and Reduce Motion skip size animation. Quick input starts at 420pt and shares the same range.
 
-TASK-028 has implemented the schema-v3 `plainText` / `semanticMarkdown` boundary, Provider capabilities, rich-text Paste for Quick Input, and a native Markdown projection shared by streaming and completion. Production selection acquisition now uses protected simulated `⌘C` as its single content path: only new Markdown, HTML, RTF/RTFD, or plain representations from that Copy may create `TranslationContent`. Accessibility no longer provides or falls back to content and retains permission plus non-content positioning duties only. The former default-off AX-first/Copy-fallback product contract is superseded; the streaming-projection and unified-TextKit-height slice reopened on 2026-08-17 still requires fixed-App verification.
+TASK-028 has implemented and verified the schema-v3 `plainText` / `semanticMarkdown` boundary, Provider capabilities, rich-text Paste for Quick Input, and a native Markdown projection shared by streaming and completion. Production selection acquisition now uses protected simulated `⌘C` as its single content path: only new Markdown, HTML, RTF/RTFD, or plain representations from that Copy may create `TranslationContent`. Accessibility no longer provides or falls back to content and retains permission plus non-content positioning duties only. The former default-off AX-first/Copy-fallback product contract is superseded; the streaming-projection and unified-TextKit-height slice reopened on 2026-08-17 passed automated checks, fixed-App visual evidence, and project-owner acceptance.
 
 ## 2. 责任边界 / Responsibility Boundary
 
@@ -382,9 +382,9 @@ TASK-028's presentation layer checks session format and state. `awaitingFirstTok
 
 1. **App 基础（已验证）**：Xcode App target、稳定 Bundle ID、权限声明、Rust Debug/Release 构建阶段和固定路径稳定签名测试包脚本。
 2. **翻译核心（已实现）**：JSON schema、FFI 句柄、异步运行时、OpenAI-compatible SSE、Keychain 设置桥和 mock-provider 测试。
-3. **划词垂直切片（受保护 Copy 转换中）**：Carbon 全局快捷键、非激活结果卡片、流式状态、复制/重试/关闭已实现；生产内容来源正在统一为受保护模拟 Copy，AX 内容路径、旧设置与 fallback 分支必须移除，真实 App 获取/恢复/失败路径验收仍在进行。
+3. **划词垂直切片（受保护 Copy 已验证）**：Carbon 全局快捷键、非激活结果卡片、流式状态、复制/重试/关闭，以及唯一生产内容源的受保护模拟 Copy 已实现并验证；AX 内容路径、旧设置与 fallback 分支已移除。额外跨应用广度保留为发布验证证据。
 4. **截图垂直切片（已实现）**：跨屏框选、ScreenCaptureKit、Vision `OCRDocument`、纯文本归一化和同一结果卡片。
-5. **快速输入与完整控件（富文本扩展验证中）**：IME、多行输入、对照、朗读、固定、目标切换、快捷键录制和权限引导已实现；原生富文本 Paste 归一与真实 App 验收仍在进行。
+5. **快速输入与完整控件（富文本扩展已验证）**：IME、多行输入、对照、朗读、固定、目标切换、快捷键录制、权限引导和原生富文本 Paste 归一已实现，并通过真实 App 验收。
 6. **产品化（验证中）**：性能/内存测量、视觉技能审查、兼容矩阵和最终验收。
 
 每个阶段完成时同时更新 `STATUS.md` 和相关 0.1.0 文档；不得等到版本末尾集中补文档。
@@ -393,9 +393,9 @@ TASK-028's presentation layer checks session format and state. `awaitingFirstTok
 
 1. **App foundation (verified)**: Xcode App target, stable Bundle ID, permission declarations, Rust Debug/Release build phase, and fixed-path stable-signing test-app script.
 2. **Translation core (implemented)**: JSON schema, FFI handles, async runtime, OpenAI-compatible SSE, Keychain settings bridge, and mock-provider tests.
-3. **Selection vertical slice (protected-Copy transition in progress)**: Carbon global shortcuts, the non-activating result card, streaming state, and copy/retry/close are implemented. Production content is being unified on protected simulated Copy; AX content paths, the former setting, and fallback branches must be removed, while real-App acquisition/restoration/failure acceptance remains in progress.
+3. **Selection vertical slice (protected Copy verified)**: Carbon global shortcuts, the non-activating result card, streaming state, copy/retry/close, and protected simulated Copy as the sole production content source are implemented and verified. AX content paths, the former setting, and fallback branches have been removed. Broader application coverage remains release evidence.
 4. **Screenshot vertical slice (implemented)**: cross-display selection, ScreenCaptureKit, Vision `OCRDocument`, plain-text normalization, and the same result card.
-5. **Quick input and full controls (rich-content extension under verification)**: IME, multiline input, comparison, speech, pin, target switching, shortcut recording, and permission onboarding are implemented; native rich-text Paste normalization and real-App acceptance remain in progress.
+5. **Quick input and full controls (rich-content extension verified)**: IME, multiline input, comparison, speech, pin, target switching, shortcut recording, permission onboarding, and native rich-text Paste normalization are implemented and have passed real-App acceptance.
 6. **Productization (verification in progress)**: performance/memory measurement, design-skill review, compatibility matrix, and final acceptance.
 
 Every phase updates `STATUS.md` and affected 0.1.0 documentation when completed; documentation is not deferred to the end of the release.

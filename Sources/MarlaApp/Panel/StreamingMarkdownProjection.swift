@@ -56,3 +56,36 @@ struct MarkdownProjectionSnapshot {
         input.sessionID == session.id && session.shouldRenderMarkdownProjection
     }
 }
+
+struct SourceMarkdownProjectionInput: Equatable {
+    let sessionID: UUID
+    let markdown: String
+
+    init?(session: CardSession?) {
+        guard let session,
+              session.sourceContent.format == .semanticMarkdown,
+              !session.sourceText.isEmpty
+        else { return nil }
+
+        sessionID = session.id
+        markdown = session.sourceText
+    }
+}
+
+struct SourceMarkdownProjectionSnapshot {
+    let input: SourceMarkdownProjectionInput
+    let document: MarkdownResultDocument
+    let attributedDocument: NSAttributedString
+
+    @MainActor
+    init?(input: SourceMarkdownProjectionInput) {
+        guard let document = MarkdownResultDocument.parse(input.markdown) else { return nil }
+        self.input = input
+        self.document = document
+        attributedDocument = MarkdownResultAttributedDocument.build(document)
+    }
+
+    func matches(_ session: CardSession) -> Bool {
+        input == SourceMarkdownProjectionInput(session: session)
+    }
+}

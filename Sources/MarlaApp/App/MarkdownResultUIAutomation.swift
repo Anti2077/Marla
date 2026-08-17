@@ -20,6 +20,18 @@ extension MarlaApplicationModel {
         case "markdown-completed-wide":
             isWide = true
             presentCompletedMarkdownUIAutomationFixture()
+        case "markdown-code-styling":
+            isWide = false
+            presentMarkdownCodeStylingUIAutomationFixture()
+        case "markdown-code-styling-wide":
+            isWide = true
+            presentMarkdownCodeStylingUIAutomationFixture()
+        case "markdown-comparison":
+            isWide = false
+            presentMarkdownComparisonUIAutomationFixture()
+        case "markdown-comparison-wide":
+            isWide = true
+            presentMarkdownComparisonUIAutomationFixture()
         default:
             return false
         }
@@ -148,6 +160,69 @@ extension MarlaApplicationModel {
             ```
             """,
             state: .completed,
+            contentFormat: .semanticMarkdown
+        )
+        panelCoordinator.showResult(
+            store: sessionStore,
+            at: nil,
+            pointer: NSEvent.mouseLocation,
+            activate: true
+        )
+    }
+
+    func presentMarkdownCodeStylingUIAutomationFixture() {
+        sessionStore.installUIAutomationFixture(
+            surface: .selection,
+            sourceText: "# Code Styling\n\nKeep code readable without overpowering the translation.",
+            translation: """
+            # 开发
+
+            安装依赖后运行以下命令：
+
+            ```zsh
+            npm install
+
+            npm run tauri:dev
+            ```
+
+            第一行保留 `npm run sidecar:linux` 命令。
+            第二行保留 `npm run sidecar:windows` 命令。
+
+            输出目录为 `src-tauri/binaries/`，目标包括 `aarch64-apple-darwin` 与 `x86_64-apple-darwin`。
+            """,
+            state: .completed,
+            contentFormat: .semanticMarkdown
+        )
+        panelCoordinator.showResult(
+            store: sessionStore,
+            at: nil,
+            pointer: NSEvent.mouseLocation,
+            activate: true
+        )
+    }
+
+    func presentMarkdownComparisonUIAutomationFixture() {
+        sessionStore.installUIAutomationFixture(
+            surface: .selection,
+            sourceText: """
+            # Source Notes
+
+            The protected selection keeps **source emphasis** and `TOKEN` intact.
+
+            - Preserve headings and lists
+            - Render the source only when expanded
+
+            | Input | Format |
+            | :--- | :---: |
+            | Selection | Markdown |
+            """,
+            translation: """
+            # 原文对照
+
+            译文与保留结构的原文可以在同一结果卡中阅读。
+            """,
+            state: .completed,
+            comparisonExpanded: true,
             contentFormat: .semanticMarkdown
         )
         panelCoordinator.showResult(

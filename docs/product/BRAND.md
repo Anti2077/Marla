@@ -52,7 +52,7 @@ The adaptation retains the lantern shell and central opening but removes color p
 
 ## Menu-panel mark
 
-The MenuBarExtra panel header is an application-identity surface rather than a command. Its “Marla” title and subtitle move 4pt upward together. The trailing 33.6pt `PaperLanternMark` uses 34px/68px full-color renditions derived directly from `Resources/Brand/PaperLantern/logo.svg` and remains at its existing size and position, including its 2pt downward optical offset. The adjacent “Marla” title already supplies the accessible identity, so the image is decorative to assistive technologies.
+The MenuBarExtra panel header is an application-identity surface rather than a command. Its “Marla” title and subtitle use a 14pt upward optical offset so the title glyph's approximately 24pt top inset is 1.5 times its 16pt leading inset. The trailing 33.6pt `PaperLanternMark` uses 34px/68px full-color renditions derived directly from `Resources/Brand/PaperLantern/logo.svg` and remains at its existing size and position, including its 2pt downward optical offset. The adjacent “Marla” title already supplies the accessible identity, so the image is decorative to assistive technologies.
 
 The panel mark has no badge, accent tint, glow, shadow, or interaction, and it does not replace any functional SF Symbol.
 

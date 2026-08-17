@@ -234,7 +234,8 @@ struct TranslationCardView: View {
                     session: session,
                     cardWidth: cardWidth,
                     maximumPanelHeight: maximumPanelHeight,
-                    markdownProjection: layout.markdownProjection
+                    markdownProjection: layout.markdownProjection,
+                    sourceMarkdownProjection: layout.sourceMarkdownProjection
                 )
                 if let projection = layout.markdownProjection,
                    projection.matches(session) {
@@ -285,14 +286,25 @@ struct TranslationCardView: View {
             Text("原文")
                 .font(AppFont.caption)
                 .foregroundStyle(DesignTokens.secondaryText)
-            ScrollView {
-                Text(session.sourceText)
-                    .font(AppFont.source)
-                    .foregroundStyle(DesignTokens.secondaryText)
-                    .textSelection(.enabled)
-                    .frame(maxWidth: .infinity, alignment: .leading)
+            let viewportHeight = ResultCardLayout.sourceViewportHeight(
+                session: session,
+                cardWidth: cardWidth,
+                sourceMarkdownProjection: layout.sourceMarkdownProjection
+            )
+            if let projection = layout.sourceMarkdownProjection,
+               projection.matches(session) {
+                MarkdownResultText(sourceProjection: projection)
+                    .frame(height: viewportHeight)
+            } else {
+                ScrollView {
+                    Text(session.sourceText)
+                        .font(AppFont.source)
+                        .foregroundStyle(DesignTokens.secondaryText)
+                        .textSelection(.enabled)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }
+                .frame(height: viewportHeight)
             }
-            .frame(height: ResultCardLayout.sourceViewportHeight(session.sourceText, width: cardWidth))
         }
     }
 

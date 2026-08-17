@@ -3,6 +3,9 @@ import SwiftUI
 
 extension NSAttributedString.Key {
     static let marlaStreamingCursor = NSAttributedString.Key("com.marla.streaming-cursor")
+    static let marlaInlineCodeBackground = NSAttributedString.Key("com.marla.inline-code-background")
+    static let marlaCodeBlockBackground = NSAttributedString.Key("com.marla.code-block-background")
+    static let marlaCodeBlockBorder = NSAttributedString.Key("com.marla.code-block-border")
 }
 
 struct MarkdownResultSelectableText: NSViewRepresentable {
@@ -55,7 +58,16 @@ struct MarkdownResultSelectableText: NSViewRepresentable {
 }
 
 final class MarkdownSelectableTextView: NSTextView {
+    static let codeBlockCornerRadius: CGFloat = 5
+    static let inlineCodeCornerRadius: CGFloat = 3
+    static let inlineCodeHorizontalPadding: CGFloat = 3
+
     private var installedContents: NSAttributedString?
+
+    override func draw(_ dirtyRect: NSRect) {
+        drawCodeBackgrounds(in: dirtyRect)
+        super.draw(dirtyRect)
+    }
 
     @discardableResult
     func replaceContentsIfNeeded(with attributed: NSAttributedString) -> Bool {
@@ -95,6 +107,169 @@ final class MarkdownSelectableTextView: NSTextView {
         }
         NSPasteboard.general.clearContents()
         NSPasteboard.general.setString(selectedText, forType: .string)
+    }
+
+    static func inlineCodeBackgroundRect(for glyphRect: NSRect, font: NSFont) -> NSRect {
+        let fontHeight = ceil(font.ascender - font.descender + 2)
+        let height = min(max(1, glyphRect.height - 2), fontHeight)
+        return NSRect(
+            x: glyphRect.minX - inlineCodeHorizontalPadding,
+            y: glyphRect.midY - (height / 2),
+            width: glyphRect.width + (inlineCodeHorizontalPadding * 2),
+            height: height
+        )
+    }
+
+    private func drawCodeBackgrounds(in dirtyRect: NSRect) {
+        guard let layoutManager,
+              let textContainer,
+              let textStorage,
+              textStorage.length > 0 else {
+            return
+        }
+        layoutManager.ensureLayout(for: textContainer)
+        let origin = textContainerOrigin
+        let localDirtyRect = dirtyRect.offsetBy(dx: -origin.x, dy: -origin.y)
+        let visibleGlyphRange = layoutManager.glyphRange(
+            forBoundingRect: localDirtyRect,
+            in: textContainer
+        )
+        let visibleCharacterRange = layoutManager.characterRange(
+            forGlyphRange: visibleGlyphRange,
+            actualGlyphRange: nil
+        )
+        guard visibleCharacterRange.length > 0 else { return }
+
+        drawCodeBlockBackgrounds(
+            visibleCharacterRange: visibleCharacterRange,
+            layoutManager: layoutManager,
+            textContainer: textContainer,
+            textStorage: textStorage,
+            origin: origin,
+            dirtyRect: dirtyRect
+        )
+        drawInlineCodeBackgrounds(
+            visibleCharacterRange: visibleCharacterRange,
+            layoutManager: layoutManager,
+            textContainer: textContainer,
+            textStorage: textStorage,
+            origin: origin,
+            dirtyRect: dirtyRect
+        )
+    }
+
+    private func drawCodeBlockBackgrounds(
+        visibleCharacterRange: NSRange,
+        layoutManager: NSLayoutManager,
+        textContainer: NSTextContainer,
+        textStorage: NSTextStorage,
+        origin: NSPoint,
+        dirtyRect: NSRect
+    ) {
+        var visitedRanges = Set<Int>()
+        let fullRange = NSRange(location: 0, length: textStorage.length)
+        textStorage.enumerateAttribute(
+            .marlaCodeBlockBackground,
+            in: visibleCharacterRange
+        ) { value, range, _ in
+            guard value != nil else { return }
+            var effectiveRange = NSRange()
+            guard let fillColor = textStorage.attribute(
+                .marlaCodeBlockBackground,
+                at: range.location,
+                longestEffectiveRange: &effectiveRange,
+                in: fullRange
+            ) as? NSColor,
+                visitedRanges.insert(effectiveRange.location).inserted else {
+                return
+            }
+
+            let glyphRange = layoutManager.glyphRange(
+                forCharacterRange: effectiveRange,
+                actualCharacterRange: nil
+            )
+            var glyphRect = layoutManager.boundingRect(forGlyphRange: glyphRange, in: textContainer)
+            guard !glyphRect.isEmpty else { return }
+            glyphRect.origin.x = 0
+            glyphRect.size.width = textContainer.size.width
+            let blockRect = glyphRect
+                .insetBy(dx: 0, dy: -8)
+                .offsetBy(dx: origin.x, dy: origin.y)
+            guard blockRect.intersects(dirtyRect) else { return }
+
+            let pathRect = blockRect.insetBy(dx: 0.25, dy: 0.25)
+            let path = NSBezierPath(
+                roundedRect: pathRect,
+                xRadius: Self.codeBlockCornerRadius,
+                yRadius: Self.codeBlockCornerRadius
+            )
+            fillColor.setFill()
+            path.fill()
+            if let borderColor = textStorage.attribute(
+                .marlaCodeBlockBorder,
+                at: effectiveRange.location,
+                effectiveRange: nil
+            ) as? NSColor {
+                borderColor.setStroke()
+                path.lineWidth = 0.5
+                path.stroke()
+            }
+        }
+    }
+
+    private func drawInlineCodeBackgrounds(
+        visibleCharacterRange: NSRange,
+        layoutManager: NSLayoutManager,
+        textContainer: NSTextContainer,
+        textStorage: NSTextStorage,
+        origin: NSPoint,
+        dirtyRect: NSRect
+    ) {
+        var visitedRanges = Set<Int>()
+        let fullRange = NSRange(location: 0, length: textStorage.length)
+        textStorage.enumerateAttribute(
+            .marlaInlineCodeBackground,
+            in: visibleCharacterRange
+        ) { value, range, _ in
+            guard value != nil else { return }
+            var effectiveRange = NSRange()
+            guard let fillColor = textStorage.attribute(
+                .marlaInlineCodeBackground,
+                at: range.location,
+                longestEffectiveRange: &effectiveRange,
+                in: fullRange
+            ) as? NSColor,
+                visitedRanges.insert(effectiveRange.location).inserted else {
+                return
+            }
+            let glyphRange = layoutManager.glyphRange(
+                forCharacterRange: effectiveRange,
+                actualCharacterRange: nil
+            )
+            layoutManager.enumerateLineFragments(forGlyphRange: glyphRange) {
+                _, _, container, lineGlyphRange, _ in
+                let segmentRange = NSIntersectionRange(glyphRange, lineGlyphRange)
+                guard segmentRange.length > 0 else { return }
+                let characterIndex = layoutManager.characterIndexForGlyph(at: segmentRange.location)
+                guard let font = textStorage.attribute(
+                    .font,
+                    at: min(characterIndex, max(0, textStorage.length - 1)),
+                    effectiveRange: nil
+                ) as? NSFont else {
+                    return
+                }
+                let glyphRect = layoutManager.boundingRect(forGlyphRange: segmentRange, in: container)
+                let backgroundRect = Self.inlineCodeBackgroundRect(for: glyphRect, font: font)
+                    .offsetBy(dx: origin.x, dy: origin.y)
+                guard backgroundRect.intersects(dirtyRect) else { return }
+                fillColor.setFill()
+                NSBezierPath(
+                    roundedRect: backgroundRect,
+                    xRadius: Self.inlineCodeCornerRadius,
+                    yRadius: Self.inlineCodeCornerRadius
+                ).fill()
+            }
+        }
     }
 }
 
@@ -208,7 +383,7 @@ enum MarkdownResultAttributedDocument {
                 .font: font,
                 .foregroundColor: baseColor,
             ]
-            if isCode { attributes[.backgroundColor] = subtleBackground }
+            if isCode { attributes[.marlaInlineCodeBackground] = subtleBackground }
             if intent?.contains(.strikethrough) == true { attributes[.strikethroughStyle] = 1 }
             if let link = run.link { attributes[.link] = link }
             result.append(NSAttributedString(string: text, attributes: attributes))
@@ -284,10 +459,8 @@ enum MarkdownResultAttributedDocument {
         to result: NSMutableAttributedString
     ) {
         let block = NSTextBlock()
-        block.backgroundColor = subtleBackground
         block.setWidth(8, type: .absoluteValueType, for: .padding)
         block.setWidth(0.5, type: .absoluteValueType, for: .border)
-        block.setBorderColor(dividerColor)
         block.setContentWidth(100, type: .percentageValueType)
 
         let paragraph = NSMutableParagraphStyle()
@@ -311,7 +484,14 @@ enum MarkdownResultAttributedDocument {
                 .foregroundColor: bodyColor,
             ]
         ))
-        code.addAttribute(.paragraphStyle, value: paragraph, range: NSRange(location: 0, length: code.length))
+        code.addAttributes(
+            [
+                .paragraphStyle: paragraph,
+                .marlaCodeBlockBackground: subtleBackground,
+                .marlaCodeBlockBorder: dividerColor,
+            ],
+            range: NSRange(location: 0, length: code.length)
+        )
         code.append(NSAttributedString(string: "\n"))
         result.append(code)
     }

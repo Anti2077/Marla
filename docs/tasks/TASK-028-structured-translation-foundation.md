@@ -1,6 +1,6 @@
 # TASK-028：结构化翻译合同与 Markdown 快速输入闭环
 
-Status: Active
+Status: Complete
 
 Owner: Project owner + Agent
 
@@ -18,7 +18,7 @@ Conversation: 2026-08-16 至 2026-08-17，结构化内容一等公民、Markdown
 
 ## Outcome
 
-Marla 的翻译边界不再只接受一个无格式字符串，而是接受带明确内容格式的完整输入。显式 Markdown 源码、Quick Input 富文本粘贴，以及划词时受保护 Copy 事务取得的 HTML、RTF/RTFD 或 Markdown representation 会在 Swift/AppKit 会话内清洗并归一为语义 Markdown，再进入 Rust、Provider、流式会话和复制链路；没有可靠结构证据时诚实降级为纯文本。生产划词不再把 Accessibility 选区字符串作为内容源或失败兜底，AX 只保留权限和非内容定位职责。原有完成态投影已经覆盖安全、可跨块连续选择的原生富文本、GFM pipe table、明确可辨的粗体，以及 Markdown/纯文本两种显式复制结果。2026-08-17 重新激活后，`semanticMarkdown` 在流式阶段也直接使用同一原生投影；窗口高度必须按当前投影的真实布局持续增长，并在流式结束、游标移除和最终 Markdown 闭合后按最终文档重新校正。
+Marla 的翻译边界不再只接受一个无格式字符串，而是接受带明确内容格式的完整输入。显式 Markdown 源码、Quick Input 富文本粘贴，以及划词时受保护 Copy 事务取得的 HTML、RTF/RTFD 或 Markdown representation 会在 Swift/AppKit 会话内清洗并归一为语义 Markdown，再进入 Rust、Provider、流式会话和复制链路；没有可靠结构证据时诚实降级为纯文本。生产划词不再把 Accessibility 选区字符串作为内容源或失败兜底，AX 只保留权限和非内容定位职责。完成态投影覆盖安全、可跨块连续选择的原生富文本、GFM pipe table、明确可辨的粗体、克制的代码样式，以及 Markdown/纯文本两种显式复制结果。2026-08-17 重新激活后，`semanticMarkdown` 在流式阶段也直接使用同一原生投影，窗口高度按当前投影的真实布局持续增长，并在流式结束、游标移除和最终 Markdown 闭合后按最终文档重新校正；可靠 `semanticMarkdown` 原文也在展开时使用同一只读投影。最终菜单与结果卡身份层级已经固定 Release App 复核并由项目所有者确认。
 
 ## Why now
 
@@ -56,8 +56,9 @@ Marla 的翻译边界不再只接受一个无格式字符串，而是接受带�
 - 增加 Swift/Rust 回归并同步数据合同、架构、功能规格、Accepted ADR、0.1.0 双语合同和 `STATUS.md`。
 - 沿用已接受的 Paper Lantern 品牌，增加适配 18pt 菜单栏的单色 template 派生图标，并替换现有 `character.bubble` 状态项占位符；浅色、深色、选中态和辅助外观由 macOS 着色。
 - 把 MenuBarExtra 面板标题区右上角的非交互 `character.bubble.fill` 身份占位符替换为 33.6pt 全彩 Paper Lantern，并相对初稿向下偏移 2pt；标题文字继续提供可访问的 App 身份，菜单功能动作仍使用 SF Symbols。
-- MenuBarExtra 面板的 “Marla” 标题与副标题作为一个整体上移 4pt，右侧 33.6pt Paper Lantern 的尺寸和既有位置保持不变。
+- MenuBarExtra 面板的 “Marla” 标题与副标题作为一个整体向上进行 14pt 视觉校正，使标题字形顶部约 24pt 的上边距为 16pt 左边距的 1.5 倍；右侧 33.6pt Paper Lantern 的尺寸和既有位置保持不变。
 - 划词与截图结果卡的左上身份位使用 24pt 全彩 Paper Lantern，并把动态入口名提升为 17pt semibold 标题；Quick Input 仍保留键盘功能图标。API 配置选择器在同一状态行中下移 2pt，固定与关闭控件位置和语义不变。
+- 展开“查看原文”时，可靠 `semanticMarkdown` 源内容复用同一安全原生 Markdown/TextKit 投影，覆盖标题、强调、列表、引用、代码、链接与 GFM 表格；源文仍保持 110pt viewport 上限和单一原生纵向滚动所有者。解析失败、`plainText` 与 Vision OCR 原文保持现有纯文本显示，不猜测结构。
 
 ## Out of Scope
 
@@ -78,28 +79,38 @@ Marla 的翻译边界不再只接受一个无格式字符串，而是接受带�
 | 2026-08-16 | Project owner | 要求实测 `qwen-mt-turbo` Markdown 能力 | 增加真实标题、列表、链接、代码、变量和占位符样本；记录累计流行为 | Verified |
 | 2026-08-16 | Project owner | 将 IDEA-013 提升为 Task 并开始实施 | 激活共享格式合同、Provider capability 与快速输入 Markdown 第一阶段 | Verified |
 | 2026-08-16 | Project owner | 指出只在窗口显示原始 Markdown 不构成完整用户价值，要求直接补入完成后渲染；实时渲染后续再做 | 扩展同一 Task：完成态安全原生富渲染、流式原文不变、复制仍保留完整 Markdown | Verified |
-| 2026-08-16 | Project owner | 用 FluxMarkdown 实测发现划词翻译和 Quick Input 富文本粘贴都会在采集入口压平，要求扩展 Task 并继续 | 扩展同一 Task：原生富文本归一、AX/Copy 划词闭环、Quick Input 富文本 Paste、真实多 representation 验收 | Implemented; Manual Verification Pending |
-| 2026-08-16 | Project owner | GitHub README 实测继续得到纯文本；确认浏览器 AX 选区被压平后，要求生产划词以后只使用模拟 `⌘C` 内容路线 | 废止 AX-first/default-off Copy fallback：受保护 Copy 成为唯一生产内容源，AX 仅保留非内容职责；Copy 失败必须明确失败 | Implemented; Manual Verification Pending |
+| 2026-08-16 | Project owner | 用 FluxMarkdown 实测发现划词翻译和 Quick Input 富文本粘贴都会在采集入口压平，要求扩展 Task 并继续 | 扩展同一 Task：原生富文本归一、AX/Copy 划词闭环、Quick Input 富文本 Paste、真实多 representation 验收 | Verified |
+| 2026-08-16 | Project owner | GitHub README 实测继续得到纯文本；确认浏览器 AX 选区被压平后，要求生产划词以后只使用模拟 `⌘C` 内容路线 | 废止 AX-first/default-off Copy fallback：受保护 Copy 成为唯一生产内容源，AX 仅保留非内容职责；Copy 失败必须明确失败 | Verified |
 | 2026-08-16 | Project owner | AppIcon 已使用 Paper Lantern，但状态栏仍是占位图标，要求制作并接入正式状态栏图标 | 增加 18pt 单色 template 资产、编译产物检查、浅色/深色/选中态截图与五维复审；菜单内容与功能 SF Symbols 不变 | Verified |
 | 2026-08-16 | Project owner | 确认状态栏灯笼已看到，并要求把菜单面板标题区右上角的蓝色 `character.bubble.fill` 也换成那盏灯 | 增加独立 32/64px 全彩 asset rendition、固定 App 编译检查及浅色/深色菜单面板复审；该位置只表达 App 身份，不改变交互或功能图标 | Verified |
-| 2026-08-16 | Project owner | 指出复制按钮长时间发白、需要复制纯文本入口，并要求增强 Markdown 表格与粗体 | 默认一击复制 Markdown，原生菜单增加显式纯文本；反馈改为短促可取消的勾选；增加 GFM 表格与显式 strong 样式 | In Progress |
-| 2026-08-16 | Project owner | 指出完成态 Markdown 只能在一个文本块内拖选，且拖选/复制出现额外末尾换行 | 完成态改为一个连续原生文本选区；跨块选择和无多余末尾空行纳入自动化与实机验收 | In Progress |
-| 2026-08-16 | Project owner | 真实查看首版表格后认为自动压缩排版很差；先要求表格横向滚动和按最长内容自适应，随后明确接受固定正文宽度并让长单元格换行 | 最终收敛为表格占正文可用宽度、各列按最长可见内容分配受限比例、内容自然换行；不保留整页或表格水平滚动 | In Progress |
-| 2026-08-16 | Project owner | 查看按 GFM 标记呈现的左/中/右对齐后认为文字位置跳动，要求统一居中 | 结果窗口表头和单元格统一居中；解析与规范 Markdown 复制继续保留原始对齐标记 | In Progress |
+| 2026-08-16 | Project owner | 指出复制按钮长时间发白、需要复制纯文本入口，并要求增强 Markdown 表格与粗体 | 默认一击复制 Markdown，原生菜单增加显式纯文本；反馈改为短促可取消的勾选；增加 GFM 表格与显式 strong 样式 | Verified |
+| 2026-08-16 | Project owner | 指出完成态 Markdown 只能在一个文本块内拖选，且拖选/复制出现额外末尾换行 | 完成态改为一个连续原生文本选区；跨块选择和无多余末尾空行纳入自动化与实机验收 | Verified |
+| 2026-08-16 | Project owner | 真实查看首版表格后认为自动压缩排版很差；先要求表格横向滚动和按最长内容自适应，随后明确接受固定正文宽度并让长单元格换行 | 最终收敛为表格占正文可用宽度、各列按最长可见内容分配受限比例、内容自然换行；不保留整页或表格水平滚动 | Verified |
+| 2026-08-16 | Project owner | 查看按 GFM 标记呈现的左/中/右对齐后认为文字位置跳动，要求统一居中 | 结果窗口表头和单元格统一居中；解析与规范 Markdown 复制继续保留原始对齐标记 | Verified |
 | 2026-08-16 | Project owner | 查看首版真实深色面板后，要求灯笼向下移动一点并放大 20% | 视觉规格从 28pt 调整为 33.6pt、向下偏移 2pt，源 rendition 重导出为 34/68px；重新构建并复审对齐、清晰度与视觉权重 | Verified |
-| 2026-08-16 | Project owner | 真实浏览器中混合段落与表格选择会失败，重复同一选择还会让 Marla 崩溃 | 增加混合 HTML 段落/表格归一回归；修复完成态原生文本视图在 `layout()` 中反复失效 intrinsic size 导致的 AppKit/SwiftUI 布局递归；固定 App fixture 启动无崩溃，真实浏览器混合选择仍需复验 | Implemented; Manual Verification Pending |
+| 2026-08-16 | Project owner | 真实浏览器中混合段落与表格选择会失败，重复同一选择还会让 Marla 崩溃 | 增加混合 HTML 段落/表格归一回归；修复完成态原生文本视图在 `layout()` 中反复失效 intrinsic size 导致的 AppKit/SwiftUI 布局递归；固定 App fixture 启动无崩溃，真实浏览器混合选择仍需复验 | Verified |
 | 2026-08-16 | Project owner | 重启后确认不再崩溃，但完成态表格宽度反复横跳，右侧纵向滚动条反复出现/消失且无法上下滚动 | 完成态 Markdown 改为单一原生 `NSScrollView` 所有者，纵向 scroller 固定为 overlay、关闭水平 scroller/弹性，并移除 SwiftUI/AppKit 双重高度测量与 intrinsic 失效链；增加滚动配置和等价文档不重复更新回归 | Verified |
-| 2026-08-17 | Project owner | 重新激活 TASK-028：完成态 Markdown 改变文本真实高度但窗口没有重新适配，并要求顺便加入实时流式 Markdown 渲染 | 流式和完成态统一使用原生投影与 TextKit 测量；新增过密更新合并、未闭合 Markdown 回退、完成态最终高度校正、60% 封顶、滚动和 Reduce Motion 验收 | Implemented and fixed-App verified; Owner Verification Pending |
-| 2026-08-17 | Project owner | 要求菜单面板标题组略微上移，并改进翻译结果卡 header：使用 Marla 图标、放大划词/截图翻译标题、下移 API 配置选择器 | 菜单标题组上移 4pt；划词/截图结果卡使用 24pt Paper Lantern + 17pt semibold 动态入口标题，配置菜单下移 2pt；Quick Input 和功能控件保持现有语义，补充浅色/深色/窄宽截图与五维复审 | Fixed-App Verified; Owner Verification Pending |
+| 2026-08-17 | Project owner | 重新激活 TASK-028：完成态 Markdown 改变文本真实高度但窗口没有重新适配，并要求顺便加入实时流式 Markdown 渲染 | 流式和完成态统一使用原生投影与 TextKit 测量；新增过密更新合并、未闭合 Markdown 回退、完成态最终高度校正、60% 封顶、滚动和 Reduce Motion 验收 | Verified |
+| 2026-08-17 | Project owner | 要求菜单面板标题组略微上移，并改进翻译结果卡 header：使用 Marla 图标、放大划词/截图翻译标题、下移 API 配置选择器 | 菜单标题组上移 4pt；划词/截图结果卡使用 24pt Paper Lantern + 17pt semibold 动态入口标题，配置菜单下移 2pt；Quick Input 和功能控件保持现有语义，补充浅色/深色/窄宽截图与五维复审 | Verified; menu offset superseded |
+| 2026-08-17 | Project owner | 确认上一轮 UI 后要求菜单标题组再上移 6pt，并在展开“查看原文”时也渲染 Markdown | 菜单标题组累计上移 10pt；`semanticMarkdown` 原文复用安全原生投影和真实 TextKit 高度，纯文本/OCR/解析失败保持原显示；补充展开态滚动、高度与固定 App 复审 | Verified; menu offset superseded |
+| 2026-08-17 | Project owner | 查看累计上移 10pt 的固定 App 后仍认为标题不够高，要求 “Marla” 到左、上边框的视觉距离一致 | 按 2x 截图测得约 16pt 左边距与 27–28pt 上边距，把标题组总视觉偏移调整为 -22pt；右侧灯笼和其余面板布局不动，重新捕获浅色/深色证据 | Verified; superseded |
+| 2026-08-17 | Project owner | 指出 fenced code block 缺少圆角，行内代码背景过高、相邻两行会粘连且首尾留白不足 | 保留 TextKit 排版、滚动与选择合同；代码块改为 5pt 圆角背景/边框，行内代码改为 3pt 圆角、左右各扩 3pt 并按字体高度收紧垂直背景；增加相邻行和固定 App 视觉回归 | Verified |
+| 2026-08-17 | Project owner | 确认最新菜单标题位置后认为 16pt 上边距过近，要求上边距改为左侧距离的两倍 | 左边距保持约 16pt，标题组从 -22pt 下调至 -6pt，使标题字形顶部约 32pt；右侧灯笼与下方内容不动，重新构建并复核 | Verified; superseded |
+| 2026-08-17 | Project owner | 查看 32pt 上边距后认为仍偏大，要求改为左侧距离的 1.5 倍 | 左边距保持约 16pt，标题组从 -6pt 上调至 -14pt，使标题字形顶部约 24pt；右侧灯笼与下方内容不动，重新构建并复核 | Verified |
 
 ## Current evidence
 
 - 本轮 UI 微调已在固定稳定签名 Release App 中覆盖菜单浅色/深色、划词结果 380pt 浅色与 760pt 深色、截图结果、Quick Input 完成态和 Reduce Motion：`/private/tmp/marla-task028-ui-menu-light.png`、`/private/tmp/marla-task028-ui-menu-dark.png`、`/private/tmp/marla-task028-ui-selection-light-380.png`、`/private/tmp/marla-task028-ui-selection-dark-760.png`、`/private/tmp/marla-task028-ui-screenshot-light.png`、`/private/tmp/marla-task028-ui-quick-input-light.png`、`/private/tmp/marla-task028-ui-selection-dark-reduce-motion.png`。菜单标题组上移后未贴顶或挤压“开始翻译”，右侧 33.6pt 灯笼保持原位；划词/截图头部的 24pt 灯笼和 17pt 标题层级清楚，`Qwen-MT-turbo` 在 380pt 下与 pin/close 均不截断，Quick Input 仍是键盘图标和紧凑标题。五维复审为 Philosophy 8、Visual Hierarchy 9、Craft 8、Functionality 9、Originality 8。
+- 上一轮 22pt 向上光学校正已由固定 Release App 的 2x 浅色/深色截图复核：`/private/tmp/marla-task028-source-md-menu-equal-light.png` 与 `/private/tmp/marla-task028-source-md-menu-equal-dark.png` 中，“Marla” 字形顶部和左侧距面板边界均约 32px，即 16pt；项目所有者随后认为该位置过高，改为 32pt 上边距目标，因此这组截图只保留为迭代证据。
+- 上一轮标题组采用 6pt 向上光学校正。固定 Release App 的 2x 浅色/深色证据位于 `/private/tmp/marla-task028-menu-top-double-light.png` 与 `/private/tmp/marla-task028-menu-top-double-dark.png`：“Marla” 字形顶部距面板约 64px、左侧约 32px，即 32pt 上边距为 16pt 左边距的两倍；项目所有者随后认为间距偏大，这组截图只保留为迭代证据。
+- 当前标题组采用 14pt 向上光学校正。新构建固定 Release App 的 2x 浅色/深色证据位于 `/private/tmp/marla-task028-menu-top-one-half-light.png` 与 `/private/tmp/marla-task028-menu-top-one-half-dark.png`：“Marla” 字形顶部距面板约 46–48px、左侧约 32px，即约 23–24pt 上边距相对 16pt 左边距接近 1.5 倍；标题/副标题无裁切，右侧 33.6pt Paper Lantern 与“开始翻译”以下区域未移动。五维复审为 Philosophy 8、Visual Hierarchy 9、Craft 9、Functionality 9、Originality 8。
+- 展开“查看原文”时，可靠 `semanticMarkdown` 现在构造不带流式游标的源文投影并复用 `MarkdownResultText`；原文视口使用 TextKit 真实高度，在 110pt 内自适应，超出后由同一 AppKit scroll view 负责纵向滚动。`plainText`、Vision OCR 与解析失败继续使用原纯文本路径，canonical `sourceContent` 不变。新增 3 项回归后 `MarkdownResultTextTests` 24/24 通过；380pt 浅色、760pt 深色和 Reduce Motion 固定 App 截图位于 `/private/tmp/marla-task028-source-md-light-380.png`、`/private/tmp/marla-task028-source-md-dark-760.png`、`/private/tmp/marla-task028-source-md-dark-reduce.png`，五维复审为 Philosophy 8、Visual Hierarchy 8、Craft 8、Functionality 9、Originality 7。
+- fenced code block 保留 `NSTextBlock` 的 8pt 排版内边距，但背景与 0.5pt 边框由同一原生文本视图绘制为 5pt 圆角；inline code 不再使用按整行片段高度绘制的 `.backgroundColor`，改为 3pt 圆角、首尾各扩 3pt、按 13pt monospaced 字体高度收紧的视觉背景。样式属性不进入 canonical Markdown、选择或复制。`MarkdownResultTextTests` 26/26 通过；固定 Release fixture 的 380pt 浅色、760pt 深色与 Reduce Motion 证据位于 `/private/tmp/marla-task028-code-style-light-380.png`、`/private/tmp/marla-task028-code-style-dark-760.png`、`/private/tmp/marla-task028-code-style-dark-reduce.png`，相邻两行背景不粘连，五维复审为 Philosophy 8、Visual Hierarchy 8、Craft 9、Functionality 9、Originality 7。
 - `semanticMarkdown` 的 `.streaming` 与 `.completed` 现在通过 `StreamingMarkdownProjection` 构造同一 `MarkdownResultDocument` 和 attributed document；首个非空增量开始原生渲染，流式游标仅是带标签的视觉属性，不进入 accessibility text、选区复制或 canonical Markdown。未闭合标题、强调、链接、代码围栏和表格片段回归均保持输入字符串不变且无崩溃。
 - `FloatingPanelCoordinator` 对 Markdown 投影使用约 40ms、`latest: true` 的有界合并；正文 viewport 与外层窗口都通过 `MarkdownResultAttributedDocument.measuredHeight` 测量当前实际显示文档，投影更新和 `completed` 均触发 resize，既有 generation reconciliation 防止旧动画覆盖新状态。
 - 新增同一 session ID 的 `markdown-streaming-growth` Release fixture。固定 App 实测从 380×241pt 的单标题流式态增长到 380×431pt 的完整表格流式态，完成事件移除游标后按最终文档收敛到 380×427pt；过程中未见宽度横跳、纵向滚动条显隐循环或旧动画回写。
 - 固定 Release App 截图覆盖流式/完成态、380pt/760pt、浅色/深色与 Reduce Motion：`/private/tmp/marla-task028-streaming-light-380.png`、`/private/tmp/marla-task028-streaming-dark-760.png`、`/private/tmp/marla-task028-completed-light-380.png`、`/private/tmp/marla-task028-completed-dark-760.png`、`/private/tmp/marla-task028-growth-initial-light.png`、`/private/tmp/marla-task028-growth-mid-light.png`、`/private/tmp/marla-task028-growth-final-dark-reduce.png`。五维复审为 Philosophy 8、Visual Hierarchy 8、Craft 8、Functionality 9、Originality 7；所有维度达到 7/10 门槛。
-- 沙盒外最终 `./scripts/check.sh` 通过：20 项 Rust、140 项 Swift（3 项 Vision 宿主环境跳过）、Swift Package、Xcode Debug、严格 Clippy/format、结构门禁、shell、空白与 diff 检查全部成功。`./scripts/build-test-app.sh` 重新构建并验证 `artifacts/Marla_dev.app` 的 `com.marla.app`、0.1.0、macOS 14.0、arm64、Release Rust 链接、稳定签名和 designated requirement。
+- 沙盒外最终 `./scripts/check.sh` 通过：20 项 Rust、142 项 Swift（3 项 Vision 宿主环境跳过）、Swift Package、Xcode Debug、严格 Clippy/format、结构门禁、shell、空白与 diff 检查全部成功。`./scripts/build-test-app.sh` 重新构建并验证 `artifacts/Marla_dev.app` 的 `com.marla.app`、0.1.0、macOS 14.0、arm64、Release Rust 链接、稳定签名和 designated requirement。
 - 用户提供的两份 21:42 崩溃报告均为 `EXC_BREAKPOINT/SIGTRAP`，异常链落在 `MarkdownSelectableTextView.layout()` 触发 `invalidateIntrinsicContentSize()` 后反复请求 SwiftUI/AppKit 布局；移除该布局回调中的自失效后，固定 Release App 的完成态 Markdown fixture 已启动、截图并自动退出，无同类崩溃。
 - 项目所有者在重新构建的固定 App 中复验同类混合内容，确认“不再崩溃”；随后准确观察到表格宽度与右侧纵向滚动条反复显隐的耦合抽搐，最终固定 App 改为单一原生滚动所有者后再次确认“正常啦”，表格区域可上下滚动且不再横跳。
 - 完成态 Markdown 不再把裸 `NSTextView` 嵌入 SwiftUI `ScrollView`，也不再用 `sizeThatFits`、intrinsic height 和反复 intrinsic invalidation 共同驱动同一文档。专用 `NSScrollView` 使用 overlay 纵向 scroller、关闭水平 scroller 和横向弹性；`MarkdownSelectableTextView` 以不可变输入快照判断内容变化，避免 TextKit 规范化属性后把等价文档误判为整篇变化并重复安装。
@@ -111,8 +122,8 @@ Marla 的翻译边界不再只接受一个无格式字符串，而是接受带�
 - Quick Input 将完整输入声明为 `semanticMarkdown`，并在重试、语言切换、profile 切换和最近记录恢复中保留格式。
 - 生产划词入口现在无条件进入受保护 Copy 内容事务：只使用本次新 Markdown、HTML、RTF/RTFD 或纯文本 representation 构造 `TranslationContent`；Copy 失败不会读取 AX 内容兜底，Vision 始终为 `plainText`。
 - Foundation 全量 Markdown 解析结果现在按块投影为原生 SwiftUI 标题、段落、列表、引用、代码和链接；远程图片属性被移除并只保留替代文字。
-- 2026-08-17 重开实现已把 `.streaming` 纳入与 `completed` 相同的原生投影，并保留失败部分内容、取消和所有 `plainText` 的原始字符路径；新增固定 App fixture 已验证视觉与高度行为，真实 Provider 流的最终手感仍待项目所有者确认。
-- 项目所有者的 FluxMarkdown 实测证明原第一阶段只保留“已经是 Markdown 源码的字符串”，由此触发的扩展已在工作树加入：Copy 在恢复前读取富 representation，Quick Input 以原生 `NSTextView` 拦截 Paste 并插入规范化 Markdown 或已校验的纯文本降级。项目所有者随后确认旧固定 App 的 FluxMarkdown 划词已能得到 Markdown，但 Zen/GitHub 仍因 AX-first 路径得到纯文本；新的 Copy-only 固定 App 复验仍待完成。
+- 2026-08-17 重开实现已把 `.streaming` 纳入与 `completed` 相同的原生投影，并保留失败部分内容、取消和所有 `plainText` 的原始字符路径；固定 App fixture 已验证视觉与高度行为，项目所有者最终确认本轮实时投影、高度与 UI 调整可以完成收束。
+- 项目所有者的 FluxMarkdown 实测证明原第一阶段只保留“已经是 Markdown 源码的字符串”，由此触发的扩展已完成：Copy 在恢复前读取富 representation，Quick Input 以原生 `NSTextView` 拦截 Paste 并插入规范化 Markdown 或已校验的纯文本降级。项目所有者确认 Copy-only 固定 App 的 FluxMarkdown、浏览器 README、Quick Input 与 Obsidian 路径符合预期；额外应用覆盖保留为发布验证广度，不阻止本 Task 完成。
 - Zen 中真实 GitHub README 的 AX 树可见标题、列表标记、链接与代码节点，但 Computer Use 的当前选区只暴露一条压平字符串；同一选区手动 Copy 可被 Quick Input 和 Obsidian 从 HTML 等 Pasteboard representation 转为 Markdown。项目所有者据此授权不再使用 AX 内容路线。
 - 旧补全事务只等待 350ms；浏览器生成较大 HTML representation 时超时会被 AX-first 路径静默掩盖为纯文本。Copy-only 路径把上限调整为 800ms，取得新 `changeCount` 后仍立即继续，不固定增加等待。
 - 项目所有者已在固定 App 中确认新的状态栏灯笼可见。菜单面板标题区使用独立的全彩 `PaperLanternMark` 1x/2x rendition，并以 33.6pt、向下偏移 2pt 的非交互品牌位替换 `character.bubble.fill`；它不继承系统 accent，也不改变菜单内功能 SF Symbols。
@@ -164,9 +175,13 @@ Swift 定义跨入口共享的格式化内容值，入口负责声明自己实�
 - [x] `semanticMarkdown` 在 `.streaming` 状态从首个非空增量开始原生渲染；未闭合标题、强调、链接、代码围栏或表格片段不会崩溃、丢字或修改 canonical Markdown，解析不可用时回退当前原始字符。
 - [x] 流式原生投影、完成态投影和 `ResultCardLayout` 使用一致的 TextKit 高度语义；状态切换后窗口按最终文档重新校正，短内容不留明显空白，长内容仍在可见工作区 60% 封顶并可纵向滚动。
 - [x] 连续增量更新经过有界合并，窗口增长无明显抽搐、滚动条显隐循环或旧动画覆盖新状态；380pt/760pt、浅色/深色和 Reduce Motion 的五维评分均不低于 7/10。
-- [x] 菜单面板 “Marla” 标题与副标题整体上移 4pt，右侧灯笼尺寸/位置、下方“开始翻译”区和面板总布局没有裁切或异常空白。
+- [x] 菜单面板标题组使用 14pt 向上视觉校正，使 “Marla” 字形顶部约 24pt 的上边距为 16pt 左边距的 1.5 倍；右侧灯笼、下方操作区和面板边界不移动、不裁切。
 - [x] 划词与截图结果卡在 380pt/760pt、浅色/深色下显示 24pt Paper Lantern 和 17pt semibold 动态入口标题；Quick Input 保留键盘图标，API 配置选择器下移 2pt，固定/关闭/语言行均不重叠或截断。
 - [x] 固定 Release App 对菜单、划词结果卡和截图结果卡完成真实截图五维复审，五项均不低于 7/10。
+- [x] 展开“查看原文”时，`semanticMarkdown` 使用可选择的原生 Markdown 投影并按真实文档高度在 110pt 内布局和纵向滚动；纯文本、Vision OCR 与解析失败保持纯文本。
+- [x] 380pt/760pt、浅色/深色和 Reduce Motion 的固定 Release 展开态无重叠、横向滚动、滚动条抽搐或异常高度，五维复审均不低于 7/10。
+- [x] fenced code block 使用克制圆角背景和边框；行内代码背景低于正文行高、左右越过首尾字形，并在相邻两行时保持可见间隙，不改变文本选择、复制或窗口高度合同。
+- [x] 380pt/760pt、浅色/深色和 Reduce Motion 的固定 Release 代码样式 fixture 无背景粘连、裁切或异常换行，五维复审均不低于 7/10。
 
 ## Verification
 
@@ -247,6 +262,15 @@ None for this stage. 项目所有者已经确认完整 Markdown 交换、自然�
 - Manual evidence: Copy-only 扩展后的 `./scripts/build-test-app.sh` 已重建并验证固定 `artifacts/Marla_dev.app` 的 Release 路径、Bundle ID `com.marla.app`、版本 0.1.0、最低系统 14.0、arm64、可执行文件、稳定签名 `API Usage Monitor Dev` 与 designated requirement。项目所有者确认同类混合选择不再崩溃，并在原生滚动修复后的新固定 App 中确认表格与纵向滚动“正常啦”。修复后浅色/深色完成态证据位于 `/private/tmp/marla-task028-table-scroll-fixed-light.png` 与 `/private/tmp/marla-task028-table-scroll-fixed-dark.png`，五维复审为 8/8/8/9/7；原生 Quick Input 的对应 fixture 位于 `/private/tmp/marla-quick-input-light.png`、`/private/tmp/marla-quick-input-dark.png`、`/private/tmp/marla-quick-input-reduce-motion.png`，五维复审为 8/8/9/8/8。更新后的“通用”设置页浅色、深色与 Reduce Motion 证据位于 `artifacts/ui-review/task-028/`，五维复审为 8/8/8/9/7。
 - Manual acceptance: 项目所有者已用 FluxMarkdown、Quick Input 和既有 Provider 完成真实翻译，确认结构化 Markdown、表格、粗体、复制入口、纵向滚动与崩溃修复符合预期，并在 2026-08-16 明确授权结束 Task、合并 `main` 和 push。额外 Zen/GitHub 应用覆盖属于发布验证广度，不再阻止本实现 Task 收束。
 - Documentation updated: IDEA-013、ADR-0006/0009、架构、数据合同、Quick Input、比较模式、语言路由、0.1.0 双语规格/实现与 STATUS 已同步。
-- Remaining work promoted to: 额外 Zen/GitHub 跨应用覆盖保留为发布验证证据；截图结构 OCR、实时增量渲染和 HTML/RTF 多 representation 输出复制保留在 IDEA-013。
+- Remaining work promoted to: 额外跨应用覆盖保留为发布验证证据；截图结构 OCR、持久化增量 AST 和 HTML/RTF 多 representation 输出复制保留在 IDEA-013。实时增量渲染已在 2026-08-17 重开范围实现并验证。
 - Scope changes closed: 所有本 Task 验收项已由自动化、固定 fixture、稳定签名 Release App 和项目所有者现场复验关闭；Task 状态改为 Complete。
 - Parallel contributions integrated: `task028_docs` 和 `task028_rich_docs` 的独占文档贡献已整合；后者的只读复核发现并推动修复了 Markdown/plain 校验绕过与 Quick Input plain fallback 绕过。
+
+## Reopened completion record (2026-08-17)
+
+- Completion authorization: 项目所有者在真实使用结构化翻译、流式投影、表格滚动、展开原文、代码样式和最终菜单位置后明确要求“完成 TASK-028”，关闭本轮 Owner Verification。
+- Automated evidence: 重开范围的完整 `./scripts/check.sh` 已通过 20 项 Rust 与 142 项 Swift，另有 3 项 Vision 宿主环境 skip；随后最终生产代码只调整菜单标题偏移，`./scripts/build-test-app.sh` 已重新完成 Release 编译和签名验证。本次收口新增 `testThrottledProjectionRemainsValidForNewerDeltaInTheSameSession` 并定向通过，锁定 40ms 合并窗口内同 session 继续复用上一份原生投影、不会闪回 raw 或采用 raw 高度的合同。
+- Current-environment limitation: 本轮受限沙盒复跑再次通过 20 项 Rust 和绝大多数 Swift 测试，但 3 项系统 Pasteboard 复制断言因 `com.apple.hiservices-xpcservice` 不可用而得到 `nil`；两次沙盒外完整重跑在执行前分别被审批服务 `404` 和 `503` 阻断。该环境失败不替代此前全绿证据，也不记录为产品回归。
+- Fixed-App evidence: 最终固定 `artifacts/Marla_dev.app` 为 `com.marla.app` 0.1.0、arm64、macOS 14.0+，使用稳定本地签名并满足 designated requirement。流式增长、380pt/760pt、浅色/深色、Reduce Motion、展开原文、代码样式和最终 14pt 菜单标题光学校正均有真实截图与五维复审，每项不低于 7/10。
+- Evidence boundary: UI growth fixture 经过真实 Store publisher、布局模型和面板协调器，但不经过 Provider/FFI，也不单独证明所有高频网络时序；真实 Provider 观感由项目所有者现场验收补足。额外跨应用广度、Provider 性能/错误映射、截图结构 OCR、持久化增量 AST 和 HTML/RTF 多 representation 输出复制不阻止本 Task 完成。
+- Documentation closure: `STATUS.md` 当前无 Active Task；架构、IDEA-013、Quick Input、划词、品牌、ADR、0.1.0 双语规格和实施说明均已同步到 TASK-028 完成状态。未提交的关闭差异保留在当前 task branch，未获得 commit、merge 或 push 授权。

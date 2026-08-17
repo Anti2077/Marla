@@ -49,6 +49,7 @@
 		A1000000000000000000002C /* Content/NativeFormattedContent.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2000000000000000000002C /* Content/NativeFormattedContent.swift */; };
 		A1000000000000000000002D /* Sessions/QuickInputMarkdownEditor.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2000000000000000000002D /* Sessions/QuickInputMarkdownEditor.swift */; };
 		A1000000000000000000002E /* Panel/MarkdownResultSelectableText.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2000000000000000000002E /* Panel/MarkdownResultSelectableText.swift */; };
+		A1000000000000000000002F /* Content/LiteralHTMLTableNormalizer.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2000000000000000000002F /* Content/LiteralHTMLTableNormalizer.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -106,6 +107,7 @@
 		A2000000000000000000002C /* Content/NativeFormattedContent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NativeFormattedContent.swift; sourceTree = "<group>"; };
 		A2000000000000000000002D /* Sessions/QuickInputMarkdownEditor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuickInputMarkdownEditor.swift; sourceTree = "<group>"; };
 		A2000000000000000000002E /* Panel/MarkdownResultSelectableText.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MarkdownResultSelectableText.swift; sourceTree = "<group>"; };
+		A2000000000000000000002F /* Content/LiteralHTMLTableNormalizer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiteralHTMLTableNormalizer.swift; sourceTree = "<group>"; };
 		A2000000000000000000000F /* libMarlaCore.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = libMarlaCore.a; sourceTree = BUILT_PRODUCTS_DIR; };
 		A20000000000000000000010 /* Marla.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Marla.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
@@ -180,7 +182,7 @@
 		A7000000000000000000000F /* Screenshot */ = {isa = PBXGroup; children = (A2000000000000000000001D /* ScreenshotCapture.swift */, A2000000000000000000001E /* ScreenshotSelection.swift */); path = Screenshot; sourceTree = "<group>"; };
 		A70000000000000000000010 /* OCR */ = {isa = PBXGroup; children = (A2000000000000000000001F /* VisionOCR.swift */); path = OCR; sourceTree = "<group>"; };
 		A70000000000000000000011 /* Selection */ = {isa = PBXGroup; children = (A20000000000000000000020 /* AccessibilitySelectionReader.swift */, A20000000000000000000021 /* ClipboardSelectionFallback.swift */, A20000000000000000000025 /* AccessibilitySelectionModels.swift */); path = Selection; sourceTree = "<group>"; };
-		A70000000000000000000012 /* Content */ = {isa = PBXGroup; children = (A2000000000000000000002C /* NativeFormattedContent.swift */); path = Content; sourceTree = "<group>"; };
+		A70000000000000000000012 /* Content */ = {isa = PBXGroup; children = (A2000000000000000000002C /* NativeFormattedContent.swift */, A2000000000000000000002F /* LiteralHTMLTableNormalizer.swift */); path = Content; sourceTree = "<group>"; };
 		A70000000000000000000004 /* MarlaCore */ = {
 			isa = PBXGroup;
 			children = (
@@ -341,6 +343,7 @@
 				A10000000000000000000022 /* App/ResultPanelLayout.swift in Sources */,
 				A1000000000000000000002B /* App/MarkdownResultUIAutomation.swift in Sources */,
 				A1000000000000000000002C /* Content/NativeFormattedContent.swift in Sources */,
+				A1000000000000000000002F /* Content/LiteralHTMLTableNormalizer.swift in Sources */,
 				A10000000000000000000016 /* Models/TranslationAPIProfile.swift in Sources */,
 				A10000000000000000000017 /* Persistence/KeychainCredentialStore.swift in Sources */,
 				A10000000000000000000018 /* Persistence/MarlaSettingsStore.swift in Sources */,

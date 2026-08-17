@@ -24,6 +24,8 @@ final class MarlaApplicationModel: ObservableObject {
         let errorCode: String?
         let textUTF16Length: Int?
         let contentFormat: TranslationContentFormat?
+        let semanticMarkdownTableCount: Int?
+        let semanticMarkdownContainsLiteralHTMLTable: Bool?
         let hasBounds: Bool?
         let sourceApplicationBundleID: String?
         let frontmostApplicationBundleIDAfterPresentation: String?
@@ -270,11 +272,22 @@ final class MarlaApplicationModel: ObservableObject {
             } else {
                 clipboardPreserved = nil
             }
+            let semanticMarkdownTableCount: Int? = selection.flatMap { selection in
+                guard selection.content.format == .semanticMarkdown,
+                      let document = MarkdownResultDocument.parse(selection.content.text)
+                else { return nil }
+                return document.blocks.filter { if case .table = $0.kind { true } else { false } }.count
+            }
             let report = SelectionUIAutomationReport(
                 result: selection == nil ? "failure" : "success",
                 errorCode: error.map(Self.selectionErrorCode),
                 textUTF16Length: selection?.text.utf16.count,
                 contentFormat: selection?.content.format,
+                semanticMarkdownTableCount: semanticMarkdownTableCount,
+                semanticMarkdownContainsLiteralHTMLTable: selection.flatMap {
+                    $0.content.format == .semanticMarkdown
+                        ? $0.content.text.range(of: "<table", options: .caseInsensitive) != nil : nil
+                },
                 hasBounds: selection.map { $0.bounds != nil },
                 sourceApplicationBundleID: selection?.applicationBundleID ?? audit.sourceApplicationBundleID,
                 frontmostApplicationBundleIDAfterPresentation: frontmostBundleID,

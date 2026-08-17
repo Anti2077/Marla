@@ -67,9 +67,8 @@ enum NativeFormattedContentNormalizer {
         if let attributed = value as? NSAttributedString {
             return content(from: attributed)
         }
-        if let string = value as? String,
-           !string.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-            return .plainText(string)
+        if let string = value as? String {
+            return content(fromPlainText: string)
         }
         return nil
     }
@@ -83,7 +82,7 @@ enum NativeFormattedContentNormalizer {
               visibleTextMatches(conversion.visibleText, visibleText),
               !conversion.markdown.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
         else {
-            return .plainText(visibleText)
+            return content(fromPlainText: visibleText)
         }
         return .semanticMarkdown(conversion.markdown)
     }
@@ -98,32 +97,10 @@ enum NativeFormattedContentNormalizer {
         case .plainText:
             visibleText = content.text
         case .semanticMarkdown:
-            guard let attributed = try? AttributedString(
-                markdown: content.text,
-                options: .init(
-                    interpretedSyntax: .full,
-                    failurePolicy: .returnPartiallyParsedIfPossible
-                )
-            ) else { return false }
-            visibleText = visibleTextProjection(from: attributed)
+            guard let document = MarkdownResultDocument.parse(content.text) else { return false }
+            visibleText = document.plainText
         }
         return visibleTextMatches(visibleText, text)
-    }
-
-    private static func visibleTextProjection(from attributed: AttributedString) -> String {
-        var blocks: [(identity: Int, text: String)] = []
-        for run in attributed.runs {
-            guard let descriptor = blockDescriptor(for: run.presentationIntent) else {
-                return String(attributed.characters)
-            }
-            let fragment = String(attributed[run.range].characters)
-            if blocks.last?.identity == descriptor.identity {
-                blocks[blocks.count - 1].text += fragment
-            } else {
-                blocks.append((descriptor.identity, fragment))
-            }
-        }
-        return blocks.map(\.text).joined(separator: "\n")
     }
 
     private static func content(from item: NSPasteboardItem) -> TranslationContent? {
@@ -170,11 +147,22 @@ enum NativeFormattedContentNormalizer {
         guard let plainText,
               !plainText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
         else { return nil }
-        return .plainText(plainText)
+        return content(fromPlainText: plainText)
+    }
+
+    private static func content(fromPlainText text: String) -> TranslationContent? {
+        guard !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return nil }
+        if let markdown = LiteralHTMLTableNormalizer.markdown(from: text) {
+            return .semanticMarkdown(markdown)
+        }
+        return .plainText(text)
     }
 
     private static func htmlConversion(from data: Data) -> Conversion? {
-        guard let document = try? XMLDocument(data: data, options: [.documentTidyHTML]),
+        let document = String(data: data, encoding: .utf8)
+            .flatMap { try? XMLDocument(xmlString: $0, options: [.documentTidyHTML]) }
+            ?? (try? XMLDocument(data: data, options: [.documentTidyHTML]))
+        guard let document,
               let root = document.rootElement()
         else { return nil }
 
@@ -738,6 +726,16 @@ enum NativeFormattedContentNormalizer {
             .map { line in
                 String(line).replacingOccurrences(
                     of: #"^\s*(?:[-*+•◦▪]|\d+[.)])\s+"#,
+                    with: "",
+                    options: .regularExpression
+                ).replacingOccurrences(
+                    of: #"^\s*(?:\[[ xX]\]|[☐☑☒])\s*"#,
+                    with: "",
+                    options: .regularExpression
+                ).replacingOccurrences(
+                    // Web-backed Markdown previews may expose an HTML checkbox
+                    // as U+FFFC in the plain Pasteboard projection.
+                    of: #"^\s*\uFFFC\s*"#,
                     with: "",
                     options: .regularExpression
                 )

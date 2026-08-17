@@ -1928,6 +1928,35 @@ final class MarlaAppTests: XCTestCase {
     }
 
     @MainActor
+    func testCopyFallbackWaitsForSameChangeCountCandidateToStabilize() throws {
+        let clipboard = FakeSelectionClipboard()
+        clipboard.snapshotValue = PasteboardSnapshot(items: [])
+        var now = 0.0
+        var pumpCount = 0
+        let fallback = ClipboardSelectionFallback(
+            clipboard: clipboard,
+            timeout: 0.1,
+            now: { now },
+            pump: { _ in
+                pumpCount += 1
+                now += 0.01
+                clipboard.changeCount = 1
+                clipboard.text = pumpCount == 1 ? "partial table header" : "complete table body"
+                clipboard.contentFormat = .semanticMarkdown
+            },
+            sendCopy: { true },
+            isFrontmost: { _ in true }
+        )
+
+        let result = try fallback.readSelection(from: NSRunningApplication.current)
+
+        XCTAssertEqual(result.selection.content, .semanticMarkdown("complete table body"))
+        XCTAssertGreaterThanOrEqual(pumpCount, 3)
+        XCTAssertEqual(result.restoreStatus, .restored)
+        XCTAssertEqual(clipboard.restoreCalls, 1)
+    }
+
+    @MainActor
     func testProductionSelectionReaderUsesProtectedCopyContent() throws {
         let clipboard = FakeSelectionClipboard()
         clipboard.snapshotValue = PasteboardSnapshot(items: [])
@@ -2208,6 +2237,8 @@ final class MarlaAppTests: XCTestCase {
             errorCode: nil,
             textUTF16Length: 27,
             contentFormat: .semanticMarkdown,
+            semanticMarkdownTableCount: 1,
+            semanticMarkdownContainsLiteralHTMLTable: false,
             hasBounds: true,
             sourceApplicationBundleID: "com.apple.TextEdit",
             frontmostApplicationBundleIDAfterPresentation: "com.apple.TextEdit",
@@ -2236,6 +2267,8 @@ final class MarlaAppTests: XCTestCase {
         XCTAssertFalse(json.contains("clipboardContent"))
         XCTAssertTrue(json.contains("textUTF16Length"))
         XCTAssertTrue(json.contains("semanticMarkdown"))
+        XCTAssertTrue(json.contains("semanticMarkdownTableCount"))
+        XCTAssertTrue(json.contains("semanticMarkdownContainsLiteralHTMLTable"))
         XCTAssertTrue(json.contains("clipboardChangeCountDelta"))
         XCTAssertTrue(json.contains("clipboardPreserved"))
     }

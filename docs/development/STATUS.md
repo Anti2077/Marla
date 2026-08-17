@@ -1,12 +1,14 @@
 # Project Status
 
-Last updated: 2026-08-16
+Last updated: 2026-08-18
 
 Release target: 0.1.0 Alpha
 
 Overall state: In Progress — implementation baseline exists; release verification gaps remain
 
-Active task: None
+Active task: [TASK-029](../tasks/TASK-029-literal-html-table-normalization.md)
+
+TASK-029 的 Flux Markdown follow-up 已实现并通过完整自动化与固定 App 脱敏实测：literal HTML table 继续由严格 table-only parser 转成 GFM；source-owned rich Markdown 改用 Marla 自己的 GFM projection 做 rich/plain 校验；protected Copy 只在同一 Pasteboard `changeCount` 下连续两次候选一致后接受。真实根因是 Flux `public.html` 中无 charset 的 UTF-8 raw NBSP 被 data parser 误解码成 `Â + NBSP`，造成 rich/plain 假冲突后降级到无表格 RTF。HTML 现优先按 UTF-8 原生字符串解析，非 UTF-8 保留原有 fallback；严格可见文本校验未放宽。最终真实 Flux 审计已从 0 个表格变为 1 个，并保持焦点和剪贴板恢复；等待项目所有者查看原文/真实 Provider 界面复验。
 
 TASK-028 已完成：结构化翻译合同、受保护 Copy-only 划词、Quick Input 富 Paste、完成态原生 Markdown、GFM 表格/粗体、Markdown/纯文本复制、Paper Lantern 菜单身份位，以及混合表格布局崩溃和滚动抽搐修复均已进入固定 Release App。项目所有者完成真实翻译和界面复验后明确授权收束、合并 `main` 与 push；实现提交为 `6b302e5`。
 
@@ -27,7 +29,7 @@ Blocked tasks:
 
 ## Current objective
 
-TASK-028 已完成并返回发布验证阶段。schema v3 的 `plainText` / `semanticMarkdown`、Provider capability、Copy-only 富 representation 采集、Quick Input 原生 Paste、完成态原生渲染、GFM 表格/粗体、连续选择和双复制入口均已自动化覆盖并由固定 Release App 验证。额外 Zen/GitHub 应用覆盖保留为发布验证广度；截图结构 OCR、实时增量渲染和同次 HTML/RTF 多 representation 输出复制仍不在当前实现基线内。当前没有 Active 实现 Task；选择下一项工作前必须先按项目规则激活对应 Task。
+TASK-029 当前目标是让 literal HTML 与 source-owned rich representation 两条表格输入路径都可靠：literal HTML 继续在请求前归一成简单 GFM；Flux Markdown 等来源的 rich representation 必须按正确字符编码本地解析、通过 GFM-aware 可见文本校验，并在 protected Copy 候选稳定后进入 Provider。复杂、真实冲突或无法解码的输入仍诚实降级，不能用“富内容更长”绕过 plain evidence。
 
 TASK-023 已完成整体代码审查、自动化验证与固定 Release 测试 App 交付：Rust 翻译与模型列表取消从 10ms 轮询改为事件驱动唤醒，SSE 单个未完成帧增加 1 MiB 内存上限，严格 Clippy 与 shell 语法检查纳入统一验证，5 个公开 unsafe FFI 函数补齐安全合同；`artifacts/Marla_dev.app` 已重建并通过稳定签名验证。
 
@@ -94,6 +96,7 @@ TASK-015 已完成；项目所有者已确认关闭跨应用划词验证（RV-00
 
 ## Latest verification
 
+- TASK-029：literal HTML table 样本与安全降级矩阵、完整 GFM/task-list 与等价 plain projection、不完整 plain 拒绝、同一 `changeCount` 下渐进候选稳定观察、真实 Flux 行首 U+FFFC checkbox projection，以及无 charset UTF-8 raw NBSP HTML 均已进入回归。最终 `./scripts/check.sh` 全绿：20 项 Rust、144 项 Swift（3 项 Vision host 限制 skip）、Swift Package、Xcode Debug、结构门禁、格式、shell、空白与 diff 检查均通过。`./scripts/build-test-app.sh` 已重建并验证固定 `artifacts/Marla_dev.app` 的 Bundle ID `com.marla.app`、版本 0.1.0、macOS 14.0+、arm64、Paper Lantern 资源、稳定签名 `API Usage Monitor Dev` 与 designated requirement。最终真实 Flux 混合选区脱敏审计得到 `semanticMarkdownTableCount=1`（修复前为 0）、`clipboardPreserved=true`、`focusPreserved=true`，项目所有者的查看原文/真实 Provider 界面复验仍待完成。
 - TASK-028 已完成于实现提交 `6b302e5`。最终合并前在沙盒外运行 `./scripts/check.sh` 全绿：严格 Rust formatting/Clippy、20 项 Rust、全部 Swift/Pasteboard 测试、Swift Package、Xcode Debug、结构门禁、shell 语法、空白与 diff 检查均通过；`./scripts/build-test-app.sh` 重建并验证固定稳定签名 Release App。
 - TASK-028 的混合表格崩溃定位为 `MarkdownSelectableTextView.layout()` 中 intrinsic size 自失效造成的 AppKit/SwiftUI 布局递归；后续表格横跳和滚动条显隐抽搐由单一原生 `NSScrollView`、overlay 纵向 scroller、关闭水平弹性及等价文档输入快照修复。项目所有者确认真实混合选择不再崩溃、表格和纵向滚动“正常啦”，并在真实 Provider、FluxMarkdown、Quick Input、复制和完成态渲染复验后授权 Task 收束。浅色/深色固定 fixture 五维复审为 8/8/8/9/7。
 - TASK-023：`./scripts/check.sh` 通过严格 Rust formatting/Clippy、20 项 Rust、84 项 MarlaApp（3 项 Vision 图形服务限制 skip）、13 项 MarlaCore、Swift Package、Xcode Debug、3 个 shell 脚本语法、空白与 diff 检查。新增回归证明事件驱动取消会即时唤醒并保持幂等，SSE 未完成帧在 1 MiB 边界后被拒绝。`./scripts/build-test-app.sh` 随后成功重建固定 Release；`artifacts/Marla_dev.app` 通过 Bundle ID `com.marla.app`、版本 0.1.0、macOS 14.0+、arm64、稳定签名 `API Usage Monitor Dev` 和 designated requirement 验证，已交付项目所有者现场查看。

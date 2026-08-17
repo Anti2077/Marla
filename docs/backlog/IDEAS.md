@@ -29,7 +29,7 @@
 | IDEA-010 | 多翻译 API 配置与窗口内切换 | Promoted | TASK-005 已实现核心行为；TASK-006 重构其设置入口 |
 | IDEA-011 | 多路径选区桥接（Copy / PopClip / Service） | Promoted | TASK-028 已将受保护 Copy 升级为唯一生产内容路线；Copy 菜单与 PopClip/Service 仍待后续决策 |
 | IDEA-012 | 母语/第二语言驱动的自动语言路由与日语支持 | Implemented | TASK-019 完成首期实现与验证 |
-| IDEA-013 | 结构感知的多格式流式翻译管线 | Promoted | TASK-028 已实现结构合同、Quick Input Markdown 与完成态原生渲染；其余切片仍在本 Idea |
+| IDEA-013 | 结构感知的多格式流式翻译管线 | Promoted | TASK-028 已完成结构合同、Quick Input Markdown，以及流式/完成态共用原生投影；其余切片仍在本 Idea |
 
 ---
 
@@ -683,7 +683,7 @@ Related: `TASK-015-deep-selection-reliability.md`、`inline-translation.md`、`S
 
 ### 下一步
 
-TASK-015 的历史 Copy fallback 切片已完成；TASK-028 负责当前 Copy-only 合同的真实跨应用复验。Copy 菜单或 PopClip/Service 直传如被项目所有者选中，需另行立 Task 评估。
+TASK-015 的历史 Copy fallback 切片与 TASK-028 的当前 Copy-only 合同均已完成；额外跨应用广度属于发布验证证据。Copy 菜单或 PopClip/Service 直传如被项目所有者选中，需另行立 Task 评估。
 
 
 ## IDEA-012：母语/第二语言驱动的自动语言路由与日语支持
@@ -822,7 +822,7 @@ TASK-019 已完成首期实现、自动化、固定签名 Release 打包和真�
 
 ## IDEA-013：结构感知的多格式流式翻译管线
 
-Status: Promoted to TASK-028 (structured foundation / Quick Input Markdown slice)
+Status: Promoted to TASK-028 (foundation and reopened streaming-projection slice completed; future slices remain here)
 
 Priority: Unranked
 
@@ -838,7 +838,7 @@ Related: IDEA-003、IDEA-004、IDEA-011、`DATA_CONTRACTS.md`、ADR-0004、ADR-0
 
 ### 用户问题与价值
 
-网页、Notion、Obsidian、文本编辑器和其它 macOS 应用在复制选区时，常会同时提供纯文本、HTML、RTF 或其它富文本 representation。TASK-028 已在工作树打通 Quick Input 富 Paste，并把受保护模拟 Copy 设为唯一生产划词内容源：可靠结构以 `semanticMarkdown` 进入翻译，证据冲突或普通字符串降级为 `plainText`；AX 不再提供内容，Vision OCR 仍只提供纯文本。真实跨应用样本、结构 OCR、实时渲染和多格式输出复制仍需要后续验证或切片。
+网页、Notion、Obsidian、文本编辑器和其它 macOS 应用在复制选区时，常会同时提供纯文本、HTML、RTF 或其它富文本 representation。TASK-028 已打通 Quick Input 富 Paste，并把受保护模拟 Copy 设为唯一生产划词内容源：可靠结构以 `semanticMarkdown` 进入翻译，证据冲突或普通字符串降级为 `plainText`；AX 不再提供内容，Vision OCR 仍只提供纯文本。2026-08-16 已验证完成态原生投影；2026-08-17 重开范围进一步完成并验证了有界合并的流式原生投影与统一 TextKit 高度测量。结构 OCR 和 HTML/RTF 多 representation 输出复制仍需要后续切片。
 
 项目所有者希望“结构化保留”成为底层管线的一等公民，并且不限于 Markdown。这里的一等公民指：管线知道内容来自哪种格式，保留可用的语义结构和格式化输入/输出，不把纯文本当作唯一模型；它不表示翻译前后的 Markdown AST、Block 或 Inline 标记必须严格同构。
 
@@ -880,11 +880,11 @@ Rust 继续拥有 Provider 适配、提示词、HTTP/SSE、取消、超时和规
 - 允许根据目标语言自然语序调整、合并、拆分或省略语言成分；
 - 不翻译或损坏受保护的代码、URL、变量、命令和占位符。
 
-模型输出的 Markdown 应以增量形式进入现有流式会话，而不是先剥离格式再传给 Swift。TASK-028 已选择在流式阶段显示原始 Markdown 字符，会话进入 `completed` 后切换为安全的原生富文本投影，同时始终保留、复制完整 Markdown；是否进一步增加实时增量渲染，仍需后续真实结果卡实验决定。
+模型输出的 Markdown 应以增量形式进入现有流式会话，而不是先剥离格式再传给 Swift。2026-08-16 的已验证基线在流式阶段显示原始 Markdown 字符，并在 `completed` 后切换原生投影；2026-08-17 重开范围改为首个非空增量后即尝试同一安全原生只读投影。未闭合或暂不可解析的快照显示当前原始字符，canonical Markdown 始终原样保留。过密更新以约 40ms 的有界间隔合并，避免逐字符重建整份 attributed document 或让窗口动画互相覆盖；这不是跨事件持久化的增量 AST。
 
-TASK-028 的完成态投影进一步规定：使用一个连续的原生可选中文本表面，允许选择跨越标题、段落、列表、引用、代码和表格；格式良好的 GFM pipe table 支持表头、行、列、空单元格、转义/代码 pipe 与对齐信息，解析识别并在 canonical Markdown/复制 Markdown 中保留 GFM 对齐标记，但完成态本地投影视觉统一居中表头和所有单元格，不按 `:---` / `---:` 做左/右对齐。`**strong**`/`__strong__` 在段落、列表、链接和斜体组合中保持可见加粗，畸形表格回退规范 Markdown。该能力只针对翻译结果，不宣称 Vision/OCR 恢复截图表格。主复制写出规范 Markdown，菜单纯文本复制写出链接标签和 TSV 表格；二者以及选择 `⌘C` 只移除末尾非语义 `\n`/`\r`，不修改规范文本，不产生 HTML/RTF 多 representation。
+TASK-028 的流式与完成态投影共用一个连续的原生可选中文本表面，允许选择跨越标题、段落、列表、引用、代码和表格；流式游标只属于 attributed document 的视觉状态，不进入选区复制或 canonical Markdown。格式良好的 GFM pipe table 支持表头、行、列、空单元格、转义/代码 pipe 与对齐信息，解析识别并在 canonical Markdown/复制 Markdown 中保留 GFM 对齐标记，但本地投影视觉统一居中表头和所有单元格，不按 `:---` / `---:` 做左/右对齐。`**strong**`/`__strong__` 在段落、列表、链接和斜体组合中保持可见加粗，畸形表格或暂不可解析的流式片段回退当前原始 Markdown。该能力只针对翻译结果，不宣称 Vision/OCR 恢复截图表格。主复制写出规范 Markdown，菜单纯文本复制写出链接标签和 TSV 表格；二者以及选择 `⌘C` 只移除末尾非语义 `\n`/`\r`，不修改规范文本，不产生 HTML/RTF 多 representation。
 
-表格固定在结果卡正文可用宽度内。每列按表头和全部单元格中最长可见文本计算相对列宽，并设置合理最低/最高权重；超出列宽的单元格自然换行，标题、段落、列表、引用和代码保持固定不移动。单一连续原生选区与跨块选择合同保持不变。380pt/760pt、浅色/深色、Reduce Motion、表格换行与选择手势的真实验收仍未完成。
+表格固定在结果卡正文可用宽度内。每列按表头和全部单元格中最长可见文本计算相对列宽，并设置合理最低/最高权重；超出列宽的单元格自然换行，标题、段落、列表、引用和代码保持固定不移动。单一连续原生选区与跨块选择合同保持不变。完成态与流式投影均已在 380pt/760pt、浅色/深色、Reduce Motion 下完成表格换行、单一纵向滚动、选择手势和高度验收。流式和完成态使用同一 attributed document/TextKit 高度语义，完成事件移除游标后执行最终高度校正；长内容仍在可见工作区 60% 封顶，由单一原生纵向滚动 owner 承担溢出，不启用水平滚动或横向弹性。
 
 专用翻译 Provider 不一定接受或遵守系统提示词，因此需要 Provider capability 和实测矩阵。不能仅因普通文本翻译成功，就宣称该 Provider 支持结构感知输出。
 
@@ -901,7 +901,7 @@ TASK-028 的完成态投影进一步规定：使用一个连续的原生可选�
 
 ### 与现有数据合同的关系
 
-`DATA_CONTRACTS.md` 和 `UX_PRINCIPLES.md` 已把稳定 Block ID 作为 OCR、流式更新和对照呈现的基础。TASK-028 已把运行时请求升级为 FFI schema v3，并用 `plainText` / `semanticMarkdown` 表达源内容格式；Quick Input 与划词入口按可靠证据归一富文本，结果卡在完成态使用原生富文本投影，同时保存和复制完整 Markdown 字符串。后续推进结构 OCR 或实时增量渲染时，仍需明确区分两种含义：
+`DATA_CONTRACTS.md` 和 `UX_PRINCIPLES.md` 已把稳定 Block ID 作为 OCR、流式更新和对照呈现的基础。TASK-028 已把运行时请求升级为 FFI schema v3，并用 `plainText` / `semanticMarkdown` 表达源内容格式；Quick Input 与划词入口按可靠证据归一富文本，结果卡在流式和完成态使用同一原生富文本投影，同时保存和复制完整 Markdown 字符串。后续推进结构 OCR 或持久化增量 AST 时，仍需明确区分两种含义：
 
 - 稳定 ID 可以继续标识采集结果、截图行、会话更新或能够可靠对应的展示分组；
 - 稳定 ID 不应被解释为所有原文语义节点都必须在译文中一一存在，模型生成的目标语言结构允许自然变化。
@@ -918,7 +918,7 @@ TASK-028 的完成态投影进一步规定：使用一个连续的原生可选�
 
 ### 性能与内存影响
 
-富文本读取、HTML/RTF 转 Markdown、清洗和解析会增加触发到请求之间的本地工作；它们不能阻塞结果卡壳层出现，并需设置输入大小、解析时间和临时数据生命周期上限。Markdown 提示词可能比纯文本更长，需要测量 TTFT、总耗时和 token 成本。流式增量解析不能在每个 token 上重建整棵文档或反复导致结果卡几何跳动。
+富文本读取、HTML/RTF 转 Markdown、清洗和解析会增加触发到请求之间的本地工作；它们不能阻塞结果卡壳层出现，并需设置输入大小、解析时间和临时数据生命周期上限。Markdown 提示词可能比纯文本更长，需要测量 TTFT、总耗时和 token 成本。流式投影以约 40ms 的有界间隔合并过密更新，不能在每个 token/字符上重建整份 attributed document，或让正文测量、滚动条显隐与外层窗口动画形成循环竞态。
 
 ### 风险与未知
 
@@ -928,12 +928,12 @@ TASK-028 的完成态投影进一步规定：使用一个连续的原生可选�
 - 泛用模型可能改变列表层级、表格列数、代码围栏或链接，专用 MT Provider 可能完全忽略格式要求；
 - “大致保持结构”的质量阈值尚未量化，过严会损害翻译，过松则让结构化输入失去价值；
 - 未完成 Markdown 在流式阶段可能暂时不可解析，实时渲染容易闪动或重排；
-- 受保护 Copy 是唯一生产划词内容源；不支持标准 Copy 的应用会明确失败并引导 Quick Input，不再使用 AX 纯文本兜底；真实跨应用行为仍需验收；
+- 受保护 Copy 是唯一生产划词内容源；不支持标准 Copy 的应用会明确失败并引导 Quick Input，不再使用 AX 纯文本兜底；额外应用覆盖仍需作为发布验证广度持续收集；
 - 当前对照模式对稳定 Block ID 的要求与目标语言自由重组之间存在需要显式解决的张力。
 
 ### 与当前发布的关系
 
-TASK-028 已在当前工作树实现共享格式合同、Quick Input 富 Paste、受保护 Copy-only 划词内容归一和完成态原生渲染；AX 不再提供内容，Vision 仍为明确纯文本。真实 FluxMarkdown、Zen/GitHub 和 Provider 请求留在 Active Task 内验收；结构 OCR、实时增量渲染和 HTML/RTF 多 representation 输出复制继续是未授权的后续想法，不自动改变截图隐私边界或现有发布合同。
+TASK-028 已实现并验证共享格式合同、Quick Input 富 Paste、受保护 Copy-only 划词内容归一、完成态与流式原生渲染、统一 TextKit 高度测量和完成态最终校正；AX 不再提供内容，Vision 仍为明确纯文本。结构 OCR、持久化增量 AST 和 HTML/RTF 多 representation 输出复制继续是未授权的后续想法，不自动改变截图隐私边界或现有发布合同。
 
 ### 剩余切片进入开发的条件
 
@@ -941,21 +941,20 @@ TASK-028 已在当前工作树实现共享格式合同、Quick Input 富 Paste�
 2. 用真实跨应用样本继续验证 TASK-028 已定义的 HTML、RTF、`NSAttributedString`、Markdown 与纯文本选择、清洗、转换和降级规则；
 3. 用包含标题、嵌套列表、表格、引用、代码、链接、变量与占位符的多语言样本评测各 Provider 的 Markdown 遵循度、译文自然度、TTFT、成本和失败率；
 4. 明确“大致保持结构”的可接受标准、受保护内容范围以及无效 Markdown 的重试/降级行为；
-5. 在已验证的“流式原始字符、完成态原生渲染”基线之上，评估是否需要实时增量渲染，并验证卡片稳定增长、滚动、复制和 Reduce Motion；实时渲染不属于当前交付，必须单独评估未闭合 Markdown、重排和性能；
-6. 在当前 ADR-0006 受保护 Copy-only 边界上复验跨应用 Pasteboard 恢复；若未来增加输出 representation，再单独评估 ADR、数据合同和 FFI 影响；
-7. TASK-028 完成真实固定 App 的划词、Quick Input 与 Provider 验收后，再选择结构 OCR、实时增量渲染或多格式输出复制中的一个后续窄切片；不与 IDEA-003 或 IDEA-004 同时完整开发。
+5. 在当前 ADR-0006 受保护 Copy-only 边界上扩展跨应用 Pasteboard 恢复证据；若未来增加输出 representation，再单独评估 ADR、数据合同和 FFI 影响；
+6. 若项目所有者选择继续该 Idea，再从结构 OCR、持久化增量 AST 或多格式输出复制中选择一个后续窄切片；不与 IDEA-003 或 IDEA-004 同时完整开发。
 
 ### 尚未决定
 
 - 不同真实应用的 representation 是否都能通过当前优先级、可见文本校验和诚实降级；
-- 后续是否以及何时从“流式原始字符、完成态富渲染”升级为实时增量渲染；
+- 当前有界流式投影在真实 Provider 的高频增量、未闭合表格和长文档上是否需要调整约 40ms 合并策略；
 - 哪些格式信息属于必须保留的语义，哪些应作为不承诺的视觉样式丢弃；
 - 哪些 Provider 达到结构感知支持门槛，是否允许按 profile 关闭或降级；
 - 翻译完成后复制哪些 Pasteboard representation，以及 Markdown 与 HTML/RTF 的转换所有权位于 Swift 还是 Rust。
 
 ### 下一步
 
-项目所有者已在 `TASK-028` 实现共享格式化内容合同、Provider capability、Quick Input 富 Paste、受保护 Copy-only 划词内容归一与完成态原生渲染；`qwen-mt-turbo` 的真实 Markdown 样本已验证输入、输出和累计流。真实 FluxMarkdown、Zen/GitHub 与 Provider 请求继续在该 Active Task 验收；截图结构 OCR、实时增量渲染与多格式输出复制仍保留在本 Idea，等待后续阶段选择。
+项目所有者已在 `TASK-028` 实现并验证共享格式化内容合同、Provider capability、Quick Input 富 Paste、受保护 Copy-only 划词内容归一，以及完成态/流式原生渲染；`qwen-mt-turbo` 的真实 Markdown 样本已验证输入、输出和累计流。2026-08-17 重开范围完成了首个非空增量后的原生投影、约 40ms 有界合并、统一 TextKit 高度语义和完成态最终校正，并通过自动化、固定 App 视觉证据和项目所有者验收。截图结构 OCR、持久化增量 AST 与多格式输出复制仍保留在本 Idea，等待后续阶段选择。
 
 
 ## 新想法模板

@@ -38,7 +38,7 @@ When a completed selection result is `semanticMarkdown`, its body is one continu
 
 The primary copy control copies canonical Markdown, removing only terminal non-semantic `\n`/`\r`. A menu-only plain-text copy derives link labels and TSV tables without mutating canonical content. Selection `⌘C` applies the same terminal-newline policy and does not emit HTML/RTF multi-representation output. Meaningful line breaks remain in session state.
 
-The redacted audit may compare complete pre/post Pasteboard snapshots and report only lifecycle state; it never serializes copied content or representations. The previous Codex and WeChat acceptance evidence was collected against the superseded AX-first/optional-Copy path. TASK-028 therefore requires new fixed-App verification of Copy acquisition, rich-representation normalization, full restoration, focus preservation, failure messaging, and the Quick Input escape path.
+The redacted audit may compare complete pre/post Pasteboard snapshots and report only lifecycle state; it never serializes copied content or representations. The previous Codex and WeChat acceptance evidence was collected against the superseded AX-first/optional-Copy path. TASK-028 added and completed fixed-App verification of Copy acquisition, rich-representation normalization, full restoration, focus preservation, failure messaging, and the Quick Input escape path; broader application coverage remains release evidence rather than an implementation blocker.
 
 ## Degradation
 
@@ -56,7 +56,7 @@ The redacted audit may compare complete pre/post Pasteboard snapshots and report
 - Missing or multi-line geometry never claims line-perfect source covering.
 - Escape or outside interaction can dismiss transient output.
 - Streaming updates do not repeatedly move the panel.
-- Completed GFM tables measure each column from the longest visible header/cell text with reasonable minimum and maximum weights, wrap overflowing cells naturally within the card body, and keep other blocks fixed while preserving the continuous result/cross-block selection contract. The 380pt/760pt, light/dark, Reduce Motion, wrapping, and cross-block-selection checks remain pending.
+- Completed GFM tables measure each column from the longest visible header/cell text with reasonable minimum and maximum weights, wrap overflowing cells naturally within the card body, and keep other blocks fixed while preserving the continuous result/cross-block selection contract. The 380pt/760pt, light/dark, Reduce Motion, wrapping, and cross-block-selection checks are verified under TASK-028.
 
 ## Not included
 

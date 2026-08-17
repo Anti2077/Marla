@@ -149,6 +149,67 @@ final class MarkdownResultTextTests: XCTestCase {
         )
     }
 
+    @MainActor
+    func testCodeStylingUsesCustomRoundedBackgroundAttributes() throws {
+        let markdown = """
+        First `TOKEN`.
+        Second `VALUE`.
+
+        ```zsh
+        npm install
+        npm run dev
+        ```
+        """
+        let document = try XCTUnwrap(MarkdownResultDocument.parse(markdown))
+        let rendered = MarkdownResultAttributedDocument.build(document)
+
+        let inlineRange = (rendered.string as NSString).range(of: "TOKEN")
+        XCTAssertNotEqual(inlineRange.location, NSNotFound)
+        XCTAssertNil(rendered.attribute(.backgroundColor, at: inlineRange.location, effectiveRange: nil))
+        XCTAssertNotNil(rendered.attribute(.marlaInlineCodeBackground, at: inlineRange.location, effectiveRange: nil))
+
+        let blockRange = (rendered.string as NSString).range(of: "npm install")
+        XCTAssertNotEqual(blockRange.location, NSNotFound)
+        XCTAssertNotNil(rendered.attribute(.marlaCodeBlockBackground, at: blockRange.location, effectiveRange: nil))
+        XCTAssertNotNil(rendered.attribute(.marlaCodeBlockBorder, at: blockRange.location, effectiveRange: nil))
+        let paragraph = try XCTUnwrap(
+            rendered.attribute(.paragraphStyle, at: blockRange.location, effectiveRange: nil)
+                as? NSParagraphStyle
+        )
+        let textBlock = try XCTUnwrap(paragraph.textBlocks.first)
+        XCTAssertNil(textBlock.backgroundColor)
+        XCTAssertNil(textBlock.borderColor(for: .minX))
+
+        let textView = MarkdownSelectableTextView(frame: .zero)
+        textView.textStorage?.setAttributedString(rendered)
+        textView.setSelectedRange(NSRange(location: 0, length: rendered.length))
+        XCTAssertEqual(
+            textView.selectedTextForCopy(),
+            rendered.string.removingTrailingLineBreaks()
+        )
+    }
+
+    @MainActor
+    func testInlineCodeBackgroundAddsHorizontalPaddingAndLeavesVerticalSeparation() {
+        let font = NSFont.monospacedSystemFont(ofSize: 13, weight: .regular)
+        let firstGlyphRect = NSRect(x: 10, y: 0, width: 40, height: 24)
+        let secondGlyphRect = NSRect(x: 10, y: 24, width: 40, height: 24)
+
+        let first = MarkdownSelectableTextView.inlineCodeBackgroundRect(
+            for: firstGlyphRect,
+            font: font
+        )
+        let second = MarkdownSelectableTextView.inlineCodeBackgroundRect(
+            for: secondGlyphRect,
+            font: font
+        )
+
+        XCTAssertEqual(first.minX, firstGlyphRect.minX - 3, accuracy: 0.001)
+        XCTAssertEqual(first.maxX, firstGlyphRect.maxX + 3, accuracy: 0.001)
+        XCTAssertLessThan(first.height, firstGlyphRect.height)
+        XCTAssertLessThan(first.maxY, second.minY)
+    }
+
     func testPlainTextProjectionRemovesMarkupAndUsesTSVForTables() throws {
         let markdown = """
         # Title
@@ -330,18 +391,286 @@ final class MarkdownResultTextTests: XCTestCase {
         XCTAssertFalse(document.blocks[0].content.runs.contains { $0.imageURL != nil })
     }
 
-    func testOnlyCompletedSemanticMarkdownUsesRichProjection() {
+    func testStreamingAndCompletedSemanticMarkdownUseRichProjection() {
         var session = makeSession(format: .semanticMarkdown, state: .streaming)
+        XCTAssertTrue(session.shouldRenderMarkdownProjection)
         XCTAssertFalse(session.shouldRenderCompletedMarkdown)
 
         session.state = .completed
+        XCTAssertTrue(session.shouldRenderMarkdownProjection)
         XCTAssertTrue(session.shouldRenderCompletedMarkdown)
 
         session.state = .failed(message: "Interrupted")
+        XCTAssertFalse(session.shouldRenderMarkdownProjection)
         XCTAssertFalse(session.shouldRenderCompletedMarkdown)
 
         session = makeSession(format: .plainText, state: .completed)
+        XCTAssertFalse(session.shouldRenderMarkdownProjection)
         XCTAssertFalse(session.shouldRenderCompletedMarkdown)
+    }
+
+    @MainActor
+    func testStreamingProjectionKeepsCanonicalMarkdownAndMarksOnlyItsVisualCursor() throws {
+        let markdown = "# Heading\n\nA paragraph with **strong"
+        var session = makeSession(format: .semanticMarkdown, state: .streaming)
+        session.translation = markdown
+
+        let input = try XCTUnwrap(MarkdownProjectionInput(session: session))
+        let projection = try XCTUnwrap(MarkdownProjectionSnapshot(input: input))
+        var cursorRange = NSRange(location: NSNotFound, length: 0)
+        projection.attributedDocument.enumerateAttribute(
+            .marlaStreamingCursor,
+            in: NSRange(location: 0, length: projection.attributedDocument.length)
+        ) { value, range, stop in
+            guard value != nil else { return }
+            cursorRange = range
+            stop.pointee = true
+        }
+
+        XCTAssertEqual(input.markdown, markdown)
+        XCTAssertEqual(projection.input.phase, .streaming)
+        XCTAssertNotEqual(cursorRange.location, NSNotFound)
+        XCTAssertFalse(projection.document.plainText.contains("│"))
+    }
+
+    @MainActor
+    func testThrottledProjectionRemainsValidForNewerDeltaInTheSameSession() throws {
+        var session = makeSession(format: .semanticMarkdown, state: .streaming)
+        session.translation = "# First snapshot"
+        let firstInput = try XCTUnwrap(MarkdownProjectionInput(session: session))
+        let firstProjection = try XCTUnwrap(MarkdownProjectionSnapshot(input: firstInput))
+        let firstHeight = ResultCardLayout.translationContentHeight(
+            session: session,
+            cardWidth: 380,
+            markdownProjection: firstProjection
+        )
+
+        session.translation += "\n\nA newer delta arrives before the throttled projection updates."
+
+        XCTAssertTrue(firstProjection.matches(session))
+        XCTAssertEqual(
+            ResultCardLayout.translationContentHeight(
+                session: session,
+                cardWidth: 380,
+                markdownProjection: firstProjection
+            ),
+            firstHeight
+        )
+
+        session.state = .completed
+        XCTAssertTrue(firstProjection.matches(session))
+
+        let replacement = makeSession(format: .semanticMarkdown, state: .streaming)
+        XCTAssertFalse(firstProjection.matches(replacement))
+
+        session.state = .failed(message: "Interrupted")
+        XCTAssertFalse(firstProjection.matches(session))
+    }
+
+    @MainActor
+    func testIncompleteStreamingMarkdownNeverChangesItsCanonicalInput() throws {
+        let partials = [
+            "# 标题\n\n**尚未闭合",
+            "[正在生成的链接](https://example.com",
+            "```swift\nlet value = 1",
+            "| 阶段 | 状态 |\n| --- | :---: |\n| 构建 | 进行中",
+        ]
+
+        for markdown in partials {
+            var session = makeSession(format: .semanticMarkdown, state: .streaming)
+            session.translation = markdown
+            let input = try XCTUnwrap(MarkdownProjectionInput(session: session))
+
+            XCTAssertEqual(input.markdown, markdown)
+            if let projection = MarkdownProjectionSnapshot(input: input) {
+                XCTAssertEqual(projection.input.markdown, markdown)
+                XCTAssertFalse(projection.document.plainText.contains("│"))
+            }
+        }
+    }
+
+    @MainActor
+    func testSelectionCopyOmitsTheStreamingCursor() throws {
+        var session = makeSession(format: .semanticMarkdown, state: .streaming)
+        session.translation = "# Streaming\n\nVisible text"
+        let input = try XCTUnwrap(MarkdownProjectionInput(session: session))
+        let projection = try XCTUnwrap(MarkdownProjectionSnapshot(input: input))
+        let textView = MarkdownSelectableTextView(frame: .zero)
+        textView.replaceContentsIfNeeded(with: projection.attributedDocument)
+        textView.setSelectedRange(NSRange(location: 0, length: projection.attributedDocument.length))
+
+        let copied = try XCTUnwrap(textView.selectedTextForCopy())
+        XCTAssertFalse(copied.contains("│"))
+        XCTAssertTrue(copied.contains("Streaming"))
+        XCTAssertTrue(copied.contains("Visible text"))
+    }
+
+    @MainActor
+    func testSourceMarkdownProjectionUsesSemanticSourceWithoutStreamingCursor() throws {
+        let markdown = """
+        # Source
+
+        Keep **emphasis** and `TOKEN`.
+
+        | Field | Value |
+        | --- | :---: |
+        | Format | Markdown |
+        """
+        var session = makeSession(format: .semanticMarkdown, state: .completed)
+        session.sourceText = markdown
+
+        let input = try XCTUnwrap(SourceMarkdownProjectionInput(session: session))
+        let projection = try XCTUnwrap(SourceMarkdownProjectionSnapshot(input: input))
+
+        XCTAssertEqual(input.markdown, markdown)
+        XCTAssertTrue(projection.document.blocks.contains { block in
+            if case .table = block.kind { return true }
+            return false
+        })
+        XCTAssertFalse(projection.attributedDocument.string.contains("│"))
+        XCTAssertTrue(projection.matches(session))
+
+        session.sourceText += "\nChanged"
+        XCTAssertFalse(projection.matches(session))
+    }
+
+    @MainActor
+    func testSourceMarkdownProjectionRejectsPlainTextSource() {
+        let session = makeSession(format: .plainText, state: .completed)
+        XCTAssertNil(SourceMarkdownProjectionInput(session: session))
+    }
+
+    @MainActor
+    func testSourceMarkdownViewportUsesAttributedDocumentAndKeepsTheCap() throws {
+        let rows = (1 ... 20).map { "| \($0) | A source value that wraps naturally |" }
+        let markdown = ([
+            "# Source table",
+            "",
+            "| Step | Value |",
+            "| ---: | :--- |",
+        ] + rows).joined(separator: "\n")
+        var session = makeSession(format: .semanticMarkdown, state: .completed)
+        session.sourceText = markdown
+        session.isComparisonExpanded = true
+        let input = try XCTUnwrap(SourceMarkdownProjectionInput(session: session))
+        let projection = try XCTUnwrap(SourceMarkdownProjectionSnapshot(input: input))
+        let measured = MarkdownResultAttributedDocument.measuredHeight(
+            projection.attributedDocument,
+            width: 380 - ResultCardLayout.outerHorizontalPadding
+        )
+        let viewport = ResultCardLayout.sourceViewportHeight(
+            session: session,
+            cardWidth: 380,
+            sourceMarkdownProjection: projection
+        )
+
+        XCTAssertGreaterThan(measured, ResultCardLayout.maximumSourceViewportHeight)
+        XCTAssertEqual(viewport, ResultCardLayout.maximumSourceViewportHeight)
+    }
+
+    @MainActor
+    func testProjectedMarkdownHeightUsesTheSameAttributedDocumentAtBothWidths() throws {
+        let markdown = """
+        # Release Notes
+
+        A paragraph whose rendered spacing and heading font differ from raw Markdown text measurement.
+
+        | Capability | Current behavior |
+        | :--- | :---: |
+        | Streaming | The native projection grows with the visible document and wraps long cells naturally. |
+        | Completion | The final document is measured again after the streaming cursor disappears. |
+        """
+        var session = makeSession(format: .semanticMarkdown, state: .streaming)
+        session.translation = markdown
+        let streamingInput = try XCTUnwrap(MarkdownProjectionInput(session: session))
+        let streamingProjection = try XCTUnwrap(MarkdownProjectionSnapshot(input: streamingInput))
+        let maximumHeight: CGFloat = 700
+
+        let narrowContentHeight = ResultCardLayout.translationContentHeight(
+            session: session,
+            cardWidth: 380,
+            markdownProjection: streamingProjection
+        )
+        let wideContentHeight = ResultCardLayout.translationContentHeight(
+            session: session,
+            cardWidth: 760,
+            markdownProjection: streamingProjection
+        )
+        let measuredNarrow = MarkdownResultAttributedDocument.measuredHeight(
+            streamingProjection.attributedDocument,
+            width: 380 - ResultCardLayout.outerHorizontalPadding
+        )
+
+        XCTAssertEqual(narrowContentHeight, measuredNarrow, accuracy: 0.5)
+        XCTAssertGreaterThan(narrowContentHeight, wideContentHeight)
+
+        let streamingPanelHeight = ResultCardLayout.preferredPanelHeight(
+            session: session,
+            cardWidth: 380,
+            maximumPanelHeight: maximumHeight,
+            markdownProjection: streamingProjection
+        )
+
+        session.state = .completed
+        let completedInput = try XCTUnwrap(MarkdownProjectionInput(session: session))
+        let completedProjection = try XCTUnwrap(MarkdownProjectionSnapshot(input: completedInput))
+        let completedPanelHeight = ResultCardLayout.preferredPanelHeight(
+            session: session,
+            cardWidth: 380,
+            maximumPanelHeight: maximumHeight,
+            markdownProjection: completedProjection
+        )
+        let completedViewportHeight = ResultCardLayout.translationViewportHeight(
+            session: session,
+            cardWidth: 380,
+            maximumPanelHeight: maximumHeight,
+            markdownProjection: completedProjection
+        )
+
+        XCTAssertEqual(
+            completedPanelHeight,
+            ResultCardLayout.fixedChromeHeight() + completedViewportHeight,
+            accuracy: 0.5
+        )
+        XCTAssertLessThanOrEqual(completedPanelHeight, maximumHeight)
+        XCTAssertLessThanOrEqual(abs(streamingPanelHeight - completedPanelHeight), 24)
+        XCTAssertEqual(completedProjection.input.markdown, markdown)
+    }
+
+    @MainActor
+    func testLongStreamingMarkdownStillCapsAtTheVisibleWorkspaceLimit() throws {
+        let rows = (1 ... 80).map { "| \($0) | A long streaming value that must wrap inside the result card |" }
+        let markdown = ([
+            "# Streaming table",
+            "",
+            "| Step | Result |",
+            "| ---: | :--- |",
+        ] + rows).joined(separator: "\n")
+        var session = makeSession(format: .semanticMarkdown, state: .streaming)
+        session.translation = markdown
+        let input = try XCTUnwrap(MarkdownProjectionInput(session: session))
+        let projection = try XCTUnwrap(MarkdownProjectionSnapshot(input: input))
+        let maximumHeight: CGFloat = 540
+        let contentHeight = ResultCardLayout.translationContentHeight(
+            session: session,
+            cardWidth: 380,
+            markdownProjection: projection
+        )
+        let viewportHeight = ResultCardLayout.translationViewportHeight(
+            session: session,
+            cardWidth: 380,
+            maximumPanelHeight: maximumHeight,
+            markdownProjection: projection
+        )
+        let panelHeight = ResultCardLayout.preferredPanelHeight(
+            session: session,
+            cardWidth: 380,
+            maximumPanelHeight: maximumHeight,
+            markdownProjection: projection
+        )
+
+        XCTAssertGreaterThan(contentHeight, viewportHeight)
+        XCTAssertEqual(panelHeight, maximumHeight)
     }
 
     func testEmptyMarkdownFallsBackToRawDisplay() {

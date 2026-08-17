@@ -214,6 +214,17 @@ final class TranslationSessionStore: ObservableObject {
         recordRecentTranslationIfEligible(session)
     }
 
+    func updateUIAutomationFixture(
+        translation: String,
+        state: TranslationSessionState
+    ) {
+        guard MarlaRuntime.isUIAutomationSnapshot, var current = session else { return }
+        current.translation = translation
+        current.state = state
+        session = current
+        recordRecentTranslationIfEligible(current)
+    }
+
     func submitRecognizedText(_ text: String, for id: UUID) {
         guard session?.id == id else { return }
         guard !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {

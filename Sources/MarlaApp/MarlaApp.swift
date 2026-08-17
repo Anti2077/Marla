@@ -172,6 +172,7 @@ struct MenuBarView: View {
                         .font(AppFont.caption)
                         .foregroundStyle(DesignTokens.secondaryText)
                 }
+                .offset(y: -14)
                 Spacer()
                 Image("PaperLanternMark")
                     .resizable()

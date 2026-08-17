@@ -362,6 +362,10 @@ struct MarkdownResultDocument {
 }
 
 extension CardSession {
+    var shouldRenderMarkdownProjection: Bool {
+        MarkdownProjectionInput(session: self) != nil
+    }
+
     var shouldRenderCompletedMarkdown: Bool {
         guard sourceContent.format == .semanticMarkdown else { return false }
         if case .completed = state { return true }
@@ -370,27 +374,26 @@ extension CardSession {
 }
 
 struct MarkdownResultText: View {
-    let markdown: String
+    let attributedDocument: NSAttributedString
+    let accessibilityText: String
 
-    private var document: MarkdownResultDocument? {
-        MarkdownResultDocument.parse(markdown)
+    init(projection: MarkdownProjectionSnapshot) {
+        attributedDocument = projection.attributedDocument
+        accessibilityText = projection.document.plainText
+    }
+
+    init(sourceProjection: SourceMarkdownProjectionSnapshot) {
+        attributedDocument = sourceProjection.attributedDocument
+        accessibilityText = sourceProjection.document.plainText
     }
 
     var body: some View {
-        if let document {
-            MarkdownResultSelectableText(document: document)
-                .frame(maxWidth: .infinity, alignment: .leading)
-        } else {
-            ScrollView {
-                Text(markdown)
-                    .font(AppFont.translation)
-                    .foregroundStyle(DesignTokens.primaryText)
-                    .textSelection(.enabled)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-            }
-        }
+        MarkdownResultSelectableText(
+            attributedDocument: attributedDocument,
+            accessibilityText: accessibilityText
+        )
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
-
 }
 
 extension String {

@@ -68,6 +68,92 @@ final class NativeFormattedContentTests: XCTestCase {
         XCTAssertTrue(content.text.contains("Finish with one conclusion."), content.text)
     }
 
+    func testLiteralPlainHTMLTableBecomesSemanticMarkdownBeforeTranslation() throws {
+        let item = NSPasteboardItem()
+        let literalHTML = #"<table border="1"><tr><td>Item</td><td>Expected</td><td>Actual</td></tr><tr><td>Build number</td><td>${BUILD_ID}$</td><td>${BUILD_ID}$</td></tr><tr><td>Minimum system</td><td>macOS 14</td><td>${MIN_OS}$</td></tr><tr><td>Status</td><td>ready</td><td>${STATUS}$</td></tr></table>"#
+        item.setString(literalHTML, forType: .string)
+
+        let content = try XCTUnwrap(NativeFormattedContentNormalizer.content(from: [item]))
+
+        XCTAssertEqual(content.format, .semanticMarkdown)
+        XCTAssertEqual(
+            content.text,
+            """
+            | Item | Expected | Actual |
+            | --- | --- | --- |
+            | Build number | ${BUILD_ID}$ | ${BUILD_ID}$ |
+            | Minimum system | macOS 14 | ${MIN_OS}$ |
+            | Status | ready | ${STATUS}$ |
+            """
+        )
+    }
+
+    func testLiteralHTMLTablePreservesMixedTextEntitiesPipesAndEmptyCells() throws {
+        let item = NSPasteboardItem()
+        let literalHTML = """
+        Before the table.
+        <table>
+          <tr><th>Name</th><th>Value</th><th>Empty</th></tr>
+          <tr><td>A &amp; B</td><td>left | right</td><td></td></tr>
+        </table>
+        After the table.
+        """
+        item.setString(literalHTML, forType: .string)
+
+        let content = try XCTUnwrap(NativeFormattedContentNormalizer.content(from: [item]))
+
+        XCTAssertEqual(content.format, .semanticMarkdown)
+        XCTAssertEqual(
+            content.text,
+            """
+            Before the table.
+
+            | Name | Value | Empty |
+            | --- | --- | --- |
+            | A & B | left \\| right |  |
+
+            After the table.
+            """
+        )
+    }
+
+    func testLiteralHTMLTableUsesTheSharedPlainTextBoundary() throws {
+        let literalHTML = "<table><tr><td>Key</td><td>Value</td></tr><tr><td>ID</td><td>${ID}$</td></tr></table>"
+
+        let content = try XCTUnwrap(
+            NativeFormattedContentNormalizer.content(from: literalHTML as CFString)
+        )
+
+        XCTAssertEqual(content.format, .semanticMarkdown)
+        XCTAssertTrue(content.text.contains("| ID | ${ID}$ |"), content.text)
+    }
+
+    func testLiteralHTMLTableRejectsComplexMalformedEmptyAndCodeExamples() throws {
+        let unsupportedSamples = [
+            "<table><tr><td rowspan=\"2\">A</td><td>B</td></tr><tr><td>C</td></tr></table>",
+            "<table><tr><td>A</td></tr><tr><td>B</td><td>C</td></tr></table>",
+            "<table><tr><td>Outer<table><tr><td>Inner</td></tr></table></td></tr></table>",
+            "<table><tr><td>Missing close</tr></table>",
+            "<table><tr><td></td></tr></table>",
+            "<table><tr><td>Visible</td></tr><span>Dropped text</span></table>",
+            "```html\n<table><tr><td>Code example</td></tr></table>\n```",
+            "```html\n~~~\n<table><tr><td>Still fenced</td></tr></table>\n```",
+            "Use ``<table><tr><td>inline code</td></tr></table>`` as an example.",
+            "Use <T> for a generic type, not a table.",
+        ]
+
+        for sample in unsupportedSamples {
+            let item = NSPasteboardItem()
+            item.setString(sample, forType: .string)
+
+            XCTAssertEqual(
+                NativeFormattedContentNormalizer.content(from: [item]),
+                .plainText(sample),
+                sample
+            )
+        }
+    }
+
     func testHTMLVisibleTextMismatchFallsBackToPlainText() throws {
         let item = NSPasteboardItem()
         item.setData(Data("<p>Visible</p><p>Unexpected hidden payload</p>".utf8), forType: .html)
@@ -209,6 +295,134 @@ final class NativeFormattedContentTests: XCTestCase {
         let content = try XCTUnwrap(NativeFormattedContentNormalizer.content(from: [item]))
 
         XCTAssertEqual(content, .semanticMarkdown("# Heading\n\n**Bold**"))
+    }
+
+    func testExplicitGFMTableMatchesRenderedPlainProjection() throws {
+        let item = NSPasteboardItem()
+        let markdown = """
+        #### Acceptance Items
+
+        - [ ] Heading and list hierarchy is correct
+        - [ ] Inline code `MARLA_API_KEY` is not translated
+
+        | Item | Expected | Actual |
+        | --- | --- | --- |
+        | Build number | `${BUILD_ID}` | `{{BUILD_ID}}` |
+        | Minimum system | macOS 14 | `{{MIN_OS}}` |
+        | Status | ready | `{{STATUS}}` |
+        """
+        let visiblePlainText = """
+        Acceptance Items
+        Heading and list hierarchy is correct
+        Inline code MARLA_API_KEY is not translated
+        Item\tExpected\tActual
+        Build number\t${BUILD_ID}\t{{BUILD_ID}}
+        Minimum system\tmacOS 14\t{{MIN_OS}}
+        Status\tready\t{{STATUS}}
+        """
+        item.setString(markdown, forType: .init("net.daringfireball.markdown"))
+        item.setString(visiblePlainText, forType: .string)
+
+        let content = try XCTUnwrap(NativeFormattedContentNormalizer.content(from: [item]))
+
+        XCTAssertEqual(content, .semanticMarkdown(markdown))
+    }
+
+    func testExplicitGFMTableMatchesFluxCheckboxObjectProjection() throws {
+        let item = NSPasteboardItem()
+        let markdown = """
+        ### Acceptance Items
+
+        - [ ] Heading and list hierarchy is correct
+        - [ ] Link destinations are unchanged
+        - [ ] Inline code `MARLA_API_KEY` is not translated
+        - [ ] The copied result remains complete Markdown
+
+        | Item | Expected | Actual |
+        | --- | --- | --- |
+        | Build number | `${BUILD_ID}` | `{{BUILD_ID}}` |
+        | Minimum system | macOS 14 | `{{MIN_OS}}` |
+        | Status | ready | `{{STATUS}}` |
+        """
+        let fluxPlainText = """
+        Acceptance Items
+
+        \u{FFFC} Heading and list hierarchy is correct
+        \u{FFFC} Link destinations are unchanged
+        \u{FFFC} Inline code MARLA_API_KEY is not translated
+        \u{FFFC} The copied result remains complete Markdown
+        Item\tExpected\tActual
+        Build number\t${BUILD_ID}\t{{BUILD_ID}}
+        Minimum system\tmacOS 14\t{{MIN_OS}}
+        Status\tready\t{{STATUS}}
+        """
+        item.setString(markdown, forType: .init("net.daringfireball.markdown"))
+        item.setString(fluxPlainText, forType: .string)
+
+        let content = try XCTUnwrap(NativeFormattedContentNormalizer.content(from: [item]))
+
+        XCTAssertEqual(content, .semanticMarkdown(markdown))
+    }
+
+    func testFluxUTF8HTMLWithRawNonbreakingSpacesPreservesTableStructure() throws {
+        let item = NSPasteboardItem()
+        let html = """
+        <article>
+          <h3>Acceptance Items</h3>
+          <ul>
+            <li><input type="checkbox"> Heading and list hierarchy is correct</li>
+            <li><input type="checkbox"> Link destinations are unchanged</li>
+            <li><input type="checkbox"> Inline code <code>MARLA_API_KEY</code> is not translated</li>
+            <li><input type="checkbox"> The copied result remains complete Markdown</li>
+          </ul>
+          <table>
+            <thead><tr><th>Item</th><th>Expected</th><th>Actual</th></tr></thead>
+            <tbody>
+              <tr><td>Build number</td><td><code>${BUILD_ID}</code></td><td><code>{{BUILD_ID}}</code></td></tr>
+              <tr><td>Minimum system</td><td>macOS 14</td><td><code>{{MIN_OS}}</code></td></tr>
+              <tr><td>Status</td><td>ready</td><td><code>{{STATUS}}</code></td></tr>
+            </tbody>
+          </table>
+        </article>
+        """
+        let fluxPlainText = """
+        Acceptance Items
+
+        \u{FFFC} Heading and list hierarchy is correct
+        \u{FFFC} Link destinations are unchanged
+        \u{FFFC} Inline code MARLA_API_KEY is not translated
+        \u{FFFC} The copied result remains complete Markdown
+        Item\tExpected\tActual
+        Build number\t${BUILD_ID}\t{{BUILD_ID}}
+        Minimum system\tmacOS 14\t{{MIN_OS}}
+        Status\tready\t{{STATUS}}
+        """
+        item.setData(Data(html.utf8), forType: .html)
+        item.setString(fluxPlainText, forType: .string)
+
+        let content = try XCTUnwrap(NativeFormattedContentNormalizer.content(from: [item]))
+        let document = try XCTUnwrap(MarkdownResultDocument.parse(content.text))
+
+        XCTAssertEqual(content.format, .semanticMarkdown)
+        XCTAssertEqual(document.blocks.filter { if case .table = $0.kind { true } else { false } }.count, 1)
+        XCTAssertTrue(content.text.contains("| Item | Expected | Actual |"), content.text)
+        XCTAssertTrue(content.text.contains("| Status | ready | `{{STATUS}}` |"), content.text)
+    }
+
+    func testExplicitGFMTableStillRejectsIncompletePlainProjection() throws {
+        let item = NSPasteboardItem()
+        let markdown = """
+        | Item | Expected | Actual |
+        | --- | --- | --- |
+        | Build number | `${BUILD_ID}` | `{{BUILD_ID}}` |
+        """
+        let incompletePlainText = "Item\tExpected\tActual"
+        item.setString(markdown, forType: .init("net.daringfireball.markdown"))
+        item.setString(incompletePlainText, forType: .string)
+
+        let content = try XCTUnwrap(NativeFormattedContentNormalizer.content(from: [item]))
+
+        XCTAssertEqual(content, .plainText(incompletePlainText))
     }
 
     func testExplicitMarkdownMismatchFallsBackToVisiblePlainText() throws {

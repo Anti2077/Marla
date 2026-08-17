@@ -195,6 +195,7 @@ final class ClipboardSelectionFallback {
         let deadline = now() + max(0, timeout)
         var copyChangeCount: Int?
         var content: TranslationContent?
+        var previousCandidate: TranslationContent?
         var pendingAbort: ClipboardSelectionFallbackError?
 
         while now() < deadline {
@@ -227,17 +228,23 @@ final class ClipboardSelectionFallback {
                currentChangeCount != initialChangeCount,
                let candidate = clipboard.translationContent(),
                !candidate.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                // RunLoop pumping permits focus and cancellation events to be
-                // delivered while Copy is pending. Recheck both immediately
-                // before accepting the pasteboard text.
-                if isCancelled() {
-                    pendingAbort = .cancelled
-                } else if !isFrontmost(application) {
-                    pendingAbort = .sourceApplicationChanged
+                if candidate == previousCandidate {
+                    // A source may populate promised Pasteboard representations
+                    // after its first change notification. Accept only after the
+                    // normalized candidate remains stable across one RunLoop pump.
+                    if isCancelled() {
+                        pendingAbort = .cancelled
+                    } else if !isFrontmost(application) {
+                        pendingAbort = .sourceApplicationChanged
+                    } else {
+                        content = candidate
+                        break
+                    }
                 } else {
-                    content = candidate
-                    break
+                    previousCandidate = candidate
                 }
+            } else if currentChangeCount != initialChangeCount {
+                previousCandidate = nil
             }
 
             if let pendingAbort, let copyChangeCount {

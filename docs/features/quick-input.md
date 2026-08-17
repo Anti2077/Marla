@@ -2,7 +2,7 @@
 
 ## Status
 
-Semantic Markdown exchange, native rich-text Paste normalization, completed and streaming native rendering, and unified TextKit height measurement were implemented and verified under TASK-028. The project owner accepted the reopened streaming slice on 2026-08-17.
+Semantic Markdown exchange, native rich-text Paste normalization, completed and streaming native rendering, and unified TextKit height measurement were implemented and verified under TASK-028. TASK-029 adds the literal HTML table normalization contract, GFM-aware rich/plain consistency validation, protected-Copy candidate stabilization, and UTF-8 HTML decoding described below. The project owner accepted both completed Tasks on 2026-08-17 and 2026-08-18 respectively.
 
 ## Goal
 
@@ -17,7 +17,11 @@ Provide translation near the pointer when no text is already selectable, without
 
 Quick Input treats the complete draft as `semanticMarkdown`. Ordinary text remains valid as a Markdown subset, while explicitly typed or pasted Markdown source passes through unchanged. Its native Paste command selects the best representation from explicit Markdown, HTML, RTF/RTFD, and plain text. A rich representation is cleaned and normalized locally into semantic Markdown source before insertion into the draft; a plain representation is inserted unchanged. The conversion does not rewrite the Pasteboard.
 
-Rich and plain representations must describe the same visible text. A mismatch, unsafe or unparseable content, or missing reliable structure degrades to the visible plain text instead of claiming `semanticMarkdown` structure. HTML is parsed structurally in-process; scripts, styles, explicitly hidden nodes, image resources, and unsafe links are removed. Marla does not execute pasted content, load remote resources, or persist native or normalized representations.
+Rich and plain representations must describe the same visible text. For semantic Markdown, that comparison uses Marla's own GFM-aware document projection, so task-list markers and pipe-table row/cell boundaries are compared using the same parsing semantics as the native renderer instead of Foundation's lossy Markdown projection. A web-backed checkbox represented at the start of a plain-projection line by U+FFFC is normalized as a visual task marker. Pasteboard HTML that is valid UTF-8 is decoded to a native string before structural parsing, preventing raw nonbreaking-space bytes from acquiring a spurious `Â` when the representation omits a charset declaration; non-UTF-8 data retains the parser fallback. A mismatch, unsafe or unparseable content, or missing reliable structure still degrades to the visible plain text instead of claiming `semanticMarkdown` structure; neither content length nor representation size is a trust signal. HTML is parsed structurally in-process; scripts, styles, explicitly hidden nodes, image resources, and unsafe links are removed. Marla does not execute pasted content, load remote resources, or persist native or normalized representations.
+
+TASK-029 extends the same safe native normalization boundary to a narrow plain-text case. A genuine `.html` Pasteboard representation keeps the general HTML converter, while a trusted plain-text value containing a literal `<table>...</table>` fragment uses a stricter table-only parser before submission. Literal conversion is accepted only for simple rectangular tables made from `tr`, `th`, and `td`; the first row becomes the GFM header row, followed by the separator and remaining rows. Cell values preserve template placeholders such as `${BUILD_ID}$` byte-for-byte, preserve the visible values of HTML entities, escape literal `|` characters for GFM, and retain empty cells. Text before, between, and after converted tables keeps its original document order.
+
+The literal path is all-or-nothing for the complete pasted value. A `rowspan` or `colspan`, nested table, non-rectangular, malformed, or empty table, or any failed safety/consistency check returns the original value as `plainText` rather than partially inventing Markdown structure. Conversion uses no WebView, executes no HTML or script, and loads no local or remote resource. It changes only the source normalization performed before the existing Provider request: the Provider/FFI schema, result-side canonical Markdown and copy behavior, and Vision's `plainText` contract remain unchanged.
 
 On submission, the resulting complete draft reaches the Provider without further flattening. Generic models receive Markdown output rules; Qwen-MT receives the unchanged Markdown source as its User Message because it does not support a System Message.
 
@@ -36,6 +40,10 @@ The default shortcut is `⌃⌥Space`. `⌘Return` submits and `Escape` closes. 
 - Opening the input is fast and predictable.
 - Pasting does not modify the system clipboard.
 - Explicit Markdown source passes through unchanged; HTML and RTF/RTFD paste normalize locally into semantic Markdown only when their visible text matches the plain representation.
+- GFM tables and task lists use Marla's renderer-compatible visible-text projection during rich/plain validation; an incomplete or conflicting plain projection still forces an honest `plainText` fallback.
+- Valid UTF-8 HTML is decoded without introducing mojibake for raw nonbreaking spaces; the resulting rich projection must still pass the same strict plain-visible-text check, and non-UTF-8 data keeps a safe fallback.
+- A genuine `.html` representation and trusted literal HTML table plain text share one safe local converter; a valid rectangular `tr`/`th`/`td` table becomes a GFM pipe table before Provider submission.
+- Literal conversion preserves placeholder bytes, entity-visible values, escaped pipes, empty cells, and surrounding paragraph order; `rowspan`/`colspan`, nested, non-rectangular, malformed, or empty tables return the complete original input as `plainText`.
 - Unsafe, inconsistent, or unparseable rich input degrades to visible plain text without executing content or loading resources.
 - The surface can expand into comparison mode without losing content in streaming or completed states; valid canonical `semanticMarkdown` source uses the shared native projection within a 110pt viewport and one vertical scroll owner, while parse failure, `plainText`, and Vision OCR remain plain text.
 - Chinese IME and multiline text work correctly.

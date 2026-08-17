@@ -1,12 +1,14 @@
 # Project Status
 
-Last updated: 2026-08-17
+Last updated: 2026-08-18
 
 Release target: 0.1.0 Alpha
 
-Overall state: In Progress — TASK-028 complete; release verification gaps remain
+Overall state: In Progress — TASK-028 and TASK-029 complete; release verification gaps remain
 
 Active task: None. The next implementation task must be selected explicitly by the project owner.
+
+TASK-029 已完成：literal HTML table 由严格 table-only parser 转成 GFM；source-owned rich Markdown 使用 Marla 自己的 GFM projection 做 rich/plain 校验；protected Copy 只在同一 Pasteboard `changeCount` 下连续两次候选一致后接受。Flux `public.html` 中无 charset 的 UTF-8 raw NBSP 现按原生字符串优先解析，非 UTF-8 保留原有 fallback，严格可见文本校验未放宽。最终真实 Flux 审计已从 0 个表格变为 1 个并保持焦点和剪贴板恢复，项目所有者确认修复有效；实现提交为 `895a1de`。
 
 TASK-028 已完成。此前合并的结构化翻译合同、受保护 Copy-only 划词、Quick Input 富 Paste、完成态原生 Markdown、GFM 表格/粗体、Markdown/纯文本复制、Paper Lantern 菜单身份位，以及混合表格布局崩溃和滚动抽搐修复保持有效；2026-08-17 重开范围进一步完成了实时原生 Markdown 投影、基于真实 TextKit 文档的流式与最终窗口高度校正、展开原文 Markdown、代码块与行内代码样式，以及菜单/结果卡身份层级微调。最终菜单标题组采用 14pt 向上光学校正，使标题字形约 24pt 的上边距为 16pt 左边距的 1.5 倍。自动化、固定 Release App、稳定签名、真实截图五维复审和项目所有者验收均已通过；截图结构 OCR 与同次 HTML/RTF 多 representation 输出复制仍不在本 Task 范围内。
 
@@ -27,7 +29,7 @@ Blocked tasks:
 
 ## Current objective
 
-当前没有 Active implementation Task。TASK-028 已完成；下一项实现工作必须由项目所有者从发布验证或其他已确认工作中明确选择，Agent 不从 Roadmap、Backlog 或 Ideas 自动激活任务。
+当前没有 Active implementation Task。TASK-028 与 TASK-029 均已完成；下一项实现工作必须由项目所有者从发布验证或其他已确认工作中明确选择，Agent 不从 Roadmap、Backlog 或 Ideas 自动激活任务。
 
 TASK-023 已完成整体代码审查、自动化验证与固定 Release 测试 App 交付：Rust 翻译与模型列表取消从 10ms 轮询改为事件驱动唤醒，SSE 单个未完成帧增加 1 MiB 内存上限，严格 Clippy 与 shell 语法检查纳入统一验证，5 个公开 unsafe FFI 函数补齐安全合同；`artifacts/Marla_dev.app` 已重建并通过稳定签名验证。
 
@@ -94,6 +96,7 @@ TASK-015 已完成；项目所有者已确认关闭跨应用划词验证（RV-00
 
 ## Latest verification
 
+- TASK-029：literal HTML table 样本与安全降级矩阵、完整 GFM/task-list 与等价 plain projection、不完整 plain 拒绝、同一 `changeCount` 下渐进候选稳定观察、真实 Flux 行首 U+FFFC checkbox projection，以及无 charset UTF-8 raw NBSP HTML 均已进入回归。最终 `./scripts/check.sh` 全绿：20 项 Rust、144 项 Swift（3 项 Vision host 限制 skip）、Swift Package、Xcode Debug、结构门禁、格式、shell、空白与 diff 检查均通过。`./scripts/build-test-app.sh` 已重建并验证固定 `artifacts/Marla_dev.app` 的 Bundle ID `com.marla.app`、版本 0.1.0、macOS 14.0+、arm64、Paper Lantern 资源、稳定签名 `API Usage Monitor Dev` 与 designated requirement。最终真实 Flux 混合选区脱敏审计得到 `semanticMarkdownTableCount=1`（修复前为 0）、`clipboardPreserved=true`、`focusPreserved=true`，项目所有者确认“的确修好了”。
 - TASK-028 于 2026-08-17 由项目所有者最终确认完成。重开范围此前完整 `./scripts/check.sh` 已通过 20 项 Rust 与 142 项 Swift，另有 3 项 Vision 宿主环境 skip；最终 14pt 菜单标题调整后的 `./scripts/build-test-app.sh` 再次通过 Release、arm64、Bundle、资源、稳定签名和 designated requirement 验证。本轮新增高频投影回归定向通过，证明 40ms 合并窗口内同 session 继续使用上一份原生投影而不闪回 raw。受限沙盒复跑时仅 3 项系统 Pasteboard 复制断言因 `com.apple.hiservices-xpcservice` 不可用失败，沙盒外重跑又在执行前被审批服务 `404`/`503` 阻断；这项当前环境限制不覆盖此前全绿与真实 App 证据。
 - TASK-028 的代码样式 fixture 已在固定 Release App 覆盖 380pt 浅色、760pt 深色和 Reduce Motion：`/private/tmp/marla-task028-code-style-light-380.png`、`/private/tmp/marla-task028-code-style-dark-760.png`、`/private/tmp/marla-task028-code-style-dark-reduce.png`。多行 fenced code block 的 5pt 圆角连续且不裁切；inline code 背景低于正文行高、左右各扩 3pt，并在窄宽相邻两行中保留清楚间隔。五维复审为 8/8/9/9/7；`MarkdownResultTextTests` 26/26 通过，完整 `./scripts/check.sh` 通过 20 项 Rust、142 项 Swift（3 项 Vision 宿主环境跳过）、Swift Package、Xcode Debug、结构与差异检查，固定 Release 包和稳定签名验证通过。
 - TASK-028 的最终菜单标题位置已在新构建的固定 Release App 中以 2x 浅色/深色截图复核：`/private/tmp/marla-task028-menu-top-one-half-light.png` 与 `/private/tmp/marla-task028-menu-top-one-half-dark.png` 中，“Marla” 字形顶部距面板约 46–48px、左侧约 32px，即约 23–24pt 上边距相对 16pt 左边距接近 1.5 倍；标题/副标题无裁切，右侧 33.6pt 灯笼和下方操作区没有移动。五维复审为 8/9/9/9/8。

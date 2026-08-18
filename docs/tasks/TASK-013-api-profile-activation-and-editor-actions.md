@@ -1,12 +1,12 @@
 # TASK-013：API 配置启用、排序与编辑器操作收敛
 
-Status: Blocked
+Status: Done
 
 Owner: Project owner + Agent
 
 Created: 2026-08-07
 
-Updated: 2026-08-07
+Updated: 2026-08-18
 
 Origin: direct request / defect
 
@@ -49,11 +49,11 @@ Conversation: 2026-08-07，API 配置逻辑与交互细节继续修正
 | --- | --- | --- | --- | --- |
 | 2026-08-07 | Project owner | 初始请求即为当前范围 | 新增草稿 Key、启用过滤、默认迁移、拖拽排序与真实 UI 验收 | Verified |
 | 2026-08-07 | Project owner | 真实拖动手柄时整扇设置窗口同时移动，要求修复 | 设置窗口背景不得抢占控件拖动；重新执行真实手柄拖放并确认顶部标题栏仍可移动窗口 | Verified by owner: “能拽得动了” |
-| 2026-08-07 | Project owner | 拖动时只看到三横杠跟随，要求整行预览跟随鼠标，并在经过目标行时用过渡动画挤开其它配置 | 拖拽预览必须表达完整配置行；悬停重排而不是松手后突变；真实 App 录入拖动前后截图与交互证据 | Implemented; owner confirmation pending |
-| 2026-08-07 | Project owner | 整行预览默认以中心吸附鼠标，要求鼠标继续位于实际抓取的尾部三横杠位置 | 使用可指定 `NSDraggingItem.draggingFrame` 的 AppKit 拖动源；单测验证预览内抓取点与指针重合，真实 App 验证拖动过程中整行向左展开 | Pending |
+| 2026-08-07 | Project owner | 拖动时只看到三横杠跟随，要求整行预览跟随鼠标，并在经过目标行时用过渡动画挤开其它配置 | 拖拽预览必须表达完整配置行；悬停重排而不是松手后突变；真实 App 录入拖动前后截图与交互证据 | Verified by owner 2026-08-18 |
+| 2026-08-07 | Project owner | 整行预览默认以中心吸附鼠标，要求鼠标继续位于实际抓取的尾部三横杠位置 | 使用可指定 `NSDraggingItem.draggingFrame` 的 AppKit 拖动源；单测验证预览内抓取点与指针重合，真实 App 验证拖动过程中整行向左展开 | Verified by owner 2026-08-18 |
 | 2026-08-07 | Project owner | 浮动预览仍被系统缩得过小，要求抓起时只轻微缩小；原行变为空槽，空槽随目标位置挤压移动，松手后再动画释放 | 曾实现 96% 预览与等高空槽；缩放部分已被下一条要求取代，空槽行为继续保留 | Superseded in part |
-| 2026-08-07 | Project owner | 轻微缩放的质感仍不理想，要求取消浮动行缩放动画 | 浮动预览始终保持原行尺寸；只保留等高空槽的位移让位与松手内容恢复，不再改变浮动行几何 | Implemented; owner confirmation pending |
-| 2026-08-07 | Project owner | 删除应用层缩放后实机仍看到缩放 | 确认缩放来自系统 `NSDraggingSession` 图像管线；原生拖拽项改为透明 1×1pt，只负责命中与 drop，用户可见预览改由固定 580×76pt 的非激活无边框 `NSPanel` 跟随鼠标 | Implemented; owner confirmation pending |
+| 2026-08-07 | Project owner | 轻微缩放的质感仍不理想，要求取消浮动行缩放动画 | 浮动预览始终保持原行尺寸；只保留等高空槽的位移让位与松手内容恢复，不再改变浮动行几何 | Verified by owner 2026-08-18 |
+| 2026-08-07 | Project owner | 删除应用层缩放后实机仍看到缩放 | 确认缩放来自系统 `NSDraggingSession` 图像管线；原生拖拽项改为透明 1×1pt，只负责命中与 drop，用户可见预览改由固定 580×76pt 的非激活无边框 `NSPanel` 跟随鼠标 | Verified by owner 2026-08-18 |
 
 ## Current evidence
 
@@ -63,7 +63,7 @@ Conversation: 2026-08-07，API 配置逻辑与交互细节继续修正
 - 配置列表使用 Switch、精简菜单和尾部三横杠；顺序可持久化并提供上下移动无障碍操作。
 - 设置内容背景不再拖动窗口，项目所有者已确认手柄可以拖动且窗口不再跟随。
 - 系统 `NSDraggingItem` 现在只显示透明 1×1pt 图像并负责原生 drop 命中；用户可见预览由不激活、不接收鼠标事件的无边框 `NSPanel` 绘制，固定为与原行相同的 580×76pt。Panel 根据系统提供的屏幕指针坐标和最初手柄抓取点直接移动，不经过系统拖拽图缩放管线。`APIProfileDropDelegate.dropEntered` 在 220ms `snappy` 动画事务中移动被拖 profile 的等高空槽，结束时原行内容以短促淡入恢复。
-- 最新稳定签名 Release App 中，Computer Use 从三横杠完成了跨行拖放，AX 顺序随即变化；反向拖放也成功，并恢复了操作前的实际顺序。该接口以一次调用完成整个手势，无法截取按住期间的原尺寸浮动行和移动空槽，因此动态中间态仍等待项目所有者肉眼确认。
+- 最新稳定签名 Release App 中，Computer Use 从三横杠完成了跨行拖放，AX 顺序随即变化；反向拖放也成功，并恢复了操作前的实际顺序。项目所有者于 2026-08-18 回报 `TASK-013` 通过，接受固定尺寸整行 Panel、精确手柄锚点、无缩放浮动行、移动空槽与松手恢复动态；未记录额外截图或设备细节。
 
 ## Proposed approach
 
@@ -77,7 +77,7 @@ Conversation: 2026-08-07，API 配置逻辑与交互细节继续修正
 - [x] 旧 profile 解码后默认启用，新 profile 默认启用，启用状态和排序在重启后保持。
 - [x] 禁用配置不会出现在结果卡选择器中，也不会被默认新会话调用。
 - [x] 禁用默认、全部禁用、重新启用和设为默认的行为保持一致且有自动化覆盖。
-- [ ] 配置菜单只保留设为默认和删除；最右侧三横杠支持拖拽排序和辅助功能操作。抓起时固定 580×76pt 的独立浮层整行向指针左侧展开，原始抓取点保持在三横杠内；系统拖拽图必须透明且不可见，避免系统缩放。列表原行变成等高空槽，空槽经过其它配置时以短促过渡实时移动和让位；松手后内容以短促动画恢复到空槽，用户可见浮动行全程不得缩放。
+- [x] 配置菜单只保留设为默认和删除；最右侧三横杠支持拖拽排序和辅助功能操作。抓起时固定 580×76pt 的独立浮层整行向指针左侧展开，原始抓取点保持在三横杠内；系统拖拽图必须透明且不可见，避免系统缩放。列表原行变成等高空槽，空槽经过其它配置时以短促过渡实时移动和让位；松手后内容以短促动画恢复到空槽，用户可见浮动行全程不得缩放。
 - [x] `./scripts/check.sh` 通过，相关规格和 `STATUS.md` 同步。
 - [x] 固定签名 App 被安全覆盖；真实浅色/深色截图的五维评审每项至少 7/10。
 
@@ -93,7 +93,7 @@ Conversation: 2026-08-07，API 配置逻辑与交互细节继续修正
 
 在真实 Release App 中用至少两个配置检查启用/禁用、默认迁移、拖拽排序、当前 Key 草稿测试、测试结果同行展示，以及编辑器底部取消/保存；分别保存浅色和深色截图到 `artifacts/ui-review/task-013/`。
 
-当前固定 App 的静态列表、编辑器、辅助功能排序和真实三横杠跨行拖放已验收，原配置顺序也已恢复。项目所有者已确认窗口不再跟随手柄移动；绕过系统拖拽图缩放的固定尺寸 Panel、精确手柄锚点、移动空槽和松手恢复动画等待其在最新覆盖构建上确认。
+当前固定 App 的静态列表、编辑器、辅助功能排序和真实三横杠跨行拖放已验收，原配置顺序也已恢复。项目所有者已确认窗口不再跟随手柄移动，并于 2026-08-18 确认固定尺寸 Panel、精确手柄锚点、移动空槽、无缩放浮动行和松手恢复动画通过。
 
 ## Required Reading
 
@@ -121,8 +121,14 @@ Conversation: 2026-08-07，API 配置逻辑与交互细节继续修正
 
 ## Decisions needed
 
-恢复条件：项目所有者在最新固定 App 中确认固定 580×76pt Panel、精确手柄锚点、移动空槽和松手恢复动画符合预期；确认后继续完成本 Task。
+None. 项目所有者已在最新固定 App 中确认拖拽动态通过。
 
 ## Completion record
 
-任务完成时填写。
+- Verified baseline: 2026-08-18 固定签名 `artifacts/Marla_dev.app`；实现已在当前仓库基线中，闭环记录位于当前 `Anti2077/task-030-release-verification-observability` worktree。
+- Automated evidence: 配置启用/默认不变量、持久化、辅助功能排序、拖拽几何与跨行 drop 回归通过；当前 worktree 的最终 `./scripts/check.sh` 通过。
+- Manual evidence: 项目所有者于 2026-08-18 明确回报 `TASK-013` 通过，接受固定 580×76pt Panel、手柄锚点、无缩放、移动空槽和松手恢复动态。
+- Documentation updated: 本 Task、`STATUS.md` 与双语 0.1.0 `ACCEPTANCE.md`。
+- Remaining work promoted to: None.
+- Scope changes closed: 所有未被 supersede 的 scope change 均已实现并由自动化或项目所有者验收。
+- Parallel contributions integrated: None.

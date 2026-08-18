@@ -141,6 +141,7 @@ enum MarlaRuntime {
 
     static var isUIAutomationSnapshot: Bool {
         ProcessInfo.processInfo.environment["MARLA_UI_TEST_CAPTURE_PATH"] != nil
+            || ProcessInfo.processInfo.environment["MARLA_PERFORMANCE_REPORT_PATH"] != nil
     }
 }
 
@@ -326,5 +327,4 @@ final class GlobalShortcutManager: ObservableObject, GlobalShortcutManaging {
     }
 
 }
-
 

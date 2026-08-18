@@ -100,11 +100,11 @@ private struct PreviewPanel<Content: View>: View {
 }
 
 #Preview("Menu Bar - Ready") {
-    MenuBarView(model: MarlaPreviewFixtures.model())
+    MenuBarView(model: MarlaPreviewFixtures.model(), usesStandaloneGlassSurface: true)
 }
 
 #Preview("Menu Bar - Recents") {
-    MenuBarView(model: MarlaPreviewFixtures.modelWithRecents())
+    MenuBarView(model: MarlaPreviewFixtures.modelWithRecents(), usesStandaloneGlassSurface: true)
 }
 
 #Preview("Menu Bar - Setup") {
@@ -114,7 +114,8 @@ private struct PreviewPanel<Content: View>: View {
             onboardingSkipped: false,
             accessibilityTrusted: false,
             screenRecordingAuthorized: false
-        )
+        ),
+        usesStandaloneGlassSurface: true
     )
 }
 

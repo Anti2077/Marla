@@ -8,6 +8,8 @@ Overall state: In Progress — RV-001 through RV-004 and all previously Blocked 
 
 Active task: None. The next implementation task must be selected explicitly by the project owner.
 
+TASK-031 已完成：状态栏 `MenuBarExtra(.window)` 现在由原生窗口独占系统材质，不再与内容级 `marlaGlassSurface()` 叠加；透明设置窗口和自定义 Panel 继续各自只使用一层内容材质。独立 Preview / fixture 显式保留单层表面，菜单布局与 Paper Lantern 身份层级不变。沙箱外 `./scripts/check.sh`、固定签名 Release 打包和浅色/深色五维复核均通过，未恢复 TASK-026 已否定的整窗 opacity、强制 clear 或透明度档位。Computer Use 无法枚举无主窗口的 LSUIElement 状态项，因此未把 fixture 冒充原生截图；项目所有者在固定 App 交付后明确授权合并到 `main`，Task 随之验收关闭。
+
 TASK-030 已完成并关闭 RV-003。固定签名 Release App 的 30 组独立本地样本中，入口到 UI 壳层可见 P50/P95/max 为 131.869/145.947/149.332ms，Rust callback 到 Swift 可见 delta 为 35.068/43.957/44.074ms；delta 使用 `127.0.0.1` SSE，不混入 Provider 网络时间。空闲、常规完成态、真实 ScreenCaptureKit 全显示器冻结/框选、沙盒外 2400×1600 Vision accurate OCR 的最大 RSS 分别约 126.1/128.9/325.3/147.3 MiB，均在预算内。报告只含 metric 和纳秒时长。项目所有者随后于 2026-08-18 明确确认 RV-002、RV-004、TASK-013 与 TASK-016 全部通过；RV-001 至 RV-004 现均为 Complete，过去的两个 Blocked Task 均为 Done。闭环记录不包含显示器型号、凭据、认证方式或用户内容。
 
 TASK-029 已完成：literal HTML table 由严格 table-only parser 转成 GFM；source-owned rich Markdown 使用 Marla 自己的 GFM projection 做 rich/plain 校验；protected Copy 只在同一 Pasteboard `changeCount` 下连续两次候选一致后接受。Flux `public.html` 中无 charset 的 UTF-8 raw NBSP 现按原生字符串优先解析，非 UTF-8 保留原有 fallback，严格可见文本校验未放宽。最终真实 Flux 审计已从 0 个表格变为 1 个并保持焦点和剪贴板恢复，项目所有者确认修复有效；实现提交为 `895a1de`。

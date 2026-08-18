@@ -1473,6 +1473,17 @@ final class MarlaAppTests: XCTestCase {
     }
 
     @MainActor
+    func testMenuBarLetsItsWindowOwnProductionGlassAndFixturesOptIn() {
+        let model = MarlaApplicationModel()
+
+        XCTAssertFalse(MenuBarView(model: model).usesStandaloneGlassSurface)
+        XCTAssertTrue(
+            MenuBarView(model: model, usesStandaloneGlassSurface: true)
+                .usesStandaloneGlassSurface
+        )
+    }
+
+    @MainActor
     func testSettingsWindowUsesOneFullSizeTransparentRoundedSurface() {
         let window = NSWindow(
             contentRect: NSRect(x: 0, y: 0, width: 820, height: 560),

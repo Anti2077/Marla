@@ -101,7 +101,7 @@ Functional icons use SF Symbols at a consistent weight. Paper Lantern is the sel
 
 - 交互强调色使用 `Color.accentColor`，尊重系统或用户选择；同一视图不增加第二品牌强调色；
 - 背景、文字、分隔和语义状态使用适配浅色/深色的系统语义色；
-- 菜单、设置、结果卡、快速输入和截图框选提示各自使用单层 macOS HUD/Popover 类材质，避免叠加多层模糊；macOS 26+ 使用系统 Liquid Glass，macOS 14–25 使用 `regularMaterial` 或等价系统材质回退；
+- 菜单、设置、结果卡、快速输入和截图框选提示各自使用单层 macOS HUD/Popover 类材质，避免叠加多层模糊；`MenuBarExtra(.window)` 由原生菜单窗口独占背景材质，透明设置窗口和自定义 Panel 由各自内容表面独占材质；macOS 26+ 使用系统 Liquid Glass，macOS 14–25 使用 `regularMaterial` 或等价系统材质回退；
 - 正文对比度至少 4.5:1，大号文字至少 3:1；
 - 成功、警告和错误颜色只表达状态，不承担装饰作用。
 
@@ -142,7 +142,7 @@ All other spacing follows a 4pt grid. Pointer controls may retain compact macOS 
 
 - interactive emphasis uses `Color.accentColor`, respecting the system or user choice; a view adds no second brand accent;
 - background, text, divider, and semantic states use adaptive system semantic colors;
-- the menu, Settings, result card, quick input, and screenshot-selection labels each use one macOS HUD/Popover-class material without stacked blur layers; macOS 26+ uses system Liquid Glass, while macOS 14–25 uses `regularMaterial` or an equivalent system-material fallback;
+- the menu, Settings, result card, quick input, and screenshot-selection labels each use one macOS HUD/Popover-class material without stacked blur layers; the native `MenuBarExtra(.window)` owns the menu backdrop, while the transparent Settings window and custom panels each delegate material ownership to their content surface; macOS 26+ uses system Liquid Glass, while macOS 14–25 uses `regularMaterial` or an equivalent system-material fallback;
 - body contrast is at least 4.5:1 and large text at least 3:1;
 - success, warning, and error colors communicate state only and are not decoration.
 

@@ -3,6 +3,37 @@ import Foundation
 import XCTest
 
 final class MarlaCoreTests: XCTestCase {
+    func testTranslationCallbackMetricsQueuesOnlyDeltaReceipts() {
+        let requestID = UUID()
+        TranslationCallbackMetrics.record(
+            TranslationFFIEvent(schemaVersion: 1, requestID: requestID, type: "delta", text: "disabled"),
+            at: 5,
+            enabled: false
+        )
+        XCTAssertNil(TranslationCallbackMetrics.takeDeltaReceipt(for: requestID))
+
+        TranslationCallbackMetrics.record(
+            TranslationFFIEvent(schemaVersion: 1, requestID: requestID, type: "started"),
+            at: 10,
+            enabled: true
+        )
+        XCTAssertNil(TranslationCallbackMetrics.takeDeltaReceipt(for: requestID))
+
+        TranslationCallbackMetrics.record(
+            TranslationFFIEvent(schemaVersion: 1, requestID: requestID, type: "delta", text: "a"),
+            at: 20,
+            enabled: true
+        )
+        TranslationCallbackMetrics.record(
+            TranslationFFIEvent(schemaVersion: 1, requestID: requestID, type: "delta", text: "b"),
+            at: 30,
+            enabled: true
+        )
+        XCTAssertEqual(TranslationCallbackMetrics.takeDeltaReceipt(for: requestID), 20)
+        XCTAssertEqual(TranslationCallbackMetrics.takeDeltaReceipt(for: requestID), 30)
+        XCTAssertNil(TranslationCallbackMetrics.takeDeltaReceipt(for: requestID))
+    }
+
     func testNormalizedRectClampsToUnitSpace() {
         let rect = NormalizedRect(x: -0.2, y: 0.8, width: 2, height: 0.5)
 

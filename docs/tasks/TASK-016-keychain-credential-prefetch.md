@@ -1,14 +1,14 @@
 # TASK-016：单一 Keychain vault 与启动授权
 
-Status: Blocked
+Status: Done
 
-Implementation: Launch lifecycle repaired; blocked on owner clean-authorization confirmation
+Implementation: Launch lifecycle repaired; owner clean-authorization verification passed
 
 Owner: Project owner + Agent
 
 Created: 2026-08-09
 
-Updated: 2026-08-10
+Updated: 2026-08-18
 
 Origin: direct request / usability defect
 
@@ -43,9 +43,9 @@ Marla 使用一个 Keychain vault item 持久化全部 profile API Key，并在�
 
 | Date | Requested by | Change | Acceptance / verification impact | Status |
 | --- | --- | --- | --- | --- |
-| 2026-08-09 | Project owner | 初始范围：启动时批量申请全部 API Key，并避免首次翻译被授权打断 | 启动阶段单次批量查询；翻译前读取不再触发逐 profile Keychain 查询；完整自动化验证 | Implementation verified; live authorization pending |
-| 2026-08-09 | Project owner live test | `kSecMatchLimitAll` 版本没有改变真实行为：首次翻译才提示，切换 profile 又再次提示 | 推翻多 item 批量预热方案；改为单一 vault item，并在 App 启动完成后加载 | In progress |
-| 2026-08-09 | Project owner live test | 迁移旧 item 时实际输入了两次系统密码 | 启动迁移统一复用一个 `LAContext`；新增认证上下文复用和失败后不重试回归测试 | Automated verified; clean live authorization pending |
+| 2026-08-09 | Project owner | 初始范围：启动时批量申请全部 API Key，并避免首次翻译被授权打断 | 启动阶段单次批量查询；翻译前读取不再触发逐 profile Keychain 查询；完整自动化验证 | Verified by owner 2026-08-18 |
+| 2026-08-09 | Project owner live test | `kSecMatchLimitAll` 版本没有改变真实行为：首次翻译才提示，切换 profile 又再次提示 | 推翻多 item 批量预热方案；改为单一 vault item，并在 App 完成启动后加载 | Verified by owner 2026-08-18 |
+| 2026-08-09 | Project owner live test | 迁移旧 item 时实际输入了两次系统密码 | 启动迁移统一复用一个 `LAContext`；新增认证上下文复用和失败后不重试回归测试 | Verified by automation and owner 2026-08-18 |
 | 2026-08-09 | Project owner live test | 新固定 App 启动即退出 | 崩溃报告定位为 App 构造期 `NSApp` 尚为 nil；改用安全的 `NSApplication.shared.isRunning`，并要求真实 Release 进程常驻验证 | Fixed and launch-verified |
 | 2026-08-10 | Project owner live test | 输入密码后进程仍在，但菜单栏主表面无法打开 | 移除构造期的自定义 App Delegate 和 `NSApplication.shared` 访问，只保留 `NSApplication.didFinishLaunchingNotification`；要求真实 Release 菜单表面截图验证 | Fixed and UI-verified |
 
@@ -58,6 +58,7 @@ Marla 使用一个 Keychain vault item 持久化全部 profile API Key，并在�
 - 启动迁移现在创建一个 `LAContext` 并传给 vault、根 account 和所有 profile account 查询；当前进程的 vault load 结果为终态，失败后保存和翻译不会再次触发 Keychain 查询。
 - `Marla-2026-08-09-233323.ips` 证明首个失败包在 `installCredentialVaultLaunchLoad()` 中解包 nil `NSApp`，不是 Keychain 数据损坏。随后以 `NSApplication.shared.isRunning` 和自定义 App Delegate 规避崩溃的包虽然进程常驻，但项目所有者确认菜单主表面无法打开；最终修复恢复标准 SwiftUI `@StateObject` 启动入口，构造期不再访问 AppKit 单例，仅监听 `NSApplication.didFinishLaunchingNotification`。
 - 最终固定 Release App 主线程处于正常 AppKit 事件循环、没有新增崩溃报告；内置 `menu-recents` UI 验收场景成功创建并截图完整菜单表面后正常退出。
+- 项目所有者于 2026-08-18 回报 `TASK-016` 通过，确认干净授权状态下的启动阶段 vault 授权、菜单可用、首次快速输入/划词翻译及 profile 切换不再出现逐 item 授权打断；未记录密码、Touch ID、Key 或 Keychain 内容。
 
 ## Proposed approach
 
@@ -65,12 +66,12 @@ Marla 使用一个 Keychain vault item 持久化全部 profile API Key，并在�
 
 ## Acceptance criteria
 
-- [ ] 应用完成启动后、首次翻译前只读取一个版本化 Keychain vault item。
-- [ ] 全部 profile API Key 作为 vault 内逻辑条目存储，切换 profile 不触发第二个 Keychain item 授权。
-- [ ] 旧根 account 与逐 profile account 可迁移；只有成功写入 vault 后才删除旧 item。
-- [ ] 首次翻译不再因为逐 profile Keychain 读取弹出授权或被打断；预热失败时仍能安全降级并显示原有配置错误。
-- [ ] 保存、删除、重命名、profile 删除和 legacy migration 的 Keychain 行为保持正确且缓存不返回旧值。
-- [ ] API Key 仍只存在 Keychain/请求内存，不出现在 UserDefaults、日志、错误或诊断输出。
+- [x] 应用完成启动后、首次翻译前只读取一个版本化 Keychain vault item。
+- [x] 全部 profile API Key 作为 vault 内逻辑条目存储，切换 profile 不触发第二个 Keychain item 授权。
+- [x] 旧根 account 与逐 profile account 可迁移；只有成功写入 vault 后才删除旧 item。
+- [x] 首次翻译不再因为逐 profile Keychain 读取弹出授权或被打断；预热失败时仍能安全降级并显示原有配置错误。
+- [x] 保存、删除、重命名、profile 删除和 legacy migration 的 Keychain 行为保持正确且缓存不返回旧值。
+- [x] API Key 仍只存在 Keychain/请求内存，不出现在 UserDefaults、日志、错误或诊断输出。
 - [x] `./scripts/check.sh` 通过，包含新增回归测试、Swift/Xcode Debug 构建、格式/空白和 `git diff --check`。
 - [x] 相关实现、验收和 `STATUS.md` 中英文说明同步更新。
 
@@ -84,7 +85,7 @@ Marla 使用一个 Keychain vault item 持久化全部 profile API Key，并在�
 
 ### Manual
 
-固定签名 Release `artifacts/Marla_dev.app` 已覆盖构建并通过独立验证。待项目所有者在干净授权状态启动该 App 一次：确认 Keychain 授权提示出现在启动阶段且一次允许后进入菜单；随后首次使用快速输入和划词翻译，确认不再出现逐 profile 授权打断。当前机器未重置既有 Keychain 授权，因此本项未宣称已验证。
+固定签名 Release `artifacts/Marla_dev.app` 已覆盖构建并通过独立验证。项目所有者于 2026-08-18 回报干净授权状态的完整启动与首次翻译流程通过：启动阶段完成 vault 授权后菜单可用，首次快速输入、划词翻译和 profile 切换均未再出现逐 profile 授权打断。
 
 ## Required Reading
 
@@ -115,10 +116,10 @@ None
 
 ## Completion record
 
-- Verified commit: Pending
+- Verified baseline: 当前固定签名 `artifacts/Marla_dev.app`；实现已在当前仓库基线中，最终闭环记录位于 `Anti2077/task-030-release-verification-observability` worktree。
 - Automated evidence: `./scripts/check.sh` passed on 2026-08-10 after the final lifecycle repair: 17 Rust tests, 74 Swift tests, Swift/Xcode Debug build, formatting, whitespace, and `git diff --check`. `./scripts/build-test-app.sh` then built, stable-signed, replaced, and independently verified `artifacts/Marla_dev.app` as Bundle ID `com.marla.app`, version `0.1.0`, macOS 14+, arm64, Authority `API Usage Monitor Dev`, with the existing designated requirement. New tests cover one shared `LAContext` across startup migration and no retry after a denied vault load. The fixed Release executable remained alive in the normal AppKit event loop, produced no new crash report, and its built-in `menu-recents` acceptance scenario captured the complete menu surface before exiting normally. Executable SHA-256: `6ce3f0be4f77ef0b1b8a78976268eb56b9a4c2a6a3870f2b977a5096fe973234`.
-- Manual evidence: Pending owner run from a clean Keychain authorization state.
+- Manual evidence: 项目所有者于 2026-08-18 明确回报 `TASK-016` 通过；记录只保留通过结论，不包含认证方式、密码、Key 或 Keychain 内容。
 - Documentation updated: `STATUS.md`, bilingual 0.1.0 SPEC/IMPLEMENTATION/UI_SPEC/ACCEPTANCE, and this Task.
 - Remaining work promoted to: None
-- Scope changes closed: Pending
+- Scope changes closed: 所有 scope change 均已由自动化、固定 App 生命周期证据和项目所有者干净授权复验关闭。
 - Parallel contributions integrated: None

@@ -461,6 +461,12 @@ final class FloatingPanelCoordinator: NSObject, NSWindowDelegate {
                     layout.sourceMarkdownProjection = input.flatMap(SourceMarkdownProjectionSnapshot.init)
                 }
                 self.resizeResultPanel(for: session)
+                if let session, session.state == .streaming {
+                    AcceptancePerformanceRecorder.shared.completeRustDeltaSampleIfAvailable(
+                        for: session.id,
+                        in: self.panel
+                    )
+                }
             }
         }
         markdownProjectionCancellable = store.$session
@@ -614,6 +620,10 @@ final class FloatingPanelCoordinator: NSObject, NSWindowDelegate {
         panelContentView.layoutSubtreeIfNeeded()
         panel.resetCursorRects()
         panel.orderFrontRegardless()
+        DispatchQueue.main.async { [weak panel] in
+            guard let panel else { return }
+            AcceptancePerformanceRecorder.shared.completeShellSampleWhenVisible(in: panel)
+        }
         if activate {
             NSApp.activate(ignoringOtherApps: true)
             panel.makeKey()

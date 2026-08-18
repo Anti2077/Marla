@@ -54,29 +54,29 @@
 
 ### 中文
 
-- [ ] `⌃⌥S` 在单显示器、Retina 和多显示器环境进入正确框选层。
-- [ ] 框选层出现前完成全显示器内存冻结；悬停弹层保留触发瞬间状态，视频/动画在框选期间显示为静态帧，选区内外和放大镜不露出实时桌面。
-- [ ] 确认后裁剪来自同一冻结帧而非第二次实时捕获；会话结束释放全屏帧，只把选区裁剪交给 Vision。
-- [ ] 跨屏坐标、负坐标原点和不同缩放比例下裁剪区域正确。
-- [ ] 真实 `Esc` 在普通框选和设置已打开的焦点场景中取消，且不产生 OCR、网络请求或文件（TASK-009 的旧证据已被项目所有者在后续固定 App 中复现为失败，当前由 TASK-018 复验）。
-- [ ] 右键和无效区域取消，且不产生 OCR、网络请求或文件。
-- [ ] Vision 对短句、多行和长截图文字输出稳定阅读顺序。
+- [x] `⌃⌥S` 在单显示器、Retina 和多显示器环境进入正确框选层。
+- [x] 框选层出现前完成全显示器内存冻结；悬停弹层保留触发瞬间状态，视频/动画在框选期间显示为静态帧，选区内外和放大镜不露出实时桌面。
+- [x] 确认后裁剪来自同一冻结帧而非第二次实时捕获；会话结束释放全屏帧，只把选区裁剪交给 Vision。
+- [x] 跨屏坐标、负坐标原点和不同缩放比例下裁剪区域正确。
+- [x] 真实 `Esc` 在普通框选和设置已打开的焦点场景中取消，且不产生 OCR、网络请求或文件（TASK-009 的旧证据曾被项目所有者在后续固定 App 中复现为失败，现已由 TASK-018 修复证据与 RV-002 项目所有者复验共同关闭）。
+- [x] 右键和无效区域取消，且不产生 OCR、网络请求或文件。
+- [x] Vision 对短句、多行和长截图文字输出稳定阅读顺序。
 - [ ] Vision 开启自动语言检测，并只配置当前运行时支持的七门产品 OCR 标识；真实渲染图片回归和固定 Release 截图均证明日语、韩语可识别，中文、英文不回归。
-- [ ] 空 OCR 显示重新框选操作，不发送空请求。
+- [x] 空 OCR 显示重新框选操作，不发送空请求。
 - [ ] 翻译失败后仍保留 Vision 源文本。
 - [ ] 网络抓包或 Provider 模拟证明请求只含文字，不含图片字节或完整屏幕。
 
 ### English
 
-- [ ] `⌃⌥S` enters the correct selection layer on single-display, Retina, and multi-display setups.
-- [ ] Full-display in-memory freezing completes before the selection layer appears; hover surfaces retain their trigger-time state, video/animation appears static during selection, and the selected area, dimmed background, and loupe never reveal the live desktop.
-- [ ] Confirmation crops from the same frozen frames instead of a second live capture; session completion releases full-display frames and sends only the selected crop to Vision.
-- [ ] Crop is correct with cross-screen coordinates, negative origins, and mixed scale factors.
-- [ ] A real `Esc` cancels both ordinary selection and the open-Settings focus scenario, with no OCR, network request, or file (the project owner reproduced a failure in a later fixed App after the older TASK-009 evidence; TASK-018 now owns the re-verification).
-- [ ] Right-click and invalid regions cancel with no OCR, network request, or file.
-- [ ] Vision produces stable reading order for short, multiline, and long captured text.
+- [x] `⌃⌥S` enters the correct selection layer on single-display, Retina, and multi-display setups.
+- [x] Full-display in-memory freezing completes before the selection layer appears; hover surfaces retain their trigger-time state, video/animation appears static during selection, and the selected area, dimmed background, and loupe never reveal the live desktop.
+- [x] Confirmation crops from the same frozen frames instead of a second live capture; session completion releases full-display frames and sends only the selected crop to Vision.
+- [x] Crop is correct with cross-screen coordinates, negative origins, and mixed scale factors.
+- [x] A real `Esc` cancels both ordinary selection and the open-Settings focus scenario, with no OCR, network request, or file (the project owner once reproduced a failure after the older TASK-009 evidence; TASK-018 repair evidence and the project-owner RV-002 re-verification now close it).
+- [x] Right-click and invalid regions cancel with no OCR, network request, or file.
+- [x] Vision produces stable reading order for short, multiline, and long captured text.
 - [ ] Vision enables automatic language detection and configures only the seven product OCR identifiers supported by the current runtime; rendered-image regressions and fixed Release captures prove Japanese and Korean recognition without regressing Chinese or English.
-- [ ] Empty OCR offers reselect and sends no empty request.
+- [x] Empty OCR offers reselect and sends no empty request.
 - [ ] Translation failure preserves Vision source text.
 - [ ] Network capture or provider mock proves requests contain text only, with no image bytes or full screen.
 
@@ -112,11 +112,11 @@
 
 - [x] Base URL 模式追加 `/chat/completions`，完整 URL 模式原样使用地址；两种模式拒绝 query/fragment，并由测试连接和真实翻译共用。
 - [x] 模型获取由 Rust 根据 URL 模式推导 `/models`，携带当前配置 Key，返回排序去重列表；编辑器可展开并选择模型。
-- [ ] 获取模型和测试连接都优先使用当前非空 Key 草稿，草稿为空时回退 Keychain；相关字段变化会清除旧测试结果。
-- [ ] 只有启用配置可出现在结果卡选择器并发起请求；禁用默认、全部禁用、重新启用和“设为默认”保持默认值不变量。
+- [x] 获取模型和测试连接都优先使用当前非空 Key 草稿，草稿为空时回退 Keychain；相关字段变化会清除旧测试结果。
+- [x] 只有启用配置可出现在结果卡选择器并发起请求；禁用默认、全部禁用、重新启用和“设为默认”保持默认值不变量。
 - [ ] 模型和空/非空 Key 都按协议构造请求；Key 只在非空时加入 Header。
-- [ ] API Key 存在 Keychain，不出现在 UserDefaults、日志、错误或诊断输出。
-- [ ] 全部 profile Key 存在一个版本化 Keychain vault item 中；应用完成启动后、首次翻译前只读取该 vault，切换配置不再访问其它 Keychain item。
+- [x] API Key 存在 Keychain，不出现在 UserDefaults、日志、错误或诊断输出。
+- [x] 全部 profile Key 存在一个版本化 Keychain vault item 中；应用完成启动后、首次翻译前只读取该 vault，切换配置不再访问其它 Keychain item。
 - [ ] 首字前显示等待状态，delta 增量显示，完成后内容与 Provider 一致。
 - [x] 2026-08-16 基线已验证 `semanticMarkdown` 在 `completed` 使用安全原生富文本投影，解析失败回退原始 Markdown，`plainText`、失败部分输出和取消状态不富渲染。
 - [ ] `semanticMarkdown` 在首个非空增量前保持原始显示，随后流式与完成态共用原生投影；过密更新约 40ms 有界合并，未闭合/暂不可解析片段不崩溃、不丢字、不修改 canonical Markdown。
@@ -134,11 +134,11 @@
 
 - [x] Base URL mode appends `/chat/completions`; Complete URL mode uses the address unchanged. Both reject query/fragment and are shared by connection testing and real translation.
 - [x] Rust derives `/models` from the URL mode, uses the current profile key, and returns sorted unique IDs; the editor expands and selects a model.
-- [ ] Model discovery and connection testing both prefer the current non-empty key draft and fall back to Keychain only when the draft is empty; related field changes clear stale test results.
-- [ ] Only enabled profiles appear in the result-card picker and may start requests; disabling the default, disabling all, re-enabling, and Set as Default preserve the default invariant.
+- [x] Model discovery and connection testing both prefer the current non-empty key draft and fall back to Keychain only when the draft is empty; related field changes clear stale test results.
+- [x] Only enabled profiles appear in the result-card picker and may start requests; disabling the default, disabling all, re-enabling, and Set as Default preserve the default invariant.
 - [ ] Model and empty/non-empty key build the specified request; Header is added only for non-empty key.
-- [ ] API Key lives in Keychain and never appears in UserDefaults, logs, errors, or diagnostics.
-- [ ] All profile keys live in one versioned Keychain vault item; after launch and before first translation, the app reads only that vault, and profile switching accesses no additional Keychain item.
+- [x] API Key lives in Keychain and never appears in UserDefaults, logs, errors, or diagnostics.
+- [x] All profile keys live in one versioned Keychain vault item; after launch and before first translation, the app reads only that vault, and profile switching accesses no additional Keychain item.
 - [ ] Waiting appears before first token, raw deltas appear incrementally, and completion matches provider output.
 - [x] The 2026-08-16 baseline verified safe native rich-text projection for completed `semanticMarkdown`, raw Markdown fallback on parse failure, and no rich rendering for `plainText`, failed partial output, or cancelled states.
 - [ ] `semanticMarkdown` remains raw before the first non-empty delta, then streaming and completion share the native projection; dense updates are coalesced at about 40ms, and incomplete/temporarily unparseable fragments neither crash, lose text, nor modify canonical Markdown.
@@ -215,7 +215,7 @@
 - [x] 菜单、设置、结果卡、快速输入和截图框选提示使用 macOS 26 Liquid Glass，并为 macOS 14–25 提供单层材质回退。
 - [x] 菜单和设置中的截图翻译使用目标系统可用且可见的 SF Symbol。
 - [x] API 编辑器首行获得焦点时，系统 Focus Ring 四边完整，不被滚动视口顶部裁切。
-- [ ] API 列表使用启用 Switch，菜单仅含设为默认/删除；原生拖拽图透明不可见，最右侧三横杠抓起后由固定 580×76pt 独立浮层绘制完整配置行，向左展开并保持原始抓取点且全程不缩放；列表原行变为等高空槽，空槽经过其它配置时以短促过渡实时移动和让位，松手后内容以短促动画恢复到空槽，且设置窗口本身不移动；编辑器底部仅含取消/保存，测试结果在表单内同行显示。
+- [x] API 列表使用启用 Switch，菜单仅含设为默认/删除；原生拖拽图透明不可见，最右侧三横杠抓起后由固定 580×76pt 独立浮层绘制完整配置行，向左展开并保持原始抓取点且全程不缩放；列表原行变为等高空槽，空槽经过其它配置时以短促过渡实时移动和让位，松手后内容以短促动画恢复到空槽，且设置窗口本身不移动；编辑器底部仅含取消/保存，测试结果在表单内同行显示。
 
 ### English
 
@@ -228,26 +228,26 @@
 - [x] The menu, Settings, result card, quick input, and screenshot-selection labels use macOS 26 Liquid Glass with a single material fallback on macOS 14–25.
 - [x] Screenshot translation uses an available and visible SF Symbol in both the menu and Settings.
 - [x] When the API editor's first row is focused, all four sides of the system Focus Ring remain visible instead of clipping at the scroll viewport's top edge.
-- [ ] The API list uses an enabled switch and a menu containing only Set as Default/Delete. The native drag image is transparent and invisible; picking up the trailing handle renders the complete row in an independent fixed 580×76pt panel that expands leftward, preserves the exact grab point, and never scales. The source becomes a full-height empty slot that moves through the list with short animated displacement, and release restores the row content into that slot without moving the Settings window. The editor footer contains only Cancel/Save and shows test results inline in the form.
+- [x] The API list uses an enabled switch and a menu containing only Set as Default/Delete. The native drag image is transparent and invisible; picking up the trailing handle renders the complete row in an independent fixed 580×76pt panel that expands leftward, preserves the exact grab point, and never scales. The source becomes a full-height empty slot that moves through the list with short animated displacement, and release restores the row content into that slot without moving the Settings window. The editor footer contains only Cancel/Save and shows test results inline in the form.
 
 ## 9. 性能与内存 / Performance and Memory
 
 ### 中文
 
-- [ ] 本地入口触发到 UI 壳层可见的 P95 不超过约 150ms。
-- [ ] 网络 TTFT、完整响应时间、吞吐和本地 UI 开销分开记录，不把网络时间算作 UI 渲染延迟。
-- [ ] Rust 回调到 Swift 可见 delta 的本地处理 P95 低于 50ms。
+- [x] 本地入口触发到 UI 壳层可见的 P95 不超过约 150ms。
+- [x] 网络 TTFT、完整响应时间、吞吐和本地 UI 开销分开记录，不把网络时间算作 UI 渲染延迟。
+- [x] Rust 回调到 Swift 可见 delta 的本地处理 P95 低于 50ms。
 - [ ] OCR 和网络不阻塞主线程，动画期间保持流畅交互。
-- [ ] 空闲常驻内存低于 150MB；常规翻译低于 300MB；Vision 活跃时低于 500MB；任何验收场景不得达到 1GB。
+- [x] 空闲常驻内存低于 150MB；常规翻译低于 300MB；Vision 活跃时低于 500MB；任何验收场景不得达到 1GB。
 - [ ] 关闭会话后截图和请求缓冲区释放，无持续增长。
 
 ### English
 
-- [ ] P95 from local entry trigger to visible UI shell is approximately 150ms or less.
-- [ ] Network TTFT, total response, throughput, and local UI overhead are recorded separately; network time is not labeled UI render latency.
-- [ ] P95 from Rust callback to visible Swift delta is below 50ms locally.
+- [x] P95 from local entry trigger to visible UI shell is approximately 150ms or less.
+- [x] Network TTFT, total response, throughput, and local UI overhead are recorded separately; network time is not labeled UI render latency.
+- [x] P95 from Rust callback to visible Swift delta is below 50ms locally.
 - [ ] OCR and network do not block the main thread, and interaction remains smooth during animation.
-- [ ] Idle resident memory is below 150MB; normal translation below 300MB; active Vision below 500MB; no acceptance scenario reaches 1GB.
+- [x] Idle resident memory is below 150MB; normal translation below 300MB; active Vision below 500MB; no acceptance scenario reaches 1GB.
 - [ ] Closing sessions releases screenshot and request buffers with no sustained growth.
 
 ## 10. 隐私、打包与交付 / Privacy, Packaging, and Delivery
@@ -282,9 +282,9 @@ TASK-003 自动化与视觉证据：`./scripts/check.sh` 通过（Rust 16 项、
 
 TASK-003 automation and visual evidence: `./scripts/check.sh` passed (16 Rust tests, 22 Swift tests, Swift/Xcode Debug builds, formatting/whitespace/diff checks); Swift tests add coverage for recent capacity/deduplication, failed-result exclusion, restoration without networking, and screenshot SF Symbol availability; `Marla_test_202608061928.app` passed Release bundle verification. Menu light/dark, Settings, quick input, comparison-card, and screenshot-selection PNGs are under `artifacts/ui-review/task-003/`. Off-screen captures explicitly verify the material fallback; the macOS 26 production path compiles and invokes SwiftUI `glassEffect`. `computer-use` could not enumerate this no-main-window LSUIElement menu-bar app, so its timeout is not misreported as visual evidence.
 
-TASK-004 自动化与产物证据：`zsh -n scripts/build-test-app.sh`、ad-hoc 拒绝门禁、自定义已有路径覆盖保护和 `./scripts/check.sh` 通过（Rust 16 项、Swift 22 项、Swift/Xcode Debug 构建、格式/空白/diff 检查）。无参数 `./scripts/build-test-app.sh` 成功覆盖并验证 `artifacts/Marla_dev.app`；Bundle ID 为 `com.marla.app`、版本 0.1.0、最低 macOS 14、arm64，签名 Authority 为 `API Usage Monitor Dev`。覆盖前后的 designated requirement 均绑定同一证书，已有时间戳 App 数量保持 17，且没有遗留 staging 目录。TCC 重启持久性仍属于 RV-002 的真实验收。
+TASK-004 自动化与产物证据：`zsh -n scripts/build-test-app.sh`、ad-hoc 拒绝门禁、自定义已有路径覆盖保护和 `./scripts/check.sh` 通过（Rust 16 项、Swift 22 项、Swift/Xcode Debug 构建、格式/空白/diff 检查）。无参数 `./scripts/build-test-app.sh` 成功覆盖并验证 `artifacts/Marla_dev.app`；Bundle ID 为 `com.marla.app`、版本 0.1.0、最低 macOS 14、arm64，签名 Authority 为 `API Usage Monitor Dev`。覆盖前后的 designated requirement 均绑定同一证书，已有时间戳 App 数量保持 17，且没有遗留 staging 目录。当时仍待完成的 TCC 重启持久性已由项目所有者于 2026-08-18 通过 RV-002 关闭。
 
-TASK-004 automation and artifact evidence: `zsh -n scripts/build-test-app.sh`, the ad-hoc rejection gate, the existing-custom-path overwrite guard, and `./scripts/check.sh` passed (16 Rust tests, 22 Swift tests, Swift/Xcode Debug builds, formatting/whitespace/diff checks). A no-argument `./scripts/build-test-app.sh` run successfully replaced and verified `artifacts/Marla_dev.app`; its Bundle ID is `com.marla.app`, version 0.1.0, minimum macOS 14, architecture arm64, and signing Authority `API Usage Monitor Dev`. The designated requirement remained bound to the same certificate before and after replacement, the existing timestamped-App count remained 17, and no staging directory remained. TCC persistence across restart remains real acceptance work under RV-002.
+TASK-004 automation and artifact evidence: `zsh -n scripts/build-test-app.sh`, the ad-hoc rejection gate, the existing-custom-path overwrite guard, and `./scripts/check.sh` passed (16 Rust tests, 22 Swift tests, Swift/Xcode Debug builds, formatting/whitespace/diff checks). A no-argument `./scripts/build-test-app.sh` run successfully replaced and verified `artifacts/Marla_dev.app`; its Bundle ID is `com.marla.app`, version 0.1.0, minimum macOS 14, architecture arm64, and signing Authority `API Usage Monitor Dev`. The designated requirement remained bound to the same certificate before and after replacement, the existing timestamped-App count remained 17, and no staging directory remained. The TCC restart persistence that was still pending at that time was closed by the project owner through RV-002 on 2026-08-18.
 
 TASK-008 自动化与视觉证据：`./scripts/check.sh` 通过（Rust 16 项、Swift 34 项、Swift/Xcode Debug 构建、格式/空白/diff 检查）；新增测试覆盖设置全尺寸透明标题栏和连续四角、截图窗口 Key 能力、设置暂停/非 Key 恢复，以及 Escape `NSEvent` 的取消路径。固定 `artifacts/Marla_dev.app` 重新构建并保持 Bundle ID `com.marla.app`、arm64、签名 Authority `API Usage Monitor Dev` 和既有 designated requirement。浅色一体化设置、深色快捷键与“设置已打开后进入截图”证据位于 `artifacts/ui-review/task-008/`，五维评分为 8/8/8/8/7。由于机器上同时运行两个同路径 Marla 进程，Computer Use 无法把一次物理 Escape 唯一归属到验收进程；Agent 只停止了自己启动的进程，没有终止项目所有者原有实例。
 
@@ -302,9 +302,9 @@ TASK-011 自动化与视觉证据：API 编辑器滚动内容顶部增加 8pt Fo
 
 TASK-011 automation and visual evidence: the API editor now gives its scroll content an 8pt top safety inset for the Focus Ring and exposes deterministic first-row focus only through the UI-acceptance environment. `./scripts/check.sh` passed (17 Rust tests, 41 Swift tests, Swift/Xcode Debug builds, formatting/whitespace/diff checks). The fixed `artifacts/Marla_dev.app` was rebuilt while preserving Bundle ID `com.marla.app`, arm64, Authority `API Usage Monitor Dev`, and the existing designated requirement. Frontmost light/dark Release windows captured by verified Core Graphics Window ID show all four sides of the blue Focus Ring; evidence is under `artifacts/ui-review/task-011/`, with five-dimension scores of 8/8/9/8/7.
 
-TASK-015 当前自动化与产物证据：选区机制合并、Unicode UTF-16 截取、空标准 Range 后继续尝试 Text Marker、候选根顺序、全局 AX 图去重/环、元素与时间预算、窗口级 Escape 路由、事件 tap 回退，以及 Copy fallback 的稳定快照、完整表示重建、成功/空结果/错误/取消/超时/失焦/并发写入/恢复失败均通过；最新 `./scripts/check.sh` 为 Rust 17 项、Swift 68 项，`./scripts/build-test-app.sh` 和固定 App 复核验证 Bundle ID、arm64、稳定签名和 designated requirement。项目所有者确认此前失败的 Codex 选区成功且剪贴板还原、微信选区成功进入真实请求，并在继续试用后确认整体成功率很高，接受 TASK-015 完成。当前 Provider `unauthorized` 来自缺失的本机 profile 凭据，按项目所有者要求不纳入本 Task。跨应用验证已由 RV-001 关闭；截图 `Esc`、裁剪和权限复验继续由 RV-002 跟踪。
+TASK-015 当前自动化与产物证据：选区机制合并、Unicode UTF-16 截取、空标准 Range 后继续尝试 Text Marker、候选根顺序、全局 AX 图去重/环、元素与时间预算、窗口级 Escape 路由、事件 tap 回退，以及 Copy fallback 的稳定快照、完整表示重建、成功/空结果/错误/取消/超时/失焦/并发写入/恢复失败均通过；最新 `./scripts/check.sh` 为 Rust 17 项、Swift 68 项，`./scripts/build-test-app.sh` 和固定 App 复核验证 Bundle ID、arm64、稳定签名和 designated requirement。项目所有者确认此前失败的 Codex 选区成功且剪贴板还原、微信选区成功进入真实请求，并在继续试用后确认整体成功率很高，接受 TASK-015 完成。当前 Provider `unauthorized` 来自缺失的本机 profile 凭据，按项目所有者要求不纳入本 Task。跨应用验证已由 RV-001 关闭；当时继续由 RV-002 跟踪的截图 `Esc`、裁剪和权限复验已于 2026-08-18 关闭。
 
-TASK-015 current automation and artifact evidence: selection-mechanism merging, UTF-16 Unicode slicing, continuing to Text Marker after an empty standard range, candidate-root ordering, global AX graph deduplication/cycles, element/time budgets, window-level Escape routing, the event-tap fallback, and Copy fallback stable snapshots, full representation rebuilding, success/empty/error/cancellation/timeout/focus-loss/concurrent-write/restore-failure paths all pass. The latest `./scripts/check.sh` reports 17 Rust and 68 Swift tests, and the packaging plus fixed-App verification confirm its Bundle ID, arm64 architecture, stable signature, and designated requirement. The project owner confirmed one formerly failing Codex selection now succeeds and restores the clipboard, confirmed WeChat reaches the real request, and accepted TASK-015 complete after observing a high overall success rate. The current Provider `unauthorized` comes from a missing local profile credential and is excluded from this Task by the project owner. Cross-application verification is closed as RV-001; screenshot Escape, crop, and permission checks remain under RV-002.
+TASK-015 current automation and artifact evidence: selection-mechanism merging, UTF-16 Unicode slicing, continuing to Text Marker after an empty standard range, candidate-root ordering, global AX graph deduplication/cycles, element/time budgets, window-level Escape routing, the event-tap fallback, and Copy fallback stable snapshots, full representation rebuilding, success/empty result/error/cancellation/timeout/focus-loss/concurrent-write/restore-failure paths all pass. The latest `./scripts/check.sh` reports 17 Rust and 68 Swift tests, and the packaging plus fixed-App verification confirm its Bundle ID, arm64 architecture, stable signature, and designated requirement. The project owner confirmed one formerly failing Codex selection now succeeds and restores the clipboard, confirmed WeChat reaches the real request, and accepted TASK-015 complete after observing a high overall success rate. The current Provider `unauthorized` comes from a missing local profile credential and is excluded from this Task by the project owner. Cross-application verification is closed as RV-001; the screenshot Escape, crop, and permission checks that remained under RV-002 at that time were closed on 2026-08-18.
 
 TASK-019 自动化、产物与视觉证据：全局母语/第二语言、本机中英日识别、未知降级、结果卡与快速输入源/目标覆盖、会话快照，以及通用/Qwen-MT Provider 映射通过测试。最终 `./scripts/check.sh` 为 17 项 Rust、81 项 Swift，并通过 Swift/Xcode Debug、格式、空白与 diff 检查；6 项原位实验专用测试随被拒绝功能一起删除。固定 `artifacts/Marla_dev.app` 保持 Bundle ID `com.marla.app`、0.1.0、macOS 14+、arm64、Authority `API Usage Monitor Dev` 和既有 designated requirement。语言设置、结果卡和快速输入证据位于 `artifacts/ui-review/task-019/`，五维评分 8/8/8/8/7；移除两个实验设置后的“通用”页浅色/深色证据位于 `artifacts/ui-review/task-019-removal/`，复审为 8/8/8/9/7。首轮语言截图发现 macOS Menu 压平复合标签、隐藏实际语言并重复箭头；修复后已重新构建和采集。现有 Keychain profile 的现场日语请求本轮未执行，不用它替代已通过的 mock payload 合同证据。
 
@@ -319,6 +319,14 @@ TASK-022 Vision OCR repair evidence: `VisionOCRConfiguration` 现在开启自动
 TASK-021 高度竞态跟进：`ResultCardLayout` 已补偿 AppKit 与 SwiftUI 文本逐行测量差异，协调器在每次高度动画结束后按最新会话再次校正。40ms 非激活流式夹具与真实 `NSHostingView` 回归已在 Swift Package 测试中通过；`./scripts/check.sh` 的 17 项 Rust、80 项 MarlaApp、13 项 MarlaCore、Swift Package、Xcode Debug、格式/空白/diff 阶段均通过。固定 Release 已重新打包并通过包与签名检查；LaunchServices 截图 `/private/tmp/marla-task-021-height-race-final.png` 中译文、分隔线和操作行完整可见，结果卡高度条目仍待项目所有者真实划词确认。
 
 TASK-021 height-race follow-up: `ResultCardLayout` now compensates for the measured per-line difference between AppKit and SwiftUI text, and the coordinator reconciles the latest session after each height animation. The 40ms nonactivating streaming fixture and real `NSHostingView` regression pass in the Swift Package test run; `./scripts/check.sh` passes 17 Rust, 80 MarlaApp, 13 MarlaCore, Swift Package, Xcode Debug, formatting, whitespace, and diff stages. The fixed Release was rebuilt and passes package/signature checks; the LaunchServices capture `/private/tmp/marla-task-021-height-race-final.png` keeps translation, dividers, and actions visible. The result-card height item remains pending project-owner real selection confirmation.
+
+TASK-030 性能与内存证据：2026-08-18 在 Apple M4、macOS 26.6.1 的固定签名 Release App 上运行 30 组独立本地样本。入口 fixture 从调用到面板完成布局、显示提交且可见的 P50/P95/max 为 131.869/145.947/149.332ms；Rust callback 解码后到对应 Swift `.streaming` delta 完成主线程布局与显示提交的 P50/P95/max 为 35.068/43.957/44.074ms。delta 使用 `127.0.0.1` SSE，不含外部网络时间。空闲、常规完成态、全显示器 ScreenCaptureKit 冻结/框选、沙盒外 2400×1600 Vision accurate OCR 的最大 RSS 分别约 126.1/128.9/325.3/147.3 MiB；每项均低于预算，所有实测场景低于 1 GiB。`/private/tmp/marla-rv003-latency.jsonl` 为临时脱敏证据，只含 schema、metric 和纳秒时长。动画主观流畅性与关闭会话后无持续增长仍是独立未勾选项。
+
+TASK-030 performance and memory evidence: on 2026-08-18, 30 independent local samples ran in the stable-signed Release App on an Apple M4 with macOS 26.6.1. The entry fixture measured P50/P95/max of 131.869/145.947/149.332ms from invocation through panel layout, display submission, and visible state. Rust-callback decoding through the matching Swift `.streaming` delta's main-thread layout and display submission measured 35.068/43.957/44.074ms. Delta samples used a `127.0.0.1` SSE fixture and exclude external network time. Maximum RSS for idle, ordinary completed output, all-display ScreenCaptureKit freeze/selection, and a sandbox-external 2400×1600 accurate Vision OCR probe was approximately 126.1/128.9/325.3/147.3 MiB respectively; every measured scenario met its budget and stayed below 1 GiB. The temporary `/private/tmp/marla-rv003-latency.jsonl` evidence contains only schema, metric, and nanosecond duration. Subjective animation smoothness and no sustained growth after closing a session remain separate unchecked items.
+
+2026-08-18 项目所有者真实验收补充：项目所有者明确回报 `RV-002`、`RV-004`、`TASK-013` 与 `TASK-016` 全部通过。RV-002 关闭截图裁剪、冻结画面、取消路径、代表性显示器布局与 TCC 持久性验证；TASK-013 关闭固定 580×76pt Panel、手柄锚点、无缩放、移动空槽与松手恢复动态；TASK-016 关闭干净授权状态的启动 vault 授权与首次翻译不再逐 profile 打断；RV-004 关闭同一已保存 profile 的“保存并测试”与真实翻译凭据一致性。记录不包含显示器型号、Key、endpoint、认证方式、截图或翻译内容。日/韩/中/英固定 Release OCR 与语言路由仍按其独立未勾选条目处理。
+
+2026-08-18 project-owner real-environment addendum: the project owner explicitly reported `RV-002`, `RV-004`, `TASK-013`, and `TASK-016` as passed. RV-002 closes screenshot crop, frozen-frame behavior, cancellation paths, representative display layouts, and TCC persistence. TASK-013 closes the fixed 580×76pt panel, handle anchor, no scaling, moving empty slot, and release restoration. TASK-016 closes clean-authorization startup vault loading and the absence of per-profile authorization interruptions on first translation. RV-004 closes credential consistency between Save and Test and a real translation through the same saved profile. No display model, key, endpoint, authentication method, screenshot, or translation content is recorded. Fixed-Release Japanese/Korean/Chinese/English OCR and language routing remain governed by their separate unchecked item.
 
 ## 11. 发布判定 / Release Decision
 

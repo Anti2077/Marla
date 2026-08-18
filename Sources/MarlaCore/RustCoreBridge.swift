@@ -92,6 +92,7 @@ public final class RustTranslationClient: @unchecked Sendable {
             guard let bytes, length > 0, let context else { return }
             let copy = Data(bytes: bytes, count: length)
             guard let event = try? JSONDecoder().decode(TranslationFFIEvent.self, from: copy) else { return }
+            TranslationCallbackMetrics.record(event)
             Unmanaged<CallbackBox>.fromOpaque(context).takeUnretainedValue().callback(event)
         }
         let rawHandle = data.withUnsafeBytes { buffer in

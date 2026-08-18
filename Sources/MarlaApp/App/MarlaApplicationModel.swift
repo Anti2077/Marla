@@ -408,6 +408,10 @@ final class MarlaApplicationModel: ObservableObject {
         它会保留换行、代码标识符和终端参数。
         """
 
+        if presentPerformanceUIAutomationFixture(named: scenario) {
+            return
+        }
+
         if presentMarkdownUIAutomationFixture(named: scenario) {
             scheduleUIAutomationSnapshotIfRequested()
             return

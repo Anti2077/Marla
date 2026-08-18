@@ -151,11 +151,13 @@ struct MenuBarView: View {
     @ObservedObject var model: MarlaApplicationModel
     @ObservedObject private var settings: MarlaSettingsStore
     @ObservedObject private var shortcuts: GlobalShortcutManager
+    let usesStandaloneGlassSurface: Bool
 
-    init(model: MarlaApplicationModel) {
+    init(model: MarlaApplicationModel, usesStandaloneGlassSurface: Bool = false) {
         self.model = model
         settings = model.settings
         shortcuts = model.shortcutManager
+        self.usesStandaloneGlassSurface = usesStandaloneGlassSurface
     }
 
     private var setupReady: Bool {
@@ -163,6 +165,18 @@ struct MenuBarView: View {
     }
 
     var body: some View {
+        Group {
+            if usesStandaloneGlassSurface {
+                menuContent
+                    .marlaGlassSurface(cornerRadius: 20)
+            } else {
+                menuContent
+            }
+        }
+        .onAppear { model.refreshPermissions() }
+    }
+
+    private var menuContent: some View {
         VStack(alignment: .leading, spacing: DesignTokens.spaceL) {
             HStack(alignment: .firstTextBaseline) {
                 VStack(alignment: .leading, spacing: 2) {
@@ -258,8 +272,6 @@ struct MenuBarView: View {
         }
         .padding(DesignTokens.spaceL)
         .frame(width: 330)
-        .marlaGlassSurface(cornerRadius: 20)
-        .onAppear { model.refreshPermissions() }
     }
 }
 

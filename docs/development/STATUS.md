@@ -6,7 +6,9 @@ Release target: 0.1.0 Alpha
 
 Overall state: In Progress — RV-001 through RV-004 and all previously Blocked Tasks are closed; remaining acceptance gaps are explicit
 
-Active task: None. The next implementation task must be selected explicitly by the project owner.
+Active task: [`TASK-031`](../tasks/TASK-031-menu-glass-parity.md) — align the status-menu and Settings glass ownership without manual opacity.
+
+TASK-031 已完成实现与自动化：项目所有者反馈状态栏菜单背景不如设置窗口通透，代码审计确认 `MenuBarExtra(.window)` 的原生窗口材质之上又叠加了内容级 `marlaGlassSurface()`，而透明设置窗口只铺一层 Marla 系统玻璃。生产菜单现由原生窗口独占材质；独立 Preview / fixture 显式保留一层表面。沙箱外 `./scripts/check.sh`、固定签名 Release 打包、浅色/深色布局复核均通过，未恢复 TASK-026 已否定的整窗 opacity、强制 clear 或透明度档位。Computer Use 仍无法枚举无主窗口的 LSUIElement 状态项，真实原生菜单的聚焦/失焦透明度待项目所有者肉眼验收后关闭 Task。
 
 TASK-030 已完成并关闭 RV-003。固定签名 Release App 的 30 组独立本地样本中，入口到 UI 壳层可见 P50/P95/max 为 131.869/145.947/149.332ms，Rust callback 到 Swift 可见 delta 为 35.068/43.957/44.074ms；delta 使用 `127.0.0.1` SSE，不混入 Provider 网络时间。空闲、常规完成态、真实 ScreenCaptureKit 全显示器冻结/框选、沙盒外 2400×1600 Vision accurate OCR 的最大 RSS 分别约 126.1/128.9/325.3/147.3 MiB，均在预算内。报告只含 metric 和纳秒时长。项目所有者随后于 2026-08-18 明确确认 RV-002、RV-004、TASK-013 与 TASK-016 全部通过；RV-001 至 RV-004 现均为 Complete，过去的两个 Blocked Task 均为 Done。闭环记录不包含显示器型号、凭据、认证方式或用户内容。
 

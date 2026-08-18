@@ -405,7 +405,7 @@ final class FloatingPanelCoordinator: NSObject, NSWindowDelegate {
     }
 
     func showMenuAutomationSurface(model: MarlaApplicationModel) {
-        let content = AnyView(MenuBarView(model: model))
+        let content = AnyView(MenuBarView(model: model, usesStandaloneGlassSurface: true))
         show(
             content: content,
             width: 330,

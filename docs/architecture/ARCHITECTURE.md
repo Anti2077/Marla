@@ -2,7 +2,7 @@
 
 ## Status
 
-0.1.0 target architecture accepted. The 2026-08-17 reopened TASK-028 completed streaming native Markdown projection and unified TextKit height measurement; release verification remains in progress.
+Current incubation architecture accepted. The 2026-08-17 reopened TASK-028 completed streaming native Markdown projection and unified TextKit height measurement. No public release target is currently assigned.
 
 ## Platform
 
@@ -29,7 +29,7 @@ Trigger Provider
 
 Platform acquisition and presentation nodes run in Swift/AppKit. Provider orchestration, normalized processing, context classification, caching, and translation-session logic move through the Rust core. Swift-facing models remain at the bridge boundary until their Rust equivalents and ABI contracts are implemented.
 
-For 0.1.0, contextual window collection and persistent caches are disabled. Rust owns translation prompt construction, OpenAI-compatible HTTP/SSE, timeout, cancellation, and session state.
+In the current implemented baseline, contextual window collection and persistent caches are disabled. Rust owns translation prompt construction, OpenAI-compatible HTTP/SSE, the GLM-OCR cloud adapter and structure normalization, timeout, cancellation, and provider-independent events.
 
 ## Runtime boundary
 
@@ -40,7 +40,7 @@ SwiftUI / AppKit
   -> embedded Rust static library
 ```
 
-The bridge is in-process. Marla does not start a localhost backend or a separate always-running Rust service. The first working bridge exposes its API version and classifies an application's surface from its Bundle ID; that classification is technical groundwork and is not sent as translation context in 0.1.0.
+The bridge is in-process. Marla does not start a localhost backend or a separate always-running Rust service. The first working bridge exposes its API version and classifies an application's surface from its Bundle ID; that classification is technical groundwork and is not sent as translation context in the current baseline.
 
 ## Core boundaries
 
@@ -58,29 +58,31 @@ Accessibility retains permission/trust and non-content positioning duties only. 
 
 Swift/AppKit owns one session-only normalization boundary shared by selection acquisition and Quick Input Paste. Explicit Markdown source passes through unchanged. Native attributed text, HTML, and RTF/RTFD are converted to semantic Markdown only for reliable structure that agrees with the visible plain text; otherwise the boundary emits `plainText`. HTML uses structured local parsing that removes scripts, styles, explicitly hidden nodes, image resources, and unsafe links. The boundary never uses a WebView, executes content, loads remote resources, or persists native or normalized representations.
 
-Quick Input invokes this boundary from its native Paste command and inserts the resulting Markdown source into the draft. Selection invokes it only on the new representation evidence returned by the protected Copy transaction; Accessibility evidence never enters content normalization. Vision does not infer formatting and always emits `plainText`.
+Quick Input invokes this boundary from its native Paste command and inserts the resulting Markdown source into the draft. Selection invokes it only on the new representation evidence returned by the protected Copy transaction; Accessibility evidence never enters content normalization. Vision does not infer formatting and always emits `plainText`; GLM-OCR structure normalization emits `semanticMarkdown` only from canonical layout blocks.
 
 ### Screenshot capture
 
-Uses ScreenCaptureKit to capture every active display before presenting selection windows. The AppKit selection layer, loupe, and final crop all use those session-only frozen frames; confirmation composites the cross-display crop without a second live capture. Full-display frames are released when selection finishes, and only the selected crop enters macOS Vision. Version 0.1.0 sends no image pixels across FFI or to a cloud provider.
+Uses ScreenCaptureKit to capture every active display before presenting selection windows. The AppKit selection layer, loupe, and final crop all use those session-only frozen frames; confirmation composites the cross-display crop without a second live capture. Full-display frames are released when selection finishes. The selected crop enters Vision locally by default. When the user explicitly selects GLM-OCR, Swift encodes the crop in memory as PNG or bounded JPEG (9.5 MB safety cap below the Provider's 10 MB limit), transfers only request bytes across the in-process FFI, and releases crop/encoding/response references when OCR completes, is cancelled, or is replaced. Marla does not persist screenshots or active layout blocks.
 
 ### OCR provider
 
-macOS Vision is the only 0.1.0 OCR provider. It enables automatic language detection, limits explicit candidates to the seven product-language identifiers supported by the current Vision runtime, and normalizes recognized lines into stable plain-text blocks and reading order. Cloud GLM-OCR and layout-aware blocks remain post-0.1.0 under ADR-0002 and ADR-0005.
+OCR Settings persists a Provider choice with Vision as the default. Vision enables automatic language detection, limits explicit candidates to the seven product-language identifiers supported by the current runtime, and normalizes recognized lines into stable `plainText` blocks and reading order.
+
+The owner-authorized TASK-033 adds cloud GLM-OCR through the fixed official `layout_parsing` endpoint and `glm-ocr` model. Swift owns the explicit upload disclosure, Keychain credential, image encoding and lifecycle. Rust owns HTTP, timeout/cancellation, response parsing, block-label mapping, coordinate normalization, safe literal-table conversion and deterministic `semanticMarkdown` reconstruction. `layout_details` is canonical; Provider `md_results` is not accepted as lossless source because it may alter URLs, code, commands, variables and placeholders. A missing saved GLM Key stops before upload and opens OCR Settings. Network, timeout, rate-limit, authorization, encoding, Provider and invalid-response failures visibly fall back to Vision; user cancellation never does.
 
 ### Context engine
 
-The accepted future engine may build bounded context only when translation is triggered. Version 0.1.0 does not send application identity, surface classification, window title, nearby text, or terminology. Existing surface classification remains local groundwork only.
+The accepted future engine may build bounded context only when translation is triggered. The current implementation does not send application identity, surface classification, window title, nearby text, or terminology. Existing surface classification remains local groundwork only; implementation requires a separate owner-authorized Task under ADR-0003.
 
 ### Translation providers
 
-Version 0.1.0 exposes multiple named OpenAI-compatible Chat Completions streaming profiles, with an ordered enabled subset, one enabled default for new sessions when available, and explicit switching among enabled profiles on result cards. Each profile supplies a URL mode, address, model, optional API Key, and persisted enabled state. Base URL mode appends `/chat/completions`; Complete URL mode preserves the supplied request URL. Rust also derives and requests the standard `/models` endpoint for the current URL mode, returning provider-independent model IDs through the versioned asynchronous C ABI. Swift persists non-sensitive profile data and enabled/order/default invariants in preferences, while all profile credentials use independent logical entries inside one versioned Keychain vault item. The vault is loaded after application launch and cached for the process so translation and profile switching perform no Keychain lookup. Model discovery and connection testing receive the current non-empty editor key draft before falling back to the cached profile credential. Rust owns URL resolution, model discovery, request prompting, SSE parsing, timeouts, explicit retry, cancellation, and normalized events. No default vendor or automatic fallback is selected.
+The current implementation exposes multiple named OpenAI-compatible Chat Completions streaming profiles, with an ordered enabled subset, one enabled default for new sessions when available, and explicit switching among enabled profiles on result cards. Each profile supplies a URL mode, address, model, optional API Key, and persisted enabled state. Base URL mode appends `/chat/completions`; Complete URL mode preserves the supplied request URL. Rust also derives and requests the standard `/models` endpoint for the current URL mode, returning provider-independent model IDs through the versioned asynchronous C ABI. Swift persists non-sensitive profile data and enabled/order/default invariants in preferences, while all profile credentials use independent logical entries inside one versioned Keychain vault item. The vault is loaded after application launch and cached for the process so translation and profile switching perform no Keychain lookup. Model discovery and connection testing receive the current non-empty editor key draft before falling back to the cached profile credential. Rust owns URL resolution, model discovery, request prompting, SSE parsing, timeouts, explicit retry, cancellation, and normalized events. No default vendor or automatic fallback is selected.
 
-Swift also persists one global native language and a different secondary language from the `zh-Hans`/`en`/`ja`/`fr`/`es`/`de`/`ko` product set. For each explicitly triggered source, Swift uses macOS Natural Language locally, snapshots the detected/overridden source plus preferences into the card, resolves automatic target routing, and sends JSON request schema v3 with `sourceContent`, optional source language, and explicit target. Quick Input submits its normalized draft as `semanticMarkdown`; selection submits `semanticMarkdown` only when protected-Copy representation evidence survives normalization and otherwise uses the newly copied `plainText`; Vision always uses `plainText`. Rust validates the content format and language codes, then uses Provider capabilities to choose System/User roles, prompt versus `translation_options` language instructions, and delta versus cumulative stream normalization. An unknown source uses Provider source detection but still has an explicit native-language target; detection text, identifier, and confidence are not persisted.
+Swift also persists one global native language and a different secondary language from the `zh-Hans`/`en`/`ja`/`fr`/`es`/`de`/`ko` product set. For each explicitly triggered source, Swift uses macOS Natural Language locally, snapshots the detected/overridden source plus preferences into the card, resolves automatic target routing, and sends JSON request schema v3 with `sourceContent`, optional source language, and explicit target. Quick Input and GLM-OCR submit `semanticMarkdown`; selection does so only when protected-Copy representation evidence survives normalization; Vision always uses `plainText`. Rust validates the content format and language codes, then uses Provider capabilities to choose System/User roles, prompt versus `translation_options` language instructions, and delta versus cumulative stream normalization. An unknown source uses Provider source detection but still has an explicit native-language target; detection text, identifier, and confidence are not persisted.
 
 ### Presentation
 
-Selection and screenshot translation use the same nearby non-activating result card in 0.1.0. The source-covering and pointer-estimate single-line experiment was rejected after real use and removed; live-image rewriting is not part of the current architecture. Quick input uses an activatable version of the same surface near the pointer.
+Selection and screenshot translation use the same nearby non-activating result card in the current implementation. The source-covering and pointer-estimate single-line experiment was rejected after real use and removed; live-image rewriting is not part of the current architecture. Quick input uses an activatable version of the same surface near the pointer.
 
 TASK-028 requires presentation to treat formatted content and its display as separate layers. The translation session retains the complete Provider-returned string and its `plainText` or `semanticMarkdown` format as canonical content. Copy, retry, source/target changes, API-profile switching, and in-memory recent restoration read that canonical content, never a rendered projection. Awaiting remains raw. From the first non-empty streaming delta, `semanticMarkdown` attempts the same safe SwiftUI/AppKit-native read-only projection used in `completed`; a temporarily incomplete or unparseable fragment falls back to its current raw characters without changing canonical content. Dense updates are coalesced on a bounded interval of approximately 40ms, avoiding a full attributed-document rebuild and window animation for every character. `plainText`, failed partial output, and cancelled sessions keep the existing plain presentation. The projection uses no WebView, executes no HTML or scripts, and loads no remote resources. A persistent incremental Markdown AST remains outside the current architecture slice.
 
@@ -95,7 +97,7 @@ The primary copy action reads canonical Markdown and removes only terminal non-s
 ```text
 idle
   -> acquiring
-  -> recognizing (screenshot only)
+  -> recognizing (Vision / GLM structure / visible Vision fallback)
   -> awaitingFirstToken
   -> streaming
   -> completed / failed / cancelled
@@ -105,17 +107,17 @@ Cancellation propagates to OCR and translation network work. A translation failu
 
 ## Storage
 
-- API credentials: Keychain
+- translation and GLM-OCR API credentials: independent logical entries in one versioned Keychain vault
 - screenshots: memory-only by default
-- contextual window cache: disabled in 0.1.0
-- persistent history: not present in 0.1.0
+- contextual window cache: disabled in the current implementation
+- persistent history: not present in the current implementation
 - durable terminology: explicit user approval required
 
 ## Current packaging boundary
 
 The repository retains Swift Package Manager for fast core compilation and tests and now also contains a native Xcode application target. Full Xcode 26.5 is selected per command through `DEVELOPER_DIR`, without changing the machine-wide `xcode-select` setting.
 
-The Xcode target emits a stable macOS `.app` with Bundle ID `com.marla.app`, macOS 14 deployment, LSUIElement behavior, version `0.1.0`, and arm64 architecture. Stable local-certificate signing and process launch are verified. One-time Keychain authorization, TCC permission persistence, and complete Accessibility and Screen Recording interaction remain manual validation gaps.
+The Xcode target emits a stable macOS `.app` with Bundle ID `com.marla.app`, macOS 14 deployment, LSUIElement behavior, development Marketing Version sentinel `0.0.0`, and arm64 architecture. The sentinel is required bundle metadata and is not a public release version. Stable local-certificate signing, process launch, Keychain authorization, TCC persistence, Accessibility, and Screen Recording evidence are recorded in the current verification history.
 
 Keychain startup migration uses one shared `LAContext` for the vault and legacy item reads; the operating system's per-item ACL behavior still belongs to the manual authorization check.
 

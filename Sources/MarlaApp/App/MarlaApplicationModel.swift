@@ -46,6 +46,7 @@ final class MarlaApplicationModel: ObservableObject {
     var panelCoordinator: FloatingPanelCoordinator { services.panelCoordinator }
     var screenshotCoordinator: ScreenshotCaptureCoordinator { services.screenshotCoordinator }
     var visionOCR: VisionOCRService { services.visionOCR }
+    var glmOCR: GLMOCRService { services.glmOCR }
     var shortcutManager: GlobalShortcutManager { services.shortcutManager }
     var settingsWindowCoordinator: MarlaSettingsWindowCoordinator { services.settingsWindowCoordinator }
 
@@ -318,70 +319,7 @@ final class MarlaApplicationModel: ObservableObject {
         }
     }
 
-    func translateScreenshot() {
-        let pointer = NSEvent.mouseLocation
-        guard screenRecordingAuthorized else {
-            showPermissionError(
-                "截图翻译需要屏幕录制权限。",
-                surface: .screenshot,
-                pointer: pointer,
-                recovery: .openScreenRecordingSettings
-            )
-            return
-        }
-        let originatingApplication = NSWorkspace.shared.frontmostApplication
-        let settingsWereVisible = settingsWindowCoordinator.suspendForScreenshotSelection()
-        panelCoordinator.hide()
-        screenshotCoordinator.present { [weak self] result in
-            guard let self else { return }
-            settingsWindowCoordinator.restoreAfterScreenshotSelection(wasVisible: settingsWereVisible)
-            restoreFrontmostApplication(originatingApplication)
-            switch result {
-            case let .success(capture):
-                let anchor = ScreenRect(
-                    x: capture.globalRect.origin.x,
-                    y: capture.globalRect.origin.y,
-                    width: capture.globalRect.width,
-                    height: capture.globalRect.height
-                )
-                let requestID = sessionStore.beginRecognizing(anchor: anchor, pointer: pointer)
-                panelCoordinator.showResult(store: sessionStore, at: anchor, pointer: pointer, activate: false)
-                Task { @MainActor [weak self] in
-                    guard let self else { return }
-                    do {
-                        let document = try await visionOCR.recognize(capture.image)
-                        sessionStore.submitRecognizedText(document.plainText, for: requestID)
-                    } catch {
-                        sessionStore.fail(
-                            "没有识别到文字，请重新框选。",
-                            code: .invalidResponse,
-                            for: requestID,
-                            recovery: .reselectScreenshot
-                        )
-                    }
-                }
-            case let .failure(error):
-                if case ScreenshotError.cancelled = error {
-                    sessionStore.close()
-                } else {
-                    sessionStore.startText("", surface: .screenshot, anchor: nil, pointer: pointer)
-                    sessionStore.fail(
-                        error.localizedDescription,
-                        code: .invalidConfiguration,
-                        recovery: .openScreenRecordingSettings
-                    )
-                    panelCoordinator.showResult(
-                        store: sessionStore,
-                        at: nil,
-                        pointer: pointer,
-                        activate: false
-                    )
-                }
-            }
-        }
-    }
-
-    private func restoreFrontmostApplication(_ application: NSRunningApplication?) {
+    func restoreFrontmostApplication(_ application: NSRunningApplication?) {
         guard let application,
               application.processIdentifier != NSRunningApplication.current.processIdentifier else {
             return
@@ -443,6 +381,24 @@ final class MarlaApplicationModel: ObservableObject {
                 sourceText: source,
                 translation: "",
                 state: .awaitingFirstToken
+            )
+            panelCoordinator.showResult(store: sessionStore, at: nil, pointer: NSEvent.mouseLocation, activate: true)
+        case "glm-ocr-awaiting":
+            sessionStore.installUIAutomationFixture(
+                surface: .screenshot,
+                sourceText: "",
+                translation: "",
+                state: .recognizing,
+                ocrActivity: .glmOCR
+            )
+            panelCoordinator.showResult(store: sessionStore, at: nil, pointer: NSEvent.mouseLocation, activate: true)
+        case "glm-ocr-fallback":
+            sessionStore.installUIAutomationFixture(
+                surface: .screenshot,
+                sourceText: "",
+                translation: "",
+                state: .recognizing,
+                ocrActivity: .visionFallback
             )
             panelCoordinator.showResult(store: sessionStore, at: nil, pointer: NSEvent.mouseLocation, activate: true)
         case "streaming":
@@ -698,6 +654,9 @@ final class MarlaApplicationModel: ObservableObject {
         switch action {
         case .openSettings:
             openSettings()
+        case .openOCRSettings:
+            settings.requestSettingsNavigation(to: .ocr)
+            openSettings()
         case .openAccessibilitySettings:
             openPrivacySettings(pane: "Privacy_Accessibility")
         case .openScreenRecordingSettings:
@@ -731,7 +690,7 @@ final class MarlaApplicationModel: ObservableObject {
         refreshPermissions()
     }
 
-    private func showPermissionError(
+    func showPermissionError(
         _ message: String,
         surface: TranslationSurface,
         pointer: CGPoint,

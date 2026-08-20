@@ -4,16 +4,16 @@ Marla is a native macOS instantaneous translation layer designed to translate wi
 
 Its UI and macOS integration use SwiftUI/AppKit. Translation orchestration, provider integrations, normalized processing, context logic, and bounded caches live in an embedded Rust static library connected through a versioned C ABI.
 
-The active 0.1.0 Alpha scope is:
+The current incubation baseline includes:
 
 - selected-text translation in a nearby floating card;
-- region screenshot translation using local macOS Vision OCR only;
+- region screenshot translation using default local macOS Vision or explicitly selected cloud GLM-OCR;
 - a compact quick-input translator;
 - a configurable OpenAI-compatible streaming text-translation endpoint.
 
-0.1.0 does not upload screenshot pixels, collect contextual window text, save translation history, cover source text in place, or provide cloud structured OCR. See [`docs/versions/0.1.0/SPEC.md`](docs/versions/0.1.0/SPEC.md) for the complete bilingual release contract.
+The current implementation uploads screenshot pixels only when the user explicitly selects GLM-OCR under the disclosure in OCR Settings; Vision keeps screenshot pixels local. It does not collect contextual window text, save translation history, or cover source text in place. These are current capability and privacy facts, not a frozen release scope.
 
-The native Xcode application, translation core, and 0.1.0 UI vertical slices are implemented. Start with [`docs/README.md`](docs/README.md) for the documentation map and [`docs/development/STATUS.md`](docs/development/STATUS.md) for verified progress. Daily work uses one focused Task; confirmed future work and uncommitted ideas are kept separate.
+Marla is in unversioned incubation and has not started public release preparation. The native Xcode application, translation core, and core UI vertical slices are implemented. Start with [`docs/README.md`](docs/README.md) for the documentation map, [`docs/development/STATUS.md`](docs/development/STATUS.md) for verified progress, and [`docs/development/VERSIONING.md`](docs/development/VERSIONING.md) for the release-time version policy. Daily work uses one focused Task; confirmed future work and uncommitted ideas are kept separate.
 
 ## Development prerequisites
 
@@ -36,7 +36,7 @@ Build and verify the stable-signed fixed-path Release development app with:
 ./scripts/build-test-app.sh
 ```
 
-The artifact is written to `artifacts/Marla_dev.app`. Each successful build replaces that same App only after a staged copy has been signed and verified; earlier test binaries are not retained. DMG packaging, notarization, automatic updates, and public distribution remain outside 0.1.0.
+The artifact is written to `artifacts/Marla_dev.app` with development Marketing Version `0.0.0`. This is a required numeric bundle placeholder, not a public release. Each successful build replaces that same App only after a staged copy has been signed and verified; earlier test binaries are not retained. DMG packaging, notarization, automatic updates, and public distribution require a separate owner-authorized release Task.
 
 ### Stable local development signing
 

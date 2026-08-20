@@ -1,14 +1,18 @@
 # Marla 0.1.0 产品规格 / Product Specification
 
-状态 / Status: Active Alpha verification
+状态 / Status: Withdrawn before release — historical draft only
 
 版本 / Version: 0.1.0
 
-最后更新 / Last updated: 2026-08-17
+最后更新 / Last updated: 2026-08-18
 
 > 本文每节先给出中文规范，再给出英文镜像。发生歧义时以中文为准；两种语言必须在同一次修改中同步。
 >
 > Each section contains the normative Chinese text followed by its English mirror. If they differ, the Chinese text controls. Both languages must be updated in the same change.
+
+> 本发布目标已于 2026-08-18 在公开发布前撤回。正文保留当时的双语范围快照和证据语境，但不再约束当前孵化开发；当前版本策略见 `docs/development/VERSIONING.md`。
+>
+> This release target was withdrawn before public release on 2026-08-18. The body remains as a bilingual scope snapshot and evidence context, but no longer constrains current incubation; see `docs/development/VERSIONING.md` for the active policy.
 
 ## 1. 版本定位 / Release Positioning
 

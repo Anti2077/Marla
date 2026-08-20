@@ -1,6 +1,6 @@
 # ADR-0002: Cloud structured OCR with system fallback
 
-Status: Accepted for post-0.1.0; scoped by ADR-0005
+Status: Accepted; implementation authorized by TASK-033
 
 Date: 2026-08-05
 
@@ -12,7 +12,7 @@ The first screenshot workflow processes small user-selected regions. Mid-sized l
 
 Use cloud GLM-OCR as the planned structured screenshot OCR and macOS Vision as the local, offline, timeout, and failure fallback. Do not bundle a local OCR VLM in the initial product.
 
-ADR-0005 narrows version 0.1.0 to macOS Vision only. This decision remains the planned structured-OCR direction after 0.1.0 and must not be interpreted as an active image-upload path in the Alpha.
+ADR-0010 superseded the former `post-0.1.0` timing. On 2026-08-19, the project owner explicitly authorized TASK-033, which defines the upload disclosure, one-Key credential UI, fixed Provider contract, normalized structure contract, cancellation, Vision fallback and acceptance required here. Vision remains the default; selecting GLM-OCR is the upload authorization.
 
 ## Consequences
 

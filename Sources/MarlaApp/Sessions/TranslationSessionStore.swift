@@ -7,6 +7,7 @@ import SwiftUI
 
 enum CardRecoveryAction: Equatable {
     case openSettings
+    case openOCRSettings
     case openAccessibilitySettings
     case openScreenRecordingSettings
     case quickInput
@@ -16,12 +17,19 @@ enum CardRecoveryAction: Equatable {
     var title: String {
         switch self {
         case .openSettings: "打开设置"
+        case .openOCRSettings: "打开 OCR 设置"
         case .openAccessibilitySettings, .openScreenRecordingSettings: "前往系统设置"
         case .quickInput: "打开快速输入"
         case .reselectScreenshot: "重新框选"
         case .retry: "重试"
         }
     }
+}
+
+enum OCRActivity: Equatable {
+    case vision
+    case glmOCR
+    case visionFallback
 }
 
 extension TranslationSurface {
@@ -56,6 +64,7 @@ struct CardSession: Identifiable, Equatable {
     var anchor: ScreenRect?
     var pointer: CGPoint?
     var isActivating = false
+    var ocrActivity: OCRActivity?
 
     var sourceText: String {
         get { sourceContent.text }
@@ -83,7 +92,12 @@ struct CardSession: Identifiable, Equatable {
         switch state {
         case .idle: "准备就绪"
         case .acquiring: "正在读取"
-        case .recognizing: "正在识别"
+        case .recognizing:
+            switch ocrActivity {
+            case .glmOCR: "正在解析结构"
+            case .visionFallback: "正在改用 Vision"
+            case .vision, nil: "正在识别"
+            }
         case .awaitingFirstToken: "等待译文"
         case .streaming: "翻译中"
         case .completed: "已完成"
@@ -142,6 +156,7 @@ final class TranslationSessionStore: ObservableObject {
     private let client = RustTranslationClient()
     private let sourceLanguageDetector: (String) -> TranslationLanguage?
     private var handle: RustTranslationClient.Handle?
+    private var ocrTask: Task<Void, Never>?
     private var copyConfirmationResetTask: Task<Void, Never>?
 
     init(
@@ -156,7 +171,11 @@ final class TranslationSessionStore: ObservableObject {
     var nativeLanguage: TranslationLanguage { settings.nativeLanguage }
     var secondaryLanguage: TranslationLanguage { settings.secondaryLanguage }
 
-    func beginRecognizing(anchor: ScreenRect?, pointer: CGPoint?) -> UUID {
+    func beginRecognizing(
+        anchor: ScreenRect?,
+        pointer: CGPoint?,
+        provider: OCRProviderKind = .vision
+    ) -> UUID {
         cancelCurrentRequest()
         let id = UUID()
         session = CardSession(
@@ -172,9 +191,43 @@ final class TranslationSessionStore: ObservableObject {
             state: .recognizing,
             anchor: anchor,
             pointer: pointer,
-            isActivating: false
+            isActivating: false,
+            ocrActivity: provider == .glmOCR ? .glmOCR : .vision
         )
         return id
+    }
+
+    func attachOCRTask(_ task: Task<Void, Never>, for id: UUID) {
+        guard session?.id == id else {
+            task.cancel()
+            return
+        }
+        ocrTask?.cancel()
+        ocrTask = task
+    }
+
+    func beginVisionFallback(for id: UUID) {
+        guard session?.id == id else { return }
+        session?.state = .recognizing
+        session?.ocrActivity = .visionFallback
+    }
+
+    func submitOCRResult(_ result: OCRResult, for id: UUID) {
+        guard session?.id == id else { return }
+        let text = result.content.text
+        guard !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            fail(
+                "没有识别到文字，请重新框选更清晰的区域。",
+                code: .invalidResponse,
+                for: id,
+                recovery: .reselectScreenshot
+            )
+            return
+        }
+        ocrTask = nil
+        session?.sourceContent = result.content
+        session?.detectedSourceLanguage = sourceLanguageDetector(text)
+        startRequest(for: id)
     }
 
     func installUIAutomationFixture(
@@ -185,7 +238,8 @@ final class TranslationSessionStore: ObservableObject {
         comparisonExpanded: Bool = false,
         pinned: Bool = false,
         recovery: CardRecoveryAction? = nil,
-        contentFormat: TranslationContentFormat = .plainText
+        contentFormat: TranslationContentFormat = .plainText,
+        ocrActivity: OCRActivity? = nil
     ) {
         cancelCurrentRequest()
         let id = UUID()
@@ -209,7 +263,8 @@ final class TranslationSessionStore: ObservableObject {
             isPinned: pinned,
             anchor: nil,
             pointer: NSEvent.mouseLocation,
-            isActivating: true
+            isActivating: true,
+            ocrActivity: ocrActivity
         )
         recordRecentTranslationIfEligible(session)
     }
@@ -472,6 +527,8 @@ final class TranslationSessionStore: ObservableObject {
     }
 
     func cancelCurrentRequest() {
+        ocrTask?.cancel()
+        ocrTask = nil
         handle?.cancel()
         handle?.release()
         handle = nil

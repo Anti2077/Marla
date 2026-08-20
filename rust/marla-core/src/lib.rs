@@ -12,7 +12,9 @@ use tokio::sync::Notify;
 use tokio::task::JoinHandle;
 use tokio::time::Instant;
 
-pub const API_VERSION: u32 = 3;
+mod glm_ocr;
+
+pub const API_VERSION: u32 = 4;
 
 const CONNECT_TIMEOUT_SECONDS: u64 = 10;
 const FIRST_TOKEN_TIMEOUT_SECONDS: u64 = 30;
@@ -1221,6 +1223,49 @@ pub unsafe extern "C" fn marla_model_list_start(
         };
         let join = runtime.spawn(async move {
             run_model_list(request, task_cancellation, callback, context_value).await;
+        });
+        Box::into_raw(Box::new(MarlaTranslationHandle {
+            cancellation,
+            join: Some(join),
+        }))
+    }));
+    result.unwrap_or(std::ptr::null_mut())
+}
+
+/// Starts one GLM-OCR request. The returned handle uses the shared cancel/release functions.
+///
+/// # Safety
+///
+/// `request_json` must reference `request_json_length` readable bytes for the duration of this
+/// call. `context` must remain valid for callback use until the returned handle is released.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn marla_ocr_start(
+    request_json: *const u8,
+    request_json_length: usize,
+    callback: Option<MarlaTranslationEventCallback>,
+    context: *mut std::ffi::c_void,
+) -> *mut MarlaTranslationHandle {
+    let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+        if request_json.is_null() || request_json_length == 0 {
+            return std::ptr::null_mut();
+        }
+        let Some(callback) = callback else {
+            return std::ptr::null_mut();
+        };
+        // SAFETY: The caller promises a readable request byte slice for this synchronous call.
+        let bytes =
+            unsafe { std::slice::from_raw_parts(request_json, request_json_length) }.to_vec();
+        let Ok(request) = serde_json::from_slice::<glm_ocr::OCRRequest>(&bytes) else {
+            return std::ptr::null_mut();
+        };
+        let cancellation = Arc::new(CancellationSignal::default());
+        let task_cancellation = Arc::clone(&cancellation);
+        let context_value = context as usize;
+        let Some(runtime) = runtime() else {
+            return std::ptr::null_mut();
+        };
+        let join = runtime.spawn(async move {
+            glm_ocr::run(request, task_cancellation, callback, context_value).await;
         });
         Box::into_raw(Box::new(MarlaTranslationHandle {
             cancellation,

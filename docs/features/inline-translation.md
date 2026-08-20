@@ -2,7 +2,7 @@
 
 ## Status
 
-The nearby-card baseline and TASK-028 protected-Copy acquisition contract are implemented. TASK-029 implements the shared literal HTML table normalization, GFM-aware rich/plain validation, and bounded Copy-candidate stabilization described below; automated and fixed-App build verification pass, while project-owner Flux Markdown confirmation remains pending. The older `RV-001` evidence remains historical, and the TASK-017 single-line in-place prototype remains removed.
+The nearby-card baseline and TASK-028 protected-Copy acquisition contract are implemented. TASK-029's shared literal HTML table normalization, GFM-aware rich/plain validation, and bounded Copy-candidate stabilization are implemented, automated and fixed-App verified, and project-owner accepted in real Flux Markdown use. The older `RV-001` evidence remains historical, and the TASK-017 single-line in-place prototype remains removed.
 
 ## Goal
 
@@ -49,7 +49,7 @@ When a completed selection result is `semanticMarkdown`, its body is one continu
 
 The primary copy control copies canonical Markdown, removing only terminal non-semantic `\n`/`\r`. A menu-only plain-text copy derives link labels and TSV tables without mutating canonical content. Selection `⌘C` applies the same terminal-newline policy and does not emit HTML/RTF multi-representation output. Meaningful line breaks remain in session state.
 
-The redacted audit may compare complete pre/post Pasteboard snapshots and report only lifecycle state; it never serializes copied content or representations. The previous Codex and WeChat acceptance evidence was collected against the superseded AX-first/optional-Copy path. TASK-028 added and completed fixed-App verification of Copy acquisition, rich-representation normalization, full restoration, focus preservation, failure messaging, and the Quick Input escape path; broader application coverage remains release evidence rather than an implementation blocker.
+The redacted audit may compare complete pre/post Pasteboard snapshots and report only lifecycle state; it never serializes copied content or representations. The previous Codex and WeChat acceptance evidence was collected against the superseded AX-first/optional-Copy path. TASK-028 added and completed fixed-App verification of Copy acquisition, rich-representation normalization, full restoration, focus preservation, failure messaging, and the Quick Input escape path; broader application coverage may be selected as future release evidence rather than an implementation blocker.
 
 ## Degradation
 
@@ -76,7 +76,7 @@ The redacted audit may compare complete pre/post Pasteboard snapshots and report
 
 - modifying source text;
 - source-text-covering or pointer-estimate lightweight translation surfaces;
-- collecting nearby text or window-title context in 0.1.0;
+- collecting nearby text or window-title context in the current implementation;
 - Accessibility-derived selected text, attributed content, or content fallback;
 - a setting that disables protected Copy while retaining selection translation;
 - browser DOM rewriting;

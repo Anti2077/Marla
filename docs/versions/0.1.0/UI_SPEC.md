@@ -1,12 +1,16 @@
 # Marla 0.1.0 UI 规范 / UI Specification
 
-状态 / Status: Implemented — visual verification in progress
+状态 / Status: Withdrawn release snapshot — historical UI evidence
 
 设计方向 / Direction: Restrained Native · Warm Minimal
 
 设计技能 / Design skill: `swiftui-design-skill` 1.0.0
 
 > 中文为规范文本，英文为同步镜像。/ Chinese is normative; English is its synchronized mirror.
+
+> `0.1.0` 发布草案已在发布前撤回。本文保留当时 UI 设计与验收语境，不再冻结当前孵化期的界面范围；任何新 UI Task 仍须遵守当前 UI/UX 规范和实机复审要求。
+>
+> The `0.1.0` release draft was withdrawn before release. This document retains its UI design and evidence context but no longer freezes incubation UI scope; every new UI Task still follows current UI/UX and real-App review requirements.
 
 ## 1. 设计目标 / Design Goal
 

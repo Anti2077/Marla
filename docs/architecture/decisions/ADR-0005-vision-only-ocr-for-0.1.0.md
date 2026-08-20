@@ -1,8 +1,16 @@
 # ADR-0005: Vision-only screenshot OCR for 0.1.0
 
-Status: Accepted
+Status: Historical incubation boundary; cloud-path portion superseded by TASK-033 under ADR-0002
 
 Date: 2026-08-05
+
+## 2026-08-19 amendment
+
+The project owner explicitly authorized TASK-033 after the provisional release contract was withdrawn. TASK-033 fulfills this ADR's prerequisites for a bounded cloud path: Vision remains default and local, GLM-OCR requires an explicit Provider choice and upload disclosure, one Keychain credential, normalized structure contracts, cancellation, visible Vision fallback and new acceptance evidence. The original Vision-only rule below remains historical `0.1.0` context and continues to describe Vision mode; it no longer prohibits the owner-authorized GLM path during unversioned incubation.
+
+## 2026-08-18 amendment
+
+ADR-0010 withdrew the provisional `0.1.0` release target and removed version-number scheduling from incubation. At the time of this amendment, the substantive boundary remained accepted: Vision was the only implemented screenshot OCR path, screenshots remained memory-only and were not uploaded, and adding cloud OCR still required an explicit Task, disclosure, provider/structure contracts, fallback behavior, and new acceptance evidence. TASK-033 later supplied that authorization and evidence. The references to `0.1.0` below preserve the original decision context; they do not describe the current provider set or freeze incubation scope.
 
 ## Context
 

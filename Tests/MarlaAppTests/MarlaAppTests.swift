@@ -127,6 +127,67 @@ final class MarlaAppTests: XCTestCase {
         XCTAssertEqual(restored.secondaryLanguage, .french)
     }
 
+    @MainActor
+    func testOCRProviderDefaultsToVisionAndPersistsGLMSelection() {
+        let suite = "com.marla.tests.ocr-provider.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suite)!
+        defaults.removePersistentDomain(forName: suite)
+        let keychain = KeychainCredentialStore(service: suite, account: UUID().uuidString)
+        let settings = MarlaSettingsStore(defaults: defaults, keychain: keychain)
+
+        XCTAssertEqual(settings.ocrProvider, .vision)
+        settings.setOCRProvider(.glmOCR)
+
+        let restored = MarlaSettingsStore(defaults: defaults, keychain: keychain)
+        XCTAssertEqual(restored.ocrProvider, .glmOCR)
+    }
+
+    @MainActor
+    func testGLMOCRKeyUsesVaultBlankSaveDoesNotOverwriteAndRemoveIsExplicit() throws {
+        let items = FakeKeychainItems()
+        let keychain = KeychainCredentialStore(service: "com.marla.tests.glm-key", backend: items.backend)
+        let settings = MarlaSettingsStore(defaults: UserDefaults(suiteName: UUID().uuidString)!, keychain: keychain)
+        XCTAssertTrue(keychain.loadVault())
+
+        try settings.saveGLMOCRAPIKey("first-key")
+        try settings.saveGLMOCRAPIKey("   ")
+        XCTAssertEqual(settings.glmOCRAPIKey, "first-key")
+        XCTAssertEqual(Set(items.items.keys), [KeychainCredentialStore.vaultAccount])
+
+        settings.removeGLMOCRAPIKey()
+        XCTAssertNil(settings.glmOCRAPIKey)
+    }
+
+    @MainActor
+    func testScreenshotSessionExposesGLMWaitingFallbackAndSemanticResult() {
+        let defaults = UserDefaults(suiteName: "com.marla.tests.ocr-session.\(UUID().uuidString)")!
+        let settings = MarlaSettingsStore(
+            defaults: defaults,
+            keychain: KeychainCredentialStore(service: UUID().uuidString, account: UUID().uuidString)
+        )
+        let store = TranslationSessionStore(settings: settings, sourceLanguageDetector: { _ in .english })
+        let id = store.beginRecognizing(anchor: nil, pointer: nil, provider: .glmOCR)
+
+        XCTAssertEqual(store.session?.statusLabel, "正在解析结构")
+        XCTAssertEqual(store.session?.ocrActivity, .glmOCR)
+
+        store.beginVisionFallback(for: id)
+        XCTAssertEqual(store.session?.statusLabel, "正在改用 Vision")
+
+        store.submitOCRResult(
+            OCRResult(
+                provider: .glmOCR,
+                document: OCRDocument(blocks: [
+                    ContentBlock(id: "heading", kind: .heading, sourceText: "Hello", readingOrder: 0)
+                ]),
+                content: .semanticMarkdown("# Hello")
+            ),
+            for: id
+        )
+        XCTAssertEqual(store.session?.sourceContent, .semanticMarkdown("# Hello"))
+        XCTAssertEqual(store.session?.detectedSourceLanguage, .english)
+    }
+
     func testSystemSourceLanguageDetectorCoversSupportedLanguages() {
         XCTAssertEqual(SystemSourceLanguageDetector.detect("Hello world"), .english)
         XCTAssertEqual(SystemSourceLanguageDetector.detect("这是中文"), .simplifiedChinese)

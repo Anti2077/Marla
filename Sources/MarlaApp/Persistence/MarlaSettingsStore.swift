@@ -23,6 +23,10 @@ final class MarlaSettingsStore: ObservableObject {
     @Published private(set) var secondaryLanguage: TranslationLanguage
     @Published private(set) var credentialRevision = 0
     @Published private(set) var onboardingSkipped: Bool
+    @Published var ocrProvider: OCRProviderKind {
+        didSet { defaults.set(ocrProvider.rawValue, forKey: Keys.ocrProvider) }
+    }
+    @Published var settingsNavigationDestination: SettingsNavigationDestination?
 
     let keychain: KeychainCredentialStore
     private let defaults: UserDefaults
@@ -36,6 +40,7 @@ final class MarlaSettingsStore: ObservableObject {
         static let nativeLanguage = "translationNativeLanguage.v1"
         static let secondaryLanguage = "translationSecondaryLanguage.v1"
         static let onboardingSkipped = "onboardingSkipped"
+        static let ocrProvider = "ocrProvider.v1"
     }
 
     init(defaults: UserDefaults = .standard, keychain: KeychainCredentialStore = KeychainCredentialStore()) {
@@ -69,6 +74,8 @@ final class MarlaSettingsStore: ObservableObject {
             ? Self.fallbackLanguage(excluding: storedNativeLanguage)
             : storedSecondaryLanguage
         onboardingSkipped = defaults.bool(forKey: Keys.onboardingSkipped)
+        ocrProvider = OCRProviderKind(rawValue: defaults.string(forKey: Keys.ocrProvider) ?? "") ?? .vision
+        settingsNavigationDestination = nil
         saveProfiles()
         saveDefaultProfileID()
         saveLanguagePreferences()
@@ -257,6 +264,10 @@ final class MarlaSettingsStore: ObservableObject {
     func removeAPIKey() {
         guard let profileID = defaultProfile?.id else { return }
         keychain.scoped(to: profileID).remove()
+        credentialRevision += 1
+    }
+
+    func noteCredentialChanged() {
         credentialRevision += 1
     }
 

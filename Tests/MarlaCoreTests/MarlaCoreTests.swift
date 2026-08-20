@@ -131,7 +131,7 @@ final class MarlaCoreTests: XCTestCase {
     }
 
     func testRustCoreBridgeVersionAndSurfaceClassification() {
-        XCTAssertEqual(RustCoreBridge.apiVersion, 3)
+        XCTAssertEqual(RustCoreBridge.apiVersion, 4)
         XCTAssertEqual(
             RustCoreBridge.classifySurface(applicationBundleID: "com.apple.Terminal"),
             .terminal
@@ -140,6 +140,32 @@ final class MarlaCoreTests: XCTestCase {
             RustCoreBridge.classifySurface(applicationBundleID: "com.example.Unknown"),
             .unknown
         )
+    }
+
+    func testOCRFFIRequestAndCompletedEventKeepVersionedStructuredContract() throws {
+        let requestID = UUID(uuidString: "00000000-0000-0000-0000-000000000033")!
+        let request = OCRFFIRequest(
+            requestID: requestID,
+            imageData: Data([0x89, 0x50, 0x4E, 0x47]),
+            mimeType: "image/png",
+            apiKey: "secret"
+        )
+        let encoded = try JSONEncoder().encode(request)
+        let object = try XCTUnwrap(JSONSerialization.jsonObject(with: encoded) as? [String: Any])
+        XCTAssertEqual(object["schemaVersion"] as? Int, 1)
+        XCTAssertEqual(object["requestID"] as? String, requestID.uuidString)
+        XCTAssertEqual(object["mimeType"] as? String, "image/png")
+        XCTAssertEqual(object["imageBase64"] as? String, "iVBORw==")
+
+        let result = OCRResult(
+            provider: .glmOCR,
+            document: OCRDocument(blocks: [
+                ContentBlock(id: "block-0", kind: .heading, sourceText: "Title", readingOrder: 0)
+            ]),
+            content: .semanticMarkdown("# Title")
+        )
+        let event = OCRFFIEvent(schemaVersion: 1, requestID: requestID, type: "completed", result: result)
+        XCTAssertEqual(try JSONDecoder().decode(OCRFFIEvent.self, from: JSONEncoder().encode(event)), event)
     }
 
     func testTranslationRequestEncodesNestedCredentialAndTarget() throws {

@@ -1,6 +1,6 @@
 # Development Workflow
 
-Marla uses a conversation-scoped task workflow. One implementation-focused development conversation maps to one evolving Task. Release documents define the target; they do not act as the daily queue.
+Marla uses a conversation-scoped task workflow. One implementation-focused development conversation maps to one evolving Task. During incubation there is no release target. When the project owner explicitly starts release preparation, release documents define that target but never act as the daily queue. Product-version timing is defined in `VERSIONING.md`.
 
 ## Capturing discussion
 
@@ -11,7 +11,7 @@ When a conversation produces a future possibility:
 3. Keep it `Captured` or `Exploring` unless the project owner explicitly confirms the direction.
 4. Do not add the idea to current implementation scope.
 
-When the project owner confirms a future product capability should eventually be done, promote it to `docs/backlog/BACKLOG.md`. This confirms intent, not schedule. Current-release testing, manual acceptance, and performance measurement belong in `docs/development/VERIFICATION.md`, not in the product Backlog.
+When the project owner confirms a future product capability should eventually be done, promote it to `docs/backlog/BACKLOG.md`. This confirms intent, not schedule. Current-baseline testing, manual acceptance, and performance measurement belong in `docs/development/VERIFICATION.md`, not in the product Backlog.
 
 ## Starting a development conversation
 
@@ -40,7 +40,7 @@ The initial Task scope is a baseline, not a frozen contract.
 1. Read `AGENTS.md`.
 2. Read `STATUS.md`, the active Task, its Required Reading, and the universal required files.
 3. Inspect relevant code and tests; live code is the current-behavior source of truth.
-4. Compare code, tests, Task, release specification, and accepted ADRs.
+4. Compare code, tests, Task, current specifications, accepted ADRs, and the active release contract only when `STATUS.md` names one.
 5. Report and deliberately resolve mismatches before implementation.
 6. Implement the Task's current accumulated In Scope, including owner-approved additions recorded during the conversation. Record unrequested ideas without implementing them.
 
@@ -99,4 +99,4 @@ The script checks Rust formatting, runs Rust tests, builds the Rust static libra
 
 Do not append session transcripts to `STATUS.md`. Use Git commits and release notes for historical detail. Keep only current progress, current risks, and the next ordered work.
 
-Version documents are release contracts. Daily notes belong in the active Task while it is open; completed history belongs in Git and, at release time, `docs/releases/`.
+Version documents are release contracts created only by explicit release preparation. Daily notes belong in the active Task while it is open; completed history belongs in Git and, at actual release time, `docs/releases/`. Withdrawn contracts remain historical and do not freeze incubation scope.

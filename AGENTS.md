@@ -38,8 +38,9 @@ Each implementation-focused development conversation maps to one Task. Keep usin
 - Update a feature specification when its behavior or acceptance criteria change.
 - Create an ADR only for a durable architectural or product decision.
 - Update `ROADMAP.md` only when broad capability order changes. Do not use it as a task checklist.
-- Treat the release contract linked from `STATUS.md` as a target and acceptance reference, not as the daily task tracker.
-- When the active release contract has bilingual sections, keep both languages synchronized in the same change; the contract defines which language is normative.
+- A release contract exists only while `STATUS.md` names an owner-authorized release target. During unversioned incubation, do not create, infer, or enforce a release contract from an old version draft.
+- When an active release contract exists, treat it as a target and acceptance reference rather than the daily task tracker; keep bilingual sections synchronized in the same change and follow its normative-language rule.
+- Product release versions are assigned only in an explicit release-preparation Task. Ordinary feature Tasks keep the development App on the documented sentinel version and do not increment a product version.
 - A task is not complete until relevant tests pass and documentation reflects the verified state.
 - Preserve user changes and keep edits focused.
 
@@ -97,7 +98,8 @@ The packaging script verifies that Release resolves only `target/release`, stage
 3. `STATUS.md` describes the verified development state and known gaps.
 4. Architecture and feature specifications describe the broader design.
 5. Accepted ADRs describe durable intent.
-6. The release contract linked from `STATUS.md` describes the current target, not necessarily implemented behavior.
-7. Backlog, ideas, and roadmap describe future possibilities or ordering; they do not prove implementation.
+6. An active release contract, when `STATUS.md` names one, describes the current release target but does not prove implementation.
+7. The versioning policy describes when product versions and release contracts may be created; withdrawn version drafts are historical evidence only.
+8. Backlog, ideas, and roadmap describe future possibilities or ordering; they do not prove implementation.
 
 If code contradicts an accepted ADR, record the discrepancy in `STATUS.md` and resolve it deliberately.

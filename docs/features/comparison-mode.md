@@ -2,7 +2,7 @@
 
 ## Status
 
-Planned for 0.1.0.
+Implemented in the current nearby-card baseline; generated semantic Markdown remains complete formatted content rather than a fabricated one-to-one source mapping.
 
 ## Goal
 

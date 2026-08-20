@@ -19,7 +19,7 @@ Swift/AppKit may receive explicit Markdown, HTML, RTF/RTFD, `NSAttributedString`
 
 The protected transaction records the trigger-time source identity, the stable pre-Copy `changeCount`, a complete original snapshot, the Copy-result `changeCount`, the normalized content, and a redacted restoration outcome. It never accepts unchanged Pasteboard data. Focus change, cancellation, timeout, missing content, snapshot failure, or failed restoration produces no `TranslationContent`; a newer external write prevents restoration and is preserved. These outcomes route to a specific error and Quick Input action rather than AX content fallback.
 
-HTML is structurally parsed in-process. Scripts, styles, explicitly hidden nodes, image resources, and unsafe links are discarded; no content executes, no remote resource loads, and neither the native representation nor its normalized Markdown is persisted. Vision OCR has no rich-format evidence and always produces `plainText`.
+HTML is structurally parsed in-process. Scripts, styles, explicitly hidden nodes, image resources, and unsafe links are discarded; no content executes, no remote resource loads, and neither the native representation nor its normalized Markdown is persisted. Vision OCR has no rich-format evidence and always produces `plainText`. GLM-OCR may produce `semanticMarkdown`, but only after Rust reconstructs it from normalized canonical layout blocks; raw `md_results` is not a trusted content contract.
 
 ## Content blocks
 
@@ -34,21 +34,27 @@ All OCR and translation content is normalized into stable blocks containing:
 
 Translation updates may refer to stable acquisition blocks when the source and presentation have a reliable correspondence. Providers must not silently invent geometry. A generated target-language Markdown document may naturally merge, split, move, or omit semantic nodes and is not required to preserve a one-to-one source Block or Inline mapping.
 
-For 0.1.0 Vision OCR, blocks represent recognized lines and reading order only. Table, Markdown, formula, and document-layout semantics are not inferred.
+Vision blocks represent recognized lines and reading order only. Table, Markdown, formula, and document-layout semantics are not inferred. GLM-OCR maps Provider labels into the same `ContentBlockKind`, assigns stable page/block IDs, treats absent confidence as unknown, and accepts either 0...1 coordinates or pixel coordinates divided by returned page dimensions. Geometry remains activity-scoped and is not added to recent translations.
+
+## FFI OCR request
+
+The Swift/Rust OCR boundary uses UTF-8 JSON request `schemaVersion: 1` and event schema version 1 under C ABI version 4. A request contains request ID, Base64 image bytes, `image/png` or `image/jpeg`, the request-scoped GLM API Key, and connect/overall timeouts. Rust adds the fixed data-URL prefix and sends `model: glm-ocr`, disabled crop/visualization returns, and the same request ID to the fixed official endpoint. The Authorization header contains the raw API Key required by this Provider contract. Unknown schema, empty credentials, unsupported MIME type and empty payload are rejected.
+
+Events are `started`, `completed`, `failed`, or `cancelled`. Completion contains the actual Provider, normalized `OCRDocument`, and canonical `TranslationContent`. Swift copies callback bytes before return, discards stale request IDs, and retains only canonical content for translation retry. The opaque OCR handle uses the same explicit cancel/release lifecycle as translation; cancellation never starts fallback.
 
 ## Context snapshot
 
 Context is supporting evidence, not content to translate. It includes bounded nearby text and locally derived classifications. Raw window metadata should be sanitized before transmission.
 
-No `ContextSnapshot` fields cross the translation boundary in 0.1.0. The type remains groundwork for a later version.
+No `ContextSnapshot` fields cross the current translation boundary. The type remains groundwork for a future owner-authorized context Task.
 
 ## FFI translation request
 
 The Swift/Rust translation boundary uses UTF-8 JSON request `schemaVersion: 3` while provider events remain schema version 1. A request contains a request ID, `sourceContent`, an optional resolved source language, one explicit resolved target language, endpoint configuration, optional request-scoped credential, and timeouts. `sourceContent` has an exact `text` value plus `format`, currently `plainText` or `semanticMarkdown`; unknown formats and old request schemas are rejected. Supported language codes are `zh-Hans`, `en`, `ja`, `fr`, `es`, `de`, and `ko`. A missing source language means the Provider may detect source; target is never implicit at the Rust boundary. Rust copies request bytes synchronously and never retains a Swift buffer.
 
-Swift snapshots native/secondary preferences and complete source content into each card, resolves automatic routing before encoding, and preserves those snapshots across retry or API-profile switching. Source/target UI changes create a new request ID from the existing content without reacquisition. Quick Input submits its normalized draft as `semanticMarkdown`; selection uses `semanticMarkdown` only when protected-Copy structure evidence is reliable and otherwise uses the newly copied `plainText`; Vision OCR always uses `plainText`. Detection identifiers and confidence are not persisted.
+Swift snapshots native/secondary preferences and complete source content into each card, resolves automatic routing before encoding, and preserves those snapshots across retry or API-profile switching. Source/target UI changes create a new request ID from the existing content without reacquisition. Quick Input and GLM-OCR submit canonical `semanticMarkdown`; selection uses it only when protected-Copy structure evidence is reliable and otherwise uses the newly copied `plainText`; Vision OCR always uses `plainText`. Detection identifiers, OCR confidence and layout geometry are not persisted.
 
-The API Key is transferred in request memory only and must never be logged. Swift persistently owns one versioned Keychain vault item containing independent logical entries keyed by profile identity; Rust never receives or persists the vault.
+API Keys are transferred in request memory only and must never be logged. Swift persistently owns one versioned Keychain vault item containing independent logical entries keyed by translation-profile identity plus one fixed GLM-OCR account; Rust receives only the credential for one narrow request and never receives or persists the vault.
 
 ## Provider events
 

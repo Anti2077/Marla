@@ -17,12 +17,12 @@
 
 | ID | 想法 | 状态 | 与当前产品关系 |
 | --- | --- | --- | --- |
-| IDEA-001 | 按需上下文感知翻译 | Accepted direction | 0.1.0 后，ADR-0003 |
+| IDEA-001 | 按需上下文感知翻译 | Accepted direction | 孵化候选，需独立 Task；ADR-0003 |
 | IDEA-002 | 原位流式覆盖翻译 | Rejected | TASK-017 真实试用表现不理想；实现已由 TASK-019 移除 |
-| IDEA-003 | GLM-OCR 结构化截图翻译 | Accepted direction | 0.1.0 后，ADR-0002/0005 |
+| IDEA-003 | GLM-OCR 结构化截图翻译 | Accepted direction | 孵化候选，需披露与独立 Task；ADR-0002/0005 |
 | IDEA-004 | 万能文档翻译工作区 | Captured | 长期产品扩展 |
 | IDEA-005 | 用户可控术语表 | Captured | 语境系统的可能组成 |
-| IDEA-006 | 翻译历史、收藏与恢复 | Captured | 0.1.0 明确不持久化 |
+| IDEA-006 | 翻译历史、收藏与恢复 | Captured | 当前基线不持久化；尚未授权 |
 | IDEA-007 | 更可靠的 Force Touch 入口 | Rejected | 设置实验没有形成可靠产品行为；已由 TASK-019 移除 |
 | IDEA-008 | 更多瞬时翻译入口 | Captured | 保持“不打断工作”原则 |
 | IDEA-009 | 本地 OCR / VLM 能力分档 | Captured | 截图与文档场景的未来选项 |
@@ -933,7 +933,7 @@ TASK-028 的流式与完成态投影共用一个连续的原生可选中文本�
 
 ### 与当前发布的关系
 
-TASK-028 已实现并验证共享格式合同、Quick Input 富 Paste、受保护 Copy-only 划词内容归一、完成态与流式原生渲染、统一 TextKit 高度测量和完成态最终校正；AX 不再提供内容，Vision 仍为明确纯文本。结构 OCR、持久化增量 AST 和 HTML/RTF 多 representation 输出复制继续是未授权的后续想法，不自动改变截图隐私边界或现有发布合同。
+TASK-028 已实现并验证共享格式合同、Quick Input 富 Paste、受保护 Copy-only 划词内容归一、完成态与流式原生渲染、统一 TextKit 高度测量和完成态最终校正；AX 不再提供内容，Vision 仍为明确纯文本。结构 OCR、持久化增量 AST 和 HTML/RTF 多 representation 输出复制继续是未授权的后续想法，不自动改变截图隐私边界或当前架构合同。
 
 ### 剩余切片进入开发的条件
 

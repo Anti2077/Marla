@@ -11,7 +11,7 @@ public struct OCRRequest: Equatable, Sendable {
 }
 
 public protocol OCRProvider: Sendable {
-    func recognize(_ request: OCRRequest) async throws -> OCRDocument
+    func recognize(_ request: OCRRequest) async throws -> OCRResult
 }
 
 public protocol TranslationProvider: Sendable {

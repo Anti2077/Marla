@@ -12,7 +12,7 @@ Translation quality benefits from surrounding text and domain knowledge, but con
 
 Collect bounded context only when translation is triggered. Maintain a short-lived per-application-window text and terminology cache. Do not continuously screenshot windows or treat provider prompt caching as semantic memory.
 
-Version 0.1.0 defers this engine entirely: it sends no nearby text, window title, or application classification to the translation provider. The decision remains accepted for a later version.
+The current implementation defers this engine entirely: it sends no nearby text, window title, or application classification to the translation provider. ADR-0010 removes the former release-number timing, but implementation still requires a separate owner-authorized Task with bounded collection, sanitization, disclosure, and acceptance.
 
 ## Consequences
 

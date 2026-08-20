@@ -75,6 +75,7 @@ final class KeychainCredentialStore: @unchecked Sendable {
     }
 
     static let vaultAccount = "translation-api-key-vault.v1"
+    static let glmOCRAccount = "ocr-api-key.glm-ocr.v1"
 
     let service: String
     let account: String
@@ -112,6 +113,15 @@ final class KeychainCredentialStore: @unchecked Sendable {
         KeychainCredentialStore(
             service: service,
             account: Self.profileAccount(for: profileID),
+            backend: backend,
+            state: state
+        )
+    }
+
+    func scoped(toAccount account: String) -> KeychainCredentialStore {
+        KeychainCredentialStore(
+            service: service,
+            account: account,
             backend: backend,
             state: state
         )
@@ -269,4 +279,3 @@ enum KeychainError: LocalizedError {
 
     var errorDescription: String? { "无法保存 API Key。" }
 }
-

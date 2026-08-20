@@ -2,35 +2,38 @@
 
 ## Status
 
-Implemented for the 0.1.0 Alpha; end-to-end manual acceptance remains in progress.
+Implemented in the current incubation baseline. Completed real-environment evidence and remaining language-specific evidence boundaries are recorded in [`STATUS.md`](../development/STATUS.md) and [`VERIFICATION.md`](../development/VERIFICATION.md).
 
 ## Goal
 
-Translate text from a small user-selected screen region using local macOS Vision OCR. 0.1.0 preserves plain text and reading order, not document structure.
+Translate text from a small user-selected screen region using either default local macOS Vision OCR or explicitly selected cloud GLM-OCR structure recognition.
 
 ## Flow
 
 1. Enter a cross-display selection overlay.
 2. Capture the selected region in memory with ScreenCaptureKit.
-3. Constrain the in-memory crop and send it only to macOS Vision.
-4. Normalize recognized lines into stable plain-text blocks and reading order.
-5. Send recognized text, never image pixels, to the configured translation API.
-6. Present translation-first or comparison output in the shared result card.
+3. Read the persisted OCR Provider. Vision keeps the crop local. GLM-OCR immediately shows “正在解析结构 / GLM-OCR 正在识别文字与版面…”, encodes the crop below the upload limit and sends it only to the fixed official endpoint.
+4. Vision normalizes lines into stable `plainText`. Rust normalizes GLM `layout_details` into stable blocks and safe `semanticMarkdown` without trusting lossy raw Provider Markdown.
+5. Send canonical OCR text/Markdown, never image pixels, to the configured translation API.
+6. Present translation-first or comparison output in the shared result card. Translation retry and language/API switching reuse canonical OCR content without uploading again.
 
 ## Acceptance criteria
 
 - Escape cancellation belongs to the active screenshot session and does not depend on a selection view retaining keyboard focus. The selection window handles raw `sendEvent`, AppKit key-equivalent, and `cancelOperation` routing, with session-scoped local/global monitors and a system event-tap fallback removed as soon as the session finishes.
 - Escape cancels without OCR, translation, persistence, or upload.
 - An already-open Marla Settings window never covers the selection layer and is restored without stealing source-application focus.
-- No image crop is uploaded in 0.1.0.
+- Vision is the default and never uploads image pixels. Selecting GLM-OCR is explicit authorization to upload each selected crop under the disclosure shown in OCR Settings.
+- GLM-OCR requires one saved Keychain API Key; missing Key stops without upload or silent fallback and provides a direct OCR Settings action.
+- A configured cloud failure visibly falls back to Vision. User cancellation never triggers fallback, and stale callbacks cannot replace a newer session.
+- Screenshot pixels, encoded bytes, Base64, response and layout blocks remain memory-only and are released when the active request completes, cancels or is replaced.
 - OCR success is retained if translation fails.
-- Plain text and line breaks remain readable; table structure is not promised.
+- Vision promises plain text and reading order only. GLM structure is normalized into Markdown, but pixel-identical page reconstruction is not promised.
 - Multi-display scale and coordinates are correct.
 
 ## Not included
 
 - persistent screenshot history;
-- cloud GLM-OCR and image upload;
-- Markdown, table, formula, code-block, or layout reconstruction;
+- custom OCR endpoint/model/quality controls or additional cloud OCR providers;
+- OCR preview, block editing, pixel-identical layout reconstruction or in-place overlay;
 - arbitrary live background reconstruction;
 - document or multi-page input.

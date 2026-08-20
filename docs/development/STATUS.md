@@ -1,12 +1,18 @@
 # Project Status
 
-Last updated: 2026-08-18
+Last updated: 2026-08-20
 
-Release target: 0.1.0 Alpha
+Development stage: Incubation / Unreleased
 
-Overall state: In Progress — RV-001 through RV-004 and all previously Blocked Tasks are closed; remaining acceptance gaps are explicit
+Release target: None. A version is assigned only when the project owner explicitly starts release preparation.
 
-Active task: None. The next implementation task must be selected explicitly by the project owner.
+Overall state: In Progress — unversioned product incubation; no active release contract or implementation Task
+
+Active task: None. The next implementation Task must be selected explicitly by the project owner.
+
+TASK-033 已由项目所有者于 2026-08-20 明确关闭：OCR 页面使用独立 Provider 选择卡，并同时保留独立本机 Vision 与云端 GLM-OCR 卡；GLM 只配置一个 Keychain API Key。截图翻译在 GLM 结构识别期间显示专用等待态，成功后直接进入现有语义 Markdown 翻译与原生渲染。Vision 保持默认；缺少 GLM Key 时明确阻止并引导 OCR 设置，已配置云端请求失败时可见地自动降级到 Vision。截图仍只在活动会话内存中存活，不分配产品版本，开发 App 继续使用 `0.0.0` 占位。真实 GLM Key 成功调用没有被伪写为已验证，现作为独立 `RV-005` 保留，不重新打开实现 Task。
+
+TASK-032 已完成：Marla 现在处于 `Incubation / Unreleased`，没有活动产品版本或发布合同。日常功能继续通过项目所有者明确选择的 Task 演进，完成或合入功能不提升产品版本；只有未来明确启动发布准备时才选择实际 SemVer、创建新合同并更新发布元数据。旧 `0.1.0` 合同和 Release Record 已标为从未发布的撤回草案，其未勾选项不再阻塞孵化。Debug/Release 开发 App 使用不可公开发布的 `0.0.0` 技术占位，固定 `artifacts/Marla_dev.app` 已重建并验证 Bundle ID、macOS 14、arm64、Paper Lantern 资源、稳定签名与 designated requirement 不变。Rust crate、C ABI、请求 schema、存储和迁移版本继续作为独立兼容标识。
 
 TASK-031 已完成：状态栏 `MenuBarExtra(.window)` 现在由原生窗口独占系统材质，不再与内容级 `marlaGlassSurface()` 叠加；透明设置窗口和自定义 Panel 继续各自只使用一层内容材质。独立 Preview / fixture 显式保留单层表面，菜单布局与 Paper Lantern 身份层级不变。沙箱外 `./scripts/check.sh`、固定签名 Release 打包和浅色/深色五维复核均通过，未恢复 TASK-026 已否定的整窗 opacity、强制 clear 或透明度档位。Computer Use 无法枚举无主窗口的 LSUIElement 状态项，因此未把 fixture 冒充原生截图；项目所有者在固定 App 交付后明确授权合并到 `main`，Task 随之验收关闭。
 
@@ -30,11 +36,11 @@ Blocked tasks: None.
 
 ## Current objective
 
-当前没有 Active implementation Task。TASK-030 只增加显式验收环境可观测性并完成 RV-003，没有改变正常产品行为或 Provider 合同；TASK-028 与 TASK-029 均已完成。下一项实现工作必须由项目所有者明确选择，Agent 不从 Roadmap、Backlog 或 Ideas 自动激活任务。
+当前没有 Active implementation Task。下一项产品实现、修复或验证工作必须由项目所有者从直接请求、Ideas、Backlog 或证据缺口中明确选择；Agent 不自动从旧 `0.1.0` 草案或 Roadmap 提升工作。
 
 TASK-023 已完成整体代码审查、自动化验证与固定 Release 测试 App 交付：Rust 翻译与模型列表取消从 10ms 轮询改为事件驱动唤醒，SSE 单个未完成帧增加 1 MiB 内存上限，严格 Clippy 与 shell 语法检查纳入统一验证，5 个公开 unsafe FFI 函数补齐安全合同；`artifacts/Marla_dev.app` 已重建并通过稳定签名验证。
 
-TASK-022 已完成实现并收束：Français、Español、Deutsch、한국어 已接入既有语言路由、UI 菜单和 Swift/Rust 请求合同；Vision 已改为自动语言检测并按运行时能力过滤七门产品 OCR 候选。真实固定 Release 的日语/韩语截图路由仍是发布验收缺口；其余 Qwen-MT 语言暂不视为已适配。后续工作回到发布验证清单。
+TASK-022 已完成实现并收束：Français、Español、Deutsch、한국어 已接入既有语言路由、UI 菜单和 Swift/Rust 请求合同；Vision 已改为自动语言检测并按运行时能力过滤七门产品 OCR 候选。真实固定开发 App 的日语/韩语截图路由仍是独立证据缺口；其余 Qwen-MT 语言暂不视为已适配。未来发布准备可按届时范围决定是否要求复验。
 
 TASK-021 已完成：结果卡支持 380–760pt 横向调整，流式译文在未达到 60% 高度上限前完整推动窗口增长，动画竞态会在完成后按最新会话和宽度校正，且非激活划词路径的光标与拖动已完成实机复验。TASK-013 与 TASK-016 也已在 2026-08-18 获得项目所有者最终确认并关闭。
 
@@ -46,8 +52,8 @@ TASK-021 已完成：结果卡支持 380–760pt 横向调整，流式译文在�
 - Production selection content comes only from one protected simulated-Copy transaction bound to the trigger-time frontmost application. It snapshots every readable Pasteboard representation, accepts only the new Copy result, restores and verifies the original snapshot on every controlled exit, refuses to overwrite a newer external write, rejects focus changes, and reports only redacted lifecycle evidence.
 - Accessibility remains the permission and optional non-content positioning substrate. Its standard range, Web Text Marker, bounded graph, identity, and geometry helpers are not allowed to provide or fall back to translation content.
 - Selection translation always uses the complete nearby result card; the rejected single-line source-covering and pointer-estimate prototype has been removed together with its setting and runtime path.
-- Pre-selection full-display ScreenCaptureKit freezing with Marla-window exclusion, same-frame cross-display selection/loupe/crop composition, in-memory Vision OCR with automatic language detection and runtime-filtered candidates for the seven product languages, stable line order, and text-only translation requests.
-- Embedded Rust static library with versioned C ABI, shared async runtime, generic OpenAI-compatible SSE, Qwen-MT adaptation, timeouts, cancellation, and stale-event isolation.
+- Pre-selection full-display ScreenCaptureKit freezing with Marla-window exclusion and same-frame cross-display selection/loupe/crop composition. Vision remains default, local and plain-text; selected GLM-OCR uses one Keychain Key, memory-only bounded encoding, a fixed cloud contract, visible waiting/fallback state and canonical semantic Markdown.
+- Embedded Rust static library with C ABI v4, translation request schema v3, OCR request schema v1, shared async runtime, generic OpenAI-compatible SSE, Qwen-MT and GLM-OCR adapters, timeouts, cancellation, structure normalization and stale-event isolation.
 - Grouped Settings, Carbon shortcuts, Keychain credential storage, permission guidance, light/dark appearance, Reduce Motion, and verified test-app packaging.
 - Xcode SwiftUI previews for the main menu, Settings, translation-card states, and quick input, with preview-safe fixtures that avoid system integrations.
 - Menu setup status that automatically yields to three bounded in-memory recent translations once API, Accessibility, and Screen Recording are ready; selecting a recent result performs no network request and quitting clears the list.
@@ -57,40 +63,43 @@ TASK-021 已完成：结果卡支持 380–760pt 横向调整，流式译文在�
 - Every API profile supports explicit Base URL or Complete URL semantics. The editor uses an inline Base/Complete switch and can fetch a Rust-owned `/models` list with the current profile credential, then expand and select a model at the bottom of the form.
 - The API editor gives its first scroll-content row an 8pt focus-ring safety inset, keeping the native macOS Focus Ring complete in light and dark appearance.
 - Settings use a five-page native sidebar including Translation Languages, plus a summary-only API list and independently clipped editor sheet; global shortcuts have persistent switches, result cards support background dragging, and screenshot selection includes an in-memory 6× pointer magnifier.
-- Global native/secondary preferences support Simplified Chinese, English, Japanese, French, Spanish, German, and Korean under TASK-022. New sessions locally detect source language, route native to secondary and other/unknown source to native, expose source/target overrides in the result card and quick input, and send consistent explicit target semantics through generic and Qwen-MT providers; expanded-language Release UI verification remains pending.
+- Global native/secondary preferences support Simplified Chinese, English, Japanese, French, Spanish, German, and Korean under TASK-022. New sessions locally detect source language, route native to secondary and other/unknown source to native, expose source/target overrides in the result card and quick input, and send consistent explicit target semantics through generic and Qwen-MT providers; expanded-language fixed development-App UI evidence remains incomplete.
 - Settings use a transparent full-size title bar with traffic lights inside one continuous four-corner surface, hidden scroll indicators, and a fixed `Esc` screenshot-cancellation row. Screenshot selection temporarily suspends an open Settings window and restores it without activating it; `Esc` cancellation is owned by the active selection session rather than a single view's first-responder state, with window key-equivalent/cancel-operation routing and a listen-only event-tap fallback.
 - Translation API profiles have persistent enabled states and only enabled profiles can be selected or invoked. The summary list uses native switches, a Set Default/Delete menu, accessibility move actions, and a trailing reorder handle. Settings content no longer moves the window; the newest fixed App uses a complete-row drag preview and 220ms animated hover reordering, which the project owner accepted on 2026-08-18.
 - Project-scoped Serena 1.6.1 provides read-only Swift/Rust semantic navigation through Codex. A custom Context and fixed tool allowlist expose only nine retrieval/diagnostic tools; source edits, shell, project switching, onboarding, memories, Dashboard, and Headroom remain disabled.
 - Paper Lantern is the selected Marla brand mark and product metaphor: “a little light beside the reader.” The canonical SVG and reference PNG exports live under `Resources/Brand/PaperLantern/`; the 10-slot macOS AppIcon catalog is compiled into Debug and Release builds. The menu-bar identity item uses a separate 18pt monochrome Paper Lantern template; the MenuBarExtra panel header uses a 33.6pt full-color rendition while its text group has a 14pt upward optical correction that makes the approximately 24pt top inset 1.5 times the 16pt leading inset; selection/screenshot result-card headers use a 24pt full-color identity mark and 17pt title. Quick Input and all functional controls continue to use SF Symbols.
 - Quick Input preserves complete semantic Markdown through the Provider and session. Awaiting remains raw; from the first non-empty streaming delta, Markdown uses the same native heading/list/quote/code/link/table projection and TextKit height semantics as completion. Copy and request-changing actions retain the canonical string, while plain-text sessions and failed partial output remain unrendered. The reopened TASK-028 slice and its latest UI refinement are fixed-App verified and project-owner accepted.
 
-Latest committed implementation baseline: `fd38764`; TASK-028 closure refinements remain in the current task branch worktree until explicitly committed or integrated.
+Latest integrated implementation baseline: TASK-032 unversioned incubation plus TASK-033 GLM-OCR; the exact commit and merge identifiers are recorded by Git history.
 
-## Release gaps
+## Development evidence gaps
 
-- Real Japanese, Korean, Chinese, and English screenshot OCR plus source-language routing require final verification in the fixed Release App after the TASK-022 Vision repair.
-- RV-003 的 P95 壳层、Rust-delta-to-visible-Swift 与空闲/常规/截图/Vision 内存预算已经验证；动画期间主观流畅与关闭会话后无持续增长仍是 0.1.0 验收中的独立未勾选证据，未由预算测量替代。
-- The unchecked items in `docs/versions/0.1.0/ACCEPTANCE.md` remain authoritative release gaps.
+- Real Japanese, Korean, Chinese, and English screenshot OCR plus source-language routing do not yet have final fixed development-App verification after the TASK-022 Vision repair.
+- RV-003 的 P95 壳层、Rust-delta-to-visible-Swift 与空闲/常规/截图/Vision 内存预算已经验证；动画期间主观流畅与关闭会话后无持续增长没有被预算测量替代，可由未来相关 Task 或发布准备按需复验。
+- `docs/versions/0.1.0/ACCEPTANCE.md` 已随未发布草案撤回；其中未勾选项保留历史语境，但不是当前孵化期阻塞。
+- TASK-033 的 mock Provider、固定 Release UI 与错误/回退路径已经验证；真实 GLM-OCR 成功调用作为 `RV-005` 保留，需项目所有者在 SecureField 中自行输入 Key 后完成，Agent 不读取、输入、输出或记录该凭据。
 
 ## Next selectable work
 
-No Ready RV or Blocked Task remains. The next implementation or verification Task must be selected explicitly by the project owner from the remaining unchecked 0.1.0 acceptance gaps; the Agent does not auto-promote Roadmap, Backlog, or Ideas.
+The next implementation or verification Task must be selected explicitly by the project owner from a direct request, Ideas, Backlog, or a current evidence gap. The Agent does not auto-promote any item, and the withdrawn `0.1.0` checklist does not determine the queue.
 
-TASK-014 is complete; RV-001 through RV-004 are Complete.
+TASK-014 is complete; RV-001 through RV-004 are Complete, and RV-005 is Ready.
 
 TASK-015 已完成；项目所有者已确认关闭跨应用划词验证（RV-001）。截图裁剪、`Esc`、代表性显示器布局与权限持久性已由 RV-002 关闭；延迟与内存预算已由 RV-003 关闭；真实凭据一致性已由 RV-004 关闭。
 
 ## Current risks
 
-- TASK-015's historical AX-first/optional-Copy route has been superseded by TASK-028's Copy-only production route. FluxMarkdown and protected Pasteboard behavior have owner/automated acceptance; additional Zen/GitHub breadth remains release evidence rather than an Active implementation gap.
+- TASK-015's historical AX-first/optional-Copy route has been superseded by TASK-028's Copy-only production route. FluxMarkdown and protected Pasteboard behavior have owner/automated acceptance; additional Zen/GitHub breadth may be selected as future evidence rather than an Active implementation gap.
 - Community evidence and project-owner testing identify simulated `⌘C` with Pasteboard backup/restore as the reliable cross-application content path. TASK-015's historical default-off fallback has been superseded in TASK-028: protected Copy is now the sole production selection content source. Copy-menu, browser-extension, and PopClip/Service bridges remain future IDEA-011 slices.
 - Screenshot coordinate conversion has unit coverage and RV-002 now supplies the project-owner real-region comparison; no display model or geometry parameters were recorded.
 - The fixed-path development App is locally signed, not Developer ID signed or notarized; it is not a public distribution artifact.
 - Real DashScope Qwen-MT translation succeeded, but representative TTFT, throughput, and live error mapping remain unmeasured.
-- TASK-022 的 Swift/Rust 语言合同与 Vision 修复已实现：七门语言的归一/路由、设置持久化、通用提示词、Qwen-MT 映射、未适配代码拒绝和 Vision 配置均有回归测试。最新固定 Release 已重建并签名通过；当前 xctest 图形服务无法创建 Vision CVPixelBuffer（OSStatus -6662），沙盒外探针已证明自动检测下日/韩/中/英样本有结果；现场固定 App 截图 OCR、长标签和完整窗口验收保留在发布缺口，不阻止本 Task 收束。
+- TASK-022 的 Swift/Rust 语言合同与 Vision 修复已实现：七门语言的归一/路由、设置持久化、通用提示词、Qwen-MT 映射、未适配代码拒绝和 Vision 配置均有回归测试。最新固定开发 App 已重建并签名通过；当前 xctest 图形服务无法创建 Vision CVPixelBuffer（OSStatus -6662），沙盒外探针已证明自动检测下日/韩/中/英样本有结果；现场固定 App 截图 OCR、长标签和完整窗口验收保留为独立证据缺口，不阻止其它孵化 Task。
 
 ## Latest verification
 
+- TASK-033：24 项 Rust 与 161 项 Swift 测试通过，其中 3 项 Vision 图片回归因宿主 OSStatus -6662 按既有规则 skip；新增 OCR/设置/Keychain/会话回归、C ABI v4、翻译 schema v3 与 OCR schema v1 均同步。受限沙箱首次运行因系统 Pasteboard/XPC 不可用使 3 个既有复制断言得到 nil；授权环境重跑全部通过，Swift Package、Xcode Debug、结构/格式/shell/空白/diff 门禁均通过。`./scripts/build-test-app.sh` 已重建并验证固定 `artifacts/Marla_dev.app`：`com.marla.app`、`0.0.0`、macOS 14.0、arm64、Paper Lantern 资源、稳定签名 `API Usage Monitor Dev` 和 designated requirement 均保持不变。真实 Release fixture 位于 `/private/tmp/marla-task033-settings-light.png`、`/private/tmp/marla-task033-settings-dark.png`、`/private/tmp/marla-task033-awaiting-light.png`、`/private/tmp/marla-task033-fallback-dark.png` 与 `/private/tmp/marla-task033-awaiting-reduce-motion.png`；三张独立设置卡在滚动容器中层级清楚，已显示区域与等待/可见降级/Reduce Motion 状态均无重叠或异常裁切，五维复审为 8/8/8/9/7。真实凭据成功路径仍待项目所有者现场验收。
+- TASK-032：授权环境 `./scripts/check.sh` 全绿：20 项 Rust 与 157 项 Swift 通过，其中 3 项 Vision 图片回归因宿主 OSStatus -6662 按既有规则 skip；Swift Package、Xcode Debug、严格 Rust format/Clippy、结构、shell、空白和 diff 门禁均通过。受限沙箱的首次运行曾因 `com.apple.hiservices-xpcservice` 不可用导致 3 个 Pasteboard 复制断言失败，授权重跑全部通过。`./scripts/build-test-app.sh` 随后完成 Release 构建并安全替换固定 App；最终 `artifacts/Marla_dev.app` 为 `com.marla.app`、开发占位版本 `0.0.0`、macOS 14.0、arm64，Paper Lantern 资源完整，稳定签名 `API Usage Monitor Dev` 与 designated requirement 保持不变。
 - 2026-08-18 项目所有者明确回报 `RV-002`、`RV-004`、`TASK-013` 与 `TASK-016` 全部通过。RV-002 关闭截图裁剪、冻结画面、取消路径、代表性显示器布局与 TCC 持久性；RV-004 关闭同一已保存 profile 的“保存并测试”与真实翻译一致性；TASK-013 关闭固定尺寸拖拽 Panel、精确手柄锚点、无缩放、移动空槽与松手恢复动态；TASK-016 关闭干净授权状态下启动 vault 授权和首次翻译不再逐 profile 打断。未记录显示器型号、Key、endpoint、密码、Touch ID、截图或翻译内容。
 - TASK-030：`./scripts/measure-rv003.sh 30` 在固定签名 Release App 上完成 30 组入口与 30 组本地 delta 样本，两个 P95 分别为 145.947ms 与 43.957ms；60 行原始证据只含 schema、metric 和纳秒时长。空闲、常规、全显示器冻结/框选与沙盒外 Vision accurate OCR 最大 RSS 分别约 126.1/128.9/325.3/147.3 MiB。`./scripts/check.sh`、`./scripts/build-test-app.sh` 与 `git diff --check` 最终通过；固定 App 保持 Bundle ID、0.1.0、macOS 14+、arm64、Paper Lantern 资源、稳定签名与 designated requirement。
 - TASK-029：literal HTML table 样本与安全降级矩阵、完整 GFM/task-list 与等价 plain projection、不完整 plain 拒绝、同一 `changeCount` 下渐进候选稳定观察、真实 Flux 行首 U+FFFC checkbox projection，以及无 charset UTF-8 raw NBSP HTML 均已进入回归。最终 `./scripts/check.sh` 全绿：20 项 Rust、144 项 Swift（3 项 Vision host 限制 skip）、Swift Package、Xcode Debug、结构门禁、格式、shell、空白与 diff 检查均通过。`./scripts/build-test-app.sh` 已重建并验证固定 `artifacts/Marla_dev.app` 的 Bundle ID `com.marla.app`、版本 0.1.0、macOS 14.0+、arm64、Paper Lantern 资源、稳定签名 `API Usage Monitor Dev` 与 designated requirement。最终真实 Flux 混合选区脱敏审计得到 `semanticMarkdownTableCount=1`（修复前为 0）、`clipboardPreserved=true`、`focusPreserved=true`，项目所有者确认“的确修好了”。
@@ -138,7 +147,7 @@ TASK-015 已完成；项目所有者已确认关闭跨应用划词验证（RV-00
 
 ## Pending product decisions
 
-Default translation vendor, contextual translation controls, cloud structured OCR controls, persistent history, public signing/notarization, and public distribution remain outside the current Task. Paper Lantern brand selection and AppIcon integration are complete under ADR-0008 and TASK-027.
+Default translation vendor, contextual translation controls, persistent history, public signing/notarization, and public distribution remain unselected future work. GLM-OCR controls are complete under TASK-033, with live-provider evidence retained as RV-005; Paper Lantern brand selection and AppIcon integration are complete under ADR-0008 and TASK-027.
 
 ## Required Reading
 
@@ -147,7 +156,7 @@ These files are universal for every task:
 - `docs/README.md`
 - `docs/product/PRODUCT.md`
 - `docs/product/UX_PRINCIPLES.md`
-- `docs/versions/0.1.0/SPEC.md`
+- `docs/development/VERSIONING.md`
 - `docs/architecture/ARCHITECTURE.md`
 
 The active Task must list any additional UI, implementation, acceptance, feature, data-contract, source, test, and ADR files it actually requires.

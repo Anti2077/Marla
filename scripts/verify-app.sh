@@ -46,7 +46,7 @@ icon_name=$(read_plist_value CFBundleIconName)
 icon_file=$(read_plist_value CFBundleIconFile)
 
 require_value "Bundle identifier" "${bundle_id}" "com.marla.app"
-require_value "Marketing version" "${version}" "0.1.0"
+require_value "Development Marketing version" "${version}" "0.0.0"
 require_value "Minimum system" "${minimum_system}" "14.0"
 require_value "LSUIElement" "${agent_app}" "true"
 require_value "App icon name" "${icon_name}" "AppIcon"

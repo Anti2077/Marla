@@ -8,7 +8,7 @@ import MarlaCore
 import SwiftUI
 import UniformTypeIdentifiers
 
-private enum SettingsPage: String, CaseIterable, Identifiable {
+enum SettingsPage: String, CaseIterable, Identifiable {
     case general
     case languages
     case api
@@ -72,6 +72,7 @@ struct SettingsView: View {
         .marlaGlassSurface(cornerRadius: DesignTokens.radiusL)
         .ignoresSafeArea(.container, edges: .top)
         .onAppear {
+            applyPendingNavigation()
             if let rawPage = ProcessInfo.processInfo.environment["MARLA_UI_TEST_SETTINGS_PAGE"],
                let page = SettingsPage(rawValue: rawPage) {
                 selectedPage = page
@@ -83,6 +84,9 @@ struct SettingsView: View {
                     }
                 }
             }
+        }
+        .onChange(of: settings.settingsNavigationDestination) { _, _ in
+            applyPendingNavigation()
         }
         .sheet(item: $editorPresentation, onDismiss: discardAbandonedNewProfile) { presentation in
             if let profile = settings.profile(id: presentation.profileID) {
@@ -334,15 +338,17 @@ struct SettingsView: View {
             title: "OCR",
             subtitle: "截图文字识别的当前状态"
         ) {
-            SettingsSection(title: "本机 Vision", systemImage: "text.viewfinder") {
-                StatusLine(icon: "checkmark.circle.fill", tint: DesignTokens.success, title: "当前使用 Vision", detail: "macOS Vision 在本机识别截图中的文字。")
-                StatusLine(icon: "lock.fill", tint: DesignTokens.accent, title: "截图不会上传", detail: "截图像素只在内存中处理；只有识别出的纯文本会进入当前翻译 API。")
-                StatusLine(icon: "text.alignleft", tint: DesignTokens.secondaryText, title: "识别范围", detail: "0.1.0 保留文字与行顺序，不承诺表格、公式或页面布局恢复。")
-            }
-            Text("此页面仅展示 0.1.0 的固定 OCR 路径，不提供云端 provider 或额外质量参数。")
+            OCRSettingsSection(settings: settings)
+            Text("GLM-OCR 的接口与模型由 Marla 固定管理；这里不需要填写 URL 或额外质量参数。")
                 .font(AppFont.caption)
                 .foregroundStyle(DesignTokens.secondaryText)
         }
+    }
+
+    private func applyPendingNavigation() {
+        guard settings.settingsNavigationDestination == .ocr else { return }
+        selectedPage = .ocr
+        settings.consumeSettingsNavigation(.ocr)
     }
 
     private func removeProfile(_ id: UUID) {

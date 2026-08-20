@@ -1,6 +1,6 @@
 # Marla Backlog
 
-Backlog 只收录已经确认需要完成、但尚未成为当前 Task 的未来产品工作。它不是想法清单，也不是当前执行队列，更不代表已经承诺某个发布日期。当前版本的实机验收和性能测量见 [`VERIFICATION.md`](../development/VERIFICATION.md)。
+Backlog 只收录已经确认需要完成、但尚未成为当前 Task 的未来产品工作。它不是想法清单，也不是当前执行队列，更不代表已经承诺某个发布日期。当前开发基线的实机验收和性能测量见 [`VERIFICATION.md`](../development/VERIFICATION.md)。
 
 ## 状态定义
 
@@ -8,22 +8,22 @@ Backlog 只收录已经确认需要完成、但尚未成为当前 Task 的未来
 - `Needs evidence`：方向已确认，但需要验证数据才能拆成实现任务。
 - `Needs decision`：工作有必要，但关键产品选择仍需项目所有者确认。
 - `Blocked`：存在明确外部阻塞。
-- `Deferred`：已确认，但明确不在当前发布范围。
+- `Deferred`：已确认，但项目所有者明确暂不选择为孵化期 Task。
 
 ## 当前排序
 
-| ID | 工作 | 状态 | 发布关系 | 提升为 Task 的条件 |
+| ID | 工作 | 状态 | 开发关系 | 提升为 Task 的条件 |
 | --- | --- | --- | --- | --- |
-| BL-005 | 按需语境增强引擎 | Deferred | 0.1.0 之后 | 完成隐私边界和发送内容的产品决策 |
-| BL-006 | GLM-OCR 云端结构化识别 | Deferred | 0.1.0 之后 | 完成图片上传披露、Provider 契约和成本验证 |
-| BL-007 | 多翻译 API 配置与窗口内手动切换 | Complete: TASK-005 | 0.1.0 之后的已确认增强 | 后续可另建 Task 做入口级默认或对比模式 |
+| BL-005 | 按需语境增强引擎 | Needs decision | 已确认的孵化候选；未排期 | 完成隐私边界和发送内容的产品决策 |
+| BL-006 | GLM-OCR 云端结构化识别 | Complete: [TASK-033](../tasks/TASK-033-glm-ocr-cloud-provider.md) | Provider 设置、固定云端调用、结果卡等待态与 Vision 降级已完成 | 真实凭据成功路径保留为 `RV-005`，不重新打开实现 Task |
+| BL-007 | 多翻译 API 配置与窗口内手动切换 | Complete: TASK-005 | 已完成的孵化增强 | 后续可另建 Task 做入口级默认或对比模式 |
 | BL-008 | 设置侧栏与 API 配置编辑器重构 | Complete: TASK-005（detail: TASK-006） | 0.1.0 Alpha UX 修复 | None |
 | BL-009 | 设置与浮层交互细节修正 | Complete: TASK-005（detail: TASK-007） | 0.1.0 Alpha UX 修复 | None |
 | BL-010 | 设置窗口一体化与截图焦点修正 | Complete: TASK-005（detail: TASK-008） | 0.1.0 Alpha UX 修复 | None |
 | BL-011 | 可靠取消截图框选 | Complete: TASK-005（detail: TASK-009） | 0.1.0 Alpha 真实缺陷 | None |
 | BL-012 | API Base URL、完整 URL 与模型获取 | Complete: TASK-005（detail: TASK-010） | 0.1.0 Alpha 兼容性修复 | None |
 | BL-013 | API 编辑器顶部聚焦边框完整显示 | Complete: TASK-005（detail: TASK-011） | 0.1.0 Alpha 视觉缺陷 | None |
-| BL-014 | API 配置启用、排序与编辑器操作收敛 | [Blocked task: TASK-013](../tasks/TASK-013-api-profile-activation-and-editor-actions.md) | 0.1.0 Alpha 逻辑与 UX 修复 | 项目所有者确认拖拽动态中间态 |
+| BL-014 | API 配置启用、排序与编辑器操作收敛 | Complete: [TASK-013](../tasks/TASK-013-api-profile-activation-and-editor-actions.md) | 历史 Alpha 逻辑与 UX 修复 | None |
 | BL-015 | 母语/第二语言自动路由与结果卡语言控制 | Complete: [TASK-019](../tasks/TASK-019-configurable-language-routing.md) | 0.1.0 Alpha 语言能力增强 | None |
 
 ## 历史迁移条目
@@ -78,8 +78,8 @@ Backlog 只收录已经确认需要完成、但尚未成为当前 Task 的未来
 ### BL-006：GLM-OCR 云端结构化识别
 
 - **目标**：在表格、代码块或复杂布局截图中提供比 Vision 纯文本更好的结构恢复。
-- **已接受方向**：ADR-0002 规划云端 GLM-OCR，Vision 保留为本地回退；ADR-0005 明确 0.1.0 不实现图片上传路径。
-- **未进入 Task 原因**：需要明确隐私披露、成本/延迟阈值、图片生命周期和结构化数据契约。
+- **已接受方向**：ADR-0002 规划云端 GLM-OCR，Vision 保留为本地回退；ADR-0005 的当前边界继续禁止未授权图片上传，ADR-0010 已取消原来的版本时序。
+- **完成 Task**：[TASK-033](../tasks/TASK-033-glm-ocr-cloud-provider.md)。默认 Vision；选择 GLM-OCR 即授权所选截图上传，设置仅保存一个 Keychain API Key；缺 Key 明确阻止，已配置请求失败时可见地降级 Vision，结构化结果直接进入现有语义 Markdown 翻译管线。真实凭据成功路径保留为 [RV-005](../development/VERIFICATION.md)，不重新打开实现 Task。
 - **相关想法**：`IDEAS.md` 的 IDEA-003。
 
 ### BL-007：多翻译 API 配置与窗口内手动切换
@@ -95,7 +95,7 @@ Backlog 只收录已经确认需要完成、但尚未成为当前 Task 的未来
 - **目标**：统一编辑器内当前 Key 草稿的测试行为，以显式启用状态控制哪些 profile 可调用，并用直接拖拽替代菜单中的上下移动。
 - **范围**：测试连接状态行、底部取消/保存、profile 启用迁移、默认配置不变量、结果卡过滤、三横杠拖拽排序及相关测试与真实 App 验收。
 - **明确不做**：自动 fallback、后台健康检查、Provider 专属参数和多模型并行翻译。
-- **当前 Task**：`TASK-013`。
+- **完成 Task**：`TASK-013`；项目所有者已于 2026-08-18 完成真实拖拽验收。
 
 ### BL-015：母语/第二语言自动路由与结果卡语言控制
 

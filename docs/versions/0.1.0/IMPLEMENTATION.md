@@ -1,10 +1,14 @@
 # Marla 0.1.0 实施规格 / Implementation Specification
 
-状态 / Status: Implemented baseline — TASK-028 complete; release verification in progress
+状态 / Status: Withdrawn release snapshot — historical implementation evidence
 
 架构 / Architecture: SwiftUI/AppKit host + embedded Rust static library
 
 > 中文为规范文本，英文为同步镜像。/ Chinese is normative; English is its synchronized mirror.
+
+> `0.1.0` 发布草案已在发布前撤回。本文保留当时实施快照，不再作为当前版本合同；当前事实以代码、测试、Architecture、Feature、Task 和 `STATUS.md` 为准。
+>
+> The `0.1.0` release draft was withdrawn before release. This document retains its implementation snapshot but is no longer the active version contract; current facts come from code, tests, Architecture, Feature, Task, and `STATUS.md`.
 
 ## 1. 当前基线 / Current Baseline
 

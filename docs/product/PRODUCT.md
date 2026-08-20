@@ -35,15 +35,16 @@ The metaphor describes product behavior, not decoration. Marla does not turn the
 - pinned or transient presentation;
 - system speech using macOS voices.
 
-## Explicitly deferred
+## Current non-capabilities
+
+These items are not implemented in the current incubation baseline. This list records product truth; it is not a release freeze. The project owner may select one through a future Task, subject to the required product, privacy, architecture, and verification decisions.
 
 - PDF, Office, and batch document translation;
 - a full document workspace;
 - local GLM-OCR;
-- cloud structured OCR in 0.1.0; macOS Vision is the only 0.1.0 OCR path;
 - source-text-covering in-place translation, rejected after the experimental surface performed poorly in real use;
-- contextual window metadata and nearby-text enhancement in 0.1.0;
-- persistent translation history in 0.1.0;
+- contextual window metadata and nearby-text enhancement;
+- persistent translation history;
 - arbitrary live-page pixel-perfect replacement;
 - browser-specific DOM rewriting;
 - cloud synchronization and accounts;
@@ -54,5 +55,5 @@ The metaphor describes product behavior, not decoration. Marla does not turn the
 - translation can be invoked without opening a main window;
 - the result appears near the user's work and does not unnecessarily steal focus;
 - normal operation remains below the documented memory budget;
-- the 0.1.0 privacy boundary sends only explicitly triggered source text; bounded context enhancement remains a later release;
+- the current privacy boundary sends only explicitly triggered source content; Vision keeps screenshot pixels local, while explicitly selected GLM-OCR uploads only the chosen crop under its Settings disclosure; bounded context enhancement requires a separate owner-authorized Task and the Accepted ADR constraints;
 - failures degrade to a usable local or nearby-panel experience.

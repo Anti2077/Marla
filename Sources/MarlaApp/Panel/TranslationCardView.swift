@@ -210,7 +210,23 @@ struct TranslationCardView: View {
             if session.translation.isEmpty {
                 switch session.state {
                 case .recognizing:
-                    StateLine(symbol: "viewfinder", title: "正在识别框选文字…", tint: DesignTokens.accent)
+                    switch session.ocrActivity {
+                    case .glmOCR:
+                        VStack(alignment: .leading, spacing: DesignTokens.spaceXS) {
+                            StateLine(symbol: "doc.viewfinder", title: "正在解析结构", tint: DesignTokens.accent)
+                            Text("GLM-OCR 正在识别文字与版面…")
+                                .font(AppFont.caption)
+                                .foregroundStyle(DesignTokens.secondaryText)
+                        }
+                    case .visionFallback:
+                        StateLine(
+                            symbol: "exclamationmark.arrow.triangle.2.circlepath",
+                            title: "云端结构识别失败，正在改用本机 Vision…",
+                            tint: DesignTokens.warning
+                        )
+                    case .vision, nil:
+                        StateLine(symbol: "viewfinder", title: "正在识别框选文字…", tint: DesignTokens.accent)
+                    }
                 case .awaitingFirstToken:
                     HStack(spacing: DesignTokens.spaceS) {
                         BreathingDot(reduceMotion: reduceMotion)

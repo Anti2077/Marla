@@ -1,12 +1,16 @@
 # Marla 0.1.0 验收清单 / Acceptance Checklist
 
-状态 / Status: Verification in progress — Alpha not yet accepted
+状态 / Status: Withdrawn before release — archived evidence checklist
 
 适用产物 / Artifact: `artifacts/Marla_dev.app`
 
 > `[ ]` 表示未验证，`[x]` 只允许在当前代码和真实产物上取得证据后填写。中文为规范文本，英文为同步镜像。
 >
 > `[ ]` means unverified. `[x]` is allowed only with evidence from current code and a real artifact. Chinese is normative; English is its synchronized mirror.
+
+> 本清单随 `0.1.0` 发布草案于 2026-08-18 撤回。已勾选项保留历史证据，未勾选项不是当前孵化期的发布阻塞；未来发布必须建立新合同并按当时产物判断复验范围。
+>
+> This checklist was withdrawn with the `0.1.0` release draft on 2026-08-18. Checked items retain historical evidence, while unchecked items are not current incubation release blockers. A future release requires a fresh contract and revalidation scope based on its actual artifact.
 
 ## 1. 自动化门禁 / Automated Gates
 

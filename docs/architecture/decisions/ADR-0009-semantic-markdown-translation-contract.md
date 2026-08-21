@@ -4,7 +4,7 @@ Status: Accepted
 
 Date: 2026-08-16
 
-Amended: 2026-08-17 (streaming native projection and unified TextKit measurement)
+Amended: 2026-08-17 (streaming native projection and unified TextKit measurement); 2026-08-21 (current planning status clarified)
 
 ## Context
 
@@ -34,7 +34,7 @@ Generic chat models can receive format rules in a System Message. Qwen-MT is dif
 - Streaming and completed Markdown use the same attributed-document and TextKit height semantics for both the body viewport and outer result window. Completion removes the streaming cursor and triggers a final measurement/frame reconciliation. The existing 380–760pt width range, 60% visible-workspace height cap, one native vertical scrolling owner, disabled horizontal scrolling/elasticity, and Reduce Motion behavior remain in force.
 - Treat the native rendering as a read-only projection. The complete Markdown string and format remain canonical for session state, copy, retry, language or API-profile switching, and in-memory recent-result restoration.
 - The primary one-click copy action copies canonical Markdown after removing only terminal non-semantic `\n`/`\r` characters. A menu-only plain-text action derives a read-only projection in which links keep their visible labels and Markdown tables become TSV. Selection `⌘C` follows the same terminal-newline policy. No operation emits HTML/RTF multi-representation output, and no derived projection writes back to canonical content.
-- Do not implement the projection with a WebView, execute HTML or scripts, or load remote resources. A persistent incremental Markdown AST and HTML/RTF multi-representation output copy require later evidence and work; bounded streaming snapshot projection is part of the current decision.
+- Do not implement the projection with a WebView, execute HTML or scripts, or load remote resources. Bounded streaming snapshot projection is part of the current decision. A persistent incremental Markdown AST or HTML/RTF multi-representation output copy would require new evidence and a separate owner-authorized Task; neither is an active Idea or Backlog item.
 - Keep all native and normalized representations session-only. This decision does not authorize continuous clipboard reads, Copy outside an explicit selection trigger, screenshot upload, or persistent document storage.
 
 ## Consequences
@@ -43,5 +43,5 @@ Generic chat models can receive format rules in a System Message. Qwen-MT is dif
 - Retry, language changes, API-profile switching, recent in-memory results, and copy must retain the content format and complete original string; presentation parsing must not mutate either.
 - Plain representations from protected Copy and Vision screenshot text remain `plainText` and avoid Markdown-specific prompt cost. Only reliable rich representations written by the current protected Copy may upgrade a production selection to `semanticMarkdown`; Quick Input may separately normalize its explicit native Paste input.
 - Markdown output quality remains Provider-dependent. Qwen-MT cannot receive the generic System Message, so its structured support must stay evidence-based and may require future profile capability controls or honest degradation.
-- HTML, RTF/RTFD, native attributed Paste input, and rich protected-Copy representation normalization are part of TASK-028's session-only acquisition boundary. Accessibility attributed selection is not an input. The 2026-08-16 baseline rendered only completed Markdown; TASK-028 was reopened on 2026-08-17 to add bounded streaming snapshot projection and unified TextKit height measurement. Persistent incremental AST work and HTML/RTF multi-format output copy remain later work. A session-only native attributed projection does not authorize persistent document conversion or broader clipboard access.
+- HTML, RTF/RTFD, native attributed Paste input, and rich protected-Copy representation normalization are part of TASK-028's session-only acquisition boundary. Accessibility attributed selection is not an input. The 2026-08-16 baseline rendered only completed Markdown; TASK-028 was reopened on 2026-08-17 to add bounded streaming snapshot projection and unified TextKit height measurement. Persistent incremental AST work and HTML/RTF multi-format output copy remain outside the current plan unless new evidence and owner authorization create a separate Task. A session-only native attributed projection does not authorize persistent document conversion or broader clipboard access.
 - Canonical session text is retained byte-for-byte, including meaningful terminal line breaks. Only Markdown copy, plain-text copy, and selection `⌘C` apply presentation-time removal of terminal non-semantic line breaks; internal and meaningful newlines remain unchanged.

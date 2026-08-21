@@ -1,6 +1,6 @@
 # Project Status
 
-Last updated: 2026-08-20
+Last updated: 2026-08-21
 
 Development stage: Incubation / Unreleased
 
@@ -75,7 +75,6 @@ Latest integrated implementation baseline: TASK-032 unversioned incubation plus 
 ## Development evidence gaps
 
 - Real Japanese, Korean, Chinese, and English screenshot OCR plus source-language routing do not yet have final fixed development-App verification after the TASK-022 Vision repair.
-- RV-003 的 P95 壳层、Rust-delta-to-visible-Swift 与空闲/常规/截图/Vision 内存预算已经验证；动画期间主观流畅与关闭会话后无持续增长没有被预算测量替代，可由未来相关 Task 或发布准备按需复验。
 - `docs/versions/0.1.0/ACCEPTANCE.md` 已随未发布草案撤回；其中未勾选项保留历史语境，但不是当前孵化期阻塞。
 - TASK-033 的 mock Provider、固定 Release UI 与错误/回退路径已经验证；真实 GLM-OCR 成功调用作为 `RV-005` 保留，需项目所有者在 SecureField 中自行输入 Key 后完成，Agent 不读取、输入、输出或记录该凭据。
 
@@ -83,14 +82,12 @@ Latest integrated implementation baseline: TASK-032 unversioned incubation plus 
 
 The next implementation or verification Task must be selected explicitly by the project owner from a direct request, Ideas, Backlog, or a current evidence gap. The Agent does not auto-promote any item, and the withdrawn `0.1.0` checklist does not determine the queue.
 
-TASK-014 is complete; RV-001 through RV-004 are Complete, and RV-005 is Ready.
-
-TASK-015 已完成；项目所有者已确认关闭跨应用划词验证（RV-001）。截图裁剪、`Esc`、代表性显示器布局与权限持久性已由 RV-002 关闭；延迟与内存预算已由 RV-003 关闭；真实凭据一致性已由 RV-004 关闭。
+当前验证队列只有 `RV-005`。RV-001～004 已关闭并只作为 `VERIFICATION.md` 中的基线证据保留，不是可选工作。
 
 ## Current risks
 
 - TASK-015's historical AX-first/optional-Copy route has been superseded by TASK-028's Copy-only production route. FluxMarkdown and protected Pasteboard behavior have owner/automated acceptance; additional Zen/GitHub breadth may be selected as future evidence rather than an Active implementation gap.
-- Community evidence and project-owner testing identify simulated `⌘C` with Pasteboard backup/restore as the reliable cross-application content path. TASK-015's historical default-off fallback has been superseded in TASK-028: protected Copy is now the sole production selection content source. Copy-menu, browser-extension, and PopClip/Service bridges remain future IDEA-011 slices.
+- Community evidence and project-owner testing identify simulated `⌘C` with Pasteboard backup/restore as the reliable cross-application content path. Copy menu、浏览器扩展和 PopClip/macOS Service bridge 当前均无计划；只有出现可复现的工作流缺口时，才回到 IDEA-008 评估其中一种入口。
 - Screenshot coordinate conversion has unit coverage and RV-002 now supplies the project-owner real-region comparison; no display model or geometry parameters were recorded.
 - The fixed-path development App is locally signed, not Developer ID signed or notarized; it is not a public distribution artifact.
 - Real DashScope Qwen-MT translation succeeded, but representative TTFT, throughput, and live error mapping remain unmeasured.

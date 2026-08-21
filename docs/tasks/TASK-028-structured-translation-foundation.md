@@ -262,7 +262,7 @@ None for this stage. 项目所有者已经确认完整 Markdown 交换、自然�
 - Manual evidence: Copy-only 扩展后的 `./scripts/build-test-app.sh` 已重建并验证固定 `artifacts/Marla_dev.app` 的 Release 路径、Bundle ID `com.marla.app`、版本 0.1.0、最低系统 14.0、arm64、可执行文件、稳定签名 `API Usage Monitor Dev` 与 designated requirement。项目所有者确认同类混合选择不再崩溃，并在原生滚动修复后的新固定 App 中确认表格与纵向滚动“正常啦”。修复后浅色/深色完成态证据位于 `/private/tmp/marla-task028-table-scroll-fixed-light.png` 与 `/private/tmp/marla-task028-table-scroll-fixed-dark.png`，五维复审为 8/8/8/9/7；原生 Quick Input 的对应 fixture 位于 `/private/tmp/marla-quick-input-light.png`、`/private/tmp/marla-quick-input-dark.png`、`/private/tmp/marla-quick-input-reduce-motion.png`，五维复审为 8/8/9/8/8。更新后的“通用”设置页浅色、深色与 Reduce Motion 证据位于 `artifacts/ui-review/task-028/`，五维复审为 8/8/8/9/7。
 - Manual acceptance: 项目所有者已用 FluxMarkdown、Quick Input 和既有 Provider 完成真实翻译，确认结构化 Markdown、表格、粗体、复制入口、纵向滚动与崩溃修复符合预期，并在 2026-08-16 明确授权结束 Task、合并 `main` 和 push。额外 Zen/GitHub 应用覆盖属于发布验证广度，不再阻止本实现 Task 收束。
 - Documentation updated: IDEA-013、ADR-0006/0009、架构、数据合同、Quick Input、比较模式、语言路由、0.1.0 双语规格/实现与 STATUS 已同步。
-- Remaining work promoted to: 额外跨应用覆盖保留为发布验证证据；截图结构 OCR、持久化增量 AST 和 HTML/RTF 多 representation 输出复制保留在 IDEA-013。实时增量渲染已在 2026-08-17 重开范围实现并验证。
+- Remaining work at Task closure: 当时把截图结构 OCR、持久化增量 AST 和 HTML/RTF 多 representation 输出复制记在 IDEA-013。随后截图结构 OCR 已由 TASK-033 完成；2026-08-21 项目所有者清理当前 Idea 池，并确认现有 Markdown/纯文本复制下拉已满足当前复制选择，因此其余未被重新授权的切片不再作为活动 Idea 保留。实时增量渲染已在 2026-08-17 重开范围实现并验证。
 - Scope changes closed: 所有本 Task 验收项已由自动化、固定 fixture、稳定签名 Release App 和项目所有者现场复验关闭；Task 状态改为 Complete。
 - Parallel contributions integrated: `task028_docs` 和 `task028_rich_docs` 的独占文档贡献已整合；后者的只读复核发现并推动修复了 Markdown/plain 校验绕过与 Quick Input plain fallback 绕过。
 

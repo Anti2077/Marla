@@ -50,7 +50,7 @@ UI/UX 工作的 skill 路由和使用示例见 [`development/UI_UX_SKILLS.md`](d
   -> RELEASE：实际发布时汇总结果
 ```
 
-想法可以长期留在 `IDEAS.md`，不需要为了“整洁”而仓促决定。只有产品所有者明确确认，或已有 Accepted ADR 明确要求实现的未来产品工作，才能进入 Backlog。当前开发基线的测试、实机验收和性能测量进入 `VERIFICATION.md`，不再伪装成产品 Backlog。开始代码实现对话时创建一个 Task；同一对话中追加的相关功能、修复和配套工作继续写入这个 Task，而不是拆出一串零碎任务。在共享工作树中通常只有一个 Task 处于 `Active`；并行任务需要显式使用独立分支或工作树。孵化期没有活动发布合同；首次发布和后续版本都只在项目所有者明确启动发布准备时分配，详见 [`development/VERSIONING.md`](development/VERSIONING.md)。
+仍然开放的想法可以长期留在 `IDEAS.md`，不需要为了“整洁”而仓促决定；已经实现、拒绝或被后续工作取代的条目则从当前想法池移除，由 Task、ADR、规格和 Git 历史保存。只有产品所有者明确确认，或已有 Accepted ADR 明确要求实现的未来产品工作，才能进入 Backlog；已经完成或关闭的条目同样不继续占据当前 Backlog。当前开发基线的测试、实机验收和性能测量进入 `VERIFICATION.md`：当前待验证项与已关闭证据必须分开，完成项不能继续表现为待办。开始代码实现对话时创建一个 Task；同一对话中追加的相关功能、修复和配套工作继续写入这个 Task，而不是拆出一串零碎任务。在共享工作树中通常只有一个 Task 处于 `Active`；并行任务需要显式使用独立分支或工作树。孵化期没有活动发布合同；首次发布和后续版本都只在项目所有者明确启动发布准备时分配，详见 [`development/VERSIONING.md`](development/VERSIONING.md)。
 
 ## 真相优先级
 

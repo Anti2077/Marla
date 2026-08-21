@@ -15,9 +15,10 @@ No product release version is currently assigned. Version selection and a fresh 
 Potential incubation directions, subject to separate Tasks and product decisions:
 
 - bounded on-demand context and user-controlled terminology;
-- optional cloud structured OCR with explicit image-upload consent;
 - compatibility and interaction improvements to current entry points;
-- Provider capability and configuration evolution.
+- Provider quality, capability and configuration evolution.
+
+Optional GLM-OCR cloud structure recognition is already implemented under TASK-033 and is therefore not a future roadmap direction. Its only current evidence gap is the owner-operated real-credential path in `RV-005`.
 
 Accepted architectural directions appear in ADRs. Open questions and promotion conditions are in `docs/backlog/IDEAS.md`.
 

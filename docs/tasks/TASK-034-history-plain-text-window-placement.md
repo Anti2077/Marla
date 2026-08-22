@@ -118,7 +118,7 @@ None. “固定横坐标（垂直居中）”作为该模式的用户可见名�
 
 ## Completion record
 
-- Verified commit: Working tree not committed; project owner requested Task closure
+- Verified commits: `b4b0a30` implements TASK-034; `adb56bd` closes the Task and records final verification status
 - Automated evidence: 授权环境 Rust 24 项、Swift 166 项（3 项 Vision 按既有宿主限制跳过）、Xcode Debug、固定 Release 构建、App 验证、结构/脚本/空白/diff 门禁通过；新增 popover 内部点击回归通过；受限沙箱的 3 个既有 hiservices XPC 粘贴板断言失败不属于本 Task 回归
 - Manual evidence: Real light/dark desktop screenshots and five-dimension visual review remain unavailable in the current desktop session and are recorded as a separate evidence gap
 - Documentation updated: Task、STATUS、inline-translation、quick-input 已更新

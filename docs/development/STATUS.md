@@ -8,9 +8,9 @@ Release target: None. A version is assigned only when the project owner explicit
 
 Overall state: In Progress — unversioned product incubation; no active release contract
 
-Active task: [`TASK-035`](../tasks/TASK-035-composable-shortcut-editor.md) — 组合式全局快捷键编辑器与新默认键位
+Active task: None
 
-TASK-035 已按项目所有者反馈完成行内改造：快捷键设置使用 `fn / ⇧ / ⌃ / ⌥ / ⌘` 修饰键切换与 32pt 单主键单元，编辑器直接位于每行操作名称和启用开关之间的留白，不打开 popover、sheet 或额外窗口；同一时间只展开一行。默认键位为划词 `⌃⇧D`、截图 `⌃⇧S`、快速输入 `⌃⇧Space`；完整旧默认配置会迁移，自定义配置保持不变；Fn/Globe 继续复用 Carbon 全局热键路径，不新增持续全局监听或权限。macOS 26 使用折叠 `.regular.interactive()`、展开 `.regular` 和 0.32 秒 matched geometry 将快捷键 chip 融合为固定 332×32pt 编辑条；导致动画消失的双 interactive 回归已撤销。最终折叠、D 展开和 Space 展开均保持 820×592；最新固定 App 深色实机复核确认主键与修饰键共用 20pt 内容高度，外层 capsule 以 4pt 上下内边距形成更宽的连续玻璃边框，主键捕获态仍为居中蓝色 `ellipsis`，应用键仍为 24pt 圆形。无效或注册失败时确认键改为感叹号；即使按钮 disabled，独立 hover 命中层也会以 0 秒延迟同步显示具体原因，同时保留系统 help 与 AX value。最终深色五维复审为 8/8/9/9/8。完整检查与固定签名 App 已通过；Task 保持 Active，等待最终浅色/Reduce Motion 视觉证据和项目所有者实体 Fn/Globe 触发。
+TASK-035 已完成：快捷键设置使用 `fn / ⇧ / ⌃ / ⌥ / ⌘` 修饰键切换与 32pt 单主键单元，编辑器直接位于每行操作名称和启用开关之间的留白，不打开 popover、sheet 或额外窗口；同一时间只展开一行。默认键位为划词 `⌃⇧D`、截图 `⌃⇧S`、快速输入 `⌃⇧Space`；完整旧默认配置会迁移，自定义配置保持不变；Fn/Globe 继续复用 Carbon 全局热键路径，不新增持续全局监听或权限。macOS 26 使用折叠 `.regular.interactive()`、展开 `.regular` 和 0.32 秒 matched geometry 将快捷键 chip 融合为固定 332×32pt 编辑条；Reduce Motion 使用 identity transition 并关闭短状态动画。最终折叠、D 展开和 Space 展开均保持 820×592；主键与修饰键共用 20pt 内容高度，外层 capsule 以 4pt 上下内边距形成连续玻璃边框，主键捕获态为居中 `ellipsis`，应用键为 24pt 圆形。无效或注册失败时确认键显示感叹号，独立 hover 命中层以 0 秒延迟同步显示具体原因。浅色、深色和 Reduce Motion 五维复审均为 8/8/9/9/8；完整检查与固定签名 App 已通过。实体 Fn/Globe 触发仍取决于具体键盘和系统 Globe 设置，不声明为已现场验证。
 
 TASK-034 已由项目所有者于 2026-08-22 要求结束并关闭：最近翻译菜单中的来源和译文摘要改为纯文本；通用设置提供四种翻译窗口位置；记住位置保存面板左上角并在流式高度变化时保持顶部；结果卡动作栏提供可持久化的窄/中/宽宽度预设，popover 子窗口点击不会误触发外部点击隐藏。真实浅色/深色桌面截图五维复审仍记录为未完成证据缺口，不影响本次实现 Task 关闭。
 
@@ -40,7 +40,7 @@ Blocked tasks: None.
 
 ## Current objective
 
-当前目标是收束 TASK-035：行内编辑器、新默认键位、旧默认迁移、Fn 映射、注册回滚、窗口尺寸稳定、macOS 26 Liquid Glass、自动化、固定签名 App、真实 AX 交互和最终深色复审已完成；剩余验收是最终浅色/Reduce Motion 视觉证据与项目所有者实体 Fn/Globe 触发。其它 Ideas、Backlog、撤回的 `0.1.0` 草案和独立证据缺口不自动进入本 Task。
+当前没有 Active implementation Task。下一项产品实现、修复或验证工作仍必须由项目所有者从直接请求、Ideas、Backlog 或证据缺口中明确选择，Agent 不自动从旧 `0.1.0` 草案或 Roadmap 提升工作。
 
 TASK-023 已完成整体代码审查、自动化验证与固定 Release 测试 App 交付：Rust 翻译与模型列表取消从 10ms 轮询改为事件驱动唤醒，SSE 单个未完成帧增加 1 MiB 内存上限，严格 Clippy 与 shell 语法检查纳入统一验证，5 个公开 unsafe FFI 函数补齐安全合同；`artifacts/Marla_dev.app` 已重建并通过稳定签名验证。
 
@@ -74,10 +74,11 @@ TASK-021 已完成：结果卡支持 380–760pt 横向调整，流式译文在�
 - Paper Lantern is the selected Marla brand mark and product metaphor: “a little light beside the reader.” The canonical SVG and reference PNG exports live under `Resources/Brand/PaperLantern/`; the 10-slot macOS AppIcon catalog is compiled into Debug and Release builds. The menu-bar identity item uses a separate 18pt monochrome Paper Lantern template; the MenuBarExtra panel header uses a 33.6pt full-color rendition while its text group has a 14pt upward optical correction that makes the approximately 24pt top inset 1.5 times the 16pt leading inset; selection/screenshot result-card headers use a 24pt full-color identity mark and 17pt title. Quick Input and all functional controls continue to use SF Symbols.
 - Quick Input preserves complete semantic Markdown through the Provider and session. Awaiting remains raw; from the first non-empty streaming delta, Markdown uses the same native heading/list/quote/code/link/table projection and TextKit height semantics as completion. Copy and request-changing actions retain the canonical string, while plain-text sessions and failed partial output remain unrendered. The reopened TASK-028 slice and its latest UI refinement are fixed-App verified and project-owner accepted.
 
-Latest integrated implementation baseline: TASK-032 unversioned incubation plus TASK-033 GLM-OCR; the exact commit and merge identifiers are recorded by Git history.
+Latest integrated implementation baseline: TASK-035 composable global shortcuts on the unversioned incubation baseline; exact implementation and merge identifiers are recorded by Git history.
 
 ## Development evidence gaps
 
+- TASK-035 已验证 Fn/Globe 的 AppKit flag、Carbon mask、显示、校验和回滚路径；实体 Fn + 主键能否从其它应用触发仍依赖具体键盘固件与 macOS Globe 键设置，因此不声明为通用现场通过。
 - Real Japanese, Korean, Chinese, and English screenshot OCR plus source-language routing do not yet have final fixed development-App verification after the TASK-022 Vision repair.
 - `docs/versions/0.1.0/ACCEPTANCE.md` 已随未发布草案撤回；其中未勾选项保留历史语境，但不是当前孵化期阻塞。
 - TASK-033 的 mock Provider、固定 Release UI 与错误/回退路径已经验证；真实 GLM-OCR 成功调用作为 `RV-005` 保留，需项目所有者在 SecureField 中自行输入 Key 后完成，Agent 不读取、输入、输出或记录该凭据。
@@ -98,6 +99,8 @@ The next implementation or verification Task must be selected explicitly by the 
 - TASK-022 的 Swift/Rust 语言合同与 Vision 修复已实现：七门语言的归一/路由、设置持久化、通用提示词、Qwen-MT 映射、未适配代码拒绝和 Vision 配置均有回归测试。最新固定开发 App 已重建并签名通过；当前 xctest 图形服务无法创建 Vision CVPixelBuffer（OSStatus -6662），沙盒外探针已证明自动检测下日/韩/中/英样本有结果；现场固定 App 截图 OCR、长标签和完整窗口验收保留为独立证据缺口，不阻止其它孵化 Task。
 
 ## Latest verification
+
+- TASK-035（已关闭）：最终 `./scripts/check.sh` 通过 24 项 Rust、全部 Swift、Swift Package、Xcode Debug、结构、格式、脚本、空白与 diff 门禁；`./scripts/build-test-app.sh` 重建并验证固定 Release `artifacts/Marla_dev.app` 为 `com.marla.app`、`0.0.0`、macOS 14.0、arm64 和稳定签名。真实固定 App 验证单窗口行内编辑、三行互斥、取消/提交/恢复默认、错误 AX 语义、0 秒原因提示和焦点恢复；折叠、D 展开与 Space 展开均为 820×592。浅色、深色和 Reduce Motion 五维复审均为 8/8/9/9/8；正常模式保留 0.32 秒 matched-geometry 融合，Reduce Motion 使用 identity transition 且无短状态动画。实现提交为 `02484d8`。
 
 - TASK-034（已关闭）：最近翻译菜单纯文本摘要、四种窗口位置、顶部坐标记忆、窄/中/宽宽度预设，以及 popover 子窗口点击不误隐藏均已实现。授权环境下 `./scripts/check.sh` 全绿：Rust 24 项、Swift 166 项（3 项 Vision 按既有宿主限制跳过）、Xcode Debug、结构/脚本/空白/diff 门禁通过；`./scripts/build-test-app.sh` 已重建并验证固定 Release `artifacts/Marla_dev.app`（`0.0.0`、arm64、稳定签名）。真实浅色/深色设置与四种位置截图五维复审仍是已记录的独立证据缺口。
 

@@ -1,6 +1,6 @@
 # TASK-035：组合式全局快捷键编辑器与新默认键位
 
-Status: Active
+Status: Done
 
 Owner: Project owner + Agent
 
@@ -100,15 +100,15 @@ Conversation: 2026-08-22，Fn/Globe 与组合式快捷键编辑器
 - [x] macOS 26 折叠 chip 不出现 bordered 与 glass 的双层轮廓；展开条首尾控件完整内收于外层 capsule，四角连续且没有裁切、突起或半径冲突。
 - [x] 从默认高度展开或收起任一快捷键编辑器时，设置窗口 frame 高度保持不变；编辑条固定在 32pt 轨道内且玻璃效果不被纵向裁切。
 - [x] macOS 26 的自定义主键与修饰键单元同宽；`D`、`S` 与 `Space` 都不截断，并保持清晰的主键捕获状态。
-- [ ] 最终边角构建在 Reduce Motion 下不产生位移动效，并补齐浅色与 Reduce Motion 最终截图复审。
+- [x] 最终边角构建在 Reduce Motion 下不产生位移动效，并补齐浅色与 Reduce Motion 最终截图复审。
 - [x] 折叠 chip 的 interactive glass 与展开条的 regular glass 通过 0.32 秒 matched-geometry 连续融合；不得再次统一为会使真实点击转场消失的双 interactive 材质。
-- [ ] 收起后焦点仅在 morph 完成后回到同一触发器；直接切换编辑行时旧行不抢焦点。
-- [ ] 修饰键、捕获态与警告状态的短过渡遵循 Reduce Motion；警告完整保留在固定确认键内，不改变编辑条尺寸。
+- [x] 收起后焦点仅在 morph 完成后回到同一触发器；直接切换编辑行时旧行不抢焦点。
+- [x] 修饰键、捕获态与警告状态的短过渡遵循 Reduce Motion；警告完整保留在固定确认键内，不改变编辑条尺寸。
 - [x] 主键捕获态在 32pt 宽、20pt 高单元内不压缩或截断文案，以居中符号和描边明确表达等待输入；确认键为 24pt，外层 capsule 使用 4pt 上下内边距且总轨道仍为 32pt。
 - [x] 确认键正常时显示勾，仅在安全校验或注册失败时显示感叹号；鼠标进入感叹号后以 0 秒延迟立即显示具体原因，同时保留 disabled 状态、系统 help 与可读 AX value。
 - [x] 新增聚焦自动化测试通过，新增代码未使任何源文件超过结构门禁。
 - [x] `./scripts/check.sh`、固定 Release App 构建和 `git diff --check` 通过。
-- [ ] 最终边角构建的浅色、深色和 Reduce Motion 真实设置页截图完成五维复审且每维至少 7/10；当前仅最终深色已完成 8/8/9/9/8。
+- [x] 最终边角构建的浅色、深色和 Reduce Motion 真实设置页截图完成五维复审且每维至少 7/10；三种状态均为 8/8/9/9/8。
 - [x] 相关功能规格和 `STATUS.md` 已同步为已验证事实。
 
 ## Verification
@@ -122,7 +122,7 @@ git diff --check
 
 ### Manual
 
-最新固定 App 已验证：编辑器位于设置卡片内部且 AX 只有一个标准窗口；三行互斥编辑；modifier 与单主键捕获；取消、Escape 与提交语义；提交后恢复默认；唯一动作标签和值。macOS 26 使用折叠 interactive/展开 regular glass 与 0.32 秒 matched geometry；导致动画消失的双 interactive 回归已撤销。最终折叠、`D` 展开和 `Space` 展开状态均保持 820×592；最新真实展开态进一步验证 32pt 宽、20pt 高主键单元、4pt 外框内边距、居中 `ellipsis` 和 24pt 应用键不改变轨道或窗口几何。仅 Shift 状态的 disabled 感叹号已在 AX 中确认携带完整原因；最新固定 App 改为无 sleep、无转场动画的同步 `onHover` 原因提示。最终深色五维复审为 8/8/9/9/8。最终浅色与 Reduce Motion 截图仍需补齐。使用当前 Mac 实体键盘配置一个未被系统占用的 Fn + 字母组合并从其他应用真实触发仍需项目所有者现场完成；记录 Globe 系统设置与触发结论，不记录用户内容、凭据或键盘硬件标识。
+最新固定 App 已验证：编辑器位于设置卡片内部且 AX 只有一个标准窗口；三行互斥编辑；modifier 与单主键捕获；取消、Escape 与提交语义；提交后恢复默认；唯一动作标签和值。macOS 26 使用折叠 interactive/展开 regular glass 与 0.32 秒 matched geometry；导致动画消失的双 interactive 回归已撤销。最终折叠、`D` 展开和 `Space` 展开状态均保持 820×592；最新真实展开态进一步验证 32pt 宽、20pt 高主键单元、4pt 外框内边距、居中 `ellipsis` 和 24pt 应用键不改变轨道或窗口几何。仅 Shift 状态的 disabled 感叹号已在 AX 中确认携带完整原因；最新固定 App 改为无 sleep、无转场动画的同步 `onHover` 原因提示。浅色、深色和 Reduce Motion 最终状态均完成五维复审并得到 8/8/9/9/8；Reduce Motion 使用 identity glass transition 且关闭修饰键、捕获态与警告的短动画。真实键盘交互进一步确认直接切换编辑行不会让旧行抢回焦点，收起后同一触发器恢复键盘焦点。使用当前 Mac 实体键盘配置一个未被系统占用的 Fn + 字母组合并从其他应用真实触发仍需项目所有者按其键盘/Globe 设置现场验证；此设备相关边界不伪写为已通过，也不阻塞已完成的实现范围。
 
 ## Required Reading
 
@@ -164,10 +164,10 @@ None. 项目所有者已确认组合式编辑器和新默认键位；Fn 只作�
 
 当前收束记录：
 
-- Verified commit: Pending；当前分支尚未提交或推送。
-- Automated evidence: 行内改造后 shortcut-focused 6 项测试、`./scripts/check.sh`、`./scripts/build-test-app.sh` 与 `git diff --check` 通过。
-- Manual evidence: 最新固定 App 已验证单窗口行内编辑、三行互斥、Fn/modifier、单主键、取消、Escape、提交、恢复默认与 AX 标签；折叠、`D` 展开、`Space` 展开均为 820×592。macOS 26 动画恢复为折叠 interactive/展开 regular glass 和 0.32 秒 matched geometry；最新真实展开态确认主键与修饰键同为 20pt 内容高度，外框增加 4pt 上下留白，24pt 应用键仍完整内收，五维评分仍为 8/8/9/9/8。最终浅色、Reduce Motion 和实体 Fn 触发仍待验证。
+- Verified commit: `02484d8`（`feat: add composable global shortcut editor`）；未推送远端。
+- Automated evidence: 行内改造后 shortcut-focused 6 项测试通过；最终 `./scripts/check.sh` 通过 24 项 Rust、全部 Swift、Swift Package、Xcode Debug、结构、格式、脚本、空白与 diff 门禁；`./scripts/build-test-app.sh` 与独立 `git diff --check` 通过。
+- Manual evidence: 最新固定 App 已验证单窗口行内编辑、三行互斥、Fn/modifier、单主键、取消、Escape、提交、恢复默认与 AX 标签；折叠、`D` 展开、`Space` 展开均为 820×592。macOS 26 动画恢复为折叠 interactive/展开 regular glass 和 0.32 秒 matched geometry；最终浅色、深色和 Reduce Motion 均完成 8/8/9/9/8 五维复审。Reduce Motion 没有位移或短状态动画；直接切换行不让旧行抢焦点，收起后同一触发器恢复键盘焦点。
 - Documentation updated: architecture、inline translation、screenshot translation、quick input、`STATUS.md` 与本 Task。
-- Remaining work promoted to: Task 保持 Active，等待项目所有者实体 Fn/Globe 触发。
+- Remaining work promoted to: 无实现遗留；实体 Fn/Globe 触发保留为依赖具体键盘和系统 Globe 设置的现场验证边界。
 - Scope changes closed: Control+Shift 新默认、专用 Task/分支和同行编辑范围均已实现。
 - Parallel contributions integrated: None

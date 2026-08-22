@@ -10,7 +10,9 @@ Translate selected content in a nearby anchored card without unnecessarily activ
 
 ## Trigger
 
-- Configurable keyboard shortcut.
+- Configurable global keyboard shortcut; the default is `⌃⇧D`.
+- Settings edits the shortcut as independently selected `fn / ⇧ / ⌃ / ⌥ / ⌘` modifiers plus one captured primary key. A candidate is committed only after validation and Carbon registration succeed; cancellation or failure keeps the previous binding.
+- Fn/Globe is supported only as a modifier with a primary key. Marla does not treat an Fn tap as a translation trigger or install a persistent event tap.
 
 ## Flow
 

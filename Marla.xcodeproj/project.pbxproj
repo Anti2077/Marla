@@ -62,6 +62,8 @@
 		A10000000000000000000039 /* Settings/TranslationWindowPlacement.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000039 /* TranslationWindowPlacement.swift */; };
 		A10000000000000000000040 /* Settings/TranslationWindowWidthPreset.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000040 /* TranslationWindowWidthPreset.swift */; };
 		A10000000000000000000041 /* Panel/FloatingPanelEventRouting.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000041 /* FloatingPanelEventRouting.swift */; };
+		A10000000000000000000042 /* Shortcuts/ShortcutModifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000042 /* ShortcutModifier.swift */; };
+		A10000000000000000000043 /* Settings/ShortcutEditor.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000043 /* ShortcutEditor.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -132,6 +134,8 @@
 		A20000000000000000000039 /* TranslationWindowPlacement.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TranslationWindowPlacement.swift; sourceTree = "<group>"; };
 		A20000000000000000000040 /* TranslationWindowWidthPreset.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TranslationWindowWidthPreset.swift; sourceTree = "<group>"; };
 		A20000000000000000000041 /* FloatingPanelEventRouting.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FloatingPanelEventRouting.swift; sourceTree = "<group>"; };
+		A20000000000000000000042 /* ShortcutModifier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShortcutModifier.swift; sourceTree = "<group>"; };
+		A20000000000000000000043 /* ShortcutEditor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShortcutEditor.swift; sourceTree = "<group>"; };
 		A2000000000000000000000F /* libMarlaCore.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = libMarlaCore.a; sourceTree = BUILT_PRODUCTS_DIR; };
 		A20000000000000000000010 /* Marla.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Marla.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
@@ -199,10 +203,10 @@
 		A70000000000000000000008 /* App */ = {isa = PBXGroup; children = (A20000000000000000000015 /* MarlaApplicationModel.swift */, A20000000000000000000034 /* ScreenshotTranslation.swift */, A20000000000000000000022 /* ResultPanelLayout.swift */, A2000000000000000000002B /* MarkdownResultUIAutomation.swift */, A20000000000000000000031 /* AcceptancePerformanceRecorder.swift */); path = App; sourceTree = "<group>"; };
 		A70000000000000000000009 /* Models */ = {isa = PBXGroup; children = (A20000000000000000000016 /* TranslationAPIProfile.swift */); path = Models; sourceTree = "<group>"; };
 		A7000000000000000000000A /* Persistence */ = {isa = PBXGroup; children = (A20000000000000000000017 /* KeychainCredentialStore.swift */, A20000000000000000000018 /* MarlaSettingsStore.swift */, A20000000000000000000035 /* OCRSettings.swift */); path = Persistence; sourceTree = "<group>"; };
-		A7000000000000000000000B /* Settings */ = {isa = PBXGroup; children = (A20000000000000000000019 /* SettingsWindow.swift */, A20000000000000000000026 /* SettingsShared.swift */, A20000000000000000000027 /* SettingsEditor.swift */, A20000000000000000000028 /* SettingsSupport.swift */, A20000000000000000000038 /* OCRSettingsSection.swift */, A20000000000000000000039 /* TranslationWindowPlacement.swift */, A20000000000000000000040 /* TranslationWindowWidthPreset.swift */); path = Settings; sourceTree = "<group>"; };
+		A7000000000000000000000B /* Settings */ = {isa = PBXGroup; children = (A20000000000000000000019 /* SettingsWindow.swift */, A20000000000000000000026 /* SettingsShared.swift */, A20000000000000000000027 /* SettingsEditor.swift */, A20000000000000000000028 /* SettingsSupport.swift */, A20000000000000000000043 /* ShortcutEditor.swift */, A20000000000000000000038 /* OCRSettingsSection.swift */, A20000000000000000000039 /* TranslationWindowPlacement.swift */, A20000000000000000000040 /* TranslationWindowWidthPreset.swift */); path = Settings; sourceTree = "<group>"; };
 		A7000000000000000000000C /* Sessions */ = {isa = PBXGroup; children = (A2000000000000000000001A /* TranslationSessionStore.swift */, A20000000000000000000024 /* QuickInputView.swift */, A2000000000000000000002D /* QuickInputMarkdownEditor.swift */); path = Sessions; sourceTree = "<group>"; };
 		A7000000000000000000000D /* Panel */ = {isa = PBXGroup; children = (A2000000000000000000001B /* FloatingPanel.swift */, A20000000000000000000041 /* FloatingPanelEventRouting.swift */, A20000000000000000000023 /* TranslationCardView.swift */, A2000000000000000000002A /* MarkdownResultText.swift */, A2000000000000000000002E /* MarkdownResultSelectableText.swift */, A2000000000000000000002F /* StreamingMarkdownProjection.swift */); path = Panel; sourceTree = "<group>"; };
-		A7000000000000000000000E /* Shortcuts */ = {isa = PBXGroup; children = (A2000000000000000000001C /* GlobalShortcuts.swift */); path = Shortcuts; sourceTree = "<group>"; };
+		A7000000000000000000000E /* Shortcuts */ = {isa = PBXGroup; children = (A2000000000000000000001C /* GlobalShortcuts.swift */, A20000000000000000000042 /* ShortcutModifier.swift */); path = Shortcuts; sourceTree = "<group>"; };
 		A7000000000000000000000F /* Screenshot */ = {isa = PBXGroup; children = (A2000000000000000000001D /* ScreenshotCapture.swift */, A2000000000000000000001E /* ScreenshotSelection.swift */); path = Screenshot; sourceTree = "<group>"; };
 		A70000000000000000000010 /* OCR */ = {isa = PBXGroup; children = (A2000000000000000000001F /* VisionOCR.swift */, A20000000000000000000036 /* CloudOCRImageEncoder.swift */, A20000000000000000000037 /* GLMOCRService.swift */); path = OCR; sourceTree = "<group>"; };
 		A70000000000000000000011 /* Selection */ = {isa = PBXGroup; children = (A20000000000000000000020 /* AccessibilitySelectionReader.swift */, A20000000000000000000021 /* ClipboardSelectionFallback.swift */, A20000000000000000000025 /* AccessibilitySelectionModels.swift */); path = Selection; sourceTree = "<group>"; };
@@ -386,6 +390,7 @@
 				A1000000000000000000002E /* Panel/MarkdownResultSelectableText.swift in Sources */,
 				A1000000000000000000002F /* Panel/StreamingMarkdownProjection.swift in Sources */,
 				A1000000000000000000001C /* Shortcuts/GlobalShortcuts.swift in Sources */,
+				A10000000000000000000042 /* Shortcuts/ShortcutModifier.swift in Sources */,
 				A1000000000000000000001D /* Screenshot/ScreenshotCapture.swift in Sources */,
 				A1000000000000000000001E /* Screenshot/ScreenshotSelection.swift in Sources */,
 				A1000000000000000000001F /* OCR/VisionOCR.swift in Sources */,
@@ -397,6 +402,7 @@
 				A10000000000000000000026 /* Settings/SettingsShared.swift in Sources */,
 				A10000000000000000000027 /* Settings/SettingsEditor.swift in Sources */,
 				A10000000000000000000028 /* Settings/SettingsSupport.swift in Sources */,
+				A10000000000000000000043 /* Settings/ShortcutEditor.swift in Sources */,
 				A10000000000000000000038 /* Settings/OCRSettingsSection.swift in Sources */,
 				A10000000000000000000039 /* Settings/TranslationWindowPlacement.swift in Sources */,
 				A10000000000000000000040 /* Settings/TranslationWindowWidthPreset.swift in Sources */,

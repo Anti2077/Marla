@@ -46,7 +46,7 @@ The bridge is in-process. Marla does not start a localhost backend or a separate
 
 ### Trigger providers
 
-The default global shortcuts are `⌃⌥D` for selection, `⌃⌥S` for screenshot, and `⌃⌥Space` for quick input. All are configurable. Selection translation has no pressure-event or source-covering experimental path.
+The default global shortcuts are `⌃⇧D` for selection, `⌃⇧S` for screenshot, and `⌃⇧Space` for quick input. All are configurable. Selection translation has no pressure-event or source-covering experimental path.
 
 ### Selection reader
 

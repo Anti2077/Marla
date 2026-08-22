@@ -47,68 +47,92 @@ struct ShortcutBinding: Codable, Equatable, Sendable {
     var modifiers: UInt
 
     var displayName: String {
-        var result = ""
-        if modifiers & NSEvent.ModifierFlags.control.rawValue != 0 { result += "⌃" }
-        if modifiers & NSEvent.ModifierFlags.option.rawValue != 0 { result += "⌥" }
-        if modifiers & NSEvent.ModifierFlags.shift.rawValue != 0 { result += "⇧" }
-        if modifiers & NSEvent.ModifierFlags.command.rawValue != 0 { result += "⌘" }
-        switch keyCode {
-        case 49: result += "Space"
-        case 36: result += "Return"
-        case 48: result += "Tab"
-        case 51: result += "Delete"
-        case 2: result += "D"
-        case 1: result += "S"
-        case 0: result += "A"
-        case 3: result += "F"
-        case 4: result += "H"
-        case 5: result += "G"
-        case 6: result += "Z"
-        case 7: result += "X"
-        case 8: result += "C"
-        case 9: result += "V"
-        case 11: result += "B"
-        case 12: result += "Q"
-        case 13: result += "W"
-        case 14: result += "E"
-        case 15: result += "R"
-        case 16: result += "Y"
-        case 17: result += "T"
-        case 31: result += "O"
-        case 32: result += "U"
-        case 34: result += "I"
-        case 35: result += "P"
-        case 37: result += "L"
-        case 38: result += "J"
-        case 40: result += "K"
-        case 45: result += "N"
-        case 46: result += "M"
-        default: result += "Key \(keyCode)"
-        }
-        return result
+        let prefix = ShortcutModifier.displayOrder
+            .filter(contains)
+            .map(\.symbol)
+            .joined()
+        return prefix + Self.keyDisplayName(for: keyCode)
     }
 
-    var hasCommandModifier: Bool {
-        let supported = NSEvent.ModifierFlags.command.rawValue
-            | NSEvent.ModifierFlags.control.rawValue
-            | NSEvent.ModifierFlags.option.rawValue
-            | NSEvent.ModifierFlags.shift.rawValue
-        return modifiers & supported != 0
+    var hasSafeGlobalModifier: Bool {
+        ShortcutModifier.allCases.contains { $0.isSafePrimaryModifier && contains($0) }
+    }
+
+    var normalized: ShortcutBinding {
+        let supportedMask = ShortcutModifier.allCases.reduce(into: UInt(0)) { result, modifier in
+            result |= modifier.eventFlag.rawValue
+        }
+        return ShortcutBinding(keyCode: keyCode, modifiers: modifiers & supportedMask)
     }
 
     var carbonModifiers: UInt32 {
-        var value: UInt32 = 0
-        if modifiers & NSEvent.ModifierFlags.command.rawValue != 0 { value |= UInt32(cmdKey) }
-        if modifiers & NSEvent.ModifierFlags.control.rawValue != 0 { value |= UInt32(controlKey) }
-        if modifiers & NSEvent.ModifierFlags.option.rawValue != 0 { value |= UInt32(optionKey) }
-        if modifiers & NSEvent.ModifierFlags.shift.rawValue != 0 { value |= UInt32(shiftKey) }
-        return value
+        ShortcutModifier.allCases.reduce(into: UInt32(0)) { result, modifier in
+            if contains(modifier) {
+                result |= modifier.carbonMask
+            }
+        }
+    }
+
+    func contains(_ modifier: ShortcutModifier) -> Bool {
+        modifiers & modifier.eventFlag.rawValue != 0
+    }
+
+    func setting(_ modifier: ShortcutModifier, enabled: Bool) -> ShortcutBinding {
+        var updated = self
+        if enabled {
+            updated.modifiers |= modifier.eventFlag.rawValue
+        } else {
+            updated.modifiers &= ~modifier.eventFlag.rawValue
+        }
+        return updated
+    }
+
+    static func keyDisplayName(for keyCode: UInt16) -> String {
+        switch keyCode {
+        case 49: "Space"
+        case 36: "Return"
+        case 48: "Tab"
+        case 51: "Delete"
+        case 2: "D"
+        case 1: "S"
+        case 0: "A"
+        case 3: "F"
+        case 4: "H"
+        case 5: "G"
+        case 6: "Z"
+        case 7: "X"
+        case 8: "C"
+        case 9: "V"
+        case 11: "B"
+        case 12: "Q"
+        case 13: "W"
+        case 14: "E"
+        case 15: "R"
+        case 16: "Y"
+        case 17: "T"
+        case 31: "O"
+        case 32: "U"
+        case 34: "I"
+        case 35: "P"
+        case 37: "L"
+        case 38: "J"
+        case 40: "K"
+        case 45: "N"
+        case 46: "M"
+        default: "Key \(keyCode)"
+        }
     }
 
     static let defaults: [GlobalShortcutAction: ShortcutBinding] = [
+        .selection: ShortcutBinding(keyCode: 2, modifiers: NSEvent.ModifierFlags.control.rawValue | NSEvent.ModifierFlags.shift.rawValue),
+        .screenshot: ShortcutBinding(keyCode: 1, modifiers: NSEvent.ModifierFlags.control.rawValue | NSEvent.ModifierFlags.shift.rawValue),
+        .quickInput: ShortcutBinding(keyCode: 49, modifiers: NSEvent.ModifierFlags.control.rawValue | NSEvent.ModifierFlags.shift.rawValue),
+    ]
+
+    static let legacyDefaults: [GlobalShortcutAction: ShortcutBinding] = [
         .selection: ShortcutBinding(keyCode: 2, modifiers: NSEvent.ModifierFlags.control.rawValue | NSEvent.ModifierFlags.option.rawValue),
         .screenshot: ShortcutBinding(keyCode: 1, modifiers: NSEvent.ModifierFlags.control.rawValue | NSEvent.ModifierFlags.option.rawValue),
-        .quickInput: ShortcutBinding(keyCode: 49, modifiers: NSEvent.ModifierFlags.control.rawValue | NSEvent.ModifierFlags.option.rawValue)
+        .quickInput: ShortcutBinding(keyCode: 49, modifiers: NSEvent.ModifierFlags.control.rawValue | NSEvent.ModifierFlags.option.rawValue),
     ]
 
     static func conflictingAction(
@@ -116,7 +140,11 @@ struct ShortcutBinding: Codable, Equatable, Sendable {
         candidate: ShortcutBinding,
         excluding action: GlobalShortcutAction
     ) -> GlobalShortcutAction? {
-        bindings.first(where: { $0.key != action && $0.value == candidate })?.key
+        bindings.first(where: {
+            $0.key != action
+                && $0.value.keyCode == candidate.keyCode
+                && $0.value.carbonModifiers == candidate.carbonModifiers
+        })?.key
     }
 }
 
@@ -127,7 +155,8 @@ protocol GlobalShortcutManaging: AnyObject {
     var conflictMessage: String? { get }
     func isEnabled(_ action: GlobalShortcutAction) -> Bool
     func setEnabled(_ enabled: Bool, for action: GlobalShortcutAction)
-    func set(_ binding: ShortcutBinding, for action: GlobalShortcutAction)
+    @discardableResult
+    func set(_ binding: ShortcutBinding, for action: GlobalShortcutAction) -> Bool
     func restoreDefaults()
     func conflict(for binding: ShortcutBinding, excluding action: GlobalShortcutAction) -> GlobalShortcutAction?
 }
@@ -227,14 +256,16 @@ final class GlobalShortcutManager: ObservableObject, GlobalShortcutManaging {
         save()
     }
 
-    func set(_ binding: ShortcutBinding, for action: GlobalShortcutAction) {
-        guard binding.hasCommandModifier else {
-            conflictMessage = "快捷键至少需要包含 ⌘、⌃、⌥ 或 ⇧ 中的一个修饰键。"
-            return
+    @discardableResult
+    func set(_ binding: ShortcutBinding, for action: GlobalShortcutAction) -> Bool {
+        let binding = binding.normalized
+        guard binding.hasSafeGlobalModifier else {
+            conflictMessage = "快捷键至少需要包含 fn、⌘、⌃ 或 ⌥ 中的一个；⇧ 不能单独作为全局修饰键。"
+            return false
         }
         if let conflict = conflict(for: binding, excluding: action) {
             conflictMessage = "\(binding.displayName) 已用于\(conflict.title)，请使用其他组合键。"
-            return
+            return false
         }
         let previous = bindings
         var candidate = bindings
@@ -242,11 +273,12 @@ final class GlobalShortcutManager: ObservableObject, GlobalShortcutManaging {
         if let unavailable = register(candidate, enabledActions: enabledActions) {
             _ = register(previous, enabledActions: enabledActions)
             conflictMessage = "\(unavailable.title)的 \(binding.displayName) 已被占用，请使用其他组合键。"
-            return
+            return false
         }
         bindings = candidate
         conflictMessage = nil
         save()
+        return true
     }
 
     func restoreDefaults() {
@@ -307,13 +339,22 @@ final class GlobalShortcutManager: ObservableObject, GlobalShortcutManaging {
     }
 
     private func load() {
+        var migratedLegacyDefaults = false
         if let data = defaults.data(forKey: "shortcutBindings"),
            let decoded = try? JSONDecoder().decode([GlobalShortcutAction: ShortcutBinding].self, from: data) {
-            bindings = decoded
+            if decoded == ShortcutBinding.legacyDefaults {
+                bindings = ShortcutBinding.defaults
+                migratedLegacyDefaults = true
+            } else {
+                bindings = decoded
+            }
         }
         if let data = defaults.data(forKey: "shortcutEnabledActions.v1"),
            let decoded = try? JSONDecoder().decode(Set<GlobalShortcutAction>.self, from: data) {
             enabledActions = decoded
+        }
+        if migratedLegacyDefaults {
+            save()
         }
     }
 
@@ -327,4 +368,3 @@ final class GlobalShortcutManager: ObservableObject, GlobalShortcutManaging {
     }
 
 }
-

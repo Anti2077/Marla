@@ -51,6 +51,7 @@ struct SettingsView: View {
     @State private var editorPresentation: APIProfileEditorPresentation?
     @State private var pendingNewProfileID: UUID?
     @State private var draggingProfileID: UUID?
+    @State private var editingShortcutAction: GlobalShortcutAction?
 
     var body: some View {
         HStack(spacing: 0) {
@@ -69,6 +70,10 @@ struct SettingsView: View {
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         }
         .frame(minWidth: 820, minHeight: 560)
+        .environment(
+            \.marlaReduceMotionOverride,
+            ProcessInfo.processInfo.environment["MARLA_UI_TEST_REDUCE_MOTION"] == "1"
+        )
         .marlaGlassSurface(cornerRadius: DesignTokens.radiusL)
         .ignoresSafeArea(.container, edges: .top)
         .onAppear {
@@ -87,6 +92,11 @@ struct SettingsView: View {
         }
         .onChange(of: settings.settingsNavigationDestination) { _, _ in
             applyPendingNavigation()
+        }
+        .onChange(of: selectedPage) { _, page in
+            if page != .shortcuts {
+                editingShortcutAction = nil
+            }
         }
         .sheet(item: $editorPresentation, onDismiss: discardAbandonedNewProfile) { presentation in
             if let profile = settings.profile(id: presentation.profileID) {
@@ -333,12 +343,10 @@ struct SettingsView: View {
         ) {
             SettingsSection(title: "全局入口", systemImage: "command") {
                 ForEach(GlobalShortcutAction.allCases, id: \.self) { action in
-                    ShortcutRecorderRow(
+                    ShortcutEditorRow(
                         action: action,
-                        binding: appModel.shortcutManager.bindings[action] ?? .defaults[action]!,
-                        isEnabled: appModel.shortcutManager.isEnabled(action),
-                        onEnabledChange: { appModel.shortcutManager.setEnabled($0, for: action) },
-                        onChange: { appModel.shortcutManager.set($0, for: action) }
+                        shortcuts: appModel.shortcutManager,
+                        editingAction: $editingShortcutAction
                     )
                 }
                 HStack(spacing: DesignTokens.spaceM) {
@@ -365,7 +373,10 @@ struct SettingsView: View {
                         .font(AppFont.caption)
                         .foregroundStyle(DesignTokens.secondaryText)
                     Spacer()
-                    Button("恢复默认") { appModel.shortcutManager.restoreDefaults() }
+                    Button("恢复默认") {
+                        editingShortcutAction = nil
+                        appModel.shortcutManager.restoreDefaults()
+                    }
                         .buttonStyle(.borderless)
                 }
                 if let conflictMessage = appModel.shortcutManager.conflictMessage {

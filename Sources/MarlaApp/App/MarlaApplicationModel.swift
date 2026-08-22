@@ -548,7 +548,7 @@ final class MarlaApplicationModel: ObservableObject {
             }
         case "selection-live":
             // Unlike the one-shot audit, live mode waits for the real
-            // ⌃⌥D shortcut so the owner can select text after launch.
+            // ⌃⇧D shortcut so the owner can select text after launch.
             break
         case "translation-live":
             sessionStore.startText(
@@ -730,7 +730,7 @@ final class MarlaApplicationModel: ObservableObject {
         case .accessibilityPermissionRequired: "请先授予辅助功能权限。"
         case .focusedElementUnavailable: "无法读取当前聚焦的界面元素。"
         case .selectedTextUnavailable: "当前应用没有提供可读取的选中文本。"
-        case .emptySelection: "当前没有选中文字。试试 ⌃⌥Space 快速输入。"
+        case .emptySelection: "当前没有选中文字。试试 ⌃⇧Space 快速输入。"
         case .selectionSearchLimitReached: "当前应用的选区结构过于复杂，读取已安全停止。"
         case .selectionSearchTimedOut: "当前应用响应选区读取超时，请重试或使用快速输入。"
         case .selectionCancelled: "已取消本次受保护取词。"

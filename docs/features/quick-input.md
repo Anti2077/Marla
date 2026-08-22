@@ -33,7 +33,7 @@ The complete Markdown string remains the canonical session content behind that p
 
 Whenever “View Source” is expanded, canonical `semanticMarkdown` source renders through the same safe native Markdown/TextKit read-only projection when parsing succeeds, including headings, emphasis, lists, blockquotes, inline and fenced code, links, and GFM tables. The source is static canonical input rather than a stream: the same projection is available while translation is streaming or complete. The source viewport is capped at 110pt and owns exactly one native vertical scroller for overflow. Parse failure, `plainText`, and Vision OCR source remain plain text. The projection never changes canonical `sourceContent`; retry, source/target language changes, API-profile switching, and recent-result restoration continue to use canonical source rather than rendered text.
 
-The default shortcut is `⌃⌥Space`. `⌘Return` submits and `Escape` closes. Empty input is rejected without starting a request.
+The default shortcut is `⌃⇧Space`. Settings composes it from independently selected `fn / ⇧ / ⌃ / ⌥ / ⌘` modifiers and one captured primary key; cancellation or failed Carbon registration keeps the previous binding. Fn/Globe is never a standalone trigger and does not add a persistent event tap. `⌘Return` submits and `Escape` closes. Empty input is rejected without starting a request.
 
 ## Acceptance criteria
 

@@ -1,4 +1,5 @@
 import AppKit
+import Carbon
 import CoreText
 import MarlaCore
 import SwiftUI
@@ -85,9 +86,9 @@ private final class FakeKeychainItems {
 final class MarlaAppTests: XCTestCase {
     func testDefaultShortcutBindingsAndInternalConflictDetection() {
         let defaults = ShortcutBinding.defaults
-        XCTAssertEqual(defaults[.selection]?.displayName, "⌃⌥D")
-        XCTAssertEqual(defaults[.screenshot]?.displayName, "⌃⌥S")
-        XCTAssertEqual(defaults[.quickInput]?.displayName, "⌃⌥Space")
+        XCTAssertEqual(defaults[.selection]?.displayName, "⌃⇧D")
+        XCTAssertEqual(defaults[.screenshot]?.displayName, "⌃⇧S")
+        XCTAssertEqual(defaults[.quickInput]?.displayName, "⌃⇧Space")
 
         let conflict = ShortcutBinding.conflictingAction(
             in: defaults,
@@ -95,6 +96,113 @@ final class MarlaAppTests: XCTestCase {
             excluding: .screenshot
         )
         XCTAssertEqual(conflict, .selection)
+
+        let noisyCandidate = ShortcutBinding(
+            keyCode: defaults[.selection]!.keyCode,
+            modifiers: defaults[.selection]!.modifiers | NSEvent.ModifierFlags.numericPad.rawValue
+        )
+        XCTAssertEqual(
+            ShortcutBinding.conflictingAction(
+                in: defaults,
+                candidate: noisyCandidate,
+                excluding: .screenshot
+            ),
+            .selection
+        )
+    }
+
+    func testShortcutModifierEditingFnDisplayAndCarbonMapping() {
+        let base = ShortcutBinding(keyCode: 2, modifiers: 0)
+        let functionShift = base
+            .setting(.function, enabled: true)
+            .setting(.shift, enabled: true)
+
+        XCTAssertEqual(functionShift.displayName, "fn⇧D")
+        XCTAssertTrue(functionShift.contains(.function))
+        XCTAssertTrue(functionShift.contains(.shift))
+        XCTAssertTrue(functionShift.hasSafeGlobalModifier)
+        XCTAssertEqual(
+            functionShift.carbonModifiers,
+            UInt32(kEventKeyModifierFnMask) | UInt32(shiftKey)
+        )
+        XCTAssertEqual(ShortcutBinding.keyDisplayName(for: 49), "Space")
+        XCTAssertEqual(ShortcutBinding.keyDisplayName(for: 36), "Return")
+        XCTAssertEqual(ShortcutBinding.keyDisplayName(for: 48), "Tab")
+        XCTAssertEqual(ShortcutBinding.keyDisplayName(for: 51), "Delete")
+
+        let removedFunction = functionShift.setting(.function, enabled: false)
+        XCTAssertEqual(removedFunction.displayName, "⇧D")
+        XCTAssertFalse(removedFunction.hasSafeGlobalModifier)
+        XCTAssertEqual(removedFunction.keyCode, base.keyCode)
+
+        let normalized = ShortcutBinding(
+            keyCode: 2,
+            modifiers: functionShift.modifiers | NSEvent.ModifierFlags.numericPad.rawValue
+        ).normalized
+        XCTAssertEqual(normalized, functionShift)
+    }
+
+    @MainActor
+    func testShortcutManagerRejectsShiftOnlyAndAcceptsFunctionModifier() {
+        let suite = "com.marla.tests.shortcut-validation.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suite)!
+        defaults.removePersistentDomain(forName: suite)
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let manager = GlobalShortcutManager(registerHotKeys: false, defaults: defaults)
+        let original = manager.bindings[.selection]
+
+        let shiftOnly = ShortcutBinding(
+            keyCode: 4,
+            modifiers: NSEvent.ModifierFlags.shift.rawValue
+        )
+        XCTAssertFalse(manager.set(shiftOnly, for: .selection))
+        XCTAssertEqual(manager.bindings[.selection], original)
+        XCTAssertEqual(
+            manager.conflictMessage,
+            "快捷键至少需要包含 fn、⌘、⌃ 或 ⌥ 中的一个；⇧ 不能单独作为全局修饰键。"
+        )
+
+        let functionKey = ShortcutBinding(
+            keyCode: 4,
+            modifiers: NSEvent.ModifierFlags.function.rawValue
+        )
+        XCTAssertTrue(manager.set(functionKey, for: .selection))
+        XCTAssertEqual(manager.bindings[.selection], functionKey)
+        XCTAssertNil(manager.conflictMessage)
+    }
+
+    @MainActor
+    func testCompleteLegacyShortcutDefaultsMigrateButCustomBindingsRemainUntouched() throws {
+        let legacySuite = "com.marla.tests.shortcut-legacy-migration.\(UUID().uuidString)"
+        let legacyDefaults = UserDefaults(suiteName: legacySuite)!
+        legacyDefaults.removePersistentDomain(forName: legacySuite)
+        defer { legacyDefaults.removePersistentDomain(forName: legacySuite) }
+        legacyDefaults.set(
+            try JSONEncoder().encode(ShortcutBinding.legacyDefaults),
+            forKey: "shortcutBindings"
+        )
+
+        let migrated = GlobalShortcutManager(registerHotKeys: false, defaults: legacyDefaults)
+        XCTAssertEqual(migrated.bindings, ShortcutBinding.defaults)
+        let migratedData = try XCTUnwrap(legacyDefaults.data(forKey: "shortcutBindings"))
+        XCTAssertEqual(
+            try JSONDecoder().decode([GlobalShortcutAction: ShortcutBinding].self, from: migratedData),
+            ShortcutBinding.defaults
+        )
+
+        let customSuite = "com.marla.tests.shortcut-custom-migration.\(UUID().uuidString)"
+        let customDefaults = UserDefaults(suiteName: customSuite)!
+        customDefaults.removePersistentDomain(forName: customSuite)
+        defer { customDefaults.removePersistentDomain(forName: customSuite) }
+        var customized = ShortcutBinding.legacyDefaults
+        customized[.selection] = ShortcutBinding(
+            keyCode: 4,
+            modifiers: NSEvent.ModifierFlags.command.rawValue
+        )
+        customDefaults.set(try JSONEncoder().encode(customized), forKey: "shortcutBindings")
+
+        let preserved = GlobalShortcutManager(registerHotKeys: false, defaults: customDefaults)
+        XCTAssertEqual(preserved.bindings, customized)
     }
 
     func testQuickInputRejectsWhitespaceWithoutNormalizingValidSource() {

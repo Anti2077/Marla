@@ -208,21 +208,21 @@ struct MenuBarView: View {
                     .textCase(.uppercase)
                 EntryButton(
                     title: "划词翻译",
-                    shortcut: shortcuts.bindings[.selection]?.displayName ?? "⌃⌥D",
+                    shortcut: shortcuts.bindings[.selection]?.displayName ?? "⌃⇧D",
                     symbol: "text.viewfinder"
                 ) {
                     model.translateSelection()
                 }
                 EntryButton(
                     title: "截图翻译",
-                    shortcut: shortcuts.bindings[.screenshot]?.displayName ?? "⌃⌥S",
+                    shortcut: shortcuts.bindings[.screenshot]?.displayName ?? "⌃⇧S",
                     symbol: TranslationSurface.screenshot.symbolName
                 ) {
                     model.translateScreenshot()
                 }
                 EntryButton(
                     title: "快速输入",
-                    shortcut: shortcuts.bindings[.quickInput]?.displayName ?? "⌃⌥Space",
+                    shortcut: shortcuts.bindings[.quickInput]?.displayName ?? "⌃⇧Space",
                     symbol: "keyboard"
                 ) {
                     model.showQuickInput()

@@ -8,6 +8,10 @@ Implemented in the current incubation baseline. Completed real-environment evide
 
 Translate text from a small user-selected screen region using either default local macOS Vision OCR or explicitly selected cloud GLM-OCR structure recognition.
 
+## Trigger
+
+The configurable global shortcut defaults to `⌃⇧S`. Settings composes it from independently selected `fn / ⇧ / ⌃ / ⌥ / ⌘` modifiers and one captured primary key; cancellation or failed Carbon registration keeps the previous binding. Fn/Globe is never a standalone trigger and does not add a persistent event tap.
+
 ## Flow
 
 1. Enter a cross-display selection overlay.

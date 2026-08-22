@@ -1,6 +1,6 @@
 # Project Status
 
-Last updated: 2026-08-22
+Last updated: 2026-08-23
 
 Development stage: Incubation / Unreleased
 
@@ -8,7 +8,9 @@ Release target: None. A version is assigned only when the project owner explicit
 
 Overall state: In Progress — unversioned product incubation; no active release contract
 
-Active task: None
+Active task: [`TASK-035`](../tasks/TASK-035-composable-shortcut-editor.md) — 组合式全局快捷键编辑器与新默认键位
+
+TASK-035 已按项目所有者反馈完成行内改造：快捷键设置使用 `fn / ⇧ / ⌃ / ⌥ / ⌘` 修饰键切换与 32pt 单主键单元，编辑器直接位于每行操作名称和启用开关之间的留白，不打开 popover、sheet 或额外窗口；同一时间只展开一行。默认键位为划词 `⌃⇧D`、截图 `⌃⇧S`、快速输入 `⌃⇧Space`；完整旧默认配置会迁移，自定义配置保持不变；Fn/Globe 继续复用 Carbon 全局热键路径，不新增持续全局监听或权限。macOS 26 使用折叠 `.regular.interactive()`、展开 `.regular` 和 0.32 秒 matched geometry 将快捷键 chip 融合为固定 332×32pt 编辑条；导致动画消失的双 interactive 回归已撤销。最终折叠、D 展开和 Space 展开均保持 820×592；最新固定 App 深色实机复核确认主键与修饰键共用 20pt 内容高度，外层 capsule 以 4pt 上下内边距形成更宽的连续玻璃边框，主键捕获态仍为居中蓝色 `ellipsis`，应用键仍为 24pt 圆形。无效或注册失败时确认键改为感叹号；即使按钮 disabled，独立 hover 命中层也会以 0 秒延迟同步显示具体原因，同时保留系统 help 与 AX value。最终深色五维复审为 8/8/9/9/8。完整检查与固定签名 App 已通过；Task 保持 Active，等待最终浅色/Reduce Motion 视觉证据和项目所有者实体 Fn/Globe 触发。
 
 TASK-034 已由项目所有者于 2026-08-22 要求结束并关闭：最近翻译菜单中的来源和译文摘要改为纯文本；通用设置提供四种翻译窗口位置；记住位置保存面板左上角并在流式高度变化时保持顶部；结果卡动作栏提供可持久化的窄/中/宽宽度预设，popover 子窗口点击不会误触发外部点击隐藏。真实浅色/深色桌面截图五维复审仍记录为未完成证据缺口，不影响本次实现 Task 关闭。
 
@@ -38,7 +40,7 @@ Blocked tasks: None.
 
 ## Current objective
 
-当前没有 Active implementation Task。下一项产品实现、修复或验证工作仍必须由项目所有者从直接请求、Ideas、Backlog 或证据缺口中明确选择，Agent 不自动从旧 `0.1.0` 草案或 Roadmap 提升工作。
+当前目标是收束 TASK-035：行内编辑器、新默认键位、旧默认迁移、Fn 映射、注册回滚、窗口尺寸稳定、macOS 26 Liquid Glass、自动化、固定签名 App、真实 AX 交互和最终深色复审已完成；剩余验收是最终浅色/Reduce Motion 视觉证据与项目所有者实体 Fn/Globe 触发。其它 Ideas、Backlog、撤回的 `0.1.0` 草案和独立证据缺口不自动进入本 Task。
 
 TASK-023 已完成整体代码审查、自动化验证与固定 Release 测试 App 交付：Rust 翻译与模型列表取消从 10ms 轮询改为事件驱动唤醒，SSE 单个未完成帧增加 1 MiB 内存上限，严格 Clippy 与 shell 语法检查纳入统一验证，5 个公开 unsafe FFI 函数补齐安全合同；`artifacts/Marla_dev.app` 已重建并通过稳定签名验证。
 

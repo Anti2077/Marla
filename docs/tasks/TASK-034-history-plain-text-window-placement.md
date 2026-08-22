@@ -1,6 +1,6 @@
 # TASK-034：历史翻译纯文本摘要与翻译窗口出现位置
 
-Status: Active
+Status: Completed
 
 Owner: Project owner + Agent
 
@@ -72,7 +72,7 @@ TASK-028 已让语义 Markdown 成为会话的规范内容，但菜单摘要是�
 - [x] 结果卡和快速输入均使用设置后的位置，现有取消/激活/尺寸行为不回归（几何和聚焦回归已通过）。
 - [x] 新增聚焦自动化测试、Xcode Debug/Release 构建、结构门禁和 `git diff --check` 通过；授权环境统一 `check.sh` 全绿，受限沙箱的 3 个既有 Markdown 粘贴板断言因宿主 XPC 不可用而失败。
 - [x] `STATUS.md` 已记录当前验证状态。
-- [ ] 固定 App 的真实设置/菜单截图五维复审仍待桌面 UI 会话可见后完成。
+- [ ] 固定 App 的真实设置/菜单截图五维复审仍待桌面 UI 会话可见后完成；项目所有者明确要求在此处关闭 Task，作为独立证据缺口保留。
 
 ## Verification
 
@@ -118,10 +118,10 @@ None. “固定横坐标（垂直居中）”作为该模式的用户可见名�
 
 ## Completion record
 
-- Verified commit: Pending
-- Automated evidence: 3 个新增聚焦 MarlaAppTests 通过；授权环境 Rust 24 项、Swift 164 项（3 项 Vision 按既有宿主限制跳过）、Xcode Debug、固定 Release 构建、App 验证、结构/脚本/空白/diff 门禁通过；受限沙箱的 3 个既有 hiservices XPC 粘贴板断言失败不属于本 Task 回归
-- Manual evidence: Pending
+- Verified commit: Working tree not committed; project owner requested Task closure
+- Automated evidence: 授权环境 Rust 24 项、Swift 166 项（3 项 Vision 按既有宿主限制跳过）、Xcode Debug、固定 Release 构建、App 验证、结构/脚本/空白/diff 门禁通过；新增 popover 内部点击回归通过；受限沙箱的 3 个既有 hiservices XPC 粘贴板断言失败不属于本 Task 回归
+- Manual evidence: Real light/dark desktop screenshots and five-dimension visual review remain unavailable in the current desktop session and are recorded as a separate evidence gap
 - Documentation updated: Task、STATUS、inline-translation、quick-input 已更新
 - Remaining work promoted to: None
-- Scope changes closed: Automated implementation scope complete; manual UI evidence pending
+- Scope changes closed: Implementation and automated verification complete; manual UI evidence gap explicitly retained at Task closure
 - Parallel contributions integrated: None

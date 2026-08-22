@@ -8,11 +8,13 @@ struct QuickInputContainerView: View {
     @ObservedObject private var layout: ResultPanelLayoutModel
     let onClose: () -> Void
     let onRecovery: (CardRecoveryAction) -> Void
+    let onWidthPresetChange: ((TranslationWindowWidthPreset) -> Void)?
 
     init(
         store: TranslationSessionStore,
         onClose: @escaping () -> Void,
         onRecovery: @escaping (CardRecoveryAction) -> Void,
+        onWidthPresetChange: ((TranslationWindowWidthPreset) -> Void)? = nil,
         cardWidth: CGFloat = 420,
         maximumPanelHeight: CGFloat = .greatestFiniteMagnitude,
         layout: ResultPanelLayoutModel? = nil
@@ -20,6 +22,7 @@ struct QuickInputContainerView: View {
         self.store = store
         self.onClose = onClose
         self.onRecovery = onRecovery
+        self.onWidthPresetChange = onWidthPresetChange
         self.layout = layout ?? ResultPanelLayoutModel(
             width: cardWidth,
             maximumPanelHeight: maximumPanelHeight
@@ -32,6 +35,7 @@ struct QuickInputContainerView: View {
                 store: store,
                 onClose: onClose,
                 onRecovery: onRecovery,
+                onWidthPresetChange: onWidthPresetChange,
                 layout: layout
             )
                 .transition(.opacity)

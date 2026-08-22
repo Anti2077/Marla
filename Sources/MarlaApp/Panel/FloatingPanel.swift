@@ -265,24 +265,40 @@ struct PanelPlacementCalculator {
         minimumWidth: CGFloat = 320,
         maximumWidth: CGFloat = 520,
         anchor: ScreenRect?,
-        pointer: CGPoint?
+        pointer: CGPoint?,
+        placement: TranslationWindowPlacement = .followMouse,
+        fixedX: CGFloat = TranslationWindowPlacement.defaultFixedX,
+        lastTopLeft: CGPoint? = nil
     ) -> NSRect {
         let visibleMaximumWidth = max(minimumWidth, min(maximumWidth, visible.width - 16))
         let width = min(max(requestedWidth, minimumWidth), visibleMaximumWidth)
         let height = min(requestedHeight, visible.height * 0.6)
-        let source = anchor.map {
+        let source = placement == .followMouse ? anchor.map {
             NSRect(x: $0.x, y: $0.y, width: $0.width, height: $0.height)
-        }
-        var x = source?.midX ?? pointer?.x ?? visible.midX
+        } : nil
+        var x: CGFloat
         var y: CGFloat
-        if let source {
-            let roomAbove = visible.maxY - source.maxY
-            let roomBelow = source.minY - visible.minY
-            y = roomAbove >= roomBelow ? source.maxY + 8 : source.minY - height - 8
-        } else {
-            y = (pointer?.y ?? visible.midY) - height / 2
+        switch placement {
+        case .centered:
+            x = visible.midX
+            y = visible.midY - height / 2
+        case .fixedXCentered:
+            x = fixedX.isFinite ? fixedX : visible.minX + TranslationWindowPlacement.defaultFixedX
+            y = visible.midY - height / 2
+        case .rememberLastPosition:
+            x = lastTopLeft?.x ?? visible.midX - width / 2
+            y = lastTopLeft.map { $0.y - height } ?? visible.midY - height / 2
+        case .followMouse:
+            x = source?.midX ?? pointer?.x ?? visible.midX
+            if let source {
+                let roomAbove = visible.maxY - source.maxY
+                let roomBelow = source.minY - visible.minY
+                y = roomAbove >= roomBelow ? source.maxY + 8 : source.minY - height - 8
+            } else {
+                y = (pointer?.y ?? visible.midY) - height / 2
+            }
         }
-        x -= width / 2
+        if placement != .fixedXCentered && placement != .rememberLastPosition { x -= width / 2 }
         x = min(max(x, visible.minX + 8), visible.maxX - width - 8)
         y = min(max(y, visible.minY + 8), visible.maxY - height - 8)
         return NSRect(x: x, y: y, width: width, height: height)
@@ -325,23 +341,33 @@ final class FloatingPanelCoordinator: NSObject, NSWindowDelegate {
                 self.hide()
                 return nil
             }
-            if event.type != .keyDown, event.window !== self.panel,
+            if event.type != .keyDown,
+               !FloatingPanelEventRouting.isPanelRelatedWindow(event.window, panel: self.panel),
                self.model?.sessionStore.session?.isPinned != true {
                 self.hide()
             }
             return event
         }
     }
-
     func attach(model: MarlaApplicationModel) {
         self.model = model
     }
-
     func showResult(store: TranslationSessionStore, at anchor: ScreenRect?, pointer: CGPoint?, activate: Bool) {
-        let width: CGFloat = ResultCardLayout.defaultWidth
-        let targetScreen = screen(anchor: anchor, pointer: pointer) ?? NSScreen.main ?? NSScreen.screens.first!
+        let width = model?.settings.translationWindowWidthPreset.width ?? ResultCardLayout.defaultWidth
+        let placement = model?.settings.translationWindowPlacement ?? .followMouse
+        let lastTopLeft = model?.settings.translationWindowLastTopLeft
+        let targetScreen = screen(
+            anchor: anchor,
+            pointer: pointer,
+            placement: placement,
+            lastTopLeft: lastTopLeft
+        ) ?? NSScreen.main ?? NSScreen.screens.first!
         let maximumHeight = ResultCardLayout.maximumPanelHeight(visibleHeight: targetScreen.visibleFrame.height)
-        let growthAnchor = growthAnchor(for: anchor, visibleFrame: targetScreen.visibleFrame)
+        let growthAnchor = growthAnchor(
+            for: anchor,
+            placement: placement,
+            visibleFrame: targetScreen.visibleFrame
+        )
         let layout = configureResultLayout(
             store: store,
             width: width,
@@ -354,6 +380,7 @@ final class FloatingPanelCoordinator: NSObject, NSWindowDelegate {
                 store: store,
                 onClose: { [weak self] in self?.hide() },
                 onRecovery: { [weak self] action in self?.model?.performRecovery(action) },
+                onWidthPresetChange: { [weak self] preset in self?.setWidthPreset(preset) },
                 layout: layout
             )
         )
@@ -369,14 +396,23 @@ final class FloatingPanelCoordinator: NSObject, NSWindowDelegate {
             anchor: anchor,
             pointer: pointer,
             activate: activate,
-            allowsWidthResize: true
+            allowsWidthResize: true,
+            placement: placement,
+            lastTopLeft: lastTopLeft
         )
     }
 
     func showQuickInput(store: TranslationSessionStore, pointer: CGPoint?) {
         store.close()
-        let width: CGFloat = 420
-        let targetScreen = screen(anchor: nil, pointer: pointer) ?? NSScreen.main ?? NSScreen.screens.first!
+        let width = model?.settings.translationWindowWidthPreset.width ?? 420
+        let placement = model?.settings.translationWindowPlacement ?? .followMouse
+        let lastTopLeft = model?.settings.translationWindowLastTopLeft
+        let targetScreen = screen(
+            anchor: nil,
+            pointer: pointer,
+            placement: placement,
+            lastTopLeft: lastTopLeft
+        ) ?? NSScreen.main ?? NSScreen.screens.first!
         let maximumHeight = ResultCardLayout.maximumPanelHeight(visibleHeight: targetScreen.visibleFrame.height)
         let layout = configureResultLayout(
             store: store,
@@ -390,17 +426,20 @@ final class FloatingPanelCoordinator: NSObject, NSWindowDelegate {
                 store: store,
                 onClose: { [weak self] in self?.hide() },
                 onRecovery: { [weak self] action in self?.model?.performRecovery(action) },
+                onWidthPresetChange: { [weak self] preset in self?.setWidthPreset(preset) },
                 layout: layout
             )
         )
         show(
             content: content,
-            width: 420,
+            width: width,
             height: 300,
             anchor: nil,
             pointer: pointer,
             activate: true,
-            allowsWidthResize: true
+            allowsWidthResize: true,
+            placement: placement,
+            lastTopLeft: lastTopLeft
         )
     }
 
@@ -413,7 +452,8 @@ final class FloatingPanelCoordinator: NSObject, NSWindowDelegate {
             anchor: nil,
             pointer: CGPoint(x: NSScreen.main?.visibleFrame.maxX ?? 1200, y: NSScreen.main?.visibleFrame.maxY ?? 800),
             activate: true,
-            allowsWidthResize: false
+            allowsWidthResize: false,
+            placement: .followMouse
         )
     }
 
@@ -566,7 +606,14 @@ final class FloatingPanelCoordinator: NSObject, NSWindowDelegate {
         panel.setFrame(frame, display: true, animate: false)
     }
 
-    private func growthAnchor(for anchor: ScreenRect?, visibleFrame: NSRect) -> ResultPanelGrowthAnchor {
+    private func growthAnchor(
+        for anchor: ScreenRect?,
+        placement: TranslationWindowPlacement,
+        visibleFrame: NSRect
+    ) -> ResultPanelGrowthAnchor {
+        if placement == .rememberLastPosition {
+            return .top
+        }
         guard let anchor else { return .center }
         let source = NSRect(x: anchor.x, y: anchor.y, width: anchor.width, height: anchor.height)
         let roomAbove = visibleFrame.maxY - source.maxY
@@ -581,10 +628,19 @@ final class FloatingPanelCoordinator: NSObject, NSWindowDelegate {
         anchor: ScreenRect?,
         pointer: CGPoint?,
         activate: Bool,
-        allowsWidthResize: Bool
+        allowsWidthResize: Bool,
+        placement: TranslationWindowPlacement? = nil,
+        lastTopLeft: CGPoint? = nil
     ) {
         let panel = panel ?? makePanel()
-        let targetScreen = screen(anchor: anchor, pointer: pointer) ?? NSScreen.main ?? NSScreen.screens.first!
+        let resolvedPlacement = placement ?? model?.settings.translationWindowPlacement ?? .followMouse
+        let resolvedLastTopLeft = lastTopLeft ?? model?.settings.translationWindowLastTopLeft
+        let targetScreen = screen(
+            anchor: anchor,
+            pointer: pointer,
+            placement: resolvedPlacement,
+            lastTopLeft: resolvedLastTopLeft
+        ) ?? NSScreen.main ?? NSScreen.screens.first!
         ResultPanelWindowSizing.apply(
             to: panel,
             enabled: allowsWidthResize,
@@ -610,7 +666,10 @@ final class FloatingPanelCoordinator: NSObject, NSWindowDelegate {
                 ? ResultCardLayout.maximumPanelWidth(visibleWidth: targetScreen.visibleFrame.width)
                 : 520,
             anchor: anchor,
-            pointer: pointer
+            pointer: pointer,
+            placement: resolvedPlacement,
+            fixedX: model?.settings.translationWindowFixedX ?? TranslationWindowPlacement.defaultFixedX,
+            lastTopLeft: resolvedLastTopLeft
         )
         let reduceMotion = forcedReduceMotion || NSWorkspace.shared.accessibilityDisplayShouldReduceMotion
         var entryFrame = targetFrame
@@ -656,12 +715,55 @@ final class FloatingPanelCoordinator: NSObject, NSWindowDelegate {
         return panel
     }
 
-    private func screen(anchor: ScreenRect?, pointer: CGPoint?) -> NSScreen? {
-        anchor.flatMap { rect in
+    private func screen(
+        anchor: ScreenRect?,
+        pointer: CGPoint?,
+        placement: TranslationWindowPlacement = .followMouse,
+        lastTopLeft: CGPoint? = nil
+    ) -> NSScreen? {
+        if placement == .rememberLastPosition, let lastTopLeft {
+            if let rememberedScreen = NSScreen.screens.first(where: {
+                $0.frame.insetBy(dx: 0, dy: -1).contains(lastTopLeft)
+            }) {
+                return rememberedScreen
+            }
+        }
+        return anchor.flatMap { rect in
             NSScreen.screens.first { $0.frame.intersects(NSRect(x: rect.x, y: rect.y, width: rect.width, height: rect.height)) }
         } ?? pointer.flatMap { point in
             NSScreen.screens.first { $0.frame.contains(point) }
         }
+    }
+
+    func setWidthPreset(_ preset: TranslationWindowWidthPreset) {
+        guard let panel, let visibleFrame = resultLayoutVisibleFrame else { return }
+        model?.settings.translationWindowWidthPreset = preset
+        let width = ResultCardLayout.clampedPanelWidth(preset.width, visibleWidth: visibleFrame.width)
+        var frame = panel.frame
+        let stableTop = frame.maxY
+        let stableCenter = frame.midX
+        frame.size.width = width
+        frame.origin.x = model?.settings.translationWindowPlacement == .rememberLastPosition
+            ? frame.minX
+            : stableCenter - width / 2
+        frame.origin.x = min(
+            max(frame.origin.x, visibleFrame.minX + 8),
+            visibleFrame.maxX - width - 8
+        )
+        frame.origin.y = stableTop - frame.height
+        panel.setFrame(frame, display: true, animate: true)
+        if let layout = resultLayoutModel {
+            layout.width = width
+            resizeResultPanel(for: resultLayoutStore?.session)
+        }
+    }
+
+    func windowDidMove(_ notification: Notification) {
+        guard let movedWindow = notification.object as? NSWindow,
+              movedWindow === panel else { return }
+        model?.settings.rememberTranslationWindowTopLeft(
+            CGPoint(x: movedWindow.frame.minX, y: movedWindow.frame.maxY)
+        )
     }
 
     func windowWillClose(_ notification: Notification) {

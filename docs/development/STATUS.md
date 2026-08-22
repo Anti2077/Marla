@@ -6,9 +6,11 @@ Development stage: Incubation / Unreleased
 
 Release target: None. A version is assigned only when the project owner explicitly starts release preparation.
 
-Overall state: In Progress — unversioned product incubation; no active release contract or implementation Task
+Overall state: In Progress — unversioned product incubation; no active release contract
 
-Active task: None. The next implementation Task must be selected explicitly by the project owner.
+Active task: TASK-034 — 历史翻译纯文本摘要与翻译窗口出现位置
+
+TASK-034 已由项目所有者于 2026-08-22 明确开启：最近翻译菜单中的来源和译文摘要改为纯文本，并在通用设置中增加固定居中、跟随鼠标、固定横坐标（垂直居中）和记住上次位置四种翻译窗口位置。规范 Markdown 会话内容、结果卡渲染和复制合同保持不变；固定横坐标按当前屏幕全局 X 坐标夹紧到可见工作区，记住位置保存面板左上角并在流式高度变化时保持顶部；结果卡动作栏增加可持久化的窄/中/宽宽度预设。
 
 TASK-033 已由项目所有者于 2026-08-20 明确关闭：OCR 页面使用独立 Provider 选择卡，并同时保留独立本机 Vision 与云端 GLM-OCR 卡；GLM 只配置一个 Keychain API Key。截图翻译在 GLM 结构识别期间显示专用等待态，成功后直接进入现有语义 Markdown 翻译与原生渲染。Vision 保持默认；缺少 GLM Key 时明确阻止并引导 OCR 设置，已配置云端请求失败时可见地自动降级到 Vision。截图仍只在活动会话内存中存活，不分配产品版本，开发 App 继续使用 `0.0.0` 占位。真实 GLM Key 成功调用没有被伪写为已验证，现作为独立 `RV-005` 保留，不重新打开实现 Task。
 
@@ -36,7 +38,7 @@ Blocked tasks: None.
 
 ## Current objective
 
-当前没有 Active implementation Task。下一项产品实现、修复或验证工作必须由项目所有者从直接请求、Ideas、Backlog 或证据缺口中明确选择；Agent 不自动从旧 `0.1.0` 草案或 Roadmap 提升工作。
+当前 Active implementation Task 为 TASK-034，范围仅限历史摘要纯文本和翻译窗口位置；完成或关闭后，下一项产品实现、修复或验证工作仍必须由项目所有者从直接请求、Ideas、Backlog 或证据缺口中明确选择，Agent 不自动从旧 `0.1.0` 草案或 Roadmap 提升工作。
 
 TASK-023 已完成整体代码审查、自动化验证与固定 Release 测试 App 交付：Rust 翻译与模型列表取消从 10ms 轮询改为事件驱动唤醒，SSE 单个未完成帧增加 1 MiB 内存上限，严格 Clippy 与 shell 语法检查纳入统一验证，5 个公开 unsafe FFI 函数补齐安全合同；`artifacts/Marla_dev.app` 已重建并通过稳定签名验证。
 
@@ -48,7 +50,7 @@ TASK-021 已完成：结果卡支持 380–760pt 横向调整，流式译文在�
 
 - Native SwiftUI/AppKit menu-bar application with selection translation, screenshot translation, and quick input.
 - Nearby result card with streaming, comparison, copy, retry, system speech, pinning, cancellation, target switching, and actionable error states.
-- Result cards start at a compact 380pt width and content-driven height, resize horizontally up to 760pt or the visible-workspace limit, reflow height with streamed wrapping while keeping their anchored edge stable, and cap at 60% of the visible workspace before scrolling translation content internally.
+- Result cards start at a compact 380pt width and content-driven height, resize horizontally up to 760pt or the visible-workspace limit, reflow height with streamed wrapping while keeping their anchored edge stable, and cap at 60% of the visible workspace before scrolling translation content internally. TASK-034 adds persistent narrow/medium/wide presets (380/520/680pt) through a compact hover control in the result-card action row.
 - Production selection content comes only from one protected simulated-Copy transaction bound to the trigger-time frontmost application. It snapshots every readable Pasteboard representation, accepts only the new Copy result, restores and verifies the original snapshot on every controlled exit, refuses to overwrite a newer external write, rejects focus changes, and reports only redacted lifecycle evidence.
 - Accessibility remains the permission and optional non-content positioning substrate. Its standard range, Web Text Marker, bounded graph, identity, and geometry helpers are not allowed to provide or fall back to translation content.
 - Selection translation always uses the complete nearby result card; the rejected single-line source-covering and pointer-estimate prototype has been removed together with its setting and runtime path.
@@ -94,6 +96,8 @@ The next implementation or verification Task must be selected explicitly by the 
 - TASK-022 的 Swift/Rust 语言合同与 Vision 修复已实现：七门语言的归一/路由、设置持久化、通用提示词、Qwen-MT 映射、未适配代码拒绝和 Vision 配置均有回归测试。最新固定开发 App 已重建并签名通过；当前 xctest 图形服务无法创建 Vision CVPixelBuffer（OSStatus -6662），沙盒外探针已证明自动检测下日/韩/中/英样本有结果；现场固定 App 截图 OCR、长标签和完整窗口验收保留为独立证据缺口，不阻止其它孵化 Task。
 
 ## Latest verification
+
+- TASK-034（进行中）：最近翻译菜单改用 `MarkdownResultDocument.plainText` 生成纯文本摘要，规范 Markdown 仍保留在 `RecentTranslation` 并可恢复；通用设置新增四种位置，记住位置保存面板左上角并在流式高度变化时保持顶部；结果卡和快速输入共用位置偏好，结果卡底部动作栏提供持久化窄/中/宽宽度预设，popover 子窗口点击不会误触发外部点击隐藏。授权环境下 `./scripts/check.sh` 全绿：Rust 24 项、Swift 166 项（3 项 Vision 按既有宿主限制跳过）、Xcode Debug、结构/脚本/空白/diff 门禁通过；`./scripts/build-test-app.sh` 已重建并验证固定 Release `artifacts/Marla_dev.app`（`0.0.0`、arm64、稳定签名）。受限沙箱单独运行时的 3 个 Markdown 粘贴板断言因 `com.apple.hiservices-xpcservice` 不可用失败，不属于本 Task 回归；Computer Use 无法在本桌面会话枚举新 App 的可见窗口，因此真实浅色/深色设置与四种位置截图五维复审尚未完成。
 
 - TASK-033：24 项 Rust 与 161 项 Swift 测试通过，其中 3 项 Vision 图片回归因宿主 OSStatus -6662 按既有规则 skip；新增 OCR/设置/Keychain/会话回归、C ABI v4、翻译 schema v3 与 OCR schema v1 均同步。受限沙箱首次运行因系统 Pasteboard/XPC 不可用使 3 个既有复制断言得到 nil；授权环境重跑全部通过，Swift Package、Xcode Debug、结构/格式/shell/空白/diff 门禁均通过。`./scripts/build-test-app.sh` 已重建并验证固定 `artifacts/Marla_dev.app`：`com.marla.app`、`0.0.0`、macOS 14.0、arm64、Paper Lantern 资源、稳定签名 `API Usage Monitor Dev` 和 designated requirement 均保持不变。真实 Release fixture 位于 `/private/tmp/marla-task033-settings-light.png`、`/private/tmp/marla-task033-settings-dark.png`、`/private/tmp/marla-task033-awaiting-light.png`、`/private/tmp/marla-task033-fallback-dark.png` 与 `/private/tmp/marla-task033-awaiting-reduce-motion.png`；三张独立设置卡在滚动容器中层级清楚，已显示区域与等待/可见降级/Reduce Motion 状态均无重叠或异常裁切，五维复审为 8/8/8/9/7。真实凭据成功路径仍待项目所有者现场验收。
 - TASK-032：授权环境 `./scripts/check.sh` 全绿：20 项 Rust 与 157 项 Swift 通过，其中 3 项 Vision 图片回归因宿主 OSStatus -6662 按既有规则 skip；Swift Package、Xcode Debug、严格 Rust format/Clippy、结构、shell、空白和 diff 门禁均通过。受限沙箱的首次运行曾因 `com.apple.hiservices-xpcservice` 不可用导致 3 个 Pasteboard 复制断言失败，授权重跑全部通过。`./scripts/build-test-app.sh` 随后完成 Release 构建并安全替换固定 App；最终 `artifacts/Marla_dev.app` 为 `com.marla.app`、开发占位版本 `0.0.0`、macOS 14.0、arm64，Paper Lantern 资源完整，稳定签名 `API Usage Monitor Dev` 与 designated requirement 保持不变。

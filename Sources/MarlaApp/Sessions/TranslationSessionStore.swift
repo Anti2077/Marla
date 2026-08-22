@@ -133,6 +133,25 @@ struct RecentTranslation: Identifiable, Equatable {
     let target: TranslationTarget
 
     var sourceText: String { sourceContent.text }
+
+    var displayTranslation: String {
+        Self.plainTextSummary(translation, format: sourceContent.format)
+    }
+
+    var displaySourceText: String {
+        Self.plainTextSummary(sourceText, format: sourceContent.format)
+    }
+
+    private static func plainTextSummary(_ text: String, format: TranslationContentFormat) -> String {
+        guard format == .semanticMarkdown else { return text }
+        if let document = MarkdownResultDocument.parse(text) {
+            return document.plainText
+        }
+        if let attributed = try? AttributedString(markdown: text) {
+            return String(attributed.characters).removingTrailingLineBreaks()
+        }
+        return text
+    }
 }
 
 enum SystemSourceLanguageDetector {

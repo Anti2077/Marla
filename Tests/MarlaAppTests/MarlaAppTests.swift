@@ -959,6 +959,26 @@ final class MarlaAppTests: XCTestCase {
     }
 
     @MainActor
+    func testRecentTranslationSummariesUsePlainTextWithoutChangingCanonicalMarkdown() {
+        let store = makeSessionStore()
+        let markdown = "# Release Notes\n\n- Keep `TOKEN` unchanged."
+        let translated = "# 发布说明\n\n- 保留 `TOKEN`。"
+        store.installUIAutomationFixture(
+            surface: .quickInput,
+            sourceText: markdown,
+            translation: translated,
+            state: .completed,
+            contentFormat: .semanticMarkdown
+        )
+
+        let recent = try! XCTUnwrap(store.recentTranslations.first)
+        XCTAssertEqual(recent.displaySourceText, "Release Notes\n\n• Keep TOKEN unchanged.")
+        XCTAssertEqual(recent.displayTranslation, "发布说明\n\n• 保留 TOKEN。")
+        XCTAssertEqual(recent.sourceText, markdown)
+        XCTAssertEqual(recent.translation, translated)
+    }
+
+    @MainActor
     func testSelectionStartsWithItsAcquiredContentFormat() {
         let store = makeSessionStore()
         let markdown = "# Heading\n\n**Bold**"
@@ -1064,6 +1084,103 @@ final class MarlaAppTests: XCTestCase {
 
         XCTAssertEqual(frame.width, ResultCardLayout.maximumWidth)
         XCTAssertEqual(frame.midX, visible.midX)
+    }
+
+    func testPanelPlacementSupportsCenteredAndFixedXModes() {
+        let visible = NSRect(x: 100, y: 50, width: 1200, height: 800)
+        let centered = PanelPlacementCalculator.frame(
+            visibleFrame: visible,
+            requestedWidth: 380,
+            requestedHeight: 300,
+            anchor: ScreenRect(x: 200, y: 600, width: 40, height: 20),
+            pointer: CGPoint(x: 250, y: 610),
+            placement: .centered
+        )
+        XCTAssertEqual(centered.midX, visible.midX)
+        XCTAssertEqual(centered.midY, visible.midY)
+
+        let fixed = PanelPlacementCalculator.frame(
+            visibleFrame: visible,
+            requestedWidth: 380,
+            requestedHeight: 300,
+            anchor: nil,
+            pointer: nil,
+            placement: .fixedXCentered,
+            fixedX: 700
+        )
+        XCTAssertEqual(fixed.minX, 700)
+        XCTAssertEqual(fixed.midY, visible.midY)
+
+        let negativeFixed = PanelPlacementCalculator.frame(
+            visibleFrame: visible,
+            requestedWidth: 380,
+            requestedHeight: 300,
+            anchor: nil,
+            pointer: nil,
+            placement: .fixedXCentered,
+            fixedX: -640
+        )
+        XCTAssertEqual(negativeFixed.minX, visible.minX + 8)
+        XCTAssertEqual(negativeFixed.midY, visible.midY)
+
+        let remembered = PanelPlacementCalculator.frame(
+            visibleFrame: visible,
+            requestedWidth: 380,
+            requestedHeight: 300,
+            anchor: nil,
+            pointer: nil,
+            placement: .rememberLastPosition,
+            lastTopLeft: CGPoint(x: 420, y: 510)
+        )
+        XCTAssertEqual(remembered.minX, 420)
+        XCTAssertEqual(remembered.maxY, 510)
+
+        let firstRemembered = PanelPlacementCalculator.frame(
+            visibleFrame: visible,
+            requestedWidth: 380,
+            requestedHeight: 300,
+            anchor: nil,
+            pointer: nil,
+            placement: .rememberLastPosition
+        )
+        XCTAssertEqual(firstRemembered.midX, visible.midX)
+        XCTAssertEqual(firstRemembered.midY, visible.midY)
+
+        let clampedRemembered = PanelPlacementCalculator.frame(
+            visibleFrame: visible,
+            requestedWidth: 380,
+            requestedHeight: 300,
+            anchor: nil,
+            pointer: nil,
+            placement: .rememberLastPosition,
+            lastTopLeft: CGPoint(x: -800, y: 10_000)
+        )
+        XCTAssertGreaterThanOrEqual(clampedRemembered.minX, visible.minX + 8)
+        XCTAssertLessThanOrEqual(clampedRemembered.maxX, visible.maxX - 8)
+        XCTAssertGreaterThanOrEqual(clampedRemembered.minY, visible.minY + 8)
+        XCTAssertLessThanOrEqual(clampedRemembered.maxY, visible.maxY - 8)
+    }
+
+    @MainActor
+    func testTranslationWindowPlacementPersistsAndUsesSafeDefaults() {
+        let suite = "com.marla.tests.window-placement.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suite)!
+        defaults.removePersistentDomain(forName: suite)
+        let keychain = KeychainCredentialStore(service: "com.marla.tests", account: UUID().uuidString)
+        let settings = MarlaSettingsStore(defaults: defaults, keychain: keychain)
+
+        XCTAssertEqual(settings.translationWindowPlacement, .followMouse)
+        XCTAssertEqual(settings.translationWindowFixedX, TranslationWindowPlacement.defaultFixedX)
+        settings.translationWindowPlacement = .fixedXCentered
+        settings.translationWindowFixedX = -640
+        settings.translationWindowWidthPreset = .wide
+        settings.rememberTranslationWindowTopLeft(CGPoint(x: 420, y: 510))
+
+        let restored = MarlaSettingsStore(defaults: defaults, keychain: keychain)
+        XCTAssertEqual(restored.translationWindowPlacement, .fixedXCentered)
+        XCTAssertEqual(restored.translationWindowFixedX, -640)
+        XCTAssertEqual(restored.translationWindowWidthPreset, .wide)
+        XCTAssertEqual(restored.translationWindowLastTopLeft, CGPoint(x: 420, y: 510))
     }
 
     @MainActor
@@ -1326,6 +1443,28 @@ final class MarlaAppTests: XCTestCase {
         XCTAssertEqual(centered.midY, currentAbove.midY)
     }
 
+    func testRememberedPositionUsesTheTopEdgeWhenHeightChanges() {
+        let visible = NSRect(x: 0, y: 0, width: 1440, height: 900)
+        let current = PanelPlacementCalculator.frame(
+            visibleFrame: visible,
+            requestedWidth: 380,
+            requestedHeight: 224,
+            anchor: nil,
+            pointer: nil,
+            placement: .rememberLastPosition,
+            lastTopLeft: CGPoint(x: 420, y: 700)
+        )
+        let grown = ResultPanelFrameCalculator.resized(
+            current: current,
+            height: 420,
+            visibleFrame: visible,
+            anchor: .top
+        )
+        XCTAssertEqual(current.maxY, 700)
+        XCTAssertEqual(grown.maxY, current.maxY)
+        XCTAssertEqual(grown.minX, current.minX)
+    }
+
     func testAccessibilityCoordinateConverterMapsTopLeftDisplayCoordinatesToAppKit() throws {
         let displays = [
             AccessibilityDisplayGeometry(
@@ -1449,6 +1588,42 @@ final class MarlaAppTests: XCTestCase {
         XCTAssertTrue(panel.hasShadow)
         XCTAssertEqual(contentView.layer?.cornerRadius, DesignTokens.radiusL)
         XCTAssertTrue(contentView.layer?.masksToBounds == true)
+    }
+
+    @MainActor
+    func testFloatingPanelTreatsPopoverChildWindowAsAnInternalClick() {
+        let panel = NSPanel(
+            contentRect: NSRect(x: 0, y: 0, width: 380, height: 224),
+            styleMask: [.borderless],
+            backing: .buffered,
+            defer: false
+        )
+        let popoverWindow = NSPanel(
+            contentRect: NSRect(x: 0, y: 0, width: 160, height: 64),
+            styleMask: [.borderless],
+            backing: .buffered,
+            defer: false
+        )
+        panel.addChildWindow(popoverWindow, ordered: .above)
+
+        XCTAssertTrue(
+            FloatingPanelEventRouting.isPanelRelatedWindow(popoverWindow, panel: panel)
+        )
+        XCTAssertTrue(
+            FloatingPanelEventRouting.isPanelRelatedWindow(panel, panel: panel)
+        )
+
+        let outsideWindow = NSPanel(
+            contentRect: NSRect(x: 0, y: 0, width: 160, height: 64),
+            styleMask: [.borderless],
+            backing: .buffered,
+            defer: false
+        )
+        XCTAssertFalse(
+            FloatingPanelEventRouting.isPanelRelatedWindow(outsideWindow, panel: panel)
+        )
+
+        panel.removeChildWindow(popoverWindow)
     }
 
     @MainActor

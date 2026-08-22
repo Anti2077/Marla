@@ -6,7 +6,7 @@ The nearby-card baseline and TASK-028 protected-Copy acquisition contract are im
 
 ## Goal
 
-Translate selected content in a nearby anchored card without unnecessarily activating Marla or changing the source document.
+Translate selected content in a nearby anchored card without unnecessarily activating Marla or changing the source document. The result card's appearance can be configured in General settings as centered, near the pointer, at a fixed horizontal coordinate with vertical centering, or at the last remembered window position. The last-position mode stores the panel's top-left edge, so streaming height growth keeps the top edge stable. The action row exposes persistent narrow, medium, and wide width presets through a compact hover control, while direct horizontal dragging remains available.
 
 ## Trigger
 

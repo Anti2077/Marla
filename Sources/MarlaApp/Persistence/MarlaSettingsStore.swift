@@ -1,4 +1,5 @@
 import Combine
+import CoreGraphics
 import Foundation
 import LocalAuthentication
 import MarlaCore
@@ -26,6 +27,16 @@ final class MarlaSettingsStore: ObservableObject {
     @Published var ocrProvider: OCRProviderKind {
         didSet { defaults.set(ocrProvider.rawValue, forKey: Keys.ocrProvider) }
     }
+    @Published var translationWindowPlacement: TranslationWindowPlacement {
+        didSet { defaults.set(translationWindowPlacement.rawValue, forKey: Keys.translationWindowPlacement) }
+    }
+    @Published var translationWindowFixedX: CGFloat {
+        didSet { defaults.set(Double(translationWindowFixedX), forKey: Keys.translationWindowFixedX) }
+    }
+    @Published var translationWindowWidthPreset: TranslationWindowWidthPreset {
+        didSet { defaults.set(translationWindowWidthPreset.rawValue, forKey: Keys.translationWindowWidthPreset) }
+    }
+    private(set) var translationWindowLastTopLeft: CGPoint?
     @Published var settingsNavigationDestination: SettingsNavigationDestination?
 
     let keychain: KeychainCredentialStore
@@ -41,6 +52,14 @@ final class MarlaSettingsStore: ObservableObject {
         static let secondaryLanguage = "translationSecondaryLanguage.v1"
         static let onboardingSkipped = "onboardingSkipped"
         static let ocrProvider = "ocrProvider.v1"
+        static let translationWindowPlacement = "translationWindowPlacement.v1"
+        static let translationWindowFixedX = "translationWindowFixedX.v1"
+        static let translationWindowWidthPreset = "translationWindowWidthPreset.v1"
+        static let translationWindowLastTopX = "translationWindowLastTopX.v1"
+        static let translationWindowLastTopY = "translationWindowLastTopY.v1"
+        // Kept for one-time migration from the previous bottom-left position format.
+        static let translationWindowLastOriginX = "translationWindowLastOriginX.v1"
+        static let translationWindowLastOriginY = "translationWindowLastOriginY.v1"
     }
 
     init(defaults: UserDefaults = .standard, keychain: KeychainCredentialStore = KeychainCredentialStore()) {
@@ -75,6 +94,26 @@ final class MarlaSettingsStore: ObservableObject {
             : storedSecondaryLanguage
         onboardingSkipped = defaults.bool(forKey: Keys.onboardingSkipped)
         ocrProvider = OCRProviderKind(rawValue: defaults.string(forKey: Keys.ocrProvider) ?? "") ?? .vision
+        translationWindowPlacement = TranslationWindowPlacement(
+            rawValue: defaults.string(forKey: Keys.translationWindowPlacement) ?? ""
+        ) ?? .followMouse
+        let fixedX = defaults.object(forKey: Keys.translationWindowFixedX) as? Double
+        translationWindowFixedX = CGFloat(
+            fixedX.flatMap { $0.isFinite ? $0 : nil }
+                ?? Double(TranslationWindowPlacement.defaultFixedX)
+        )
+        translationWindowWidthPreset = TranslationWindowWidthPreset(
+            rawValue: defaults.string(forKey: Keys.translationWindowWidthPreset) ?? ""
+        ) ?? .narrow
+        let lastX = (defaults.object(forKey: Keys.translationWindowLastTopX) as? Double)
+            ?? (defaults.object(forKey: Keys.translationWindowLastOriginX) as? Double)
+        let lastY = (defaults.object(forKey: Keys.translationWindowLastTopY) as? Double)
+            ?? (defaults.object(forKey: Keys.translationWindowLastOriginY) as? Double)
+        if let lastX, let lastY, lastX.isFinite, lastY.isFinite {
+            translationWindowLastTopLeft = CGPoint(x: lastX, y: lastY)
+        } else {
+            translationWindowLastTopLeft = nil
+        }
         settingsNavigationDestination = nil
         saveProfiles()
         saveDefaultProfileID()
@@ -82,6 +121,13 @@ final class MarlaSettingsStore: ObservableObject {
     }
 
     var defaultTarget: TranslationTarget { .automatic }
+
+    func rememberTranslationWindowTopLeft(_ topLeft: CGPoint) {
+        guard topLeft.x.isFinite, topLeft.y.isFinite else { return }
+        translationWindowLastTopLeft = topLeft
+        defaults.set(Double(topLeft.x), forKey: Keys.translationWindowLastTopX)
+        defaults.set(Double(topLeft.y), forKey: Keys.translationWindowLastTopY)
+    }
 
     func setNativeLanguage(_ language: TranslationLanguage) {
         guard language != secondaryLanguage else { return }

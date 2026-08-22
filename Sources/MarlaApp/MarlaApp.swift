@@ -347,11 +347,11 @@ struct RecentTranslationsSection: View {
                                 .foregroundStyle(DesignTokens.accent)
                                 .frame(width: 18)
                             VStack(alignment: .leading, spacing: 2) {
-                                Text(recent.translation)
+                                Text(recent.displayTranslation)
                                     .font(AppFont.caption)
                                     .foregroundStyle(DesignTokens.primaryText)
                                     .lineLimit(1)
-                                Text(recent.sourceText)
+                                Text(recent.displaySourceText)
                                     .font(AppFont.micro)
                                     .foregroundStyle(DesignTokens.secondaryText)
                                     .lineLimit(1)
@@ -369,7 +369,7 @@ struct RecentTranslationsSection: View {
                     }
                     .buttonStyle(.plain)
                     .help("重新打开这条译文")
-                    .accessibilityLabel("最近翻译：\(recent.translation)")
+                    .accessibilityLabel("最近翻译：\(recent.displayTranslation)")
                 }
             }
         }

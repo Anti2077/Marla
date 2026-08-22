@@ -8,6 +8,7 @@ struct TranslationCardView: View {
     @ObservedObject private var layout: ResultPanelLayoutModel
     let onClose: () -> Void
     let onRecovery: (CardRecoveryAction) -> Void
+    let onWidthPresetChange: ((TranslationWindowWidthPreset) -> Void)?
     @Environment(\.accessibilityReduceMotion) private var systemReduceMotion
     @Environment(\.marlaReduceMotionOverride) private var reduceMotionOverride
 
@@ -15,6 +16,7 @@ struct TranslationCardView: View {
         store: TranslationSessionStore,
         onClose: @escaping () -> Void,
         onRecovery: @escaping (CardRecoveryAction) -> Void,
+        onWidthPresetChange: ((TranslationWindowWidthPreset) -> Void)? = nil,
         cardWidth: CGFloat = ResultCardLayout.defaultWidth,
         maximumPanelHeight: CGFloat = .greatestFiniteMagnitude,
         layout: ResultPanelLayoutModel? = nil
@@ -22,6 +24,7 @@ struct TranslationCardView: View {
         self.store = store
         self.onClose = onClose
         self.onRecovery = onRecovery
+        self.onWidthPresetChange = onWidthPresetChange
         self.layout = layout ?? ResultPanelLayoutModel(
             width: cardWidth,
             maximumPanelHeight: maximumPanelHeight
@@ -333,6 +336,12 @@ struct TranslationCardView: View {
             }
             .buttonStyle(.borderless)
             .help("切换原文对照")
+            if let onWidthPresetChange {
+                WidthPresetHoverControl(
+                    selected: nearestWidthPreset,
+                    onSelect: onWidthPresetChange
+                )
+            }
             Spacer()
             copyControl(session)
             Button { store.retry() } label: { Image(systemName: "arrow.clockwise") }
@@ -349,6 +358,12 @@ struct TranslationCardView: View {
         }
         .font(AppFont.caption)
         .foregroundStyle(DesignTokens.secondaryText)
+    }
+
+    private var nearestWidthPreset: TranslationWindowWidthPreset {
+        TranslationWindowWidthPreset.allCases.min {
+            abs($0.width - cardWidth) < abs($1.width - cardWidth)
+        } ?? .narrow
     }
 
     @ViewBuilder
@@ -389,6 +404,92 @@ struct TranslationCardView: View {
 
     private func speak(_ text: String) {
         SpeechCoordinator.shared.speak(text)
+    }
+}
+
+private struct WidthPresetHoverControl: View {
+    let selected: TranslationWindowWidthPreset
+    let onSelect: (TranslationWindowWidthPreset) -> Void
+    @State private var isPopoverPresented = false
+    @State private var isHoveringButton = false
+    @State private var isHoveringPopover = false
+    @State private var hideTask: Task<Void, Never>?
+
+    var body: some View {
+        Button {
+            isPopoverPresented.toggle()
+        } label: {
+            Image(systemName: "arrow.left.and.right")
+        }
+        .buttonStyle(.borderless)
+        .frame(width: 28, height: 28)
+        .help("窗口宽度：\(selected.title)")
+        .onHover { hovering in
+            isHoveringButton = hovering
+            if hovering {
+                cancelHide()
+                isPopoverPresented = true
+            } else {
+                scheduleHide()
+            }
+        }
+        .popover(isPresented: $isPopoverPresented, arrowEdge: .bottom) {
+            HStack(spacing: DesignTokens.spaceXS) {
+                ForEach(TranslationWindowWidthPreset.allCases) { preset in
+                    Button {
+                        onSelect(preset)
+                        isPopoverPresented = false
+                    } label: {
+                        VStack(spacing: 3) {
+                            Image(systemName: symbolName(for: preset))
+                                .font(.system(size: 12, weight: .medium))
+                            Text(preset.title)
+                                .font(AppFont.caption)
+                        }
+                        .frame(width: 48, height: 42)
+                        .foregroundStyle(preset == selected ? DesignTokens.accent : DesignTokens.primaryText)
+                        .background(
+                            RoundedRectangle(cornerRadius: DesignTokens.radiusS)
+                                .fill(preset == selected ? DesignTokens.accent.opacity(0.12) : .clear)
+                        )
+                    }
+                    .buttonStyle(.borderless)
+                    .accessibilityLabel("窗口宽度：\(preset.title)")
+                }
+            }
+            .padding(DesignTokens.spaceS)
+            .onHover { hovering in
+                isHoveringPopover = hovering
+                if hovering {
+                    cancelHide()
+                } else {
+                    scheduleHide()
+                }
+            }
+        }
+        .onDisappear { hideTask?.cancel() }
+    }
+
+    private func symbolName(for preset: TranslationWindowWidthPreset) -> String {
+        switch preset {
+        case .narrow: "rectangle.compress.horizontal"
+        case .medium: "rectangle"
+        case .wide: "rectangle.expand.horizontal"
+        }
+    }
+
+    private func scheduleHide() {
+        hideTask?.cancel()
+        hideTask = Task { @MainActor in
+            try? await Task.sleep(for: .milliseconds(180))
+            guard !isHoveringButton, !isHoveringPopover else { return }
+            isPopoverPresented = false
+        }
+    }
+
+    private func cancelHide() {
+        hideTask?.cancel()
+        hideTask = nil
     }
 }
 

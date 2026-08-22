@@ -168,6 +168,50 @@ struct SettingsView: View {
                 }
             }
 
+            SettingsSection(title: "翻译窗口位置", systemImage: "macwindow") {
+                Picker("出现位置", selection: $settings.translationWindowPlacement) {
+                    ForEach(TranslationWindowPlacement.allCases) { placement in
+                        Text(placement.title).tag(placement)
+                    }
+                }
+                .pickerStyle(.menu)
+                .frame(maxWidth: .infinity, alignment: .leading)
+
+                Text(settings.translationWindowPlacement.detail)
+                    .font(AppFont.caption)
+                    .foregroundStyle(DesignTokens.secondaryText)
+                    .fixedSize(horizontal: false, vertical: true)
+
+                if settings.translationWindowPlacement == .rememberLastPosition {
+                    Label("拖动翻译窗口后，下次会从这个位置打开。", systemImage: "arrow.up.and.down.and.arrow.left.and.right")
+                        .font(AppFont.caption)
+                        .foregroundStyle(DesignTokens.secondaryText)
+                }
+
+                if settings.translationWindowPlacement == .fixedXCentered {
+                    HStack(spacing: DesignTokens.spaceM) {
+                        Text("固定 X 坐标")
+                            .font(AppFont.body)
+                        Spacer()
+                        TextField(
+                            "X",
+                            value: Binding(
+                                get: { Double(settings.translationWindowFixedX) },
+                                set: { settings.translationWindowFixedX = CGFloat($0.isFinite ? $0 : 0) }
+                            ),
+                            format: .number.precision(.fractionLength(0...1))
+                        )
+                        .textFieldStyle(.roundedBorder)
+                        .frame(width: 110)
+                        .accessibilityLabel("固定 X 坐标")
+                        Text("pt")
+                            .font(AppFont.caption)
+                            .foregroundStyle(DesignTokens.secondaryText)
+                    }
+                    .frame(minHeight: 32)
+                }
+            }
+
             SettingsSection(title: "受保护取词", systemImage: "doc.on.clipboard") {
                 Label("模拟 Copy 获取完整选区格式", systemImage: "checkmark.shield")
                     .font(AppFont.body)

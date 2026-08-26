@@ -1,6 +1,6 @@
 # Project Status
 
-Last updated: 2026-08-23
+Last updated: 2026-08-26
 
 Development stage: Incubation / Unreleased
 
@@ -8,7 +8,9 @@ Release target: None. A version is assigned only when the project owner explicit
 
 Overall state: In Progress — unversioned product incubation; no active release contract
 
-Active task: None
+Active task: [`TASK-036`](../tasks/TASK-036-product-homepage-prototype.md) — 构建符合 Marla 产品定位的官网首页原型
+
+TASK-036 官网首页原型已完成实现与 Agent 验证，保持 Active 等待项目所有者视觉确认。独立 `website/` 工程使用 React、Vite、Geist、Lucide 和 GSAP ScrollTrigger，以 Paper Lantern、真实 App 画面和已实现能力解释 Marla 的原地翻译体验；375/768/1024/1440px 均无横向溢出且 Hero 保持两行，Reduce Motion 无滚动固定，控制台无 warning/error。`npm run lint`、`npm run build`、`git diff --check` 和仓库级 `./scripts/check.sh` 全部通过；三条试机入口已有真实截图 fallback、可替换视频组件与脱敏录屏规格，真实录屏仍需项目所有者确认测试内容和仓库持久化边界。原生 App、发布版本、下载承诺、定价、用户量和未经验证的隐私/合作声明均未改变或新增。
 
 TASK-035 已完成：快捷键设置使用 `fn / ⇧ / ⌃ / ⌥ / ⌘` 修饰键切换与 32pt 单主键单元，编辑器直接位于每行操作名称和启用开关之间的留白，不打开 popover、sheet 或额外窗口；同一时间只展开一行。默认键位为划词 `⌃⇧D`、截图 `⌃⇧S`、快速输入 `⌃⇧Space`；完整旧默认配置会迁移，自定义配置保持不变；Fn/Globe 继续复用 Carbon 全局热键路径，不新增持续全局监听或权限。macOS 26 使用折叠 `.regular.interactive()`、展开 `.regular` 和 0.32 秒 matched geometry 将快捷键 chip 融合为固定 332×32pt 编辑条；Reduce Motion 使用 identity transition 并关闭短状态动画。最终折叠、D 展开和 Space 展开均保持 820×592；主键与修饰键共用 20pt 内容高度，外层 capsule 以 4pt 上下内边距形成连续玻璃边框，主键捕获态为居中 `ellipsis`，应用键为 24pt 圆形。无效或注册失败时确认键显示感叹号，独立 hover 命中层以 0 秒延迟同步显示具体原因。浅色、深色和 Reduce Motion 五维复审均为 8/8/9/9/8；完整检查与固定签名 App 已通过。实体 Fn/Globe 触发仍取决于具体键盘和系统 Globe 设置，不声明为已现场验证。
 
@@ -40,7 +42,7 @@ Blocked tasks: None.
 
 ## Current objective
 
-当前没有 Active implementation Task。下一项产品实现、修复或验证工作仍必须由项目所有者从直接请求、Ideas、Backlog 或证据缺口中明确选择，Agent 不自动从旧 `0.1.0` 草案或 Roadmap 提升工作。
+当前 Active implementation Task 为 TASK-036，由项目所有者从直接请求明确选择。官网原型必须与原生 App 隔离，并以当前产品定义、品牌边界和真实实现为准；旧 `0.1.0` 草案或 Roadmap 不提升额外范围。
 
 TASK-023 已完成整体代码审查、自动化验证与固定 Release 测试 App 交付：Rust 翻译与模型列表取消从 10ms 轮询改为事件驱动唤醒，SSE 单个未完成帧增加 1 MiB 内存上限，严格 Clippy 与 shell 语法检查纳入统一验证，5 个公开 unsafe FFI 函数补齐安全合同；`artifacts/Marla_dev.app` 已重建并通过稳定签名验证。
 

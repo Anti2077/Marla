@@ -2,6 +2,8 @@
 .swiftpm/
 target/
 DerivedData/
+website/node_modules/
+website/dist/
 artifacts/
 *.xcuserstate
 xcuserdata/

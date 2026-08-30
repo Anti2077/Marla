@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useGSAP } from "@gsap/react";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
@@ -6,7 +6,6 @@ import {
   ArrowDown,
   ArrowLeft,
   ArrowRight,
-  Check,
   Command,
   Languages,
   ScanText,
@@ -15,11 +14,6 @@ import {
 } from "lucide-react";
 
 import logoUrl from "../../Resources/Brand/PaperLantern/logo.svg";
-import resultCardUrl from "../../artifacts/ui-review/task-028/markdown-final-light-760.png";
-import quickInputUrl from "../../artifacts/ui-review/quick-input-0135-light.png";
-import shortcutsUrl from "../../artifacts/ui-review/task-035/shortcuts-editor-light.png";
-import selectionResultUrl from "../../artifacts/ui-review/task-019/result-card-light.png";
-import screenshotSelectionUrl from "../../artifacts/ui-review/task-007/screenshot-magnifier-dark.png";
 
 gsap.registerPlugin(useGSAP, ScrollTrigger);
 
@@ -72,16 +66,68 @@ function scrollToId(id) {
   document.getElementById(id)?.scrollIntoView({ behavior: "smooth" });
 }
 
-function DemoMedia({ poster, videoSrc }) {
-  if (videoSrc) {
-    return (
-      <video autoPlay loop muted playsInline poster={poster} aria-label="真实 Marla App 试机演示">
-        <source src={videoSrc} type="video/mp4" />
-      </video>
-    );
-  }
+function MediaStage({ label, ratio = "7:5", sourceLabel, resultLabel, detail }) {
+  return (
+    <div className="media-stage" style={{ "--stage-ratio": ratio.replace(":", " / ") }} role="img" aria-label={`${label}演示素材预留位，建议比例 ${ratio}`}>
+      <div className="media-stage-grid" aria-hidden="true" />
+      <div className="media-stage-header">
+        <span>{label}</span>
+        <span>{ratio}</span>
+      </div>
+      <div className="media-stage-flow" aria-hidden="true">
+        <div className="media-source-frame">
+          <span className="media-frame-kicker">SOURCE</span>
+          <span>{sourceLabel}</span>
+        </div>
+        <span className="media-flow-line" />
+        <div className="media-result-frame">
+          <span className="media-frame-kicker">RESULT</span>
+          <span>{resultLabel}</span>
+        </div>
+      </div>
+      <div className="media-stage-footer">
+        <span className="media-stage-dot" aria-hidden="true" />
+        <span>{detail}</span>
+        <span className="media-stage-reserved">Footage reserved</span>
+      </div>
+    </div>
+  );
+}
 
-  return <img src={poster} alt="" loading="lazy" />;
+function HeroMediaStage() {
+  return (
+    <div className="hero-stage" role="img" aria-label="Marla 原地翻译演示素材预留位，建议比例 5 比 4">
+      <div className="hero-stage-grid" aria-hidden="true" />
+      <div className="hero-stage-window" aria-hidden="true">
+        <div className="hero-stage-toolbar" aria-hidden="true">
+          <span />
+          <span />
+          <span />
+          <small>Marla / reading context</small>
+        </div>
+        <div className="hero-stage-copy" aria-hidden="true">
+          <span className="hero-stage-line line-long" />
+          <span className="hero-stage-line line-medium" />
+          <span className="hero-stage-line line-short" />
+          <span className="hero-stage-selection" />
+          <span className="hero-stage-trigger">⌃⇧D</span>
+        </div>
+        <span className="hero-stage-signal" aria-hidden="true" />
+        <div className="hero-stage-result" aria-hidden="true">
+          <span className="hero-stage-result-mark" />
+          <div>
+            <span className="hero-stage-result-title">Translation nearby</span>
+            <span className="hero-stage-result-line" />
+            <span className="hero-stage-result-line short" />
+          </div>
+        </div>
+      </div>
+      <div className="hero-stage-caption">
+        <span>Hero media stage</span>
+        <span>5:4 · real footage later</span>
+      </div>
+    </div>
+  );
 }
 
 function App() {
@@ -89,94 +135,249 @@ function App() {
   const [activeEntry, setActiveEntry] = useState(0);
   const [principleIndex, setPrincipleIndex] = useState(0);
 
+  useEffect(() => {
+    const marquee = root.current?.querySelector(".capability-marquee");
+    if (!marquee) return undefined;
+
+    const pauseWhenHidden = () => {
+      marquee.classList.toggle("is-paused", document.visibilityState !== "visible");
+    };
+    const observer = new IntersectionObserver(
+      ([entry]) => marquee.classList.toggle("is-paused", !entry.isIntersecting),
+      { threshold: 0 },
+    );
+
+    observer.observe(marquee);
+    document.addEventListener("visibilitychange", pauseWhenHidden);
+    pauseWhenHidden();
+
+    return () => {
+      observer.disconnect();
+      document.removeEventListener("visibilitychange", pauseWhenHidden);
+    };
+  }, []);
+
   useGSAP(
     () => {
-      const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-
-      if (reduceMotion) {
-        gsap.set(".hero-reveal, .bento-card, .story-card", {
-          clearProps: "all",
-          opacity: 1,
-          y: 0,
-          scale: 1,
-        });
-        return;
-      }
-
-      const intro = gsap.timeline({ defaults: { ease: "power3.out" } });
-      intro
-        .from(".hero-reveal", {
-          opacity: 0,
-          y: 32,
-          duration: 0.9,
-          stagger: 0.09,
-        })
-        .from(
-          ".hero-product",
-          { opacity: 0, y: 48, scale: 0.96, duration: 1.1 },
-          "-=0.55",
-        );
-
-      gsap.from(".bento-card", {
-        opacity: 0,
-        y: 36,
-        scale: 0.96,
-        duration: 0.7,
-        stagger: 0.08,
-        ease: "power3.out",
-        scrollTrigger: {
-          trigger: ".bento-grid",
-          start: "top 78%",
+      const media = gsap.matchMedia();
+      media.add(
+        {
+          reduceMotion: "(prefers-reduced-motion: reduce)",
+          desktop: "(min-width: 960px)",
         },
-      });
+        (context) => {
+          const { reduceMotion, desktop } = context.conditions;
 
-      const desktop = gsap.matchMedia();
-      desktop.add("(min-width: 960px)", () => {
-        ScrollTrigger.create({
-          trigger: ".story-layout",
-          start: "top 112px",
-          end: "bottom bottom-=80",
-          pin: ".story-copy",
-          pinSpacing: false,
-        });
+          gsap.set(".hero-reveal, .hero-product, .bento-card, .story-card", {
+            autoAlpha: 1,
+            y: 0,
+            scale: 1,
+          });
 
-        gsap.utils.toArray(".story-card").forEach((card, index) => {
-          gsap.fromTo(
-            card,
-            { y: 84, scale: 0.94, opacity: 0.38 },
-            {
-              y: 0,
-              scale: 1,
-              opacity: 1,
-              ease: "none",
-              scrollTrigger: {
-                trigger: card,
-                start: "top 88%",
-                end: "top 42%",
-                scrub: 0.8,
-              },
+          if (reduceMotion) return;
+
+          const intro = gsap.timeline({ defaults: { ease: "power3.out" } });
+          intro
+            .from(".hero-reveal", {
+              autoAlpha: 0,
+              y: 24,
+              duration: 0.7,
+              stagger: 0.08,
+            })
+            .from(
+              ".hero-product",
+              { autoAlpha: 0, y: 36, scale: 0.94, duration: 0.95 },
+              "-=0.48",
+            )
+            .from(
+              ".hero-stage-window, .hero-stage-caption",
+              { autoAlpha: 0, y: 18, duration: 0.7, stagger: 0.08 },
+              "-=0.58",
+            );
+
+          const heroSignal = gsap.timeline({ repeat: -1, repeatDelay: 2.8 });
+          heroSignal
+            .to(".hero-stage-selection", {
+              boxShadow: "0 0 0 5px rgba(58, 111, 150, 0.08)",
+              duration: 0.32,
+              ease: "power2.out",
+            })
+            .to(
+              ".hero-stage-signal",
+              { autoAlpha: 0.9, scaleX: 1, duration: 0.58, ease: "power2.inOut" },
+              "-=0.08",
+            )
+            .to(
+              ".hero-stage-result",
+              { y: -5, duration: 0.36, ease: "power2.out" },
+              "-=0.1",
+            )
+            .to(".hero-stage-result", { y: 0, duration: 0.42, ease: "power2.inOut" })
+            .to(
+              ".hero-stage-signal",
+              { autoAlpha: 0.18, scaleX: 0, duration: 0.42, ease: "power2.in" },
+              "-=0.24",
+            )
+            .to(".hero-stage-selection", { boxShadow: "none", duration: 0.28 }, "-=0.28");
+
+          gsap.from(".bento-card", {
+            autoAlpha: 0,
+            y: 16,
+            duration: 0.5,
+            stagger: 0.08,
+            ease: "power2.out",
+            scrollTrigger: {
+              trigger: ".bento-grid",
+              start: "top 78%",
+              toggleActions: "play none none reverse",
             },
-          );
+          });
 
-          if (index < storyCards.length - 1) {
-            gsap.to(card, {
-              scale: 0.96,
-              opacity: 0.58,
+          gsap.from(".media-stage-flow > *", {
+            autoAlpha: 0,
+            y: 10,
+            duration: 0.45,
+            stagger: 0.1,
+            ease: "power2.out",
+            scrollTrigger: {
+              trigger: ".entry-accordion",
+              start: "top 78%",
+              toggleActions: "play none none reverse",
+            },
+          });
+
+          gsap.from(".experience .section-heading", {
+            autoAlpha: 0,
+            y: 22,
+            duration: 0.62,
+            stagger: 0.08,
+            ease: "power2.out",
+            scrollTrigger: {
+              trigger: ".experience",
+              start: "top 82%",
+              toggleActions: "play none none reverse",
+            },
+          });
+
+          gsap.from(".closing > img, .closing > h2, .closing > p, .closing-actions", {
+            autoAlpha: 0,
+            y: 22,
+            duration: 0.62,
+            stagger: 0.08,
+            ease: "power2.out",
+            scrollTrigger: {
+              trigger: ".closing",
+              start: "top 78%",
+              toggleActions: "play none none reverse",
+            },
+          });
+
+          if (desktop) {
+            gsap.to(".hero-product", {
+              yPercent: -5,
+              scale: 0.975,
               ease: "none",
               scrollTrigger: {
-                trigger: card,
-                start: "bottom 48%",
-                end: "bottom 18%",
+                trigger: ".hero",
+                start: "top top",
+                end: "bottom top",
                 scrub: 0.8,
               },
             });
-          }
-        });
-      });
 
-      return () => desktop.revert();
+            gsap.fromTo(
+              ".hero-stage-selection",
+              { x: -10, autoAlpha: 0.25 },
+              {
+                x: 0,
+                autoAlpha: 0.9,
+                duration: 0.7,
+                ease: "power2.out",
+                delay: 0.5,
+              },
+            );
+            gsap.fromTo(
+              ".story-copy",
+              { autoAlpha: 0.45, x: -18 },
+              {
+                autoAlpha: 1,
+                x: 0,
+                ease: "none",
+                scrollTrigger: {
+                  trigger: ".story-layout",
+                  start: "top 80%",
+                  end: "top 42%",
+                  scrub: 0.7,
+                },
+              },
+            );
+            ScrollTrigger.create({
+              trigger: ".story-layout",
+              start: "top 112px",
+              end: "bottom bottom-=80",
+              pin: ".story-copy",
+              pinSpacing: false,
+            });
+
+            gsap.utils.toArray(".story-card").forEach((card, index) => {
+              gsap.fromTo(
+                card,
+                { y: 84, scale: 0.94, autoAlpha: 0.38 },
+                {
+                  y: 0,
+                  scale: 1,
+                  autoAlpha: 1,
+                  ease: "none",
+                  scrollTrigger: {
+                    trigger: card,
+                    start: "top 88%",
+                    end: "top 42%",
+                    scrub: 0.8,
+                  },
+                },
+              );
+
+              if (index < storyCards.length - 1) {
+                gsap.to(card, {
+                  scale: 0.96,
+                  autoAlpha: 0.58,
+                  ease: "none",
+                  scrollTrigger: {
+                    trigger: card,
+                    start: "bottom 48%",
+                    end: "bottom 18%",
+                    scrub: 0.8,
+                  },
+                });
+              }
+            });
+          }
+        },
+      );
+
+      return () => media.revert();
     },
     { scope: root },
+  );
+
+  useGSAP(
+    () => {
+      const activePanel = root.current?.querySelector(`.entry-panel:nth-child(${activeEntry + 1})`);
+      const content = activePanel?.querySelector(".entry-visual");
+      if (!content || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+
+      gsap.fromTo(
+        content,
+        { autoAlpha: 0.2, y: 14 },
+        { autoAlpha: 1, y: 0, duration: 0.48, ease: "power2.out", overwrite: "auto" },
+      );
+      gsap.fromTo(
+        content.querySelectorAll(".media-stage-header, .media-stage-flow, .media-stage-footer"),
+        { autoAlpha: 0, y: 10 },
+        { autoAlpha: 1, y: 0, duration: 0.42, stagger: 0.06, ease: "power2.out", overwrite: "auto" },
+      );
+    },
+    { scope: root, dependencies: [activeEntry], revertOnUpdate: true },
   );
 
   const changePrinciple = (direction) => {
@@ -226,17 +427,11 @@ function App() {
           </div>
         </div>
 
-        <div className="hero-product" aria-label="Marla 结构化翻译结果的真实 App 画面">
+        <div className="hero-product">
           <div className="product-halo" aria-hidden="true" />
-          <img
-            className="hero-screenshot"
-            src={resultCardUrl}
-            alt="Marla 快速输入结果窗口，译文保留标题、列表、表格、链接和代码块"
-            width="1520"
-            height="1224"
-          />
+          <HeroMediaStage />
           <div className="product-note note-left">
-            <Check aria-hidden="true" size={16} />
+            <span className="note-mark" aria-hidden="true" />
             靠近原文
           </div>
           <div className="product-note note-right">
@@ -276,22 +471,22 @@ function App() {
               title: "划词",
               caption: "选中文字，按下快捷键。",
               detail: "从网页、邮件、终端或聊天里触发，完整译文在原文附近流式生长。",
-              image: selectionResultUrl,
               icon: Languages,
+              stage: { sourceLabel: "网页段落", resultLabel: "附近结果卡", detail: "触发后靠近原文" },
             },
             {
               title: "截图",
               caption: "框出只需要理解的部分。",
               detail: "Vision 默认在本机识别；只有明确切换云端 OCR 时才上传选中的裁剪区域。",
-              image: screenshotSelectionUrl,
               icon: ScanText,
+              stage: { sourceLabel: "屏幕裁剪", resultLabel: "识别与译文", detail: "只处理选中区域" },
             },
             {
               title: "输入",
               caption: "没有现成原文时，直接写。",
               detail: "Quick Input 接收普通文本与结构化 Markdown，适合临时句子和短篇内容。",
-              image: quickInputUrl,
               icon: Command,
+              stage: { sourceLabel: "Markdown 输入", resultLabel: "结构化译文", detail: "内容层级保留" },
             },
           ].map((entry, index) => {
             const Icon = entry.icon;
@@ -318,7 +513,12 @@ function App() {
                   <ArrowRight aria-hidden="true" size={20} />
                 </button>
                 <div className="entry-visual">
-                  <DemoMedia poster={entry.image} videoSrc={entry.video} />
+                  <MediaStage
+                    label={`${entry.title}翻译`}
+                    sourceLabel={entry.stage.sourceLabel}
+                    resultLabel={entry.stage.resultLabel}
+                    detail={entry.stage.detail}
+                  />
                   <p>{entry.detail}</p>
                 </div>
               </article>
@@ -340,12 +540,12 @@ function App() {
               <p>标题、列表、引用、表格、链接和代码，在完成态继续保留阅读层级。</p>
             </div>
             <div className="bento-media">
-              <img
-                src={resultCardUrl}
-                alt="Marla 译文中的标题、列表、表格与代码块"
-                loading="lazy"
-                width="1520"
-                height="1224"
+              <MediaStage
+                label="结构化 Markdown"
+                ratio="5:4"
+                sourceLabel="标题 / 列表 / 表格"
+                resultLabel="保留阅读层级"
+                detail="完成态仍然可读"
               />
             </div>
           </article>
@@ -353,7 +553,12 @@ function App() {
             <span className="feature-icon"><Command aria-hidden="true" size={20} /></span>
             <h3>快捷键属于你</h3>
             <p>划词、截图、快速输入各自可配置，触发路径保持原生而明确。</p>
-            <img src={shortcutsUrl} alt="Marla 快捷键设置" loading="lazy" />
+            <MediaStage
+              label="快捷键设置"
+              sourceLabel="划词 / 截图 / 输入"
+              resultLabel="你的触发路径"
+              detail="配置界面预留位"
+            />
           </article>
           <article className="bento-card bento-half bento-warm" id="privacy">
             <span className="feature-icon"><ShieldCheck aria-hidden="true" size={20} /></span>

@@ -1,6 +1,6 @@
 # Project Status
 
-Last updated: 2026-08-26
+Last updated: 2026-08-30
 
 Development stage: Incubation / Unreleased
 
@@ -10,7 +10,7 @@ Overall state: In Progress — unversioned product incubation; no active release
 
 Active task: [`TASK-036`](../tasks/TASK-036-product-homepage-prototype.md) — 构建符合 Marla 产品定位的官网首页原型
 
-TASK-036 官网首页原型已完成实现与 Agent 验证，保持 Active 等待项目所有者视觉确认。独立 `website/` 工程使用 React、Vite、Geist、Lucide 和 GSAP ScrollTrigger，以 Paper Lantern、真实 App 画面和已实现能力解释 Marla 的原地翻译体验；375/768/1024/1440px 均无横向溢出且 Hero 保持两行，Reduce Motion 无滚动固定，控制台无 warning/error。`npm run lint`、`npm run build`、`git diff --check` 和仓库级 `./scripts/check.sh` 全部通过；三条试机入口已有真实截图 fallback、可替换视频组件与脱敏录屏规格，真实录屏仍需项目所有者确认测试内容和仓库持久化边界。原生 App、发布版本、下载承诺、定价、用户量和未经验证的隐私/合作声明均未改变或新增。
+TASK-036 官网首页原型在 2026-08-30 按项目所有者确认的视觉方向继续升级：独立 `website/` 工程使用 React、Vite、Geist、Lucide 和 GSAP ScrollTrigger，以 Paper Lantern 和固定比例空媒体舞台解释 Marla 的原地翻译体验；旧实机截图已从页面移除，真实录屏留待项目所有者以后补充。Hero 使用 5:4 舞台，三条入口使用 7:5 舞台，Markdown 使用 5:4，快捷键使用 7:5；Hero 入场、低频“选区→关系线→附近结果”信号、轻量桌面视差、入口切换反馈、媒体流动线、Bento/故事 hover、Bento/体验/底部 reveal 和桌面故事 pin/stack 均已接入，移动端不固定不重叠，Reduce Motion 无滚动固定且停在可读终态。网页 `npm run lint`、`npm run build`、`git diff --check` 通过；浏览器 1440px 检查确认 5 个媒体位、旧截图引用为 0、入口切换只有一个内容舞台可见、控制台无 warning/error，375px 检查确认 `scrollWidth` 等于视口宽度且 pin spacer 为 0，Reduce Motion 检查确认内容可见、pin spacer 为 0 且无横向溢出。原生 App、发布版本、下载承诺、定价、用户量和未经验证的隐私/合作声明均未改变或新增。
 
 TASK-035 已完成：快捷键设置使用 `fn / ⇧ / ⌃ / ⌥ / ⌘` 修饰键切换与 32pt 单主键单元，编辑器直接位于每行操作名称和启用开关之间的留白，不打开 popover、sheet 或额外窗口；同一时间只展开一行。默认键位为划词 `⌃⇧D`、截图 `⌃⇧S`、快速输入 `⌃⇧Space`；完整旧默认配置会迁移，自定义配置保持不变；Fn/Globe 继续复用 Carbon 全局热键路径，不新增持续全局监听或权限。macOS 26 使用折叠 `.regular.interactive()`、展开 `.regular` 和 0.32 秒 matched geometry 将快捷键 chip 融合为固定 332×32pt 编辑条；Reduce Motion 使用 identity transition 并关闭短状态动画。最终折叠、D 展开和 Space 展开均保持 820×592；主键与修饰键共用 20pt 内容高度，外层 capsule 以 4pt 上下内边距形成连续玻璃边框，主键捕获态为居中 `ellipsis`，应用键为 24pt 圆形。无效或注册失败时确认键显示感叹号，独立 hover 命中层以 0 秒延迟同步显示具体原因。浅色、深色和 Reduce Motion 五维复审均为 8/8/9/9/8；完整检查与固定签名 App 已通过。实体 Fn/Globe 触发仍取决于具体键盘和系统 Globe 设置，不声明为已现场验证。
 

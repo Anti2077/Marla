@@ -1,6 +1,6 @@
 # Marla Homepage Demo Assets
 
-The homepage should eventually use three short recordings of the real stable-signed development App. Until recording content and repository persistence are explicitly approved, the page uses existing verified screenshots as honest poster fallbacks.
+The homepage should eventually use three short recordings of the real stable-signed development App. Until recording content and repository persistence are explicitly approved, the page uses designed empty media stages with fixed ratios; it does not use screenshots as substitute evidence or simulate native App behavior.
 
 ## Delivery set
 
@@ -10,7 +10,21 @@ The homepage should eventually use three short recordings of the real stable-sig
 | Screenshot translation | 10–15 seconds | Trigger `⌃⇧S`, frame a small deterministic region with the loupe visible, then show the OCR wait state and nearby result. | `public/media/screenshot-translation.mp4` |
 | Quick Input + Markdown | 8–12 seconds | Open Quick Input, paste a short fixture containing a heading, list, table, link, and code, then show the structured completed result. | `public/media/quick-input-markdown.mp4` |
 
-Each MP4 needs a same-name `.webp` poster. The `DemoMedia` component in `src/App.jsx` renders the poster when no approved video source is configured, and `prefers-reduced-motion` should continue to use the static poster rather than autoplay.
+## Homepage slot ratios
+
+Use these ratios for the first approved export. Record a larger 16:10 desktop master when possible, and keep the important cursor, selection, loupe, source text, and result card inside the central square-safe area so the same take can be cropped for mobile.
+
+| Homepage slot | Desktop ratio | Suggested export | Notes |
+| --- | --- | --- | --- |
+| Hero media stage | 5:4 | 2000×1600 | Main product-context take; keep the reading surface and nearby result relationship visible. |
+| Selection / screenshot / Quick Input entries | 7:5 | 1680×1200 | One ratio for all three accordion panels; use the same dimensions for MP4 and WebP poster. |
+| Structured Markdown Bento | 5:4 | 1600×1280 | A completed-state still or a short close-up of headings, lists, tables, links, and code. |
+| Shortcut settings Bento | 7:5 | 1400×1000 | Keep the shortcut rows readable without showing account or personal settings. |
+| Mobile-safe crop | 1:1 | 1200×1200 | Central crop from the master; do not record a separate take unless the desktop composition cannot survive the crop. |
+
+The web stages reserve these ratios before any media is added, so replacing an empty stage with an approved clip does not change surrounding layout or cause a content shift.
+
+Each MP4 needs a same-name `.webp` poster. The current `MediaStage` components reserve the layout and can be replaced by an approved video plus poster without changing the surrounding page structure. `prefers-reduced-motion` should continue to use the static poster rather than autoplay.
 
 ## Capture setup
 
@@ -32,4 +46,4 @@ Each MP4 needs a same-name `.webp` poster. The `DemoMedia` component in `src/App
 
 ## Integration
 
-After the assets are approved, add the media under `website/public/media/`, set each entry's `video` field in `src/App.jsx`, and verify autoplay, looping, poster fallback, mobile cropping, and Reduce Motion in a real browser. The videos are demonstrations, not acceptance evidence for unverified providers or public release readiness.
+After the assets are approved, add the media under `website/public/media/`, replace the corresponding stage with a video-plus-poster media component, and verify autoplay, looping, poster fallback, mobile cropping, and Reduce Motion in a real browser. The videos are demonstrations, not acceptance evidence for unverified providers or public release readiness.

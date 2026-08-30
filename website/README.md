@@ -9,7 +9,7 @@ npm install
 npm run dev
 ```
 
-Vite prints the local URL after startup. The page imports the canonical Paper Lantern SVG and selected real App screenshots from the parent repository so the prototype stays aligned with current product evidence.
+Vite prints the local URL after startup. The page imports the canonical Paper Lantern SVG and uses fixed-ratio media stages reserved for future approved real App footage; it does not present screenshots or simulate native App behavior.
 
 ## Verify
 
@@ -20,4 +20,4 @@ npm run build
 
 The build emits static files under `website/dist/`. Motion respects the operating system's Reduce Motion preference through `prefers-reduced-motion` and GSAP media queries.
 
-The three product-entry media slots currently use verified App screenshots. See [`DEMO_ASSETS.md`](DEMO_ASSETS.md) for the privacy-safe recording plan and the filenames expected when real MP4 demonstrations are approved.
+The Hero, three product-entry slots, Markdown Bento, and shortcut card currently use designed empty stages. See [`DEMO_ASSETS.md`](DEMO_ASSETS.md) for the privacy-safe recording plan, ratios, and filenames expected when real MP4 demonstrations are approved.

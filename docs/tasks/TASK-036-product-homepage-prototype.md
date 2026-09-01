@@ -18,7 +18,7 @@ Conversation: 2026-08-26 Marla 精美产品首页
 
 ## Outcome
 
-仓库获得一个可独立运行的响应式官网首页原型。页面以 Paper Lantern 品牌和明确的演示素材舞台解释 Marla 的原地翻译体验；真实录屏与截图由项目所有者后续补充，当前页面不得用旧截图或网页伪动画冒充实机证据。页面需要提供经过桌面、移动端、键盘与 Reduce Motion 检查的实现证据，供项目所有者继续视觉迭代或决定是否正式部署。
+仓库获得一个可独立运行的响应式官网首页原型。页面以 Paper Lantern 品牌和真实桌面录屏解释 Marla 的原地翻译体验；Hero/Markdown 共用一份原地翻译素材，其余入口和快捷键各自独立。三个 1:1 移动端入口素材仍由项目所有者后续补充，期间页面诚实地完整显示桌面版本，不用旧截图或网页伪动画冒充实机证据。页面提供经过桌面、移动端、键盘与 Reduce Motion 检查的实现证据，供项目所有者继续视觉迭代或决定是否正式部署。
 
 ## Why now
 
@@ -28,7 +28,7 @@ Marla 已有稳定的产品定义、Paper Lantern 品牌和可展示的真实 Ap
 
 - 在 `website/` 下新增独立的 React + Vite 官网首页原型。
 - 使用 `gpt-taste` 规定的 AIDA 结构、真实 GSAP ScrollTrigger 动效和确定性视觉选择，并以 Marla 品牌边界覆盖不适用的泛用规则。
-- 使用 Paper Lantern 正式标志；当前以有明确比例、内容类型和替换边界的空媒体舞台代替旧 App 截图，不使用无关图库或网页模拟冒充产品。
+- 使用 Paper Lantern 正式标志和有明确比例、内容类型与替换边界的真实 App 视频；移动端成品缺失时完整显示桌面素材，不使用无关图库或网页模拟冒充产品。
 - 为 Hero、划词、截图、Quick Input、结构化 Markdown 和快捷键展示预留明确媒体位，并记录后续素材采集、静态封面、移动端裁切与 Reduce Motion fallback 规格。
 - 在不改变页面叙事和品牌边界的前提下升级 Hero、三入口、Bento 与滚动叙事的 GSAP 动效；动效只解释“明确触发、靠近原文、关闭后继续阅读”三项产品行为。
 - 首页准确呈现划词翻译、截图翻译、Quick Input、结构化 Markdown、Provider 自选和隐私边界。
@@ -51,10 +51,11 @@ Marla 已有稳定的产品定义、Paper Lantern 品牌和可展示的真实 Ap
 | 2026-08-26 | Project owner | 确认首页需要试机演示素材 | 本轮需提供真实截图降级和可替换媒体结构；真实录屏需另行确认测试内容与持久化边界 | Verified |
 | 2026-08-30 | Project owner | 确认当前视觉方向正确，要求继续升级网页、增加更好的动画，真实素材以后再补且当前留空 | 旧实机截图需全部退出页面；所有展示位改成高质感、固定比例且可直接替换的空媒体舞台；重新验证 GSAP、响应式、键盘与 Reduce Motion | Verified |
 | 2026-08-30 | Project owner | 先把当前 Task 保存为分支提交，后续继续制作，不合并到 `main` | 当前成果形成可恢复的分支检查点；TASK-036 保持 Active，不执行 merge 或 push | Verified |
-| 2026-09-01 | Project owner | 重新激活 TASK-036，并明确全部待录制素材 | 在专用分支同步最新原生 App 基线；素材计划收敛为 3 段视频母版和 1 张快捷键设置截图，覆盖 6 个网页展示位；仍不把 TASK-036 合并到 `main` | Active |
-| 2026-09-01 | Project owner | 不以减少工作量为目标；每个展示位独立制作视频，快捷键设置也必须展示真实动画 | 修正上一条复用方案：交付 6 段独立桌面视频，三入口另有 3 段 1:1 移动剪辑，共 9 个 MP4 和 9 个同名 WebP poster；快捷键覆盖展开、互斥切换和收拢 | Active |
+| 2026-09-01 | Project owner | 重新激活 TASK-036，并明确全部待录制素材 | 在专用分支同步最新原生 App 基线；素材计划收敛为 3 段视频母版和 1 张快捷键设置截图，覆盖 6 个网页展示位；仍不把 TASK-036 合并到 `main` | Superseded |
+| 2026-09-01 | Project owner | 不以减少工作量为目标；每个展示位独立制作视频，快捷键设置也必须展示真实动画 | 修正上一条复用方案：交付 6 段独立桌面视频，三入口另有 3 段 1:1 移动剪辑，共 9 个 MP4 和 9 个同名 WebP poster；快捷键覆盖展开、互斥切换和收拢 | Superseded |
 | 2026-09-01 | Project owner | 建立专用素材目录并提供统一命名规则 | 审核通过的网页成品放入 `website/public/media/desktop/`、`mobile/` 和 `posters/`；命名采用 `marla-{scene}--{variant}-{ratio}.{ext}`，原始录屏不进入仓库 | Active |
 | 2026-09-01 | Project owner | 将素材说明做成中文 | `website/DEMO_ASSETS.md`、`website/public/media/README.md` 和网站运行说明使用中文正文；技术标识、路径与 ASCII 文件名规则保持不变 | Verified |
+| 2026-09-01 | Project owner | 桌面视频已经录制，接入网页；Hero 与结构化 Markdown 视为同一份素材 | 将 5 个唯一桌面母版转为 30fps H.264 和同名 WebP，覆盖 6 个展示位；Hero/Markdown 共用同一 URL，移动端素材保持待补；验证视口播放、入口互斥、播放控制和 Reduce Motion | Verified |
 
 ## Current evidence
 
@@ -62,14 +63,14 @@ Marla 已有稳定的产品定义、Paper Lantern 品牌和可展示的真实 Ap
 - 仓库没有 `package.json` 或现成网页工程。
 - `PRODUCT.md`、`UX_PRINCIPLES.md`、`BRAND.md` 与 ADR-0008 已定义真实产品能力、Paper Lantern 正式标志和严格品牌边界。
 - `artifacts/ui-review/` 仍保留原生 App 的历史视觉证据，但本首页不再直接加载这些截图。
-- `website/` 已有 React + Vite 页面、Geist 字体、Lucide 图标、GSAP ScrollTrigger、固定比例空媒体舞台和试机录屏规格；没有修改原生 App 源码。2026-08-30 的追加范围已把旧截图媒体替换成空舞台并升级动效，新增 Hero 的“选区→关系线→附近结果”低频信号、入口切换反馈、媒体流动线、Bento/故事 hover 和滚动 reveal。
-- 2026-09-01 重新激活后，最终素材计划为 6 段独立桌面视频：Hero、划词、截图、Quick Input、结构化 Markdown、快捷键设置；划词、截图、Quick Input 另做 1:1 移动端剪辑，共 9 个 MP4 和 9 个同名 WebP poster。快捷键设置必须保留真实行内编辑动画。
+- `website/` 已有 React + Vite 页面、Geist 字体、Lucide 图标、GSAP ScrollTrigger、固定比例媒体舞台和真实桌面录屏；没有修改原生 App 源码。2026-08-30 的追加范围先把旧截图替换成空舞台并升级动效，本轮再以真实视频和封面替换这些占位内容，同时保留 Hero、入口、Bento/故事的既有布局和滚动关系。
+- 2026-09-01 第一批成品为 5 个唯一桌面 MP4 和 5 个同名 WebP：Hero 与结构化 Markdown 按项目所有者决定复用同一份 5:4 素材；划词、截图、Quick Input 和快捷键各自独立。三个入口的 1:1 移动端剪辑和封面仍待补充，最终唯一文件总数调整为 8 个 MP4 和 8 个 WebP。
 - 浏览器实测 375/768/1024/1440px 均为两行 Hero、零横向溢出和零首屏文字越界；桌面 Bento 12+6+6 正好填满 24 个栅格单元。
 - Reduce Motion 实测匹配成功，pin spacer 为 0，Hero/层叠卡片全部直接可见，跑马灯动画降为 0.01ms；控制台无 warning/error。
 
 ## Proposed approach
 
-在 `website/` 建立与原生 App 隔离的 Vite React 工程。视觉使用明亮纸张底色、品牌靛青结构、陶土红重点和暖金小范围照明，以固定比例的空媒体舞台作为第一视口信号；用 GSAP 负责首屏入场、能力卡片堆叠和桌面滚动固定，CSS 负责响应式、交互状态与 Reduce Motion 降级。
+在 `website/` 维护与原生 App 隔离的 Vite React 工程。视觉使用明亮纸张底色、品牌靛青结构、陶土红重点和暖金小范围照明，以固定比例真实录屏作为第一视口信号；用 GSAP 负责首屏入场、能力卡片堆叠和桌面滚动固定，CSS 与媒体播放状态共同负责响应式、可见性播放、交互控制和 Reduce Motion 降级。
 
 ## Acceptance criteria
 
@@ -77,12 +78,13 @@ Marla 已有稳定的产品定义、Paper Lantern 品牌和可展示的真实 Ap
 - [x] 页面完整覆盖 Navigation、Attention、Interest、Desire、Action，并且没有虚构发布、价格、用户量或隐私承诺。
 - [x] 桌面 Bento 为 12 列 24 单元无空洞，移动端无横向溢出、文字遮挡或不可操作控件。
 - [x] GSAP ScrollTrigger 动效真实运行且解释明确触发、结果靠近、阅读上下文保留；桌面动效使用 transform/autoAlpha，移动端取消固定和重叠，Reduce Motion 下内容直接处于可读终态且无滚动固定。
-- [x] Hero、三条产品入口、Markdown 与快捷键展示均为固定比例、可直接替换的空媒体舞台；三入口使用 7:5 桌面比例并保留 1:1 移动端安全构图，不以网页伪动画冒充 App 运行。
+- [x] Hero、三条产品入口、Markdown 与快捷键展示均使用固定比例真实 App 视频；Hero/Markdown 共用一份 5:4 素材，三入口和快捷键使用 7:5 桌面素材；1:1 移动端成品加入前使用完整显示桌面视频的诚实降级，不以网页伪动画冒充 App 运行。
 - [x] 所有链接和按钮可通过键盘访问，焦点清晰，主要文字和按钮达到 WCAG AA 对比要求。
 - [x] `npm run build`、静态检查、浏览器控制台检查和 `git diff --check` 通过。
 - [x] 至少完成 1440px 桌面和 390px 移动端真实浏览器截图检查。
 - [x] 运行说明、Task 和 `STATUS.md` 已同步到待项目所有者视觉确认的状态。
 - [x] 素材分镜、导出规格、隐私检查、目录和命名说明均提供中文正文，技术标识与文件路径保持可直接使用。
+- [x] 视频仅在进入视口且展示位激活时播放，入口切换会暂停旧视频；每个展示位提供键盘可操作的播放/暂停按钮，Reduce Motion 默认停在 WebP 封面。
 
 ## Verification
 
@@ -100,12 +102,14 @@ git diff --check
 
 2026-08-30 最终结果：`npm run lint`、`npm run build`、`git diff --check` 与仓库级 `./scripts/check.sh` 全部通过；Vite 生产构建成功打包 React/GSAP、字体和当前空媒体舞台，无旧截图媒体引用。
 
+2026-09-01 桌面素材接入结果：`npm run lint`、`npm run build` 和 `git diff --check` 通过。5 个唯一 MP4 均为 H.264、`yuv420p`、30fps、无音轨并带 fast-start；总大小约 13 MB。5 个同名 WebP 尺寸与视频一致。
+
 ### Manual
 
 - 在真实浏览器分别以 1440px 桌面和 390px 移动端视口检查第一视口、整页布局、导航、CTA、滚动动效、控制台和横向溢出。
 - 以 Reduce Motion 检查所有内容保持可见、没有滚动固定或依赖动效才能理解的信息。
 - 截图证据存放在 `artifacts/ui-review/task-036/`。
-- 后续录屏建议使用无隐私测试页、固定窗口与确定性样本，分别采集划词翻译、截图翻译和 Quick Input / Markdown，每段 8–15 秒，并输出 WebM/MP4 与静态 poster。
+- 后续只需补充划词翻译、截图翻译和 Quick Input 的 1:1 移动端 MP4 与 WebP，并在接入后复跑移动端媒体源选择与加载检查。
 
 2026-08-30 浏览器证据：
 
@@ -116,9 +120,11 @@ git diff --check
 - `homepage-mobile-experience.png`：移动端三入口纵向结构；入口舞台实际为 1:1，且无文字越界。
 - `homepage-desktop-reduce-motion.png`：Reduce Motion 内容终态截图；动态检查确认无 pin spacer。
 
-本轮动效增量验证：`npm run lint`、`npm run build`、`git diff --check` 通过；Hero signal、媒体关系线、Bento/故事 hover 样式均已进入构建产物，深色快捷键舞台的关系线使用浅色对比度。真实录屏仍未加入，所有媒体位置继续保持可替换空舞台。
+2026-08-30 空舞台阶段动效验证：`npm run lint`、`npm run build`、`git diff --check` 通过；Hero signal、媒体关系线、Bento/故事 hover 样式均已进入构建产物，深色快捷键舞台的关系线使用浅色对比度。当时真实录屏尚未加入，所有媒体位置保持可替换空舞台。
 
-Web 五维复审：产品定位 9/10、视觉层级 9/10、响应式 9/10、交互与无障碍 8/10、动效与性能 8/10。所有维度均达到 7/10 以上；本轮替换空媒体舞台后已重新复跑浏览器布局检查，真实录屏尚未采集，因此媒体说服力保留为后续项目所有者决策。
+2026-08-30 空舞台阶段 Web 五维复审：产品定位 9/10、视觉层级 9/10、响应式 9/10、交互与无障碍 8/10、动效与性能 8/10。所有维度均达到 7/10 以上；当时真实录屏尚未采集，因此媒体说服力保留为后续项目所有者决策。
+
+2026-09-01 素材接入浏览器证据：1440×1000 下 Hero、三入口、Markdown 和快捷键视频均真实解码；Hero/Markdown 的 `currentSrc` 完全一致。入口切换只播放当前展开项，旧项暂停；播放/暂停按钮可点击并具有键盘焦点；控制台无 warning/error。Reduce Motion 新页面默认 `currentTime = 0`、`paused = true` 并使用 WebP poster。390×844 下 `scrollWidth = innerWidth = 390`，桌面视频在 1:1 入口中以完整显示降级，无横向溢出。
 
 ## Required Reading
 
@@ -145,7 +151,7 @@ None.
 
 ## Decisions needed
 
-正式部署、下载入口、开源仓库地址和后续品牌文案需在项目所有者查看原型后另行决定。项目所有者已决定真实试机录屏以后补充；当前原型只保留空媒体舞台，不把任何旧截图设为 fallback。
+正式部署、下载入口、开源仓库地址和后续品牌文案需在项目所有者查看原型后另行决定。当前桌面录屏已经接入；三个 1:1 移动端入口视频与封面仍待项目所有者补充。页面不把旧截图设为 fallback。
 
 ## Checkpoint record
 
@@ -153,7 +159,7 @@ None.
 - Automated evidence: `npm run lint`, `npm run build`, `git diff --check`, and `./scripts/check.sh` pass.
 - Manual evidence: 1440/390px screenshots plus 375/768/1024/1440 breakpoint, GSAP pin/stack, keyboard focus, console, and Reduce Motion checks under `artifacts/ui-review/task-036/`.
 - Documentation updated: `website/README.md`, `website/DEMO_ASSETS.md`, this Task, and `STATUS.md`.
-- Remaining work promoted to: None. Real recording and public deployment remain explicit owner decisions, not Backlog commitments.
-- Scope changes closed: 2026-08-30 动效与空媒体舞台追加范围已实现并通过网页、仓库级和 Reduce Motion 验证；后续增量加入产品关系信号、入口/媒体反馈和滚动 reveal，真实录屏仍是项目所有者后续决定，不阻塞当前网页交付。
+- Remaining work promoted to: None. 三个 1:1 移动端视频、对应封面和正式部署仍是当前 Task 的后续项目所有者输入，不提升为 Backlog。
+- Scope changes closed: 2026-08-30 动效与空媒体舞台范围已通过验证；2026-09-01 的 5 个唯一桌面视频已完成网页编码、接入、交互和浏览器验证，Hero/Markdown 按项目所有者决定共用同一素材。
 - Integration state: 本检查点只保存在专用分支；未合并到 `main`，也未推送远端。
 - Parallel contributions integrated: None.

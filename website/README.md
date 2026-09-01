@@ -9,7 +9,7 @@ npm install
 npm run dev
 ```
 
-Vite 启动后会输出本地访问地址。页面使用正式的 Paper Lantern SVG，并为以后审核通过的真实 App 录屏预留固定比例媒体舞台；当前不会展示旧截图，也不会用网页动画模拟原生 App 行为。
+Vite 启动后会输出本地访问地址。页面使用正式的 Paper Lantern SVG 和审核通过的真实 App 桌面录屏；不会展示旧截图，也不会用网页动画模拟原生 App 行为。
 
 ## 验证
 
@@ -20,4 +20,4 @@ npm run build
 
 构建产物会输出到 `website/dist/`。页面通过 `prefers-reduced-motion` 和 GSAP 媒体查询响应系统的“减弱动态效果”设置。
 
-Hero、三个产品入口、Markdown Bento 和快捷键卡片目前都使用经过设计的空媒体舞台。完整分镜与导出规格见 [`DEMO_ASSETS.md`](DEMO_ASSETS.md)。审核通过的网页成品应放入 [`public/media/`](public/media/README.md)，该目录的 README 定义了目录结构和命名规则；原始录屏必须保留在仓库外。
+Hero、三个产品入口、Markdown Bento 和快捷键卡片目前均已接入桌面视频；Hero 与 Markdown 按项目决定共用同一份 5:4 素材。视频只在可见且激活时播放，并提供播放/暂停按钮；Reduce Motion 默认显示 WebP 封面。三个入口的 1:1 移动端成品仍待补充。完整分镜与导出规格见 [`DEMO_ASSETS.md`](DEMO_ASSETS.md)，成品目录与命名规则见 [`public/media/`](public/media/README.md)。

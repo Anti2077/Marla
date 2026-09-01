@@ -23,7 +23,7 @@ marla-{scene}--{variant}-{ratio}.{ext}
 - `selection`：划词翻译。
 - `screenshot`：截图翻译。
 - `quick-input`：快速输入。
-- `structured-markdown`：结构化 Markdown。
+- `structured-markdown`：仅在未来拆分独立 Markdown 素材时使用；当前 Markdown 展示位复用 `hero-in-place`。
 - `shortcut-settings`：快捷键设置动画。
 
 允许使用的版本和比例：
@@ -49,9 +49,21 @@ posters/mobile/marla-selection--mobile-1x1.webp
 
 每个 MP4 必须有一个主文件名完全相同的 WebP 封面，并放入对应版本的 `posters/` 目录。
 
+## 当前桌面成品
+
+```text
+desktop/marla-hero-in-place--desktop-5x4.mp4
+desktop/marla-selection--desktop-7x5.mp4
+desktop/marla-screenshot--desktop-7x5.mp4
+desktop/marla-quick-input--desktop-7x5.mp4
+desktop/marla-shortcut-settings--desktop-7x5.mp4
+```
+
+对应的 5 个同名 WebP 位于 `posters/desktop/`。Hero 和结构化 Markdown 两个展示位共用 `marla-hero-in-place--desktop-5x4`，因此没有重复的 Markdown 成品文件。
+
 ## 原始录屏命名规则
 
-原始录屏必须保留在本目录和 Git 仓库之外：
+正式备份中的原始录屏必须保留在本目录和 Git 仓库之外。本轮用于转换的本机母版暂存在 Git 忽略的 `website/.recording-masters/`，不会进入网页构建或提交：
 
 ```text
 marla-{scene}--raw-{YYYYMMDD}-take-{NN}.mov

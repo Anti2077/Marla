@@ -4,6 +4,7 @@ target/
 DerivedData/
 website/node_modules/
 website/dist/
+website/.recording-masters/
 artifacts/
 *.xcuserstate
 xcuserdata/

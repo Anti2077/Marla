@@ -1,19 +1,19 @@
-# Marla Homepage Demo Assets
+# Marla 首页演示素材录制指南
 
-The homepage uses six independently directed real-App videos, one for each media slot. The three entry videos also receive purpose-edited square versions for mobile. Shortcut settings is a video because its inline editor motion is part of the product evidence; it must not be replaced by a still.
+首页共有 6 个媒体展示位，每个展示位都使用单独设计、单独录制的真实 App 视频。划词翻译、截图翻译和快速输入三个入口还需要分别制作适合移动端展示的 1:1 版本。快捷键设置必须使用视频，因为行内编辑器的动画本身就是重要的产品证据，不能用静态截图替代。
 
-## Final delivery count
+## 最终交付数量
 
-- 6 desktop MP4 videos: Hero, Selection, Screenshot, Quick Input, Structured Markdown, Shortcut Settings.
-- 3 mobile MP4 videos: square versions of Selection, Screenshot, and Quick Input.
-- 9 same-name WebP posters, one for every MP4.
-- Total: **9 MP4 + 9 WebP**.
+- 6 个桌面版 MP4：Hero 原地翻译、划词翻译、截图翻译、快速输入、结构化 Markdown、快捷键设置。
+- 3 个移动版 MP4：划词翻译、截图翻译和快速输入的 1:1 方形版本。
+- 9 个同名 WebP 封面，每个 MP4 对应一个。
+- 总计：**9 个 MP4 + 9 个 WebP**。
 
-The square versions may come from the same raw takes only when the pointer, source content, selection region, and Marla surface remain legible in a deliberate 1:1 composition. Otherwise record a separate square-safe take. Do not rely on an accidental `object-fit: cover` crop.
+只有当指针、原文、选择区域和 Marla 界面在经过专门设计的 1:1 构图中仍然清晰可读时，移动版才能从同一份原始录屏制作。否则应单独录制适合方形画面的版本，不能依赖 `object-fit: cover` 随意裁掉内容。
 
-## Storage and naming
+## 存储位置与命名
 
-Only approved web outputs enter the repository:
+只有审核通过、可以用于网页的成品才能进入仓库：
 
 ```text
 website/public/media/
@@ -24,195 +24,195 @@ website/public/media/
     mobile/
 ```
 
-Final naming pattern:
+正式素材命名格式：
 
 ```text
 marla-{scene}--{variant}-{ratio}.{ext}
 ```
 
-- `{scene}`: `hero-in-place`, `selection`, `screenshot`, `quick-input`, `structured-markdown`, or `shortcut-settings`.
-- `{variant}`: `desktop` or `mobile`.
-- `{ratio}`: `5x4`, `7x5`, or `1x1`; use `x`, not `:` or `/`.
-- `{ext}`: `mp4` for video and `webp` for its poster.
-- Use lowercase ASCII kebab-case. Do not add spaces, Chinese characters, dates, `final`, `new`, or version suffixes to approved web files.
-- A poster uses the exact same basename as its MP4 and lives under the matching `posters/` variant directory.
+- `{scene}`：`hero-in-place`、`selection`、`screenshot`、`quick-input`、`structured-markdown` 或 `shortcut-settings`。
+- `{variant}`：`desktop` 或 `mobile`。
+- `{ratio}`：`5x4`、`7x5` 或 `1x1`；使用字母 `x`，不要使用 `:` 或 `/`。
+- `{ext}`：视频使用 `mp4`，封面使用 `webp`。
+- 文件名必须使用小写 ASCII 与连字符，不要添加空格、中文、日期、`final`、`new` 或随意的版本后缀。
+- WebP 封面必须与 MP4 使用完全相同的主文件名，并放入对应版本的 `posters/` 目录。
 
-Raw takes remain outside the repository and use:
+原始录屏必须保留在仓库外，命名格式为：
 
 ```text
 marla-{scene}--raw-{YYYYMMDD}-take-{NN}.mov
 ```
 
-Example: `marla-shortcut-settings--raw-20260901-take-03.mov`.
+示例：`marla-shortcut-settings--raw-20260901-take-03.mov`。
 
-## Shared master specification
+## 通用母版规格
 
-- Record the stable-signed `artifacts/Marla_dev.app`, not a Preview or web reconstruction.
-- Use a clean 16:10 desktop at 2560×1600 or 1920×1200. A deterministic 1600×1000 logical workspace is preferred.
-- Capture at 60 fps when available so native window and shortcut-editor motion has enough temporal detail; export website files at 30 fps.
-- Export H.264 MP4, `yuv420p`, SDR/sRGB, with no microphone, system audio, or audio track.
-- Keep important content inside the central square-safe area. Use short, deliberate pointer travel and leave the pointer still while text streams.
-- Record light appearance first. Dark variants are a later optional set, not part of the first delivery.
-- Do not add cursor spotlights, artificial click rings, post-production zooms, speed ramps, baked captions, device frames, or fake keyboard overlays.
-- Trim dead time rather than accelerating real App motion. Preserve native panel entry, streaming, resizing, and shortcut-editor timing.
-- Target roughly 3–6 MB per desktop video and 2–4 MB per square video after visual inspection.
+- 录制稳定签名的 `artifacts/Marla_dev.app`，不要录制 SwiftUI Preview 或网页重建版本。
+- 使用干净的 16:10 桌面，录制分辨率为 2560x1600 或 1920x1200；建议把可操作区域固定为 1600x1000 的逻辑尺寸。
+- 条件允许时使用 60 fps 录制，以保留原生窗口和快捷键编辑器动画的时间细节；网站成品统一导出为 30 fps。
+- 导出 H.264 MP4、`yuv420p`、SDR/sRGB，不录麦克风、系统声音，也不要保留空音轨。
+- 重要内容应保持在画面中央的方形安全区内。指针移动应短而明确；文字流式输出时让指针保持静止。
+- 第一批素材先录浅色外观。深色版本属于后续可选素材，不在第一批交付范围内。
+- 不要添加指针聚光、人工点击光圈、后期缩放、速度渐变、烧录字幕、设备外框或伪造快捷键浮层。
+- 通过剪掉停顿压缩时长，不要加速真实 App 动画；保留面板入场、流式输出、尺寸变化和快捷键编辑器的原生节奏。
+- 视觉检查通过后，桌面视频建议控制在约 3-6 MB，方形视频建议控制在约 2-4 MB。
 
-## Video 1: Hero in-place translation
+## 视频 1：Hero 原地翻译
 
-**Purpose:** establish the complete Marla product idea in the first viewport: explicit intent, a result near the source, and an immediate return to reading.
+**目的：** 在第一视口完整说明 Marla 的产品价值：用户明确触发，结果出现在原文附近，关闭后立即回到阅读。
 
-- Video: `desktop/marla-hero-in-place--desktop-5x4.mp4`
-- Poster: `posters/desktop/marla-hero-in-place--desktop-5x4.webp`
-- Ratio: **5:4**
-- Export: **2000×1600**, 30 fps
-- Duration: **12–16 seconds**
-- Composition: show enough of the quiet source App to understand the reading context; keep selected text and the result card visible together.
+- 视频：`desktop/marla-hero-in-place--desktop-5x4.mp4`
+- 封面：`posters/desktop/marla-hero-in-place--desktop-5x4.webp`
+- 比例：**5:4**
+- 导出：**2000x1600**，30 fps
+- 时长：**12-16 秒**
+- 构图：保留足够的原始 App 阅读环境，让观众理解上下文；选中文字和结果卡必须同时可见。
 
-Shot sequence:
+录制步骤：
 
-1. `0.0–1.5s`: Hold on a clean reading page with Marla absent.
-2. `1.5–3.0s`: Deliberately select two or three lines of English text near the visual center.
-3. `3.0–3.5s`: Trigger `⌃⇧D`; do not add a synthetic shortcut overlay.
-4. `3.5–5.5s`: Let the real nearby result card enter and settle without covering the selection.
-5. `5.5–11.5s`: Show real streaming until the translation reaches a readable completed state.
-6. `11.5–13.5s`: Hold the completed source-and-result relationship long enough to inspect.
-7. `13.5–16.0s`: Close the card and end on the unchanged reading context.
+1. `0.0-1.5s`：停留在干净的阅读页面，Marla 尚未出现。
+2. `1.5-3.0s`：在画面视觉中心附近，有意识地选中两到三行英文。
+3. `3.0-3.5s`：按下 `⌃⇧D`，不要添加伪造的快捷键提示层。
+4. `3.5-5.5s`：让真实结果卡在原文附近进入并稳定下来，不能遮住选区。
+5. `5.5-11.5s`：完整展示真实流式输出，直到译文达到可阅读的完成状态。
+6. `11.5-13.5s`：保持完成画面，让观众有时间看清原文与结果的空间关系。
+7. `13.5-16.0s`：关闭结果卡，以未被改变的阅读页面结束。
 
-## Video 2: Selection translation entry
+## 视频 2：划词翻译入口
 
-**Purpose:** explain the selection workflow more tightly than the Hero, emphasizing the trigger and nearby placement.
+**目的：** 比 Hero 更紧凑地解释划词翻译流程，重点展示触发动作和就近出现的结果卡。
 
-- Desktop video: `desktop/marla-selection--desktop-7x5.mp4`
-- Desktop poster: `posters/desktop/marla-selection--desktop-7x5.webp`
-- Desktop ratio/export: **7:5**, **1680×1200**, 30 fps
-- Mobile video: `mobile/marla-selection--mobile-1x1.mp4`
-- Mobile poster: `posters/mobile/marla-selection--mobile-1x1.webp`
-- Mobile ratio/export: **1:1**, **1200×1200**, 30 fps
-- Duration: **8–12 seconds**
+- 桌面视频：`desktop/marla-selection--desktop-7x5.mp4`
+- 桌面封面：`posters/desktop/marla-selection--desktop-7x5.webp`
+- 桌面比例/导出：**7:5**，**1680x1200**，30 fps
+- 移动视频：`mobile/marla-selection--mobile-1x1.mp4`
+- 移动封面：`posters/mobile/marla-selection--mobile-1x1.webp`
+- 移动比例/导出：**1:1**，**1200x1200**，30 fps
+- 时长：**8-12 秒**
 
-Shot sequence:
+录制步骤：
 
-1. Start with one concise English paragraph and no Marla surface visible.
-2. Select one complete sentence; avoid a selection that touches the frame edges.
-3. Trigger `⌃⇧D` and keep the pointer still.
-4. Capture the result card entering near the selected sentence and the first streamed text appearing.
-5. Hold the readable completed result for at least two seconds.
-6. Close the card and leave the source paragraph in the same position for the final beat.
+1. 从一段简短英文开始，画面中不要出现 Marla 界面。
+2. 选中一个完整句子，选区不要碰到画面边缘。
+3. 按下 `⌃⇧D`，然后让指针保持静止。
+4. 录下结果卡在句子附近进入，以及第一段流式文字出现的过程。
+5. 完成后保持至少两秒，让译文可以被读清楚。
+6. 关闭结果卡，最后一拍保持原文段落位置不变。
 
-The square version must keep the sentence, selection highlight, and most of the result card visible simultaneously. Reframe or re-record rather than cropping either subject away.
+1:1 版本必须同时保留完整句子、选中高亮和大部分结果卡。若无法做到，应重新构图或重新录制，不能简单裁掉其中一个主体。
 
-## Video 3: Screenshot translation entry
+## 视频 3：截图翻译入口
 
-**Purpose:** show that the user chooses an exact screen region and that Marla uses the real frozen-selection, loupe, and OCR flow.
+**目的：** 展示用户可以精确选择屏幕区域，并证明 Marla 使用真实的冻结画面、框选放大镜和 OCR 流程。
 
-- Desktop video: `desktop/marla-screenshot--desktop-7x5.mp4`
-- Desktop poster: `posters/desktop/marla-screenshot--desktop-7x5.webp`
-- Desktop ratio/export: **7:5**, **1680×1200**, 30 fps
-- Mobile video: `mobile/marla-screenshot--mobile-1x1.mp4`
-- Mobile poster: `posters/mobile/marla-screenshot--mobile-1x1.webp`
-- Mobile ratio/export: **1:1**, **1200×1200**, 30 fps
-- Duration: **10–15 seconds**
+- 桌面视频：`desktop/marla-screenshot--desktop-7x5.mp4`
+- 桌面封面：`posters/desktop/marla-screenshot--desktop-7x5.webp`
+- 桌面比例/导出：**7:5**，**1680x1200**，30 fps
+- 移动视频：`mobile/marla-screenshot--mobile-1x1.mp4`
+- 移动封面：`posters/mobile/marla-screenshot--mobile-1x1.webp`
+- 移动比例/导出：**1:1**，**1200x1200**，30 fps
+- 时长：**10-15 秒**
 
-Shot sequence:
+录制步骤：
 
-1. `0.0–1.0s`: Show a clean page containing one small deterministic image/text region.
-2. `1.0–2.0s`: Trigger `⌃⇧S`; capture the real frozen and dimmed selection surface.
-3. `2.0–5.5s`: Drag a compact region at a steady speed, keeping the real loupe visible and inside the safe area.
-4. `5.5–6.5s`: Pause briefly on the completed selection before confirming.
-5. `6.5–9.0s`: Confirm and show the genuine OCR/translation waiting state if it occurs; do not lengthen it artificially.
-6. `9.0–13.0s`: Let the nearby result card appear and reach a readable completed state.
-7. `13.0–15.0s`: Hold the final result without moving the pointer.
+1. `0.0-1.0s`：显示一个干净页面，其中包含一小块固定的图片或文字区域。
+2. `1.0-2.0s`：按下 `⌃⇧S`，录下真实的冻结与变暗选择界面。
+3. `2.0-5.5s`：用稳定速度框选一个紧凑区域，真实放大镜应保持可见并位于安全区内。
+4. `5.5-6.5s`：完成框选后短暂停顿，再确认选择。
+5. `6.5-9.0s`：确认后，如真实流程出现 OCR/翻译等待状态，应如实展示，不要人为延长。
+6. `9.0-13.0s`：让结果卡真实出现并到达可阅读的完成状态。
+7. `13.0-15.0s`：保持最终结果，指针不要继续移动。
 
-Use Vision for the first public-facing capture unless cloud OCR has separately approved live evidence. The video must not imply that the configured translation Provider is offline.
+第一批公开素材优先使用 Vision，除非云端 OCR 已经另有通过审核的真实证据。视频不能暗示当前配置的翻译 Provider 也在离线运行。
 
-## Video 4: Quick Input entry
+## 视频 4：快速输入入口
 
-**Purpose:** show the path for text that is not already selectable on screen. Keep this story simple; rich Markdown has its own video.
+**目的：** 展示无法直接在屏幕上选择的文字如何进入 Marla。这个视频只讲清基本流程；富 Markdown 由独立视频负责。
 
-- Desktop video: `desktop/marla-quick-input--desktop-7x5.mp4`
-- Desktop poster: `posters/desktop/marla-quick-input--desktop-7x5.webp`
-- Desktop ratio/export: **7:5**, **1680×1200**, 30 fps
-- Mobile video: `mobile/marla-quick-input--mobile-1x1.mp4`
-- Mobile poster: `posters/mobile/marla-quick-input--mobile-1x1.webp`
-- Mobile ratio/export: **1:1**, **1200×1200**, 30 fps
-- Duration: **8–12 seconds**
+- 桌面视频：`desktop/marla-quick-input--desktop-7x5.mp4`
+- 桌面封面：`posters/desktop/marla-quick-input--desktop-7x5.webp`
+- 桌面比例/导出：**7:5**，**1680x1200**，30 fps
+- 移动视频：`mobile/marla-quick-input--mobile-1x1.mp4`
+- 移动封面：`posters/mobile/marla-quick-input--mobile-1x1.webp`
+- 移动比例/导出：**1:1**，**1200x1200**，30 fps
+- 时长：**8-12 秒**
 
-Shot sequence:
+录制步骤：
 
-1. Begin on a neutral desktop or source App with no Marla window visible.
-2. Trigger `⌃⇧Space` and capture the real Quick Input entrance motion.
-3. Paste or type one short two-line plain-text fixture; do not use personal clipboard content.
-4. Submit the translation and keep the pointer clear of the text.
-5. Capture the waiting/streaming transition and content-driven panel growth.
-6. Hold the completed result for at least two seconds, then dismiss it.
+1. 从中性桌面或原始 App 开始，画面中不要出现 Marla 窗口。
+2. 按下 `⌃⇧Space`，录下快速输入窗口的真实入场动画。
+3. 粘贴或输入一段简短的两行纯文本测试内容，不要使用个人剪贴板内容。
+4. 提交翻译，让指针避开文字区域。
+5. 录下等待、流式输出和面板随内容增长的过程。
+6. 完成后保持至少两秒，再关闭窗口。
 
-For the square version, compose the Quick Input panel centrally and keep both the input and first completed output lines readable.
+1:1 版本应把快速输入面板放在画面中央，并确保输入内容和完成结果的前几行都清晰可读。
 
-## Video 5: Structured Markdown
+## 视频 5：结构化 Markdown
 
-**Purpose:** prove that structured content remains structured rather than becoming an undifferentiated text block.
+**目的：** 证明结构化内容在翻译后仍然保留结构，而不是变成没有层级的一整块纯文本。
 
-- Video: `desktop/marla-structured-markdown--desktop-5x4.mp4`
-- Poster: `posters/desktop/marla-structured-markdown--desktop-5x4.webp`
-- Ratio: **5:4**
-- Export: **1600×1280**, 30 fps
-- Duration: **12–16 seconds**
-- Fixture: one heading, paragraph, bulleted list, block quote, link, inline code, fenced code block, and compact GFM table.
+- 视频：`desktop/marla-structured-markdown--desktop-5x4.mp4`
+- 封面：`posters/desktop/marla-structured-markdown--desktop-5x4.webp`
+- 比例：**5:4**
+- 导出：**1600x1280**，30 fps
+- 时长：**12-16 秒**
+- 测试内容：一个标题、一段正文、项目列表、引用、链接、行内代码、围栏代码块和一个紧凑的 GFM 表格。
 
-Shot sequence:
+录制步骤：
 
-1. Open Quick Input with `⌃⇧Space` and paste the deterministic Markdown fixture.
-2. Hold for one second so the source hierarchy can be inspected.
-3. Submit and capture the first streaming delta becoming native structured content.
-4. Let the result panel grow naturally without post-production scaling.
-5. After completion, make one slow vertical scroll that reveals the table and code block.
-6. Stop scrolling and hold on a frame where at least three distinct structures are visible together.
+1. 按下 `⌃⇧Space` 打开快速输入，粘贴固定的 Markdown 测试内容。
+2. 停留一秒，让原始内容的层级能够被看清。
+3. 提交翻译，录下第一段流式增量转变为原生结构化内容的过程。
+4. 让结果面板自然增长，不要在后期人为缩放。
+5. 完成后缓慢向下滚动一次，露出表格和代码块。
+6. 停止滚动，在同一画面中至少保留三种不同结构并停留片刻。
 
-Do not use HTML rendering, a browser mockup, or a fixture containing URLs, tokens, account names, or commands that could be mistaken for credentials.
+不要使用 HTML 渲染、浏览器模拟，也不要在测试内容中放入网址、令牌、账号名或可能被误认为凭据的命令。
 
-## Video 6: Shortcut settings motion
+## 视频 6：快捷键设置动画
 
-**Purpose:** showcase the real inline shortcut editor, especially the 320 ms matched-geometry fusion, one-row-at-a-time editing, and clean return to the collapsed state.
+**目的：** 展示真实的行内快捷键编辑器，重点表现 320 ms 匹配几何融合、同一时间只编辑一行，以及编辑完成后干净地收拢。
 
-- Video: `desktop/marla-shortcut-settings--desktop-7x5.mp4`
-- Poster: `posters/desktop/marla-shortcut-settings--desktop-7x5.webp`
-- Ratio: **7:5**
-- Export: **1400×1000**, 30 fps
-- Capture master: 60 fps strongly preferred
-- Duration: **10–14 seconds**
+- 视频：`desktop/marla-shortcut-settings--desktop-7x5.mp4`
+- 封面：`posters/desktop/marla-shortcut-settings--desktop-7x5.webp`
+- 比例：**7:5**
+- 导出：**1400x1000**，30 fps
+- 录制母版：强烈建议 60 fps
+- 时长：**10-14 秒**
 
-Shot sequence:
+录制步骤：
 
-1. `0.0–1.5s`: Hold on the real Shortcuts Settings page with all three rows collapsed and defaults readable.
-2. `1.5–3.0s`: Click the Selection shortcut chip and let it fuse into the inline editor at native speed.
-3. `3.0–5.0s`: Toggle one modifier and capture one main-key input so controls visibly respond. Use a clean test preference state.
-4. `5.0–7.5s`: Activate the Screenshot row while Selection is still expanded; capture the first row collapsing as the second expands, proving mutual exclusivity.
-5. `7.5–10.0s`: Use Cancel or restore the intended binding, then apply or close the active editor.
-6. `10.0–12.5s`: Hold on the three collapsed rows with no error state.
-7. `12.5–14.0s`: Optionally move the pointer out of the window for a neutral final frame.
+1. `0.0-1.5s`：停留在真实的快捷键设置页面，三行全部收拢，默认键位清晰可读。
+2. `1.5-3.0s`：点击“划词翻译”的快捷键胶囊，让它按原生速度融合展开为行内编辑器。
+3. `3.0-5.0s`：切换一个修饰键并输入一次主键，让控件的响应清晰可见。使用干净的测试偏好状态。
+4. `5.0-7.5s`：在“划词翻译”仍展开时激活“截图翻译”一行，录下第一行收拢、第二行同时展开的过程，证明编辑器互斥。
+5. `7.5-10.0s`：使用取消，或恢复预定快捷键，再应用或关闭当前编辑器。
+6. `10.0-12.5s`：停留在三行全部收拢、没有错误状态的干净画面。
+7. `12.5-14.0s`：可以把指针移出窗口，以中性画面结束。
 
-Keep the entire 820×592 Settings window logically stable during capture. Do not show API profiles, account information, Keychain prompts, or unrelated settings pages. Restore default bindings after recording if the test state changed.
+整个录制过程中，820x592 的设置窗口应保持逻辑位置与尺寸稳定。不要展示 API 配置、账号信息、Keychain 提示或无关设置页面。如果录制期间改动了测试快捷键，结束后必须恢复默认键位。
 
-## Poster selection
+## WebP 封面选择
 
-- Export one same-name WebP poster for every MP4 at the video's exact pixel dimensions.
-- Choose a stable frame after motion has settled, never a blurred transition or half-streamed sentence.
-- Hero poster: completed result beside the selection.
-- Selection poster: sentence, highlight, and nearby result all visible.
-- Screenshot poster: completed region with loupe, or completed result; choose the clearer frame after layout review.
-- Quick Input poster: input and readable result visible together.
-- Markdown poster: heading, list, and table or code visible together.
-- Shortcut poster: one inline editor fully expanded with the other two rows still legible.
-- Encode WebP in sRGB without metadata that exposes the machine or user account.
+- 每个 MP4 都要导出一个同名 WebP，像素尺寸与对应视频完全一致。
+- 选择动画已经稳定的清晰画面，不能使用模糊的转场帧或只输出一半的句子。
+- Hero：选区旁边已经显示完整结果。
+- 划词翻译：句子、选中高亮和附近结果同时可见。
+- 截图翻译：优先在“完整框选区域与放大镜”或“完成结果”中选择更清晰的一帧，最终由页面布局检查决定。
+- 快速输入：输入内容和可阅读结果同时可见。
+- Markdown：标题、列表，以及表格或代码同时可见。
+- 快捷键：一个行内编辑器完整展开，另外两行仍然可以辨认。
+- WebP 使用 sRGB 编码，并移除可能暴露电脑或用户账号的元数据。
 
-## Privacy and truth checklist
+## 隐私与真实性检查
 
-- Use a dedicated test macOS account or clean capture desktop with no personal files, notifications, bookmarks, account names, IP addresses, or unrelated menu-bar utilities visible.
-- Use deterministic public or repository-owned fixtures. Do not record email, chat, browsing history, clipboard history, or a real user's document.
-- Never reveal API keys, endpoint credentials, Keychain prompts, Provider account details, authentication methods, or private model names.
-- Review every raw take frame-by-frame around notifications, menu-bar changes, pointer movement, and window transitions before approval.
-- Keep rejected raw takes outside the repository. Add only approved, edited web assets under `website/public/media/`.
+- 使用专用测试 macOS 账号，或整理干净的录制桌面；画面中不能出现个人文件、通知、书签、账号名、IP 地址或无关菜单栏工具。
+- 使用固定的公开测试内容或仓库自有内容。不要录制邮件、聊天、浏览历史、剪贴板历史或真实用户文档。
+- 不得暴露 API Key、端点凭据、Keychain 提示、Provider 账号信息、认证方式或私有模型名称。
+- 审核时逐帧检查每份原始录屏，重点查看通知、菜单栏变化、指针移动和窗口转场前后。
+- 被淘汰的原始录屏留在仓库外。只有审核通过并完成剪辑的网页素材才能加入 `website/public/media/`。
 
-## Integration verification
+## 接入网页后的验证
 
-After approval, add all 9 MP4 and 9 WebP files under `website/public/media/`. Use responsive sources for the three square entry videos. Verify autoplay, muted/playsInline behavior, loop boundaries, poster fallback, mobile source selection, loading performance, and Reduce Motion static fallback in a real browser. These videos demonstrate the real App; they do not constitute acceptance evidence for unverified Providers or public release readiness.
+审核通过后，把全部 9 个 MP4 和 9 个 WebP 放入 `website/public/media/`。三个方形入口视频应使用响应式媒体源接入。随后在真实浏览器中验证自动播放、静音、`playsInline`、循环衔接、封面降级、移动端媒体源选择、加载性能，以及 Reduce Motion 下的静态封面降级。这些视频只用于证明真实 App 的现有体验，不能作为尚未验证的 Provider 能力或公开发布状态的验收证据。

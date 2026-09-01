@@ -54,6 +54,7 @@ Marla 已有稳定的产品定义、Paper Lantern 品牌和可展示的真实 Ap
 | 2026-09-01 | Project owner | 重新激活 TASK-036，并明确全部待录制素材 | 在专用分支同步最新原生 App 基线；素材计划收敛为 3 段视频母版和 1 张快捷键设置截图，覆盖 6 个网页展示位；仍不把 TASK-036 合并到 `main` | Active |
 | 2026-09-01 | Project owner | 不以减少工作量为目标；每个展示位独立制作视频，快捷键设置也必须展示真实动画 | 修正上一条复用方案：交付 6 段独立桌面视频，三入口另有 3 段 1:1 移动剪辑，共 9 个 MP4 和 9 个同名 WebP poster；快捷键覆盖展开、互斥切换和收拢 | Active |
 | 2026-09-01 | Project owner | 建立专用素材目录并提供统一命名规则 | 审核通过的网页成品放入 `website/public/media/desktop/`、`mobile/` 和 `posters/`；命名采用 `marla-{scene}--{variant}-{ratio}.{ext}`，原始录屏不进入仓库 | Active |
+| 2026-09-01 | Project owner | 将素材说明做成中文 | `website/DEMO_ASSETS.md`、`website/public/media/README.md` 和网站运行说明使用中文正文；技术标识、路径与 ASCII 文件名规则保持不变 | Verified |
 
 ## Current evidence
 
@@ -81,6 +82,7 @@ Marla 已有稳定的产品定义、Paper Lantern 品牌和可展示的真实 Ap
 - [x] `npm run build`、静态检查、浏览器控制台检查和 `git diff --check` 通过。
 - [x] 至少完成 1440px 桌面和 390px 移动端真实浏览器截图检查。
 - [x] 运行说明、Task 和 `STATUS.md` 已同步到待项目所有者视觉确认的状态。
+- [x] 素材分镜、导出规格、隐私检查、目录和命名说明均提供中文正文，技术标识与文件路径保持可直接使用。
 
 ## Verification
 

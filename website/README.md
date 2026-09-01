@@ -1,23 +1,23 @@
-# Marla Homepage Prototype
+# Marla 官网首页原型
 
-This isolated React + Vite prototype presents Marla's current product direction without changing the native macOS application or implying a public release.
+这是一个与原生 macOS App 隔离的 React + Vite 官网首页原型。它只呈现 Marla 当前的产品方向，不会修改原生 App，也不暗示产品已经公开发布。
 
-## Run locally
+## 本地运行
 
 ```sh
 npm install
 npm run dev
 ```
 
-Vite prints the local URL after startup. The page imports the canonical Paper Lantern SVG and uses fixed-ratio media stages reserved for future approved real App footage; it does not present screenshots or simulate native App behavior.
+Vite 启动后会输出本地访问地址。页面使用正式的 Paper Lantern SVG，并为以后审核通过的真实 App 录屏预留固定比例媒体舞台；当前不会展示旧截图，也不会用网页动画模拟原生 App 行为。
 
-## Verify
+## 验证
 
 ```sh
 npm run lint
 npm run build
 ```
 
-The build emits static files under `website/dist/`. Motion respects the operating system's Reduce Motion preference through `prefers-reduced-motion` and GSAP media queries.
+构建产物会输出到 `website/dist/`。页面通过 `prefers-reduced-motion` 和 GSAP 媒体查询响应系统的“减弱动态效果”设置。
 
-The Hero, three product-entry slots, Markdown Bento, and shortcut card currently use designed empty stages. See [`DEMO_ASSETS.md`](DEMO_ASSETS.md) for the complete shot list and export specifications. Approved web-ready files belong under [`public/media/`](public/media/README.md), whose README defines the directory layout and naming rules; raw captures remain outside the repository.
+Hero、三个产品入口、Markdown Bento 和快捷键卡片目前都使用经过设计的空媒体舞台。完整分镜与导出规格见 [`DEMO_ASSETS.md`](DEMO_ASSETS.md)。审核通过的网页成品应放入 [`public/media/`](public/media/README.md)，该目录的 README 定义了目录结构和命名规则；原始录屏必须保留在仓库外。

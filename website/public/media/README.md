@@ -1,43 +1,43 @@
-# Marla Website Media
+# Marla 官网素材目录
 
-This directory stores approved, web-ready Marla homepage media only. Raw captures, editing projects, rejected takes, and private review exports stay outside the repository.
+这个目录只存放已经审核通过、可以直接用于 Marla 官网的成品素材。原始录屏、剪辑工程、淘汰片段和私下审核用的导出文件必须保留在仓库外。
 
-## Directory layout
+## 目录结构
 
 ```text
-desktop/          Approved desktop MP4 files
-mobile/           Approved square mobile MP4 files
-posters/desktop/  Desktop WebP posters
-posters/mobile/   Mobile WebP posters
+desktop/          审核通过的桌面版 MP4
+mobile/           审核通过的 1:1 移动版 MP4
+posters/desktop/  桌面版 WebP 封面
+posters/mobile/   移动版 WebP 封面
 ```
 
-## Final naming rule
+## 正式素材命名规则
 
 ```text
 marla-{scene}--{variant}-{ratio}.{ext}
 ```
 
-Allowed scene names:
+允许使用的场景名称：
 
-- `hero-in-place`
-- `selection`
-- `screenshot`
-- `quick-input`
-- `structured-markdown`
-- `shortcut-settings`
+- `hero-in-place`：Hero 原地翻译。
+- `selection`：划词翻译。
+- `screenshot`：截图翻译。
+- `quick-input`：快速输入。
+- `structured-markdown`：结构化 Markdown。
+- `shortcut-settings`：快捷键设置动画。
 
-Allowed variants and ratios:
+允许使用的版本和比例：
 
 - `desktop-5x4`
 - `desktop-7x5`
 - `mobile-1x1`
 
-Allowed extensions:
+允许使用的扩展名：
 
-- `mp4` for video
-- `webp` for poster
+- `mp4`：视频。
+- `webp`：封面。
 
-Examples:
+示例：
 
 ```text
 desktop/marla-hero-in-place--desktop-5x4.mp4
@@ -47,16 +47,16 @@ posters/desktop/marla-shortcut-settings--desktop-7x5.webp
 posters/mobile/marla-selection--mobile-1x1.webp
 ```
 
-Every MP4 must have one WebP poster with the exact same basename in the matching poster directory.
+每个 MP4 必须有一个主文件名完全相同的 WebP 封面，并放入对应版本的 `posters/` 目录。
 
-## Raw take naming
+## 原始录屏命名规则
 
-Raw takes remain outside this directory and outside Git:
+原始录屏必须保留在本目录和 Git 仓库之外：
 
 ```text
 marla-{scene}--raw-{YYYYMMDD}-take-{NN}.mov
 ```
 
-Example: `marla-shortcut-settings--raw-20260901-take-03.mov`.
+示例：`marla-shortcut-settings--raw-20260901-take-03.mov`。
 
-Do not use spaces, Chinese characters, `final`, `new`, `latest`, or arbitrary version suffixes in media filenames. See `website/DEMO_ASSETS.md` for the complete shot list and export specifications.
+正式素材文件名不要使用空格、中文、`final`、`new`、`latest` 或随意的版本后缀。完整分镜、录制步骤和导出规格见 [`website/DEMO_ASSETS.md`](../../DEMO_ASSETS.md)。

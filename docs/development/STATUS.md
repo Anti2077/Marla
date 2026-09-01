@@ -16,13 +16,9 @@ TASK-036 同一轮新增 GitHub 仓库首页装修：根 README 现在以 Paper 
 
 TASK-036 官网视觉同轮改为无边框体系：Hero 真实录屏居中并移除装饰外框、阴影、侧导轨和悬浮标签；导航、入口、Bento、故事、原则与 Footer 通过留白和品牌色面建立层级，未选中入口透明，焦点环、播放按钮命中区和箭头结构继续承担必要交互语义。1440×1000 与 390×844 均无横向溢出；移动 Hero 标题为 2 行、视频完整落在首屏并露出下一章节提示。Reduce Motion 下 4 个视频停在起始位置且没有 poster，pin spacer 为 0，所有关键内容可见；控制台无 warning/error。五维复审为 9/9/9/8/8。
 
-Parallel task worktree: [`TASK-038`](../tasks/TASK-038-api-profile-reorder-motion.md) — API Profile 重排实现已合入 `main`，Task 保持 Active 并等待项目所有者现场验收。
+TASK-038 已完成并关闭：API Profile 重排现在分离 hover 临时顺序与最终一次持久化提交，取消恢复初始顺序；等高空槽使用方向敏感的向下 40%/向上 60% 阈值和 220ms 平滑让位，快速反向采用当前视觉顺序。AppKit dragging session 持续按屏幕 Y 驱动插入位置，因此指针横向离开列表或纵向越过首尾行后仍继续挤压；成功释放以 140ms Panel 落点和 120ms 真实行交接完成。固定 580×76pt 预览、真实手柄锚点、透明 1×1pt 原生 drag item、无障碍移动与 Reduce Motion 合同保留。7 项定向测试、完整检查和固定签名 App 重建通过；项目所有者于 2026-09-02 确认真实鼠标、浅色/深色、快速反向、取消、Reduce Motion 和最终放置手感全部完成验收。实现提交 `338f590`，合并提交 `1c14d5f`。
 
-TASK-038 实现已完成并等待项目所有者现场验收：API Profile 重排现在分离 hover 临时顺序与最终一次持久化提交，取消恢复初始顺序；等高空槽使用方向敏感的向下 40%/向上 60% 阈值和 220ms 平滑让位，快速反向采用当前视觉顺序。AppKit dragging session 持续按屏幕 Y 驱动插入位置，因此指针横向离开列表或纵向越过首尾行后仍继续挤压；成功释放以 140ms Panel 落点和 120ms 真实行交接完成。固定 580×76pt 预览、真实手柄锚点、透明 1×1pt 原生 drag item、无障碍移动与 Reduce Motion 合同保留。7 项定向测试、最终完整检查和固定签名 App 重建通过；临时独立 bundle 已确认越界挤压与 `Esc` 取消，但 Computer Use 不能可靠产生原生 mouse-up，成功释放手感、浅色/深色五维复审和 Reduce Motion 仍需项目所有者实鼠标确认。专用分支 `Anti2077/task-038-api-profile-reorder-motion` 从本地 `main@506c4cf` 创建，TASK-036 官网工作位于主工作树并继续保持 Active。
-
-Parallel task worktree: [`TASK-039`](../tasks/TASK-039-markdown-rendering-polish.md) — Markdown 呈现实现已合入 `main`，Task 保持 Active 并等待项目所有者现场验收。
-
-TASK-039 已在专用分支完成原生 TextKit Markdown 呈现优化：列表使用更清楚的 marker、18pt 层级递进和稳定悬挂对齐；GFM 表格使用一个 8pt 圆角外背景/0.75pt 轮廓并只保留内部 cell 分隔线；fenced code 使用 8pt 圆角、0.75pt 边框、12pt 内边距和更清楚的等宽层级；项目所有者截图指出的 inline code 已收敛为 6pt 圆角及首尾各 6pt 视觉扩展。解析、canonical Markdown、复制/重试/切换语义、表格列宽与居中合同、连续选择、结果卡尺寸/滚动/动效、单层系统玻璃和 Rust core 均未改变。定向 Markdown 29/29、完整 24 项 Rust/Swift suite、Xcode Debug、结构与 diff 门禁、固定签名 Release App 均通过；浅色/深色 Markdown 几何与真实桌面玻璃整屏证据已完成，五维复审为 8/8/8/9/7。Task 保持 Active，等待项目所有者在固定 App 中体验后决定关闭。
+TASK-039 已完成并关闭：原生 TextKit Markdown 列表使用更清楚的 marker、18pt 层级递进和稳定悬挂对齐；GFM 表格使用一个 8pt 圆角外背景/0.75pt 轮廓并只保留内部 cell 分隔线；fenced code 使用 8pt 圆角、0.75pt 边框、12pt 内边距和更清楚的等宽层级；inline code 使用 6pt 圆角及首尾各 6pt 视觉扩展。解析、canonical Markdown、复制/重试/切换语义、表格列宽与居中合同、连续选择、结果卡尺寸/滚动/动效、单层系统玻璃和 Rust core 均未改变。Markdown 29/29、完整检查、浅色/深色窄/宽截图与五维 8/8/8/9/7 均通过；项目所有者于 2026-09-02 确认固定 App 体验完成。实现提交 `3faa605`，合并提交 `e7af72a`。
 
 TASK-037 已完成：共享动效语义现区分 100ms Reduce Motion 透明度、120ms 反馈、160ms 内容、180ms 布局、220ms 重排、320ms 快捷键融合与 900ms 等待呼吸；Settings、API 编辑器与拖拽、OCR 设置、Quick Input、结果卡、截图确认和快捷键局部状态使用明确且可中断的局部过渡，系统菜单/窗口行为保持系统拥有。结果卡宽度预设使用固定顶边的唯一目标 frame，SwiftUI 内容宽度逐帧跟随 AppKit 实际宽度，过渡 resize 不再并发启动高度动画；streaming→completed 不再对正文容器或 raw 文本触发几何动画。浅色玻璃表面增加自适应中性轮廓，Reduce Motion、键盘焦点、Escape 和辅助技术路径保持完整。`WidthPreset` 7/7、完成态正文动画回归 1/1、完整 24 项 Rust/180 项 Swift、Xcode Debug、结构门禁与固定签名 Release App 均通过；五维复审为 8/8/9/9/8。项目所有者于 2026-09-01 明确要求关闭、提交并合并，完成现场验收。未跟踪 `website/` 与 TASK-036 首页原型未纳入本 Task。
 
@@ -58,10 +54,6 @@ Blocked tasks: None.
 
 当前 Active implementation Task 为 TASK-036，由项目所有者从直接请求明确选择。官网原型必须与原生 App 隔离，并以当前产品定义、品牌边界和真实实现为准；旧 `0.1.0` 草案或 Roadmap 不提升额外范围。
 
-TASK-038 位于明确安排的独立工作树；实现已合入 `main`，但仍需项目所有者完成真实鼠标成功释放、Reduce Motion 与浅色证据验收后再决定关闭。
-
-TASK-039 同样位于明确安排的独立工作树；实现已合入 `main`，但仍需项目所有者在固定 App 中体验后再决定关闭。
-
 TASK-023 已完成整体代码审查、自动化验证与固定 Release 测试 App 交付：Rust 翻译与模型列表取消从 10ms 轮询改为事件驱动唤醒，SSE 单个未完成帧增加 1 MiB 内存上限，严格 Clippy 与 shell 语法检查纳入统一验证，5 个公开 unsafe FFI 函数补齐安全合同；`artifacts/Marla_dev.app` 已重建并通过稳定签名验证。
 
 TASK-022 已完成实现并收束：Français、Español、Deutsch、한국어 已接入既有语言路由、UI 菜单和 Swift/Rust 请求合同；Vision 已改为自动语言检测并按运行时能力过滤七门产品 OCR 候选。真实固定开发 App 的日语/韩语截图路由仍是独立证据缺口；其余 Qwen-MT 语言暂不视为已适配。未来发布准备可按届时范围决定是否要求复验。
@@ -89,16 +81,15 @@ TASK-021 已完成：结果卡支持 380–760pt 横向调整，流式译文在�
 - Settings use a five-page native sidebar including Translation Languages, plus a summary-only API list and independently clipped editor sheet; global shortcuts have persistent switches, result cards support background dragging, and screenshot selection includes an in-memory 6× pointer magnifier.
 - Global native/secondary preferences support Simplified Chinese, English, Japanese, French, Spanish, German, and Korean under TASK-022. New sessions locally detect source language, route native to secondary and other/unknown source to native, expose source/target overrides in the result card and quick input, and send consistent explicit target semantics through generic and Qwen-MT providers; expanded-language fixed development-App UI evidence remains incomplete.
 - Settings use a transparent full-size title bar with traffic lights inside one continuous four-corner surface, hidden scroll indicators, and a fixed `Esc` screenshot-cancellation row. Screenshot selection temporarily suspends an open Settings window and restores it without activating it; `Esc` cancellation is owned by the active selection session rather than a single view's first-responder state, with window key-equivalent/cancel-operation routing and a listen-only event-tap fallback.
-- Translation API profiles have persistent enabled states and only enabled profiles can be selected or invoked. The summary list uses native switches, a Set Default/Delete menu, accessibility move actions, and a trailing reorder handle. Settings content no longer moves the window; the newest fixed App uses a complete-row drag preview and 220ms animated hover reordering, which the project owner accepted on 2026-08-18.
+- Translation API profiles have persistent enabled states and only enabled profiles can be selected or invoked. The summary list uses native switches, a Set Default/Delete menu, accessibility move actions, and a trailing reorder handle. TASK-038 keeps the fixed 580×76pt complete-row preview while using a stable equal-height slot, direction-sensitive 40%/60% insertion thresholds, 220ms interruptible reordering, 140ms landing and 120ms final handoff; the project owner accepted the complete interaction on 2026-09-02.
 - Project-scoped Serena 1.6.1 provides read-only Swift/Rust semantic navigation through Codex. A custom Context and fixed tool allowlist expose only nine retrieval/diagnostic tools; source edits, shell, project switching, onboarding, memories, Dashboard, and Headroom remain disabled.
 - Paper Lantern is the selected Marla brand mark and product metaphor: “a little light beside the reader.” The canonical SVG and reference PNG exports live under `Resources/Brand/PaperLantern/`; the 10-slot macOS AppIcon catalog is compiled into Debug and Release builds. The menu-bar identity item uses a separate 18pt monochrome Paper Lantern template; the MenuBarExtra panel header uses a 33.6pt full-color rendition while its text group has a 14pt upward optical correction that makes the approximately 24pt top inset 1.5 times the 16pt leading inset; selection/screenshot result-card headers use a 24pt full-color identity mark and 17pt title. Quick Input and all functional controls continue to use SF Symbols.
-- Quick Input preserves complete semantic Markdown through the Provider and session. Awaiting remains raw; from the first non-empty streaming delta, Markdown uses the same native heading/list/quote/code/link/table projection and TextKit height semantics as completion. Copy and request-changing actions retain the canonical string, while plain-text sessions and failed partial output remain unrendered. The reopened TASK-028 slice and its latest UI refinement are fixed-App verified and project-owner accepted.
+- Quick Input preserves complete semantic Markdown through the Provider and session. Awaiting remains raw; from the first non-empty streaming delta, Markdown uses the same native heading/list/quote/code/link/table projection and TextKit height semantics as completion. Copy and request-changing actions retain the canonical string, while plain-text sessions and failed partial output remain unrendered. TASK-039 adds clearer list hierarchy, one rounded GFM table outline, and refined fenced/inline code styling without changing canonical content; the fixed-App result was accepted on 2026-09-02.
 
-Latest integrated implementation baseline: TASK-037 native UI/UX motion refinement on the unversioned incubation baseline; exact implementation and merge identifiers are recorded by Git history.
+Latest integrated implementation baseline: TASK-038 API profile reorder continuity plus TASK-039 native Markdown presentation polish on the unversioned incubation baseline; exact implementation and merge identifiers are recorded by Git history.
 
 ## Development evidence gaps
 
-- TASK-038 的定向测试、完整检查、固定签名 App、深色越界挤压、`Esc` 取消和深色五维复审 8/8/8/8/7 已通过；项目所有者仍需用真实鼠标验证向上/向下成功释放、快速反向、140ms/120ms 放置手感、无残留 Panel、Reduce Motion，以及浅色五维复审。
 - TASK-035 已验证 Fn/Globe 的 AppKit flag、Carbon mask、显示、校验和回滚路径；实体 Fn + 主键能否从其它应用触发仍依赖具体键盘固件与 macOS Globe 键设置，因此不声明为通用现场通过。
 - Real Japanese, Korean, Chinese, and English screenshot OCR plus source-language routing do not yet have final fixed development-App verification after the TASK-022 Vision repair.
 - `docs/versions/0.1.0/ACCEPTANCE.md` 已随未发布草案撤回；其中未勾选项保留历史语境，但不是当前孵化期阻塞。
@@ -106,9 +97,9 @@ Latest integrated implementation baseline: TASK-037 native UI/UX motion refineme
 
 ## Next selectable work
 
-TASK-038 remains the only Active implementation Task and must be accepted or explicitly paused before another shared-worktree implementation Task is selected. After that, the next implementation or verification Task must be selected explicitly by the project owner from a direct request, Ideas, Backlog, or a current evidence gap; the withdrawn `0.1.0` checklist does not determine the queue.
+TASK-036 remains the only Active implementation Task. After it is completed or explicitly paused, the next implementation or verification Task must be selected explicitly by the project owner from a direct request, Ideas, Backlog, or a current evidence gap; the withdrawn `0.1.0` checklist does not determine the queue.
 
-除当前 TASK-038 现场验收外，验证队列只有 `RV-005`。RV-001～004 已关闭并只作为 `VERIFICATION.md` 中的基线证据保留，不是可选工作。
+当前验证队列只有 `RV-005`。RV-001～004 已关闭并只作为 `VERIFICATION.md` 中的基线证据保留，不是可选工作。
 
 ## Current risks
 
@@ -121,7 +112,9 @@ TASK-038 remains the only Active implementation Task and must be accepted or exp
 
 ## Latest verification
 
-- TASK-038（Active，等待现场验收）：`APIProfileReorder` 7/7 通过，覆盖 40%/60% 阈值、快速反向、列表越界纵向追踪、取消恢复、一次提交和落点几何；最终 `./scripts/check.sh` 通过 24 项 Rust、全量 Swift、Swift Package、Xcode Debug、结构与 diff 门禁。最终 `./scripts/build-test-app.sh` 验证固定 App 为 `com.marla.app`、`0.0.0`、macOS 14.0、arm64，Paper Lantern 资源、稳定签名 `API Usage Monitor Dev` 与 designated requirement 有效。临时独立 bundle 的深色现场操作确认指针横向离开列表右侧后仍继续挤压，`Esc` 取消恢复顺序并移除 Panel；深色真实截图五维复审为 8/8/8/8/7。成功 mouse-up、浅色证据和 Reduce Motion 尚未由项目所有者完成。
+- TASK-039（已关闭，实现 `3faa605`，合并 `e7af72a`）：`MarkdownResultTextTests` 29/29 通过；浅色/深色、380pt/760pt Markdown fixture 与真实单层玻璃证据五维为 8/8/8/9/7。项目所有者于 2026-09-02 确认固定 App 体验完成并关闭 Task。
+
+- TASK-038（已关闭，实现 `338f590`，合并 `1c14d5f`）：`APIProfileReorder` 7/7 通过，覆盖 40%/60% 阈值、快速反向、列表越界纵向追踪、取消恢复、一次提交和落点几何；深色拖动序列五维为 8/8/8/8/7。项目所有者于 2026-09-02 确认真实鼠标、浅色/深色、成功释放、快速反向、取消、Reduce Motion 与最终手感完成验收。两项合并后的 `./scripts/check.sh` 通过 24 项 Rust、完整 Swift suite、Swift Package、Xcode Debug、结构、脚本、空白与 diff 门禁；`./scripts/build-test-app.sh` 随后在 `main` 重建并验证固定 App 为 `com.marla.app`、`0.0.0`、macOS 14.0、arm64，Paper Lantern 资源、稳定签名 `API Usage Monitor Dev` 与 designated requirement 有效。
 
 - TASK-037（已关闭，实现提交 `7aa921c`）：`Screenshot` 19/19、`WidthPreset` 7/7 与完成态正文动画回归 1/1 通过。最终 `./scripts/check.sh` 通过 24 项 Rust、180 项 Swift、Swift Package、Xcode Debug、结构、脚本、空白与 diff 门禁，`FloatingPanel.swift` 为 795 行。`./scripts/build-test-app.sh` 验证固定 App 为 `com.marla.app`、`0.0.0`、macOS 14.0、arm64，Paper Lantern 资源、稳定签名 `API Usage Monitor Dev` 与 designated requirement 有效。固定 App 的浅色、深色、Reduce Motion 和前景整屏透明材质证据五维复审为 8/8/9/9/8；用户逐帧截图未加入仓库。项目所有者于 2026-09-01 明确要求关闭、提交并合并，完成连续动效现场验收。
 

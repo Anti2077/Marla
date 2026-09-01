@@ -1,6 +1,6 @@
 # TASK-039：优化翻译窗口 Markdown 排版细节
 
-Status: Active
+Status: Done
 
 Owner: Project owner + Agent
 
@@ -46,12 +46,12 @@ TASK-028 已建立安全的原生 TextKit Markdown 投影，并完成标题、�
 
 | Date | Requested by | Change | Acceptance / verification impact | Status |
 | --- | --- | --- | --- | --- |
-| 2026-09-02 | Project owner | 参考另外两颗工作树创建新 Task，优化 Markdown 列表/表格框线、圆角、代码块可读性等细节 | 占用 TASK-039；新增三类呈现验收、定向回归、固定 App 截图与五维复审 | Active |
-| 2026-09-02 | Project owner | 指出 fixture 中行内代码背景偏紧，希望背景更宽、更圆 | 行内代码首尾视觉 padding 与圆角调整为 6pt；补充几何回归并重新截图复核 | Active |
+| 2026-09-02 | Project owner | 参考另外两颗工作树创建新 Task，优化 Markdown 列表/表格框线、圆角、代码块可读性等细节 | 占用 TASK-039；新增三类呈现验收、定向回归、固定 App 截图与五维复审 | Verified |
+| 2026-09-02 | Project owner | 指出 fixture 中行内代码背景偏紧，希望背景更宽、更圆 | 行内代码首尾视觉 padding 与圆角调整为 6pt；补充几何回归并重新截图复核 | Verified |
 
 ## Current evidence
 
-- `TASK-039` 专用分支 `Anti2077/task-039-markdown-rendering-polish` 从本地 `main@506c4cf` 创建；TASK-036 与 TASK-038 位于独立工作树，本 Task 不继承或修改其内容。
+- `TASK-039` 专用分支 `Anti2077/task-039-markdown-rendering-polish` 从 `main@506c4cf` 创建；实现提交 `3faa605` 已通过 `e7af72a` 合入 `main`，TASK-036 与 TASK-038 内容保持完整。
 - 现有脱敏 `markdown-completed-wide` 固定 App 浅色截图位于 `/private/tmp/marla-task039-before-light.png`：GFM 表格四角为直角，外框和内部网格同级；无序列表 marker 偏小且使用 secondary label；代码块 `zsh` 标签、背景和 0.5pt 边框在浅色材质上辨识度较低。
 - `MarkdownResultAttributedDocument` 负责 list paragraph、`NSTextTable` cell 和 code attributed attributes；`MarkdownSelectableTextView` 在文字前绘制 fenced/inline code 背景。视觉优化可以留在 Panel presentation layer 内，不触碰 parser、session 或 Rust core。
 - 当前代码块为 5pt 圆角、8pt TextBlock padding、13pt regular monospace、11pt tertiary language label，并使用 `labelColor` 6.5% 背景与 separator border；表格每个 cell 都绘制 0.5pt 全边框且没有圆角外层；列表 marker 与正文共享 15pt 字号但 marker 使用 secondary color。
@@ -144,10 +144,10 @@ None. 本 Task 沿用已认可的 Restrained Native · Warm Minimal、单一连�
 
 ## Completion record
 
-- Verified commit:
-- Automated evidence: `MarkdownResultTextTests` 29/29；`./scripts/check.sh`；`./scripts/build-test-app.sh`
+- Verified commit: `3faa605`；合并提交 `e7af72a`
+- Automated evidence: `MarkdownResultTextTests` 29/29；合并后的 `./scripts/check.sh` 通过 24 项 Rust、完整 Swift suite、Swift Package、Xcode Debug、结构、脚本、空白与 diff 门禁；`./scripts/build-test-app.sh` 于 2026-09-02 在 `main` 重建并验证固定 Release App。
 - Manual evidence: `/private/tmp/marla-task039-final-light-narrow.png`、`/private/tmp/marla-task039-final-dark-wide.png`、`/private/tmp/marla-task039-final-dark-wide-fullscreen.png`；五维 8/8/8/9/7
 - Documentation updated: `docs/versions/0.1.0/UI_SPEC.md`、`docs/versions/0.1.0/IMPLEMENTATION.md`、本 Task、`docs/development/STATUS.md`
-- Remaining work promoted to:
-- Scope changes closed: 实现与 Agent 视觉复审已完成；Task 保持 Active，等待项目所有者在固定 App 中体验后决定关闭
+- Remaining work promoted to: None
+- Scope changes closed: 全部 Verified；项目所有者于 2026-09-02 确认固定 App 体验完成并关闭 Task。
 - Parallel contributions integrated: None

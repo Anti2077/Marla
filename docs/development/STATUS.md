@@ -1,6 +1,6 @@
 # Project Status
 
-Last updated: 2026-09-01
+Last updated: 2026-09-02
 
 Development stage: Incubation / Unreleased
 
@@ -8,7 +8,13 @@ Release target: None. A version is assigned only when the project owner explicit
 
 Overall state: In Progress — unversioned product incubation; no active release contract
 
-Active task: None
+Active task: [`TASK-036`](../tasks/TASK-036-product-homepage-prototype.md) — 构建符合 Marla 产品定位的官网首页原型
+
+TASK-036 官网首页原型于 2026-09-01 由项目所有者重新激活并在专用分支继续；项目所有者于 2026-09-02 明确授权将当前已验证基线合并到 `main` 并推送远端。独立 `website/` 工程使用 React、Vite、Geist、Lucide 和 GSAP ScrollTrigger，以 Paper Lantern 和真实原生 App 录屏解释 Marla 的原地翻译体验；旧实机截图、静态产品照片和网页伪动画均未作为产品证据。第一批桌面素材现有 5 个唯一 H.264 MP4：Hero/结构化 Markdown 两个 5:4 展示位按项目所有者决定复用同一份原地翻译素材，划词、截图、Quick Input 和快捷键各使用独立录屏。网页已删除全部 WebP poster 和背景图回退，所有产品展示位只加载视频。普通动态模式下所有已挂载视频从加载后持续静音循环，不再因视口可见比例自动暂停；Hero 在滚动时保持原尺寸。三入口仍只挂载当前选中的 7:5 视频，视频框不经过透明隐藏，切换后新视频立即播放。播放控制位于视频外侧的 42px 工具条，用户手动暂停会保持；Hero 优先预载，其余视频只预载 metadata。Markdown 与快捷键卡片不使用文案或绝对定位覆盖画面，Reduce Motion 默认停在视频起始位置且允许用户主动播放。三个入口的 1:1 移动端视频仍待补充，期间移动布局按原始 7:5 比例完整显示桌面素材而不强裁关键内容。4K/60fps 母版保留在 Git 忽略的本地目录，网页成品统一进入 `website/public/media/`。本轮 `npm run lint`、`npm run build`、`git diff --check`、仓库级 `./scripts/check.sh` 和真实浏览器回归通过：滚到页面底部后 4 个已挂载视频仍全部播放并持续推进；截图入口视频跨过 9.27 秒片尾后继续循环；Hero 滚动前后保持 1080px 与 1:1 transform；切换入口、手动控制和 Reduce Motion 行为正常，控制台无 warning/error。原生 App、发布版本、下载承诺、定价、用户量和未经验证的隐私/合作声明均未改变或新增。
+
+TASK-036 同一轮新增 GitHub 仓库首页装修：根 README 现在以 Paper Lantern 和真实原地翻译 MP4 入口建立品牌首屏，把三种入口、原生 Swift/AppKit + 嵌入式 Rust 边界、逐路径隐私事实、孵化/未发布状态和开发导航组织为可快速扫描的项目介绍。GitHub 会剥离 README 内联 `<video>`，因此这里使用直接 MP4 链接而不放静态产品截图。README 明确没有公共下载、正式版本、已公证包、更新器或已选择的公共许可证；没有修改远端 About、Topics、Social preview、Pages 或域名。
+
+TASK-036 官网视觉同轮改为无边框体系：Hero 真实录屏居中并移除装饰外框、阴影、侧导轨和悬浮标签；导航、入口、Bento、故事、原则与 Footer 通过留白和品牌色面建立层级，未选中入口透明，焦点环、播放按钮命中区和箭头结构继续承担必要交互语义。1440×1000 与 390×844 均无横向溢出；移动 Hero 标题为 2 行、视频完整落在首屏并露出下一章节提示。Reduce Motion 下 4 个视频停在起始位置且没有 poster，pin spacer 为 0，所有关键内容可见；控制台无 warning/error。五维复审为 9/9/9/8/8。
 
 TASK-037 已完成：共享动效语义现区分 100ms Reduce Motion 透明度、120ms 反馈、160ms 内容、180ms 布局、220ms 重排、320ms 快捷键融合与 900ms 等待呼吸；Settings、API 编辑器与拖拽、OCR 设置、Quick Input、结果卡、截图确认和快捷键局部状态使用明确且可中断的局部过渡，系统菜单/窗口行为保持系统拥有。结果卡宽度预设使用固定顶边的唯一目标 frame，SwiftUI 内容宽度逐帧跟随 AppKit 实际宽度，过渡 resize 不再并发启动高度动画；streaming→completed 不再对正文容器或 raw 文本触发几何动画。浅色玻璃表面增加自适应中性轮廓，Reduce Motion、键盘焦点、Escape 和辅助技术路径保持完整。`WidthPreset` 7/7、完成态正文动画回归 1/1、完整 24 项 Rust/180 项 Swift、Xcode Debug、结构门禁与固定签名 Release App 均通过；五维复审为 8/8/9/9/8。项目所有者于 2026-09-01 明确要求关闭、提交并合并，完成现场验收。未跟踪 `website/` 与 TASK-036 首页原型未纳入本 Task。
 
@@ -42,7 +48,7 @@ Blocked tasks: None.
 
 ## Current objective
 
-当前没有 Active implementation Task。下一项产品实现、修复或验证工作仍必须由项目所有者从直接请求、Ideas、Backlog 或证据缺口中明确选择，Agent 不自动从旧 `0.1.0` 草案或 Roadmap 提升工作。
+当前 Active implementation Task 为 TASK-036，由项目所有者从直接请求明确选择。官网原型必须与原生 App 隔离，并以当前产品定义、品牌边界和真实实现为准；旧 `0.1.0` 草案或 Roadmap 不提升额外范围。
 
 TASK-023 已完成整体代码审查、自动化验证与固定 Release 测试 App 交付：Rust 翻译与模型列表取消从 10ms 轮询改为事件驱动唤醒，SSE 单个未完成帧增加 1 MiB 内存上限，严格 Clippy 与 shell 语法检查纳入统一验证，5 个公开 unsafe FFI 函数补齐安全合同；`artifacts/Marla_dev.app` 已重建并通过稳定签名验证。
 

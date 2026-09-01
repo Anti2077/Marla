@@ -6,10 +6,9 @@
 
 - 5 个桌面版 MP4：Hero/结构化 Markdown 共用一份，另有划词翻译、截图翻译、快速输入和快捷键设置。
 - 3 个移动版 MP4：划词翻译、截图翻译和快速输入的 1:1 方形版本。
-- 8 个同名 WebP 封面，每个唯一 MP4 对应一个。
-- 最终总计：**8 个 MP4 + 8 个 WebP**。
+- 最终总计：**8 个 MP4**。
 
-当前第一批桌面素材已经接入：5 个 MP4 和 5 个 WebP。三个移动版 MP4 和对应 WebP 仍待补充。
+当前第一批桌面素材已经接入：5 个 MP4。三个移动版 MP4 仍待补充。
 
 只有当指针、原文、选择区域和 Marla 界面在经过专门设计的 1:1 构图中仍然清晰可读时，移动版才能从同一份原始录屏制作。否则应单独录制适合方形画面的版本，不能依赖 `object-fit: cover` 随意裁掉内容。
 
@@ -21,9 +20,6 @@
 website/public/media/
   desktop/
   mobile/
-  posters/
-    desktop/
-    mobile/
 ```
 
 正式素材命名格式：
@@ -35,9 +31,8 @@ marla-{scene}--{variant}-{ratio}.{ext}
 - `{scene}`：当前使用 `hero-in-place`、`selection`、`screenshot`、`quick-input` 或 `shortcut-settings`。只有未来把 Markdown 拆成独立素材时才使用 `structured-markdown`。
 - `{variant}`：`desktop` 或 `mobile`。
 - `{ratio}`：`5x4`、`7x5` 或 `1x1`；使用字母 `x`，不要使用 `:` 或 `/`。
-- `{ext}`：视频使用 `mp4`，封面使用 `webp`。
+- `{ext}`：网页成品使用 `mp4`。
 - 文件名必须使用小写 ASCII 与连字符，不要添加空格、中文、日期、`final`、`new` 或随意的版本后缀。
-- WebP 封面必须与 MP4 使用完全相同的主文件名，并放入对应版本的 `posters/` 目录。
 
 原始录屏必须保留在仓库外，命名格式为：
 
@@ -64,7 +59,6 @@ marla-{scene}--raw-{YYYYMMDD}-take-{NN}.mov
 **目的：** 在第一视口完整说明 Marla 的产品价值：用户明确触发，结果出现在原文附近，关闭后立即回到阅读。
 
 - 视频：`desktop/marla-hero-in-place--desktop-5x4.mp4`
-- 封面：`posters/desktop/marla-hero-in-place--desktop-5x4.webp`
 - 比例：**5:4**
 - 导出：**2000x1600**，30 fps
 - 时长：**12-16 秒**
@@ -85,10 +79,8 @@ marla-{scene}--raw-{YYYYMMDD}-take-{NN}.mov
 **目的：** 比 Hero 更紧凑地解释划词翻译流程，重点展示触发动作和就近出现的结果卡。
 
 - 桌面视频：`desktop/marla-selection--desktop-7x5.mp4`
-- 桌面封面：`posters/desktop/marla-selection--desktop-7x5.webp`
 - 桌面比例/导出：**7:5**，**1680x1200**，30 fps
 - 移动视频：`mobile/marla-selection--mobile-1x1.mp4`
-- 移动封面：`posters/mobile/marla-selection--mobile-1x1.webp`
 - 移动比例/导出：**1:1**，**1200x1200**，30 fps
 - 时长：**8-12 秒**
 
@@ -108,10 +100,8 @@ marla-{scene}--raw-{YYYYMMDD}-take-{NN}.mov
 **目的：** 展示用户可以精确选择屏幕区域，并证明 Marla 使用真实的冻结画面、框选放大镜和 OCR 流程。
 
 - 桌面视频：`desktop/marla-screenshot--desktop-7x5.mp4`
-- 桌面封面：`posters/desktop/marla-screenshot--desktop-7x5.webp`
 - 桌面比例/导出：**7:5**，**1680x1200**，30 fps
 - 移动视频：`mobile/marla-screenshot--mobile-1x1.mp4`
-- 移动封面：`posters/mobile/marla-screenshot--mobile-1x1.webp`
 - 移动比例/导出：**1:1**，**1200x1200**，30 fps
 - 时长：**10-15 秒**
 
@@ -132,10 +122,8 @@ marla-{scene}--raw-{YYYYMMDD}-take-{NN}.mov
 **目的：** 展示无法直接在屏幕上选择的文字如何进入 Marla。这个视频只讲清基本流程；富 Markdown 由独立视频负责。
 
 - 桌面视频：`desktop/marla-quick-input--desktop-7x5.mp4`
-- 桌面封面：`posters/desktop/marla-quick-input--desktop-7x5.webp`
 - 桌面比例/导出：**7:5**，**1680x1200**，30 fps
 - 移动视频：`mobile/marla-quick-input--mobile-1x1.mp4`
-- 移动封面：`posters/mobile/marla-quick-input--mobile-1x1.webp`
 - 移动比例/导出：**1:1**，**1200x1200**，30 fps
 - 时长：**8-12 秒**
 
@@ -152,22 +140,20 @@ marla-{scene}--raw-{YYYYMMDD}-take-{NN}.mov
 
 ## 展示位 5：结构化 Markdown
 
-**目的：** 在 Bento 中再次强调内容结构。项目所有者认为它与 Hero 的完整原地翻译叙事属于同一件事，因此当前复用 Hero 视频和封面，不增加重复文件或重复下载。
+**目的：** 在 Bento 中再次强调内容结构。项目所有者认为它与 Hero 的完整原地翻译叙事属于同一件事，因此当前复用 Hero 视频，不增加重复文件或重复下载。
 
 - 视频：`desktop/marla-hero-in-place--desktop-5x4.mp4`
-- 封面：`posters/desktop/marla-hero-in-place--desktop-5x4.webp`
 - 比例：**5:4**
 - 导出：**2000x1600**，30 fps
 - 当前时长：约 **9.67 秒**
 
-页面中的 Hero 和 Markdown `<video>` 使用完全相同的 `src` 与 `poster`。两个展示位保留不同的周边文案和章节作用，但浏览器可以复用同一资源缓存。
+页面中的 Hero 和 Markdown `<video>` 使用完全相同的 `src`。两个展示位保留不同的周边文案和章节作用，但浏览器可以复用同一资源缓存。
 
 ## 视频 6：快捷键设置动画
 
 **目的：** 展示真实的行内快捷键编辑器，重点表现 320 ms 匹配几何融合、同一时间只编辑一行，以及编辑完成后干净地收拢。
 
 - 视频：`desktop/marla-shortcut-settings--desktop-7x5.mp4`
-- 封面：`posters/desktop/marla-shortcut-settings--desktop-7x5.webp`
 - 比例：**7:5**
 - 导出：**1400x1000**，30 fps
 - 录制母版：强烈建议 60 fps
@@ -185,18 +171,6 @@ marla-{scene}--raw-{YYYYMMDD}-take-{NN}.mov
 
 整个录制过程中，820x592 的设置窗口应保持逻辑位置与尺寸稳定。不要展示 API 配置、账号信息、Keychain 提示或无关设置页面。如果录制期间改动了测试快捷键，结束后必须恢复默认键位。
 
-## WebP 封面选择
-
-- 每个 MP4 都要导出一个同名 WebP，像素尺寸与对应视频完全一致。
-- 选择动画已经稳定的清晰画面，不能使用模糊的转场帧或只输出一半的句子。
-- Hero：选区旁边已经显示完整结果。
-- 划词翻译：句子、选中高亮和附近结果同时可见。
-- 截图翻译：优先在“完整框选区域与放大镜”或“完成结果”中选择更清晰的一帧，最终由页面布局检查决定。
-- 快速输入：输入内容和可阅读结果同时可见。
-- Markdown：与 Hero 共用完成态封面。
-- 快捷键：一个行内编辑器完整展开，另外两行仍然可以辨认。
-- WebP 使用 sRGB 编码，并移除可能暴露电脑或用户账号的元数据。
-
 ## 隐私与真实性检查
 
 - 使用专用测试 macOS 账号，或整理干净的录制桌面；画面中不能出现个人文件、通知、书签、账号名、IP 地址或无关菜单栏工具。
@@ -207,4 +181,4 @@ marla-{scene}--raw-{YYYYMMDD}-take-{NN}.mov
 
 ## 接入网页后的验证
 
-第一批 5 个桌面 MP4 和 5 个 WebP 已放入 `website/public/media/` 并接入网页。Hero/Markdown 使用同一 URL；展示位达到至少 50% 可见时静音播放并持续循环，低于 50% 时暂停。三个入口只挂载当前选中的视频，切换后按当前可见比例决定播放；视频框不使用透明隐藏入场，每个展示位仍提供播放/暂停按钮，手动暂停会保持。Hero 优先预载，其余视频只预载 metadata；Reduce Motion 默认停在 WebP 封面。后续补入三个方形入口视频及对应 WebP 时应改用响应式媒体源，并重新验证循环衔接、移动端媒体选择与加载性能。这些视频只用于证明真实 App 的现有体验，不能作为尚未验证的 Provider 能力或公开发布状态的验收证据。
+第一批 5 个桌面 MP4 已放入 `website/public/media/` 并接入网页。所有产品展示位只加载视频，不再使用静态照片、WebP poster 或背景图回退。Hero/Markdown 使用同一 URL；普通动态模式下，所有已挂载视频从加载后持续静音循环，不因滚出视口而自动暂停。Hero 向下滚动时保持原始尺寸，不做缩放。三个入口只挂载当前选中的视频，切换后新视频立即开始；视频框不使用透明隐藏入场，每个展示位仍提供播放/暂停按钮，用户手动暂停会保持。Hero 优先预载，其余视频只预载 metadata；Reduce Motion 默认停在视频起始位置，用户仍可主动播放。后续补入三个方形入口视频时应改用响应式媒体源，并重新验证循环衔接、移动端媒体选择与加载性能。这些视频只用于证明真实 App 的现有体验，不能作为尚未验证的 Provider 能力或公开发布状态的验收证据。

@@ -293,9 +293,6 @@ a:focus-visible {
   overflow: hidden;
   border-radius: 2px;
   background-color: #dce3e8;
-  background-image: var(--video-poster);
-  background-position: center;
-  background-size: cover;
 }
 
 .product-video {

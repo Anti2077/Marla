@@ -22,12 +22,10 @@
 </div>
 
 <p align="center">
-  <a href="website/public/media/desktop/marla-hero-in-place--desktop-5x4.mp4">
-    <img src="website/public/media/posters/desktop/marla-hero-in-place--desktop-5x4.webp" width="900" alt="Marla showing a translated result beside selected text in a native macOS panel">
-  </a>
+  <strong><a href="website/public/media/desktop/marla-hero-in-place--desktop-5x4.mp4">Watch the real Marla workflow (MP4)</a></strong>
 </p>
 
-<p align="center"><sub>Real Marla app capture. Select the image to open the short MP4.</sub></p>
+<p align="center"><sub>Real native macOS app capture. GitHub opens the MP4 in its media viewer.</sub></p>
 
 ## Why Marla
 

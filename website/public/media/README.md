@@ -7,8 +7,6 @@
 ```text
 desktop/          审核通过的桌面版 MP4
 mobile/           审核通过的 1:1 移动版 MP4
-posters/desktop/  桌面版 WebP 封面
-posters/mobile/   移动版 WebP 封面
 ```
 
 ## 正式素材命名规则
@@ -35,7 +33,6 @@ marla-{scene}--{variant}-{ratio}.{ext}
 允许使用的扩展名：
 
 - `mp4`：视频。
-- `webp`：封面。
 
 示例：
 
@@ -43,11 +40,7 @@ marla-{scene}--{variant}-{ratio}.{ext}
 desktop/marla-hero-in-place--desktop-5x4.mp4
 desktop/marla-shortcut-settings--desktop-7x5.mp4
 mobile/marla-selection--mobile-1x1.mp4
-posters/desktop/marla-shortcut-settings--desktop-7x5.webp
-posters/mobile/marla-selection--mobile-1x1.webp
 ```
-
-每个 MP4 必须有一个主文件名完全相同的 WebP 封面，并放入对应版本的 `posters/` 目录。
 
 ## 当前桌面成品
 
@@ -59,7 +52,7 @@ desktop/marla-quick-input--desktop-7x5.mp4
 desktop/marla-shortcut-settings--desktop-7x5.mp4
 ```
 
-对应的 5 个同名 WebP 位于 `posters/desktop/`。Hero 和结构化 Markdown 两个展示位共用 `marla-hero-in-place--desktop-5x4`，因此没有重复的 Markdown 成品文件。
+Hero 和结构化 Markdown 两个展示位共用 `marla-hero-in-place--desktop-5x4`，因此没有重复的 Markdown 成品文件。官网产品展示位只接入 MP4，不再保存或加载静态产品封面。
 
 ## 原始录屏命名规则
 

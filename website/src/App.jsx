@@ -54,7 +54,6 @@ const entryPoints = [
 
 const heroMedia = {
   src: "/media/desktop/marla-hero-in-place--desktop-5x4.mp4",
-  poster: "/media/posters/desktop/marla-hero-in-place--desktop-5x4.webp",
   label: "Marla 原地翻译真实演示",
   priority: true,
 };
@@ -63,17 +62,14 @@ const desktopMedia = {
   hero: heroMedia,
   selection: {
     src: "/media/desktop/marla-selection--desktop-7x5.mp4",
-    poster: "/media/posters/desktop/marla-selection--desktop-7x5.webp",
     label: "Marla 划词翻译真实演示",
   },
   screenshot: {
     src: "/media/desktop/marla-screenshot--desktop-7x5.mp4",
-    poster: "/media/posters/desktop/marla-screenshot--desktop-7x5.webp",
     label: "Marla 截图翻译真实演示",
   },
   quickInput: {
     src: "/media/desktop/marla-quick-input--desktop-7x5.mp4",
-    poster: "/media/posters/desktop/marla-quick-input--desktop-7x5.webp",
     label: "Marla 快速输入真实演示",
   },
   markdown: {
@@ -83,7 +79,6 @@ const desktopMedia = {
   },
   shortcuts: {
     src: "/media/desktop/marla-shortcut-settings--desktop-7x5.mp4",
-    poster: "/media/posters/desktop/marla-shortcut-settings--desktop-7x5.webp",
     label: "Marla 快捷键设置动画真实演示",
   },
 };
@@ -129,9 +124,7 @@ function scrollToId(id) {
 }
 
 function ProductVideo({ asset, className, ratio = "7:5" }) {
-  const containerRef = useRef(null);
   const videoRef = useRef(null);
-  const [visibleEnough, setVisibleEnough] = useState(false);
   const [reduceMotion, setReduceMotion] = useState(() =>
     window.matchMedia("(prefers-reduced-motion: reduce)").matches,
   );
@@ -148,33 +141,17 @@ function ProductVideo({ asset, className, ratio = "7:5" }) {
   }, []);
 
   useEffect(() => {
-    const container = containerRef.current;
-    if (!container) return undefined;
-
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        setVisibleEnough(entry.isIntersecting && entry.intersectionRatio >= 0.5);
-      },
-      { threshold: [0, 0.5] },
-    );
-
-    observer.observe(container);
-    return () => observer.disconnect();
-  }, []);
-
-  useEffect(() => {
     const video = videoRef.current;
     if (!video) return;
 
-    const automaticPlayback = !reduceMotion && userPreference !== "pause";
-    const shouldPlay = visibleEnough && (userPreference === "play" || automaticPlayback);
+    const shouldPlay = userPreference === "play" || (!reduceMotion && userPreference !== "pause");
 
     if (shouldPlay) {
       video.play().catch(() => setIsPlaying(false));
     } else {
       video.pause();
     }
-  }, [reduceMotion, userPreference, visibleEnough]);
+  }, [reduceMotion, userPreference]);
 
   const togglePlayback = () => {
     setUserPreference(isPlaying ? "pause" : "play");
@@ -182,7 +159,6 @@ function ProductVideo({ asset, className, ratio = "7:5" }) {
 
   return (
     <div
-      ref={containerRef}
       className={`${className} product-video-frame`}
       role="group"
       aria-label={asset.label}
@@ -193,16 +169,12 @@ function ProductVideo({ asset, className, ratio = "7:5" }) {
       </div>
       <div
         className="video-viewport"
-        style={{
-          "--stage-ratio": ratio.replace(":", " / "),
-          "--video-poster": `url(${asset.poster})`,
-        }}
+        style={{ "--stage-ratio": ratio.replace(":", " / ") }}
       >
         <video
           ref={videoRef}
           className="product-video"
           src={asset.src}
-          poster={asset.poster}
           muted
           loop
           playsInline
@@ -338,18 +310,6 @@ function App() {
           });
 
           if (desktop) {
-            gsap.to(".hero-product", {
-              yPercent: -5,
-              scale: 0.975,
-              ease: "none",
-              scrollTrigger: {
-                trigger: ".hero",
-                start: "top top",
-                end: "bottom top",
-                scrub: 0.8,
-              },
-            });
-
             gsap.fromTo(
               ".story-copy",
               { autoAlpha: 0.45, x: -18 },

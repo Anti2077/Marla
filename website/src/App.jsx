@@ -129,7 +129,9 @@ function scrollToId(id) {
 }
 
 function ProductVideo({ asset, className, ratio = "7:5" }) {
+  const containerRef = useRef(null);
   const videoRef = useRef(null);
+  const [visibleEnough, setVisibleEnough] = useState(false);
   const [reduceMotion, setReduceMotion] = useState(() =>
     window.matchMedia("(prefers-reduced-motion: reduce)").matches,
   );
@@ -146,25 +148,45 @@ function ProductVideo({ asset, className, ratio = "7:5" }) {
   }, []);
 
   useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return undefined;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        setVisibleEnough(entry.isIntersecting && entry.intersectionRatio >= 0.5);
+      },
+      { threshold: [0, 0.5] },
+    );
+
+    observer.observe(container);
+    return () => observer.disconnect();
+  }, []);
+
+  useEffect(() => {
     const video = videoRef.current;
     if (!video) return;
 
     const automaticPlayback = !reduceMotion && userPreference !== "pause";
-    const shouldPlay = userPreference === "play" || automaticPlayback;
+    const shouldPlay = visibleEnough && (userPreference === "play" || automaticPlayback);
 
     if (shouldPlay) {
       video.play().catch(() => setIsPlaying(false));
     } else {
       video.pause();
     }
-  }, [reduceMotion, userPreference]);
+  }, [reduceMotion, userPreference, visibleEnough]);
 
   const togglePlayback = () => {
     setUserPreference(isPlaying ? "pause" : "play");
   };
 
   return (
-    <div className={`${className} product-video-frame`} role="group" aria-label={asset.label}>
+    <div
+      ref={containerRef}
+      className={`${className} product-video-frame`}
+      role="group"
+      aria-label={asset.label}
+    >
       <div className="video-toolbar" aria-hidden="true">
         <span className="video-status-dot" />
         <span>{asset.label}</span>
@@ -181,11 +203,10 @@ function ProductVideo({ asset, className, ratio = "7:5" }) {
           className="product-video"
           src={asset.src}
           poster={asset.poster}
-          autoPlay={!reduceMotion}
           muted
           loop
           playsInline
-          preload="auto"
+          preload={asset.priority ? "auto" : "metadata"}
           aria-hidden="true"
           onPlay={() => setIsPlaying(true)}
           onPause={() => setIsPlaying(false)}

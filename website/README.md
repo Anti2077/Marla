@@ -20,4 +20,4 @@ npm run build
 
 构建产物会输出到 `website/dist/`。页面通过 `prefers-reduced-motion` 和 GSAP 媒体查询响应系统的“减弱动态效果”设置。
 
-Hero、三个产品入口、Markdown Bento 和快捷键卡片目前均已接入桌面视频；Hero 与 Markdown 按项目决定共用同一份 5:4 素材。视频只在可见且激活时播放，播放/暂停按钮位于画面外的工具条内。三个入口使用三段式切换和单一 7:5 大舞台，说明文字不会覆盖录屏；移动端在 1:1 成品补齐前也按原始 7:5 比例完整显示桌面素材。Reduce Motion 默认显示 WebP 封面。完整分镜与导出规格见 [`DEMO_ASSETS.md`](DEMO_ASSETS.md)，成品目录与命名规则见 [`public/media/`](public/media/README.md)。
+Hero、三个产品入口、Markdown Bento 和快捷键卡片目前均已接入桌面视频；Hero 与 Markdown 按项目决定共用同一份 5:4 素材。所有已挂载视频均静音自动循环，不需要滚动进入视口才开始；三个入口切换后，新挂载的视频会立即播放。播放/暂停按钮位于画面外的工具条内，手动暂停会保持。三个入口使用三段式切换和单一 7:5 大舞台，说明文字不会覆盖录屏；移动端在 1:1 成品补齐前也按原始 7:5 比例完整显示桌面素材。Reduce Motion 默认显示 WebP 封面。完整分镜与导出规格见 [`DEMO_ASSETS.md`](DEMO_ASSETS.md)，成品目录与命名规则见 [`public/media/`](public/media/README.md)。

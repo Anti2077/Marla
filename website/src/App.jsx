@@ -128,11 +128,11 @@ function scrollToId(id) {
   document.getElementById(id)?.scrollIntoView({ behavior: "smooth" });
 }
 
-function ProductVideo({ asset, className, ratio = "7:5", active = true }) {
-  const containerRef = useRef(null);
+function ProductVideo({ asset, className, ratio = "7:5" }) {
   const videoRef = useRef(null);
-  const [inView, setInView] = useState(false);
-  const [reduceMotion, setReduceMotion] = useState(false);
+  const [reduceMotion, setReduceMotion] = useState(() =>
+    window.matchMedia("(prefers-reduced-motion: reduce)").matches,
+  );
   const [userPreference, setUserPreference] = useState("auto");
   const [isPlaying, setIsPlaying] = useState(false);
 
@@ -146,42 +146,25 @@ function ProductVideo({ asset, className, ratio = "7:5", active = true }) {
   }, []);
 
   useEffect(() => {
-    const element = containerRef.current;
-    if (!element) return undefined;
-
-    const observer = new IntersectionObserver(
-      ([entry]) => setInView(entry.isIntersecting),
-      { threshold: 0.18 },
-    );
-    observer.observe(element);
-    return () => observer.disconnect();
-  }, []);
-
-  useEffect(() => {
     const video = videoRef.current;
     if (!video) return;
 
     const automaticPlayback = !reduceMotion && userPreference !== "pause";
-    const shouldPlay = active && inView && (userPreference === "play" || automaticPlayback);
+    const shouldPlay = userPreference === "play" || automaticPlayback;
 
     if (shouldPlay) {
       video.play().catch(() => setIsPlaying(false));
     } else {
       video.pause();
     }
-  }, [active, inView, reduceMotion, userPreference]);
+  }, [reduceMotion, userPreference]);
 
   const togglePlayback = () => {
     setUserPreference(isPlaying ? "pause" : "play");
   };
 
   return (
-    <div
-      ref={containerRef}
-      className={`${className} product-video-frame`}
-      role="group"
-      aria-label={asset.label}
-    >
+    <div className={`${className} product-video-frame`} role="group" aria-label={asset.label}>
       <div className="video-toolbar" aria-hidden="true">
         <span className="video-status-dot" />
         <span>{asset.label}</span>
@@ -198,10 +181,11 @@ function ProductVideo({ asset, className, ratio = "7:5", active = true }) {
           className="product-video"
           src={asset.src}
           poster={asset.poster}
+          autoPlay={!reduceMotion}
           muted
           loop
           playsInline
-          preload={asset.priority ? "auto" : "metadata"}
+          preload="auto"
           aria-hidden="true"
           onPlay={() => setIsPlaying(true)}
           onPause={() => setIsPlaying(false)}
@@ -220,8 +204,8 @@ function ProductVideo({ asset, className, ratio = "7:5", active = true }) {
   );
 }
 
-function MediaStage({ asset, label, ratio = "7:5", active = true }) {
-  return <ProductVideo asset={{ ...asset, label }} className="media-stage" ratio={ratio} active={active} />;
+function MediaStage({ asset, label, ratio = "7:5" }) {
+  return <ProductVideo asset={{ ...asset, label }} className="media-stage" ratio={ratio} />;
 }
 
 function HeroMediaStage() {
@@ -301,19 +285,6 @@ function App() {
             ease: "power2.out",
             scrollTrigger: {
               trigger: ".bento-grid",
-              start: "top 78%",
-              toggleActions: "play none none reverse",
-            },
-          });
-
-          gsap.from(".entry-showcase .product-video-frame", {
-            autoAlpha: 0,
-            y: 10,
-            duration: 0.45,
-            stagger: 0.1,
-            ease: "power2.out",
-            scrollTrigger: {
-              trigger: ".entry-switcher",
               start: "top 78%",
               toggleActions: "play none none reverse",
             },
@@ -428,14 +399,14 @@ function App() {
       if (!content || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
 
       gsap.fromTo(
-        content,
-        { autoAlpha: 0.2, y: 14 },
-        { autoAlpha: 1, y: 0, duration: 0.48, ease: "power2.out", overwrite: "auto" },
+        content.querySelector(".product-video-frame"),
+        { y: 10 },
+        { y: 0, duration: 0.42, ease: "power2.out", overwrite: "auto" },
       );
       gsap.fromTo(
-        content.querySelectorAll(".product-video-frame, .entry-summary"),
+        content.querySelector(".entry-summary"),
         { autoAlpha: 0, y: 10 },
-        { autoAlpha: 1, y: 0, duration: 0.42, stagger: 0.06, ease: "power2.out", overwrite: "auto" },
+        { autoAlpha: 1, y: 0, duration: 0.42, ease: "power2.out", overwrite: "auto" },
       );
     },
     { scope: root, dependencies: [activeEntry], revertOnUpdate: true },

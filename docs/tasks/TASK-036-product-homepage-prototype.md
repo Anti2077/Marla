@@ -6,7 +6,7 @@ Owner: Project owner + Agent
 
 Created: 2026-08-26
 
-Updated: 2026-09-01
+Updated: 2026-09-02
 
 Origin: direct request
 
@@ -57,6 +57,7 @@ Marla 已有稳定的产品定义、Paper Lantern 品牌和可展示的真实 Ap
 | 2026-09-01 | Project owner | 将素材说明做成中文 | `website/DEMO_ASSETS.md`、`website/public/media/README.md` 和网站运行说明使用中文正文；技术标识、路径与 ASCII 文件名规则保持不变 | Verified |
 | 2026-09-01 | Project owner | 桌面视频已经录制，接入网页；Hero 与结构化 Markdown 视为同一份素材 | 将 5 个唯一桌面母版转为 30fps H.264 和同名 WebP，覆盖 6 个展示位；Hero/Markdown 共用同一 URL，移动端素材保持待补；验证视口播放、入口互斥、播放控制和 Reduce Motion | Verified |
 | 2026-09-01 | Project owner | 实机查看后发现多个视频被界面元素遮挡，允许调整视频位置、效果和页面布局 | 播放控制移出录屏画面；三入口由覆盖式手风琴改为三段切换和单一大舞台；快捷键卡片取消绝对定位；桌面与手机均按素材原始比例完整显示，并重新验证遮挡、溢出、键盘和 Reduce Motion | Verified |
+| 2026-09-02 | Project owner | 所有视频展示位改为自动循环，并修复首次到达三入口区域时画面空白、看起来没有播放 | 移除视频的视口相交门槛和入口视频框的透明度入场；所有已挂载视频静音自动循环且进入画面时立即可见，入口切换后新挂载视频立即播放；保留手动暂停和 Reduce Motion 默认封面 | Verified |
 
 ## Current evidence
 
@@ -71,7 +72,7 @@ Marla 已有稳定的产品定义、Paper Lantern 品牌和可展示的真实 Ap
 
 ## Proposed approach
 
-在 `website/` 维护与原生 App 隔离的 Vite React 工程。视觉使用明亮纸张底色、品牌靛青结构、陶土红重点和暖金小范围照明，以固定比例真实录屏作为第一视口信号；用 GSAP 负责首屏入场、能力卡片堆叠和桌面滚动固定，CSS 与媒体播放状态共同负责响应式、可见性播放、交互控制和 Reduce Motion 降级。
+在 `website/` 维护与原生 App 隔离的 Vite React 工程。视觉使用明亮纸张底色、品牌靛青结构、陶土红重点和暖金小范围照明，以固定比例真实录屏作为第一视口信号；用 GSAP 负责首屏入场、能力卡片堆叠和桌面滚动固定，CSS 与媒体播放状态共同负责响应式、静音自动循环、交互控制和 Reduce Motion 降级。
 
 ## Acceptance criteria
 
@@ -85,7 +86,7 @@ Marla 已有稳定的产品定义、Paper Lantern 品牌和可展示的真实 Ap
 - [x] 至少完成 1440px 桌面和 390px 移动端真实浏览器截图检查。
 - [x] 运行说明、Task 和 `STATUS.md` 已同步到待项目所有者视觉确认的状态。
 - [x] 素材分镜、导出规格、隐私检查、目录和命名说明均提供中文正文，技术标识与文件路径保持可直接使用。
-- [x] 视频仅在进入视口且展示位激活时播放，入口切换会暂停旧视频；每个展示位提供键盘可操作的播放/暂停按钮，Reduce Motion 默认停在 WebP 封面。
+- [x] 所有已挂载视频展示位均静音自动循环且不依赖视口相交；首次到达三入口区域时视频框不经过透明隐藏，切换入口时当前视频立即可见并播放；每个展示位提供键盘可操作的播放/暂停按钮，手动暂停保持有效，Reduce Motion 默认停在 WebP 封面。
 
 ## Verification
 
@@ -106,6 +107,8 @@ git diff --check
 2026-09-01 桌面素材接入结果：`npm run lint`、`npm run build` 和 `git diff --check` 通过。5 个唯一 MP4 均为 H.264、`yuv420p`、30fps、无音轨并带 fast-start；总大小约 13 MB。5 个同名 WebP 尺寸与视频一致。
 
 2026-09-01 视频布局修正结果：`npm run lint`、`npm run build` 和 `git diff --check` 通过。播放控制位于画面外工具条；桌面入口视频视口实测为 7:5，Hero/Markdown 为 5:4；快捷键文案底部与视频工具条顶部之间保持正间距。
+
+2026-09-02 自动循环与首次显示修正结果：`npm run lint`、`npm run build` 和 `git diff --check` 通过。入口视频不再由 ScrollTrigger 或切换动画写入透明隐藏；所有挂载视频使用静音 `autoplay`、`loop` 与提前加载，并由播放状态逻辑保留手动暂停和 Reduce Motion 降级。
 
 ### Manual
 
@@ -130,6 +133,8 @@ git diff --check
 2026-09-01 素材接入浏览器证据：1440×1000 下 Hero、三入口、Markdown 和快捷键视频均真实解码；Hero/Markdown 的 `currentSrc` 完全一致。入口切换只播放当前展开项，旧项暂停；播放/暂停按钮可点击并具有键盘焦点；控制台无 warning/error。Reduce Motion 新页面默认 `currentTime = 0`、`paused = true` 并使用 WebP poster。390×844 下 `scrollWidth = innerWidth = 390`，桌面视频在 1:1 入口中以完整显示降级，无横向溢出。
 
 2026-09-01 视频布局修正浏览器证据：1440×1000 下三入口为三段式 Tab 和单一 963px 宽 7:5 舞台，说明位于独立右栏；快捷键文案与视频相互分离。390×844 下入口保持原始 7:5、Hero 保持 5:4，不再强制 1:1；`document.scrollWidth = innerWidth = 390`，隐私卡片正文与数据流标签分离。Tab 可用左右/Home/End 键切换，控制台无 warning/error。Reduce Motion 下 4 个当前 DOM 视频均为 `currentTime = 0`、`paused = true`，pin spacer 为 0，所有 Hero/Bento/故事内容可见；检查后浏览器已恢复普通动态模式。
+
+2026-09-02 自动循环浏览器证据：新页面初始挂载的 Hero、当前入口、Markdown 与快捷键 4 个视频均为 `autoplay = true`、`loop = true`、`muted = true`、`paused = false`，包括尚未进入视口的展示位。按项目所有者截图对应的 1274×990 视口首次滚入入口区域后等待超过原 420ms 动画时长，视频框仍为 `opacity = 1`、`visibility = visible` 且时间持续前进；切换截图入口后同样立即可见并播放。Quick Input 实测跨过 9.27 秒片尾后从 5.39 秒回到 1.16 秒并继续播放；手动暂停期间时间保持 1.28 秒，恢复后继续前进。Reduce Motion 下 4 个视频均为 `currentTime = 0`、`paused = true`，显式播放仍可覆盖；恢复普通动态后 4 个视频全部继续播放，控制台无 warning/error。
 
 ## Required Reading
 

@@ -1,6 +1,6 @@
 # Project Status
 
-Last updated: 2026-09-01
+Last updated: 2026-09-02
 
 Development stage: Incubation / Unreleased
 
@@ -10,7 +10,7 @@ Overall state: In Progress — unversioned product incubation; no active release
 
 Active task: [`TASK-036`](../tasks/TASK-036-product-homepage-prototype.md) — 构建符合 Marla 产品定位的官网首页原型
 
-TASK-036 官网首页原型于 2026-09-01 由项目所有者重新激活，并在专用分支继续，不合并到 `main`。独立 `website/` 工程使用 React、Vite、Geist、Lucide 和 GSAP ScrollTrigger，以 Paper Lantern 和真实原生 App 录屏解释 Marla 的原地翻译体验；旧实机截图和网页伪动画均未作为产品证据。第一批桌面素材现有 5 个唯一 H.264 MP4 和 5 个同名 WebP：Hero/结构化 Markdown 两个 5:4 展示位按项目所有者决定复用同一份原地翻译素材，划词、截图、Quick Input 和快捷键各使用独立录屏。网页只在素材进入视口且展示位激活时播放；播放控制已经移入视频外侧的 42px 工具条，三入口改为三段式切换和单一 7:5 大舞台，Markdown 与快捷键卡片也不再用文案或绝对定位覆盖画面。Reduce Motion 默认停在封面；三个入口的 1:1 移动端视频与封面仍待补充，期间移动布局按原始 7:5 比例完整显示桌面素材而不强裁关键内容。4K/60fps 母版保留在 Git 忽略的本地目录，网页成品统一进入 `website/public/media/`。本轮 `npm run lint`、`npm run build`、`git diff --check`、1440×1000 与 390×844 浏览器检查、入口切换、键盘左右键、播放控制、控制台和 Reduce Motion 均通过；两个视口均无横向溢出。原生 App、发布版本、下载承诺、定价、用户量和未经验证的隐私/合作声明均未改变或新增。
+TASK-036 官网首页原型于 2026-09-01 由项目所有者重新激活，并在专用分支继续，不合并到 `main`。独立 `website/` 工程使用 React、Vite、Geist、Lucide 和 GSAP ScrollTrigger，以 Paper Lantern 和真实原生 App 录屏解释 Marla 的原地翻译体验；旧实机截图和网页伪动画均未作为产品证据。第一批桌面素材现有 5 个唯一 H.264 MP4 和 5 个同名 WebP：Hero/结构化 Markdown 两个 5:4 展示位按项目所有者决定复用同一份原地翻译素材，划词、截图、Quick Input 和快捷键各使用独立录屏。所有已挂载的视频展示位均静音自动循环，不再依赖进入视口才开始播放；三入口仍只挂载当前选中的 7:5 视频，视频框不经过透明隐藏，因此首次到达该区域和切换入口时，新展示内容都会立即可见并播放。播放控制位于视频外侧的 42px 工具条，手动暂停会保持；Markdown 与快捷键卡片也不使用文案或绝对定位覆盖画面。Reduce Motion 默认停在封面；三个入口的 1:1 移动端视频与封面仍待补充，期间移动布局按原始 7:5 比例完整显示桌面素材而不强裁关键内容。4K/60fps 母版保留在 Git 忽略的本地目录，网页成品统一进入 `website/public/media/`。本轮 `npm run lint`、`npm run build`、`git diff --check` 和真实浏览器回归均通过：首次滚入入口区域与切换后视频保持可见并播放，循环跨片尾继续，手动暂停有效，Reduce Motion 下 4 个视频均停在封面，控制台无 warning/error。原生 App、发布版本、下载承诺、定价、用户量和未经验证的隐私/合作声明均未改变或新增。
 
 TASK-037 已完成：共享动效语义现区分 100ms Reduce Motion 透明度、120ms 反馈、160ms 内容、180ms 布局、220ms 重排、320ms 快捷键融合与 900ms 等待呼吸；Settings、API 编辑器与拖拽、OCR 设置、Quick Input、结果卡、截图确认和快捷键局部状态使用明确且可中断的局部过渡，系统菜单/窗口行为保持系统拥有。结果卡宽度预设使用固定顶边的唯一目标 frame，SwiftUI 内容宽度逐帧跟随 AppKit 实际宽度，过渡 resize 不再并发启动高度动画；streaming→completed 不再对正文容器或 raw 文本触发几何动画。浅色玻璃表面增加自适应中性轮廓，Reduce Motion、键盘焦点、Escape 和辅助技术路径保持完整。`WidthPreset` 7/7、完成态正文动画回归 1/1、完整 24 项 Rust/180 项 Swift、Xcode Debug、结构门禁与固定签名 Release App 均通过；五维复审为 8/8/9/9/8。项目所有者于 2026-09-01 明确要求关闭、提交并合并，完成现场验收。未跟踪 `website/` 与 TASK-036 首页原型未纳入本 Task。
 

@@ -28,6 +28,30 @@ const capabilities = [
   "原生 macOS",
 ];
 
+const entryPoints = [
+  {
+    title: "划词",
+    caption: "选中文字，按下快捷键。",
+    detail: "从网页、邮件、终端或聊天里触发，完整译文在原文附近流式生长。",
+    icon: Languages,
+    mediaKey: "selection",
+  },
+  {
+    title: "截图",
+    caption: "框出只需要理解的部分。",
+    detail: "Vision 默认在本机识别；只有明确切换云端 OCR 时才上传选中的裁剪区域。",
+    icon: ScanText,
+    mediaKey: "screenshot",
+  },
+  {
+    title: "输入",
+    caption: "没有现成原文时，直接写。",
+    detail: "Quick Input 接收普通文本与结构化 Markdown，适合临时句子和短篇内容。",
+    icon: Command,
+    mediaKey: "quickInput",
+  },
+];
+
 const heroMedia = {
   src: "/media/desktop/marla-hero-in-place--desktop-5x4.mp4",
   poster: "/media/posters/desktop/marla-hero-in-place--desktop-5x4.webp",
@@ -104,7 +128,7 @@ function scrollToId(id) {
   document.getElementById(id)?.scrollIntoView({ behavior: "smooth" });
 }
 
-function ProductVideo({ asset, className, ratio, active = true }) {
+function ProductVideo({ asset, className, ratio = "7:5", active = true }) {
   const containerRef = useRef(null);
   const videoRef = useRef(null);
   const [inView, setInView] = useState(false);
@@ -155,23 +179,34 @@ function ProductVideo({ asset, className, ratio, active = true }) {
     <div
       ref={containerRef}
       className={`${className} product-video-frame`}
-      style={ratio ? { "--stage-ratio": ratio.replace(":", " / ") } : undefined}
       role="group"
       aria-label={asset.label}
     >
-      <video
-        ref={videoRef}
-        className="product-video"
-        src={asset.src}
-        poster={asset.poster}
-        muted
-        loop
-        playsInline
-        preload={asset.priority ? "auto" : "metadata"}
-        aria-hidden="true"
-        onPlay={() => setIsPlaying(true)}
-        onPause={() => setIsPlaying(false)}
-      />
+      <div className="video-toolbar" aria-hidden="true">
+        <span className="video-status-dot" />
+        <span>{asset.label}</span>
+      </div>
+      <div
+        className="video-viewport"
+        style={{
+          "--stage-ratio": ratio.replace(":", " / "),
+          "--video-poster": `url(${asset.poster})`,
+        }}
+      >
+        <video
+          ref={videoRef}
+          className="product-video"
+          src={asset.src}
+          poster={asset.poster}
+          muted
+          loop
+          playsInline
+          preload={asset.priority ? "auto" : "metadata"}
+          aria-hidden="true"
+          onPlay={() => setIsPlaying(true)}
+          onPause={() => setIsPlaying(false)}
+        />
+      </div>
       <button
         className="video-control"
         type="button"
@@ -190,7 +225,7 @@ function MediaStage({ asset, label, ratio = "7:5", active = true }) {
 }
 
 function HeroMediaStage() {
-  return <ProductVideo asset={desktopMedia.hero} className="hero-stage" />;
+  return <ProductVideo asset={desktopMedia.hero} className="hero-stage" ratio="5:4" />;
 }
 
 function App() {
@@ -271,14 +306,14 @@ function App() {
             },
           });
 
-          gsap.from(".entry-visual .product-video-frame", {
+          gsap.from(".entry-showcase .product-video-frame", {
             autoAlpha: 0,
             y: 10,
             duration: 0.45,
             stagger: 0.1,
             ease: "power2.out",
             scrollTrigger: {
-              trigger: ".entry-accordion",
+              trigger: ".entry-switcher",
               start: "top 78%",
               toggleActions: "play none none reverse",
             },
@@ -389,8 +424,7 @@ function App() {
 
   useGSAP(
     () => {
-      const activePanel = root.current?.querySelector(`.entry-panel:nth-child(${activeEntry + 1})`);
-      const content = activePanel?.querySelector(".entry-visual");
+      const content = root.current?.querySelector(".entry-showcase");
       if (!content || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
 
       gsap.fromTo(
@@ -399,7 +433,7 @@ function App() {
         { autoAlpha: 1, y: 0, duration: 0.48, ease: "power2.out", overwrite: "auto" },
       );
       gsap.fromTo(
-        content.querySelectorAll(".product-video-frame"),
+        content.querySelectorAll(".product-video-frame, .entry-summary"),
         { autoAlpha: 0, y: 10 },
         { autoAlpha: 1, y: 0, duration: 0.42, stagger: 0.06, ease: "power2.out", overwrite: "auto" },
       );
@@ -411,6 +445,23 @@ function App() {
     setPrincipleIndex((current) =>
       (current + direction + principles.length) % principles.length,
     );
+  };
+
+  const handleEntryTabKeyDown = (event, index) => {
+    const keyTargets = {
+      ArrowLeft: (index - 1 + entryPoints.length) % entryPoints.length,
+      ArrowRight: (index + 1) % entryPoints.length,
+      Home: 0,
+      End: entryPoints.length - 1,
+    };
+    const nextIndex = keyTargets[event.key];
+    if (nextIndex === undefined) return;
+
+    event.preventDefault();
+    setActiveEntry(nextIndex);
+    requestAnimationFrame(() => {
+      root.current?.querySelector(`#entry-tab-${nextIndex}`)?.focus();
+    });
   };
 
   return (
@@ -492,64 +543,53 @@ function App() {
           </p>
         </div>
 
-        <div className="entry-accordion" role="list" aria-label="Marla 的三种翻译入口">
-          {[
-            {
-              title: "划词",
-              caption: "选中文字，按下快捷键。",
-              detail: "从网页、邮件、终端或聊天里触发，完整译文在原文附近流式生长。",
-              icon: Languages,
-              media: desktopMedia.selection,
-            },
-            {
-              title: "截图",
-              caption: "框出只需要理解的部分。",
-              detail: "Vision 默认在本机识别；只有明确切换云端 OCR 时才上传选中的裁剪区域。",
-              icon: ScanText,
-              media: desktopMedia.screenshot,
-            },
-            {
-              title: "输入",
-              caption: "没有现成原文时，直接写。",
-              detail: "Quick Input 接收普通文本与结构化 Markdown，适合临时句子和短篇内容。",
-              icon: Command,
-              media: desktopMedia.quickInput,
-            },
-          ].map((entry, index) => {
+        <div className="entry-switcher">
+          <div className="entry-tabs" role="tablist" aria-label="Marla 的三种翻译入口">
+            {entryPoints.map((entry, index) => {
             const Icon = entry.icon;
             const active = activeEntry === index;
             return (
-              <article
-                className={`entry-panel ${active ? "is-active" : ""}`}
+              <button
+                className={`entry-tab ${active ? "is-active" : ""}`}
                 key={entry.title}
-                role="listitem"
+                id={`entry-tab-${index}`}
+                role="tab"
+                type="button"
+                aria-selected={active}
+                aria-controls="entry-showcase"
+                tabIndex={active ? 0 : -1}
+                onClick={() => setActiveEntry(index)}
+                onFocus={() => setActiveEntry(index)}
+                onKeyDown={(event) => handleEntryTabKeyDown(event, index)}
                 onMouseEnter={() => setActiveEntry(index)}
               >
-                <button
-                  type="button"
-                  className="entry-trigger"
-                  aria-expanded={active}
-                  onClick={() => setActiveEntry(index)}
-                  onFocus={() => setActiveEntry(index)}
-                >
-                  <span className="entry-title">
-                    <Icon aria-hidden="true" size={20} />
-                    {entry.title}
-                  </span>
-                  <span className="entry-caption">{entry.caption}</span>
-                  <ArrowRight aria-hidden="true" size={20} />
-                </button>
-                <div className="entry-visual">
-                  <MediaStage
-                    asset={entry.media}
-                    label={`${entry.title}翻译`}
-                    active={active}
-                  />
-                  <p>{entry.detail}</p>
-                </div>
-              </article>
+                <span className="entry-tab-index" aria-hidden="true">0{index + 1}</span>
+                <span className="entry-title">
+                  <Icon aria-hidden="true" size={20} />
+                  {entry.title}
+                </span>
+                <span className="entry-caption">{entry.caption}</span>
+                <ArrowRight aria-hidden="true" size={20} />
+              </button>
             );
           })}
+          </div>
+          <div
+            className="entry-showcase"
+            id="entry-showcase"
+            role="tabpanel"
+            aria-labelledby={`entry-tab-${activeEntry}`}
+          >
+            <MediaStage
+              key={entryPoints[activeEntry].mediaKey}
+              asset={desktopMedia[entryPoints[activeEntry].mediaKey]}
+              label={`${entryPoints[activeEntry].title}翻译真实演示`}
+            />
+            <div className="entry-summary">
+              <h3>{entryPoints[activeEntry].title}翻译</h3>
+              <p>{entryPoints[activeEntry].detail}</p>
+            </div>
+          </div>
         </div>
       </section>
 
@@ -574,9 +614,11 @@ function App() {
             </div>
           </article>
           <article className="bento-card bento-half bento-dark">
-            <span className="feature-icon"><Command aria-hidden="true" size={20} /></span>
-            <h3>快捷键属于你</h3>
-            <p>划词、截图、快速输入各自可配置，触发路径保持原生而明确。</p>
+            <div className="bento-card-copy">
+              <span className="feature-icon"><Command aria-hidden="true" size={20} /></span>
+              <h3>快捷键属于你</h3>
+              <p>划词、截图、快速输入各自可配置，触发路径保持原生而明确。</p>
+            </div>
             <MediaStage
               asset={desktopMedia.shortcuts}
               label="快捷键设置"

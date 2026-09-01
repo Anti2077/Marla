@@ -56,6 +56,7 @@ Marla 已有稳定的产品定义、Paper Lantern 品牌和可展示的真实 Ap
 | 2026-09-01 | Project owner | 建立专用素材目录并提供统一命名规则 | 审核通过的网页成品放入 `website/public/media/desktop/`、`mobile/` 和 `posters/`；命名采用 `marla-{scene}--{variant}-{ratio}.{ext}`，原始录屏不进入仓库 | Active |
 | 2026-09-01 | Project owner | 将素材说明做成中文 | `website/DEMO_ASSETS.md`、`website/public/media/README.md` 和网站运行说明使用中文正文；技术标识、路径与 ASCII 文件名规则保持不变 | Verified |
 | 2026-09-01 | Project owner | 桌面视频已经录制，接入网页；Hero 与结构化 Markdown 视为同一份素材 | 将 5 个唯一桌面母版转为 30fps H.264 和同名 WebP，覆盖 6 个展示位；Hero/Markdown 共用同一 URL，移动端素材保持待补；验证视口播放、入口互斥、播放控制和 Reduce Motion | Verified |
+| 2026-09-01 | Project owner | 实机查看后发现多个视频被界面元素遮挡，允许调整视频位置、效果和页面布局 | 播放控制移出录屏画面；三入口由覆盖式手风琴改为三段切换和单一大舞台；快捷键卡片取消绝对定位；桌面与手机均按素材原始比例完整显示，并重新验证遮挡、溢出、键盘和 Reduce Motion | Verified |
 
 ## Current evidence
 
@@ -63,9 +64,9 @@ Marla 已有稳定的产品定义、Paper Lantern 品牌和可展示的真实 Ap
 - 仓库没有 `package.json` 或现成网页工程。
 - `PRODUCT.md`、`UX_PRINCIPLES.md`、`BRAND.md` 与 ADR-0008 已定义真实产品能力、Paper Lantern 正式标志和严格品牌边界。
 - `artifacts/ui-review/` 仍保留原生 App 的历史视觉证据，但本首页不再直接加载这些截图。
-- `website/` 已有 React + Vite 页面、Geist 字体、Lucide 图标、GSAP ScrollTrigger、固定比例媒体舞台和真实桌面录屏；没有修改原生 App 源码。2026-08-30 的追加范围先把旧截图替换成空舞台并升级动效，本轮再以真实视频和封面替换这些占位内容，同时保留 Hero、入口、Bento/故事的既有布局和滚动关系。
+- `website/` 已有 React + Vite 页面、Geist 字体、Lucide 图标、GSAP ScrollTrigger、固定比例媒体舞台和真实桌面录屏；没有修改原生 App 源码。2026-08-30 的追加范围先把旧截图替换成空舞台并升级动效，随后以真实视频和封面替换占位内容；本轮根据实机查看结果重做三入口与快捷键媒体布局，同时保留 Hero、Bento/故事的产品叙事和滚动关系。
 - 2026-09-01 第一批成品为 5 个唯一桌面 MP4 和 5 个同名 WebP：Hero 与结构化 Markdown 按项目所有者决定复用同一份 5:4 素材；划词、截图、Quick Input 和快捷键各自独立。三个入口的 1:1 移动端剪辑和封面仍待补充，最终唯一文件总数调整为 8 个 MP4 和 8 个 WebP。
-- 浏览器实测 375/768/1024/1440px 均为两行 Hero、零横向溢出和零首屏文字越界；桌面 Bento 12+6+6 正好填满 24 个栅格单元。
+- 早期空舞台阶段浏览器实测 375/768/1024/1440px 均为两行 Hero；当前媒体布局重新实测 1440×1000 与 390×844，两个视口均为零横向溢出，桌面 Bento 继续以 12+6+6 填满 24 个栅格单元。
 - Reduce Motion 实测匹配成功，pin spacer 为 0，Hero/层叠卡片全部直接可见，跑马灯动画降为 0.01ms；控制台无 warning/error。
 
 ## Proposed approach
@@ -104,6 +105,8 @@ git diff --check
 
 2026-09-01 桌面素材接入结果：`npm run lint`、`npm run build` 和 `git diff --check` 通过。5 个唯一 MP4 均为 H.264、`yuv420p`、30fps、无音轨并带 fast-start；总大小约 13 MB。5 个同名 WebP 尺寸与视频一致。
 
+2026-09-01 视频布局修正结果：`npm run lint`、`npm run build` 和 `git diff --check` 通过。播放控制位于画面外工具条；桌面入口视频视口实测为 7:5，Hero/Markdown 为 5:4；快捷键文案底部与视频工具条顶部之间保持正间距。
+
 ### Manual
 
 - 在真实浏览器分别以 1440px 桌面和 390px 移动端视口检查第一视口、整页布局、导航、CTA、滚动动效、控制台和横向溢出。
@@ -125,6 +128,8 @@ git diff --check
 2026-08-30 空舞台阶段 Web 五维复审：产品定位 9/10、视觉层级 9/10、响应式 9/10、交互与无障碍 8/10、动效与性能 8/10。所有维度均达到 7/10 以上；当时真实录屏尚未采集，因此媒体说服力保留为后续项目所有者决策。
 
 2026-09-01 素材接入浏览器证据：1440×1000 下 Hero、三入口、Markdown 和快捷键视频均真实解码；Hero/Markdown 的 `currentSrc` 完全一致。入口切换只播放当前展开项，旧项暂停；播放/暂停按钮可点击并具有键盘焦点；控制台无 warning/error。Reduce Motion 新页面默认 `currentTime = 0`、`paused = true` 并使用 WebP poster。390×844 下 `scrollWidth = innerWidth = 390`，桌面视频在 1:1 入口中以完整显示降级，无横向溢出。
+
+2026-09-01 视频布局修正浏览器证据：1440×1000 下三入口为三段式 Tab 和单一 963px 宽 7:5 舞台，说明位于独立右栏；快捷键文案与视频相互分离。390×844 下入口保持原始 7:5、Hero 保持 5:4，不再强制 1:1；`document.scrollWidth = innerWidth = 390`，隐私卡片正文与数据流标签分离。Tab 可用左右/Home/End 键切换，控制台无 warning/error。Reduce Motion 下 4 个当前 DOM 视频均为 `currentTime = 0`、`paused = true`，pin spacer 为 0，所有 Hero/Bento/故事内容可见；检查后浏览器已恢复普通动态模式。
 
 ## Required Reading
 
@@ -160,6 +165,6 @@ None.
 - Manual evidence: 1440/390px screenshots plus 375/768/1024/1440 breakpoint, GSAP pin/stack, keyboard focus, console, and Reduce Motion checks under `artifacts/ui-review/task-036/`.
 - Documentation updated: `website/README.md`, `website/DEMO_ASSETS.md`, this Task, and `STATUS.md`.
 - Remaining work promoted to: None. 三个 1:1 移动端视频、对应封面和正式部署仍是当前 Task 的后续项目所有者输入，不提升为 Backlog。
-- Scope changes closed: 2026-08-30 动效与空媒体舞台范围已通过验证；2026-09-01 的 5 个唯一桌面视频已完成网页编码、接入、交互和浏览器验证，Hero/Markdown 按项目所有者决定共用同一素材。
+- Scope changes closed: 2026-08-30 动效与空媒体舞台范围已通过验证；2026-09-01 的 5 个唯一桌面视频已完成网页编码、接入、交互和浏览器验证，Hero/Markdown 按项目所有者决定共用同一素材；后续遮挡修正已将控制与说明全部移出视频画面，并通过桌面、手机和 Reduce Motion 复核。
 - Integration state: 本检查点只保存在专用分支；未合并到 `main`，也未推送远端。
 - Parallel contributions integrated: None.

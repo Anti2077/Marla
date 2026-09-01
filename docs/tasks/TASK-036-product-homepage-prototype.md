@@ -63,6 +63,7 @@ Marla 已有稳定的产品定义、Paper Lantern 品牌和可展示的真实 Ap
 | 2026-09-02 | Project owner | 所有视频展示位改为自动循环，并修复首次到达三入口区域时画面空白、看起来没有播放 | 移除视频的视口相交门槛和入口视频框的透明度入场；所有已挂载视频静音自动循环且进入画面时立即可见，入口切换后新挂载视频立即播放；保留手动暂停和 Reduce Motion 默认封面 | Verified |
 | 2026-09-02 | Project owner | 优化视频性能，只在展示位至少 50% 可见时播放 | 使用 50% IntersectionObserver 阈值统一控制播放与暂停；Hero 保持优先预载，其余视频只预载 metadata；保留循环、手动暂停、Reduce Motion 和入口视频始终可见 | Superseded |
 | 2026-09-02 | Project owner | 装修 GitHub 主页 | 重做根 README 的品牌首屏、真实产品展示、工作流、隐私/发布边界和开发导航；复用正式标志与真实录屏封面，不虚构下载、许可或发布声明 | Verified |
+| 2026-09-02 | Project owner | 合并并推送当前成果 | 将当前已验证的官网、真实桌面视频和 GitHub README 基线合并到 `main`，并推送任务分支与 `main`；三个 1:1 移动端视频仍作为 Active Task 后续输入 | Verified |
 | 2026-09-02 | Project owner | Hero 视频位置不自然，并要求整页采用无边框设计语言 | Hero 改为居中、无外框的真实产品影片并删除悬浮标签；导航、入口、Bento、故事、原则与 Footer 以留白和色面建立层级，不再依赖装饰性描边、卡片阴影或圆角；保留焦点环、播放按钮命中区和箭头几何等必要交互边界 | Verified |
 | 2026-09-02 | Project owner | 删除静态产品照片，所有产品展示位只使用视频 | 网页移除 `<video>` 的 WebP poster 与背景图回退并删除 5 个桌面 WebP；根 README 删除静态 Hero 图并改为真实 MP4 入口；Logo 与状态徽章作为品牌/信息图形保留 | Verified |
 | 2026-09-02 | Project owner | 向下滚动时 Hero 会短暂停顿、缩小后才开始播放 | Hero 单独使用 45% 可见阈值，避免 1440×1000 首屏约 47.9% 可见时仍等待；删除 Hero 的滚动缩放，其他视频继续使用 50% 阈值 | Superseded |
@@ -198,5 +199,5 @@ None.
 - Documentation updated: `website/README.md`, `website/DEMO_ASSETS.md`, this Task, and `STATUS.md`.
 - Remaining work promoted to: None. 三个 1:1 移动端视频和正式部署仍是当前 Task 的后续项目所有者输入，不提升为 Backlog。
 - Scope changes closed: 2026-08-30 动效与空媒体舞台范围已通过验证；2026-09-01 的 5 个唯一桌面视频已完成网页编码、接入、交互和浏览器验证，Hero/Markdown 按项目所有者决定共用同一素材；后续遮挡修正已将控制与说明全部移出视频画面。2026-09-02 已删除全部静态产品封面和可见比例自动暂停逻辑，并移除 Hero 滚动缩放；桌面、手机、持续循环、手动控制和 Reduce Motion 均重新通过浏览器复核。
-- Integration state: 本检查点只保存在专用分支；未合并到 `main`，也未推送远端。
+- Integration state: 项目所有者于 2026-09-02 明确授权将当前已验证基线合并到 `main`，并推送任务分支与 `main`；本次集成由 Git 提交和远端引用记录。TASK-036 仍保持 Active，等待三个 1:1 移动端视频和后续正式部署决策。
 - Parallel contributions integrated: None.

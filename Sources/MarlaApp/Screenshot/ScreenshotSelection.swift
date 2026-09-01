@@ -238,21 +238,36 @@ struct ScreenshotMagnifierSource {
     }
 }
 
-final class ScreenshotSelectionSession {
+@MainActor
+final class ScreenshotSelectionSession: NSObject {
     private(set) var startPoint: NSPoint?
     private(set) var currentPoint: NSPoint?
     private(set) var pointerPoint: NSPoint?
+    private(set) var isConfirming = false
+    private(set) var confirmationProgress: CGFloat = 0
     let magnifierSources: [ScreenshotMagnifierSource]
     private var redrawCallbacks: [() -> Void] = []
     private var hasFinished = false
+    private let reducesMotion: Bool
+    private let confirmationDuration: TimeInterval
+    private var confirmationStartedAt: TimeInterval?
+    private var confirmationTimer: Timer?
     private let onFinish: (NSRect, Bool) -> Void
 
     init(
         magnifierSources: [ScreenshotMagnifierSource] = [],
+        reducesMotion: Bool? = nil,
+        confirmationDuration: TimeInterval = MarlaMotion.screenshotConfirmationDuration,
         onFinish: @escaping (NSRect, Bool) -> Void
     ) {
         self.magnifierSources = magnifierSources
+        self.reducesMotion = reducesMotion ?? (
+            ProcessInfo.processInfo.environment["MARLA_UI_TEST_REDUCE_MOTION"] == "1"
+                || NSWorkspace.shared.accessibilityDisplayShouldReduceMotion
+        )
+        self.confirmationDuration = max(0, confirmationDuration)
         self.onFinish = onFinish
+        super.init()
     }
 
     var selectionRect: NSRect {
@@ -265,12 +280,20 @@ final class ScreenshotSelectionSession {
         )
     }
 
+    var confirmationCornerInset: CGFloat {
+        reducesMotion ? 0 : 4 * confirmationProgress
+    }
+
+    var confirmationOpacity: CGFloat {
+        reducesMotion ? 1 - (0.45 * confirmationProgress) : 1
+    }
+
     func attach(_ view: ScreenshotSelectionView) {
         redrawCallbacks.append { [weak view] in view?.needsDisplay = true }
     }
 
     func begin(at point: NSPoint) {
-        guard !hasFinished else { return }
+        guard !hasFinished, !isConfirming else { return }
         pointerPoint = point
         startPoint = point
         currentPoint = point
@@ -278,21 +301,44 @@ final class ScreenshotSelectionSession {
     }
 
     func move(to point: NSPoint) {
-        guard startPoint != nil, !hasFinished else { return }
+        guard startPoint != nil, !hasFinished, !isConfirming else { return }
         pointerPoint = point
         currentPoint = point
         redraw()
     }
 
     func hover(at point: NSPoint) {
-        guard !hasFinished else { return }
+        guard !hasFinished, !isConfirming else { return }
         pointerPoint = point
         redraw()
     }
 
     func confirm(at point: NSPoint) {
+        guard !hasFinished, !isConfirming else { return }
         move(to: point)
-        finish(cancelled: selectionRect.width <= 4 || selectionRect.height <= 4)
+        guard selectionRect.width > 4, selectionRect.height > 4 else {
+            finish(cancelled: true)
+            return
+        }
+        isConfirming = true
+        confirmationProgress = 0
+        redraw()
+        guard confirmationDuration > 0 else {
+            confirmationProgress = 1
+            redraw()
+            finish(cancelled: false)
+            return
+        }
+        confirmationStartedAt = ProcessInfo.processInfo.systemUptime
+        let timer = Timer(
+            timeInterval: 1 / 60,
+            target: self,
+            selector: #selector(advanceConfirmation),
+            userInfo: nil,
+            repeats: true
+        )
+        confirmationTimer = timer
+        RunLoop.main.add(timer, forMode: .common)
     }
 
     func cancel() {
@@ -303,9 +349,29 @@ final class ScreenshotSelectionSession {
         redrawCallbacks.forEach { $0() }
     }
 
+    @objc private func advanceConfirmation() {
+        guard isConfirming, let confirmationStartedAt else { return }
+        let elapsed = ProcessInfo.processInfo.systemUptime - confirmationStartedAt
+        let linearProgress = min(max(elapsed / confirmationDuration, 0), 1)
+        confirmationProgress = CGFloat(1 - pow(1 - linearProgress, 3))
+        redraw()
+        if linearProgress >= 1 {
+            finish(cancelled: false)
+        }
+    }
+
     private func finish(cancelled: Bool) {
         guard !hasFinished else { return }
         hasFinished = true
+        confirmationTimer?.invalidate()
+        confirmationTimer = nil
+        confirmationStartedAt = nil
+        isConfirming = false
+        if cancelled {
+            confirmationProgress = 0
+        } else {
+            confirmationProgress = 1
+        }
         onFinish(selectionRect, cancelled)
     }
 }
@@ -418,16 +484,20 @@ final class ScreenshotSelectionView: NSView {
                 rect.fill()
                 NSGraphicsContext.current?.compositingOperation = .sourceOver
             }
-            NSColor.white.setStroke()
+            NSColor.white.withAlphaComponent(session.confirmationOpacity).setStroke()
             let border = NSBezierPath(rect: rect)
             border.lineWidth = 1
             border.stroke()
             let length: CGFloat = 10
+            let cornerRect = rect.insetBy(
+                dx: session.confirmationCornerInset,
+                dy: session.confirmationCornerInset
+            )
             let corners = [
-                (NSPoint(x: rect.minX, y: rect.minY), NSPoint(x: rect.minX + length, y: rect.minY), NSPoint(x: rect.minX, y: rect.minY + length)),
-                (NSPoint(x: rect.maxX, y: rect.minY), NSPoint(x: rect.maxX - length, y: rect.minY), NSPoint(x: rect.maxX, y: rect.minY + length)),
-                (NSPoint(x: rect.minX, y: rect.maxY), NSPoint(x: rect.minX + length, y: rect.maxY), NSPoint(x: rect.minX, y: rect.maxY - length)),
-                (NSPoint(x: rect.maxX, y: rect.maxY), NSPoint(x: rect.maxX - length, y: rect.maxY), NSPoint(x: rect.maxX, y: rect.maxY - length))
+                (NSPoint(x: cornerRect.minX, y: cornerRect.minY), NSPoint(x: cornerRect.minX + length, y: cornerRect.minY), NSPoint(x: cornerRect.minX, y: cornerRect.minY + length)),
+                (NSPoint(x: cornerRect.maxX, y: cornerRect.minY), NSPoint(x: cornerRect.maxX - length, y: cornerRect.minY), NSPoint(x: cornerRect.maxX, y: cornerRect.minY + length)),
+                (NSPoint(x: cornerRect.minX, y: cornerRect.maxY), NSPoint(x: cornerRect.minX + length, y: cornerRect.maxY), NSPoint(x: cornerRect.minX, y: cornerRect.maxY - length)),
+                (NSPoint(x: cornerRect.maxX, y: cornerRect.maxY), NSPoint(x: cornerRect.maxX - length, y: cornerRect.maxY), NSPoint(x: cornerRect.maxX, y: cornerRect.maxY - length))
             ]
             corners.forEach { first, second, third in
                 let path = NSBezierPath()
@@ -448,7 +518,9 @@ final class ScreenshotSelectionView: NSView {
             )
             sizeView.isHidden = false
         }
-        drawMagnifier(in: window)
+        if !session.isConfirming {
+            drawMagnifier(in: window)
+        }
     }
 
     private func drawMagnifier(in window: NSWindow) {

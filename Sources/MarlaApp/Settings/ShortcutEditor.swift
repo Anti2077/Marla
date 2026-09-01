@@ -195,7 +195,7 @@ struct ShortcutEditorRow: View {
         if reducesMotion {
             editingAction = action
         } else {
-            withAnimation(.smooth(duration: 0.32)) {
+            withAnimation(MarlaMotion.shortcutMorph) {
                 editingAction = action
             }
         }
@@ -299,7 +299,10 @@ private struct ShortcutInlineEditor: View {
                     RoundedRectangle(cornerRadius: 7, style: .continuous)
                         .stroke(isSelected ? DesignTokens.accent.opacity(0.7) : .clear, lineWidth: 1)
                 }
-                .animation(reducesMotion ? nil : .easeOut(duration: 0.14), value: isSelected)
+                .animation(
+                    MarlaMotion.animation(MarlaMotion.feedback, reducesMotion: reducesMotion),
+                    value: isSelected
+                )
         } else {
             modifierToggleBase(modifier, isSelected: isSelected)
                 .buttonStyle(.bordered)
@@ -344,7 +347,10 @@ private struct ShortcutInlineEditor: View {
             .buttonStyle(.plain)
             .disabled(!draft.hasSafeGlobalModifier)
             .opacity(draft.hasSafeGlobalModifier ? 1 : 0.45)
-            .animation(reducesMotion ? nil : .easeOut(duration: 0.14), value: validationMessage)
+            .animation(
+                MarlaMotion.animation(MarlaMotion.feedback, reducesMotion: reducesMotion),
+                value: validationMessage
+            )
             .help(validationMessage ?? "应用")
             .accessibilityLabel("应用\(action.title)快捷键")
             .accessibilityValue(validationMessage ?? "可应用")
@@ -442,7 +448,10 @@ private struct ShortcutPrimaryKeyButton: View {
                     RoundedRectangle(cornerRadius: 7, style: .continuous)
                         .stroke(isCapturing ? DesignTokens.accent.opacity(0.8) : .clear, lineWidth: 1)
                 }
-                .animation(reducesMotion ? nil : .easeOut(duration: 0.14), value: isCapturing)
+                .animation(
+                    MarlaMotion.animation(MarlaMotion.feedback, reducesMotion: reducesMotion),
+                    value: isCapturing
+                )
         } else {
             captureButton(width: 54)
                 .buttonStyle(.bordered)
@@ -469,7 +478,10 @@ private struct ShortcutPrimaryKeyButton: View {
             .frame(width: width, height: 20)
             .contentTransition(.opacity)
         }
-        .animation(reducesMotion ? nil : .easeOut(duration: 0.12), value: isCapturing)
+        .animation(
+            MarlaMotion.animation(MarlaMotion.feedback, reducesMotion: reducesMotion),
+            value: isCapturing
+        )
         .help("输入主键")
         .accessibilityLabel("主键")
         .accessibilityValue(isCapturing ? "等待按键" : ShortcutBinding.keyDisplayName(for: keyCode))

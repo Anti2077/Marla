@@ -9,6 +9,8 @@ struct QuickInputContainerView: View {
     let onClose: () -> Void
     let onRecovery: (CardRecoveryAction) -> Void
     let onWidthPresetChange: ((TranslationWindowWidthPreset) -> Void)?
+    @Environment(\.accessibilityReduceMotion) private var accessibilityReduceMotion
+    @Environment(\.marlaReduceMotionOverride) private var reduceMotionOverride
 
     init(
         store: TranslationSessionStore,
@@ -30,19 +32,33 @@ struct QuickInputContainerView: View {
     }
 
     var body: some View {
-        if store.session?.surface == .quickInput {
-            TranslationCardView(
-                store: store,
-                onClose: onClose,
-                onRecovery: onRecovery,
-                onWidthPresetChange: onWidthPresetChange,
-                layout: layout
-            )
-                .transition(.opacity)
-        } else {
-            QuickInputView(store: store, onClose: onClose, cardWidth: layout.width)
-                .transition(.opacity)
+        ZStack(alignment: .topLeading) {
+            if store.session?.surface == .quickInput {
+                TranslationCardView(
+                    store: store,
+                    onClose: onClose,
+                    onRecovery: onRecovery,
+                    onWidthPresetChange: onWidthPresetChange,
+                    layout: layout
+                )
+                .transition(MarlaMotion.contentTransition(reducesMotion: reducesMotion))
+            } else {
+                QuickInputView(store: store, onClose: onClose, cardWidth: layout.width)
+                    .transition(MarlaMotion.contentTransition(reducesMotion: reducesMotion))
+            }
         }
+        .animation(
+            MarlaMotion.animation(
+                MarlaMotion.content,
+                reducesMotion: reducesMotion,
+                reducedMotionAnimation: MarlaMotion.reducedOpacity
+            ),
+            value: store.session?.surface
+        )
+    }
+
+    private var reducesMotion: Bool {
+        accessibilityReduceMotion || reduceMotionOverride
     }
 }
 

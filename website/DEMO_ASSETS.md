@@ -1,14 +1,38 @@
 # Marla Homepage Demo Assets
 
-The homepage should eventually use three short recordings of the real stable-signed development App. Until recording content and repository persistence are explicitly approved, the page uses designed empty media stages with fixed ratios; it does not use screenshots as substitute evidence or simulate native App behavior.
+The homepage needs four source captures from the real stable-signed development App: three short recordings and one shortcut-settings still. These four captures cover all six homepage media slots through reuse and cropping; do not record six separate videos. Until recording content and repository persistence are explicitly approved, the page uses designed empty media stages with fixed ratios; it does not use screenshots as substitute evidence or simulate native App behavior.
 
-## Delivery set
+## Capture count
+
+| Source capture | Type | Duration / frame | Reused by homepage slots |
+| --- | --- | --- | --- |
+| Selection translation master | 16:10 video | 8–12 seconds | Hero 5:4 + Selection entry 7:5 |
+| Screenshot translation master | 16:10 video | 10–15 seconds | Screenshot entry 7:5 |
+| Quick Input + Markdown master | 16:10 video | 8–12 seconds | Quick Input entry 7:5 + Markdown Bento 5:4 |
+| Shortcut settings | Still image | One clean completed frame | Shortcut settings Bento 7:5 |
+
+Total acquisition work: **3 video recordings + 1 still image**. The 1:1 mobile versions are central crops from the same masters and are not separate recordings.
+
+## Video masters
 
 | Flow | Duration | Story | Proposed file |
 | --- | --- | --- | --- |
 | Selection translation | 8–12 seconds | Select one English paragraph in a clean test page, trigger `⌃⇧D`, and let the nearby result card reach a readable completed state. | `public/media/selection-translation.mp4` |
 | Screenshot translation | 10–15 seconds | Trigger `⌃⇧S`, frame a small deterministic region with the loupe visible, then show the OCR wait state and nearby result. | `public/media/screenshot-translation.mp4` |
 | Quick Input + Markdown | 8–12 seconds | Open Quick Input, paste a short fixture containing a heading, list, table, link, and code, then show the structured completed result. | `public/media/quick-input-markdown.mp4` |
+
+## Website image outputs
+
+Export six WebP images after the masters are approved. Video slots use these as posters, and Reduce Motion uses them as the complete static experience.
+
+| Output | Ratio | Source |
+| --- | --- | --- |
+| `hero-selection.webp` | 5:4 | Selection master |
+| `selection-translation.webp` | 7:5 | Selection master |
+| `screenshot-translation.webp` | 7:5 | Screenshot master |
+| `quick-input-markdown.webp` | 7:5 | Quick Input + Markdown master |
+| `markdown-completed.webp` | 5:4 | Completed frame from Quick Input + Markdown master |
+| `shortcut-settings.webp` | 7:5 | Dedicated shortcut-settings still |
 
 ## Homepage slot ratios
 
@@ -24,7 +48,7 @@ Use these ratios for the first approved export. Record a larger 16:10 desktop ma
 
 The web stages reserve these ratios before any media is added, so replacing an empty stage with an approved clip does not change surrounding layout or cause a content shift.
 
-Each MP4 needs a same-name `.webp` poster. The current `MediaStage` components reserve the layout and can be replaced by an approved video plus poster without changing the surrounding page structure. `prefers-reduced-motion` should continue to use the static poster rather than autoplay.
+The three MP4 files each have a same-name `.webp` poster. Hero additionally uses `hero-selection.webp`, while Markdown and shortcut settings use their dedicated static outputs. The current `MediaStage` components reserve the layout and can be replaced without changing the surrounding page structure. `prefers-reduced-motion` should continue to use static WebP rather than autoplay.
 
 ## Capture setup
 
@@ -46,4 +70,4 @@ Each MP4 needs a same-name `.webp` poster. The current `MediaStage` components r
 
 ## Integration
 
-After the assets are approved, add the media under `website/public/media/`, replace the corresponding stage with a video-plus-poster media component, and verify autoplay, looping, poster fallback, mobile cropping, and Reduce Motion in a real browser. The videos are demonstrations, not acceptance evidence for unverified providers or public release readiness.
+After the assets are approved, add the 3 MP4 and 6 WebP files under `website/public/media/`, replace the corresponding stages with video-plus-poster or static media components, and verify autoplay, looping, poster fallback, mobile cropping, and Reduce Motion in a real browser. The videos are demonstrations, not acceptance evidence for unverified providers or public release readiness.

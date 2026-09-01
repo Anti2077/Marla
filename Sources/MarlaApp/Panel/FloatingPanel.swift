@@ -233,30 +233,6 @@ enum FloatingPanelStyle {
     }
 }
 
-@MainActor
-enum ResultPanelWindowSizing {
-    static func apply(to panel: NSPanel, enabled: Bool, visibleFrame: NSRect) {
-        guard enabled else {
-            panel.styleMask.remove(.resizable)
-            panel.minSize = .zero
-            panel.maxSize = NSSize(
-                width: CGFloat.greatestFiniteMagnitude,
-                height: CGFloat.greatestFiniteMagnitude
-            )
-            return
-        }
-        panel.styleMask.insert(.resizable)
-        panel.minSize = NSSize(
-            width: ResultCardLayout.minimumWidth,
-            height: ResultCardLayout.defaultPanelHeight
-        )
-        panel.maxSize = NSSize(
-            width: ResultCardLayout.maximumPanelWidth(visibleWidth: visibleFrame.width),
-            height: ResultCardLayout.maximumPanelHeight(visibleHeight: visibleFrame.height)
-        )
-    }
-}
-
 struct PanelPlacementCalculator {
     static func frame(
         visibleFrame visible: NSRect,
@@ -319,6 +295,7 @@ final class FloatingPanelCoordinator: NSObject, NSWindowDelegate {
     private var resultLayoutGrowthAnchor: ResultPanelGrowthAnchor = .center
     private var resultLayoutReduceMotion = false
     private var resultLayoutResizeGeneration: UInt = 0
+    private var resultWidthPresetTransition = ResultPanelWidthPresetTransition()
 
     init(model: MarlaApplicationModel? = nil, installEventMonitors: Bool = true) {
         self.model = model
@@ -459,6 +436,7 @@ final class FloatingPanelCoordinator: NSObject, NSWindowDelegate {
 
     func hide() {
         resultLayoutResizeGeneration &+= 1
+        resultWidthPresetTransition.reset()
         resultLayoutCancellable?.cancel()
         resultLayoutCancellable = nil
         markdownProjectionCancellable?.cancel()
@@ -479,6 +457,7 @@ final class FloatingPanelCoordinator: NSObject, NSWindowDelegate {
         growthAnchor: ResultPanelGrowthAnchor
     ) -> ResultPanelLayoutModel {
         resultLayoutResizeGeneration &+= 1
+        resultWidthPresetTransition.reset()
         resultLayoutCancellable?.cancel()
         markdownProjectionCancellable?.cancel()
         let layout = ResultPanelLayoutModel(width: width, maximumPanelHeight: maximumHeight)
@@ -549,7 +528,7 @@ final class FloatingPanelCoordinator: NSObject, NSWindowDelegate {
             resultLayoutResizeGeneration &+= 1
             let generation = resultLayoutResizeGeneration
             NSAnimationContext.runAnimationGroup { context in
-                context.duration = 0.12
+                context.duration = MarlaMotion.feedbackDuration
                 context.timingFunction = CAMediaTimingFunction(name: .easeOut)
                 panel.animator().setFrame(targetFrame, display: true)
             } completionHandler: { [weak self, weak panel] in
@@ -567,11 +546,9 @@ final class FloatingPanelCoordinator: NSObject, NSWindowDelegate {
     }
 
     private func reconcileResultPanelFrame(_ panel: NSPanel) {
-        guard
-            let session = resultLayoutStore?.session,
-            let layout = resultLayoutModel,
-            let visibleFrame = resultLayoutVisibleFrame
-        else { return }
+        guard let session = resultLayoutStore?.session,
+              let layout = resultLayoutModel,
+              let visibleFrame = resultLayoutVisibleFrame else { return }
         let height = ResultCardLayout.preferredPanelHeight(
             session: session,
             cardWidth: layout.width,
@@ -688,7 +665,7 @@ final class FloatingPanelCoordinator: NSObject, NSWindowDelegate {
             panel.makeKey()
         }
         NSAnimationContext.runAnimationGroup { context in
-            context.duration = reduceMotion ? 0.12 : 0.16
+            context.duration = reduceMotion ? MarlaMotion.reducedOpacityDuration : MarlaMotion.contentDuration
             context.timingFunction = CAMediaTimingFunction(name: .easeOut)
             panel.animator().alphaValue = 1
             if !reduceMotion { panel.animator().setFrame(targetFrame, display: true) }
@@ -736,26 +713,37 @@ final class FloatingPanelCoordinator: NSObject, NSWindowDelegate {
     }
 
     func setWidthPreset(_ preset: TranslationWindowWidthPreset) {
-        guard let panel, let visibleFrame = resultLayoutVisibleFrame else { return }
+        guard let panel,
+              let layout = resultLayoutModel,
+              let visibleFrame = resultLayoutVisibleFrame else { return }
         model?.settings.translationWindowWidthPreset = preset
         let width = ResultCardLayout.clampedPanelWidth(preset.width, visibleWidth: visibleFrame.width)
-        var frame = panel.frame
-        let stableTop = frame.maxY
-        let stableCenter = frame.midX
-        frame.size.width = width
-        frame.origin.x = model?.settings.translationWindowPlacement == .rememberLastPosition
-            ? frame.minX
-            : stableCenter - width / 2
-        frame.origin.x = min(
-            max(frame.origin.x, visibleFrame.minX + 8),
-            visibleFrame.maxX - width - 8
+        let height = resultLayoutStore?.session.map {
+            ResultCardLayout.preferredPanelHeight(
+                session: $0,
+                cardWidth: width,
+                maximumPanelHeight: layout.maximumPanelHeight,
+                markdownProjection: layout.markdownProjection,
+                sourceMarkdownProjection: layout.sourceMarkdownProjection
+            )
+        } ?? panel.frame.height
+        let frame = ResultPanelWidthPresetFrameCalculator.targetFrame(
+            current: panel.frame,
+            width: width,
+            height: height,
+            preservesLeadingEdge: model?.settings.translationWindowPlacement == .rememberLastPosition,
+            visibleFrame: visibleFrame
         )
-        frame.origin.y = stableTop - frame.height
-        panel.setFrame(frame, display: true, animate: true)
-        if let layout = resultLayoutModel {
-            layout.width = width
-            resizeResultPanel(for: resultLayoutStore?.session)
-        }
+        resultLayoutResizeGeneration &+= 1
+        resultWidthPresetTransition.begin(
+            targetWidth: width,
+            currentWidth: panel.frame.width
+        )
+        panel.setFrame(
+            frame,
+            display: true,
+            animate: !resultLayoutReduceMotion && !panel.inLiveResize
+        )
     }
 
     func windowDidMove(_ notification: Notification) {
@@ -792,8 +780,16 @@ final class FloatingPanelCoordinator: NSObject, NSWindowDelegate {
             resizedWindow.frame.width,
             visibleWidth: visibleFrame.width
         )
-        guard abs(layout.width - width) > 0.5 else { return }
-        layout.width = width
+        let widthChanged = abs(layout.width - width) > 0.5
+        if widthChanged {
+            layout.width = width
+        }
+        // The preset frame already contains its final height. Intermediate
+        // resize notifications only keep SwiftUI aligned with AppKit.
+        if resultWidthPresetTransition.consumesResize(at: width) {
+            return
+        }
+        guard widthChanged else { return }
         resizeResultPanel(for: resultLayoutStore?.session)
     }
 }

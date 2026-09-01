@@ -3,6 +3,12 @@ import Foundation
 import MarlaCore
 import SwiftUI
 
+enum TranslationCardMotionPolicy {
+    static func showsPartialFailure(for state: TranslationSessionState) -> Bool {
+        state.isFailure
+    }
+}
+
 struct TranslationCardView: View {
     @ObservedObject var store: TranslationSessionStore
     @ObservedObject private var layout: ResultPanelLayoutModel
@@ -48,6 +54,15 @@ struct TranslationCardView: View {
                     translationContent(session)
                     if session.isComparisonExpanded {
                         sourceContent(session)
+                            .transition(MarlaMotion.contentTransition(reducesMotion: reduceMotion))
+                            .animation(
+                                MarlaMotion.animation(
+                                    MarlaMotion.feedback,
+                                    reducesMotion: reduceMotion,
+                                    reducedMotionAnimation: MarlaMotion.reducedOpacity
+                                ),
+                                value: session.isComparisonExpanded
+                            )
                     }
                     Divider()
                     cardActions(session)
@@ -56,7 +71,11 @@ struct TranslationCardView: View {
                 .frame(width: cardWidth, alignment: .topLeading)
                 .frame(minHeight: 160, maxHeight: .infinity, alignment: .topLeading)
                 .marlaGlassSurface()
-                .animation(reduceMotion ? nil : .easeOut(duration: 0.16), value: session.isPinned)
+                // AppKit owns panel height; keep the SwiftUI transaction local to the
+                // source content so the two layout systems do not animate the same frame.
+                .transaction { transaction in
+                    transaction.animation = nil
+                }
                 .onExitCommand(perform: onClose)
             }
         }
@@ -112,9 +131,18 @@ struct TranslationCardView: View {
                 store.togglePinned()
             } label: {
                 Image(systemName: session.isPinned ? "pin.fill" : "pin")
+                    .contentTransition(.opacity)
             }
             .buttonStyle(.borderless)
             .frame(width: 28, height: 28)
+            .animation(
+                MarlaMotion.animation(
+                    MarlaMotion.feedback,
+                    reducesMotion: reduceMotion,
+                    reducedMotionAnimation: MarlaMotion.reducedOpacity
+                ),
+                value: session.isPinned
+            )
             .help(session.isPinned ? "取消固定" : "固定卡片")
             Button(action: onClose) {
                 Image(systemName: "xmark")
@@ -272,10 +300,19 @@ struct TranslationCardView: View {
                         recoveryAction: session.recoveryAction,
                         onRecovery: onRecovery
                     )
+                    .transition(MarlaMotion.contentTransition(reducesMotion: reduceMotion))
                 }
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
+        .animation(
+            MarlaMotion.animation(
+                MarlaMotion.feedback,
+                reducesMotion: reduceMotion,
+                reducedMotionAnimation: MarlaMotion.reducedOpacity
+            ),
+            value: TranslationCardMotionPolicy.showsPartialFailure(for: session.state)
+        )
     }
 
     @ViewBuilder
@@ -297,7 +334,6 @@ struct TranslationCardView: View {
             .foregroundStyle(DesignTokens.primaryText)
             .textSelection(.enabled)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .animation(.easeOut(duration: 0.12), value: session.state)
     }
 
     private func sourceContent(_ session: CardSession) -> some View {
@@ -354,10 +390,19 @@ struct TranslationCardView: View {
                 Button { store.cancel() } label: { Image(systemName: "stop.circle") }
                     .buttonStyle(.borderless)
                     .help("取消当前翻译")
+                    .transition(.opacity)
             }
         }
         .font(AppFont.caption)
         .foregroundStyle(DesignTokens.secondaryText)
+        .animation(
+            MarlaMotion.animation(
+                MarlaMotion.feedback,
+                reducesMotion: reduceMotion,
+                reducedMotionAnimation: MarlaMotion.reducedOpacity
+            ),
+            value: session.state.isTerminal
+        )
     }
 
     private var nearestWidthPreset: TranslationWindowWidthPreset {
@@ -396,6 +441,15 @@ struct TranslationCardView: View {
 
     private func copyControlIcon(_ session: CardSession) -> some View {
         Image(systemName: session.copyConfirmation == nil ? "doc.on.doc" : "checkmark")
+            .contentTransition(.opacity)
+            .animation(
+                MarlaMotion.animation(
+                    MarlaMotion.feedback,
+                    reducesMotion: reduceMotion,
+                    reducedMotionAnimation: MarlaMotion.reducedOpacity
+                ),
+                value: session.copyConfirmation != nil
+            )
     }
 
     private func copyAccessibilityLabel(_ session: CardSession, defaultLabel: String) -> String {
@@ -549,9 +603,27 @@ struct BreathingDot: View {
             .scaleEffect(reduceMotion ? 1 : (active ? 1.25 : 0.72))
             .opacity(active ? 0.9 : 0.45)
             .onAppear {
-                guard !reduceMotion else { return }
-                withAnimation(.easeInOut(duration: 0.9).repeatForever(autoreverses: true)) { active = true }
+                startBreathingIfNeeded()
             }
+            .onChange(of: reduceMotion) { _, reducesMotion in
+                if reducesMotion {
+                    var transaction = Transaction()
+                    transaction.disablesAnimations = true
+                    withTransaction(transaction) { active = false }
+                } else {
+                    startBreathingIfNeeded()
+                }
+            }
+    }
+
+    private func startBreathingIfNeeded() {
+        guard !reduceMotion else {
+            active = false
+            return
+        }
+        withAnimation(MarlaMotion.breathing.repeatForever(autoreverses: true)) {
+            active = true
+        }
     }
 }
 

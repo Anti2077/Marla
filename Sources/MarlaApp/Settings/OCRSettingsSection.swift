@@ -5,6 +5,12 @@ struct OCRSettingsSection: View {
     @ObservedObject var settings: MarlaSettingsStore
     @State private var apiKeyDraft = ""
     @State private var saveMessage: String?
+    @Environment(\.accessibilityReduceMotion) private var accessibilityReduceMotion
+    @Environment(\.marlaReduceMotionOverride) private var reduceMotionOverride
+
+    private var reducesMotion: Bool {
+        accessibilityReduceMotion || reduceMotionOverride
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: DesignTokens.spaceM) {
@@ -37,6 +43,14 @@ struct OCRSettingsSection: View {
                 glmDetails
             }
         }
+        .animation(
+            MarlaMotion.animation(
+                MarlaMotion.feedback,
+                reducesMotion: reducesMotion,
+                reducedMotionAnimation: MarlaMotion.reducedOpacity
+            ),
+            value: displayedProvider
+        )
     }
 
     private var providerBinding: Binding<OCRProviderKind> {
@@ -122,6 +136,8 @@ struct OCRSettingsSection: View {
                         Text(saveMessage)
                             .font(AppFont.caption)
                             .foregroundStyle(DesignTokens.secondaryText)
+                            .contentTransition(.opacity)
+                            .transition(MarlaMotion.contentTransition(reducesMotion: reducesMotion))
                     }
 
                     Spacer()

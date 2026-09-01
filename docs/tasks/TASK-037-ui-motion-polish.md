@@ -176,7 +176,7 @@ None. 初始实现沿用已认可的 Restrained Native · Warm Minimal 与 Paper
 
 ## Completion record
 
-- Verified commit: 待本次实现提交后记录；当前分支 `Anti2077/task-037-ui-motion-polish`。
+- Verified commit: `7aa921c`（`Refine native UI motion and panel transitions`）；当前分支 `Anti2077/task-037-ui-motion-polish`。
 - Automated evidence: `Screenshot` 19/19、`WidthPreset` 7/7、完成态正文动画回归 1/1、`./scripts/check.sh` 与最终 `./scripts/build-test-app.sh` 通过；完整检查含 24 项 Rust 与 180 项 Swift 测试。
 - Manual evidence: 固定 App 脱敏临时截图覆盖浅色、深色与 Reduce Motion；五维复审 8/8/9/9/8。项目所有者于 2026-09-01 明确要求关闭、提交并合并，完成连续动效现场验收。
 - Documentation updated: 本 Task 与 `docs/development/STATUS.md`；产品/架构合同未改变，无需新增 ADR 或修改其它规范。

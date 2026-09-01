@@ -102,7 +102,7 @@ The next implementation or verification Task must be selected explicitly by the 
 
 ## Latest verification
 
-- TASK-037（已关闭）：`Screenshot` 19/19、`WidthPreset` 7/7 与完成态正文动画回归 1/1 通过。最终 `./scripts/check.sh` 通过 24 项 Rust、180 项 Swift、Swift Package、Xcode Debug、结构、脚本、空白与 diff 门禁，`FloatingPanel.swift` 为 795 行。`./scripts/build-test-app.sh` 验证固定 App 为 `com.marla.app`、`0.0.0`、macOS 14.0、arm64，Paper Lantern 资源、稳定签名 `API Usage Monitor Dev` 与 designated requirement 有效。固定 App 的浅色、深色、Reduce Motion 和前景整屏透明材质证据五维复审为 8/8/9/9/8；用户逐帧截图未加入仓库。项目所有者于 2026-09-01 明确要求关闭、提交并合并，完成连续动效现场验收。
+- TASK-037（已关闭，实现提交 `7aa921c`）：`Screenshot` 19/19、`WidthPreset` 7/7 与完成态正文动画回归 1/1 通过。最终 `./scripts/check.sh` 通过 24 项 Rust、180 项 Swift、Swift Package、Xcode Debug、结构、脚本、空白与 diff 门禁，`FloatingPanel.swift` 为 795 行。`./scripts/build-test-app.sh` 验证固定 App 为 `com.marla.app`、`0.0.0`、macOS 14.0、arm64，Paper Lantern 资源、稳定签名 `API Usage Monitor Dev` 与 designated requirement 有效。固定 App 的浅色、深色、Reduce Motion 和前景整屏透明材质证据五维复审为 8/8/9/9/8；用户逐帧截图未加入仓库。项目所有者于 2026-09-01 明确要求关闭、提交并合并，完成连续动效现场验收。
 
 - TASK-035（已关闭）：最终 `./scripts/check.sh` 通过 24 项 Rust、全部 Swift、Swift Package、Xcode Debug、结构、格式、脚本、空白与 diff 门禁；`./scripts/build-test-app.sh` 重建并验证固定 Release `artifacts/Marla_dev.app` 为 `com.marla.app`、`0.0.0`、macOS 14.0、arm64 和稳定签名。真实固定 App 验证单窗口行内编辑、三行互斥、取消/提交/恢复默认、错误 AX 语义、0 秒原因提示和焦点恢复；折叠、D 展开与 Space 展开均为 820×592。浅色、深色和 Reduce Motion 五维复审均为 8/8/9/9/8；正常模式保留 0.32 秒 matched-geometry 融合，Reduce Motion 使用 identity transition 且无短状态动画。实现提交为 `02484d8`。
 

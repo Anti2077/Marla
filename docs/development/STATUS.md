@@ -1,6 +1,6 @@
 # Project Status
 
-Last updated: 2026-08-23
+Last updated: 2026-09-01
 
 Development stage: Incubation / Unreleased
 
@@ -9,6 +9,8 @@ Release target: None. A version is assigned only when the project owner explicit
 Overall state: In Progress — unversioned product incubation; no active release contract
 
 Active task: None
+
+TASK-037 已完成：共享动效语义现区分 100ms Reduce Motion 透明度、120ms 反馈、160ms 内容、180ms 布局、220ms 重排、320ms 快捷键融合与 900ms 等待呼吸；Settings、API 编辑器与拖拽、OCR 设置、Quick Input、结果卡、截图确认和快捷键局部状态使用明确且可中断的局部过渡，系统菜单/窗口行为保持系统拥有。结果卡宽度预设使用固定顶边的唯一目标 frame，SwiftUI 内容宽度逐帧跟随 AppKit 实际宽度，过渡 resize 不再并发启动高度动画；streaming→completed 不再对正文容器或 raw 文本触发几何动画。浅色玻璃表面增加自适应中性轮廓，Reduce Motion、键盘焦点、Escape 和辅助技术路径保持完整。`WidthPreset` 7/7、完成态正文动画回归 1/1、完整 24 项 Rust/180 项 Swift、Xcode Debug、结构门禁与固定签名 Release App 均通过；五维复审为 8/8/9/9/8。项目所有者于 2026-09-01 明确要求关闭、提交并合并，完成现场验收。未跟踪 `website/` 与 TASK-036 首页原型未纳入本 Task。
 
 TASK-035 已完成：快捷键设置使用 `fn / ⇧ / ⌃ / ⌥ / ⌘` 修饰键切换与 32pt 单主键单元，编辑器直接位于每行操作名称和启用开关之间的留白，不打开 popover、sheet 或额外窗口；同一时间只展开一行。默认键位为划词 `⌃⇧D`、截图 `⌃⇧S`、快速输入 `⌃⇧Space`；完整旧默认配置会迁移，自定义配置保持不变；Fn/Globe 继续复用 Carbon 全局热键路径，不新增持续全局监听或权限。macOS 26 使用折叠 `.regular.interactive()`、展开 `.regular` 和 0.32 秒 matched geometry 将快捷键 chip 融合为固定 332×32pt 编辑条；Reduce Motion 使用 identity transition 并关闭短状态动画。最终折叠、D 展开和 Space 展开均保持 820×592；主键与修饰键共用 20pt 内容高度，外层 capsule 以 4pt 上下内边距形成连续玻璃边框，主键捕获态为居中 `ellipsis`，应用键为 24pt 圆形。无效或注册失败时确认键显示感叹号，独立 hover 命中层以 0 秒延迟同步显示具体原因。浅色、深色和 Reduce Motion 五维复审均为 8/8/9/9/8；完整检查与固定签名 App 已通过。实体 Fn/Globe 触发仍取决于具体键盘和系统 Globe 设置，不声明为已现场验证。
 
@@ -74,7 +76,7 @@ TASK-021 已完成：结果卡支持 380–760pt 横向调整，流式译文在�
 - Paper Lantern is the selected Marla brand mark and product metaphor: “a little light beside the reader.” The canonical SVG and reference PNG exports live under `Resources/Brand/PaperLantern/`; the 10-slot macOS AppIcon catalog is compiled into Debug and Release builds. The menu-bar identity item uses a separate 18pt monochrome Paper Lantern template; the MenuBarExtra panel header uses a 33.6pt full-color rendition while its text group has a 14pt upward optical correction that makes the approximately 24pt top inset 1.5 times the 16pt leading inset; selection/screenshot result-card headers use a 24pt full-color identity mark and 17pt title. Quick Input and all functional controls continue to use SF Symbols.
 - Quick Input preserves complete semantic Markdown through the Provider and session. Awaiting remains raw; from the first non-empty streaming delta, Markdown uses the same native heading/list/quote/code/link/table projection and TextKit height semantics as completion. Copy and request-changing actions retain the canonical string, while plain-text sessions and failed partial output remain unrendered. The reopened TASK-028 slice and its latest UI refinement are fixed-App verified and project-owner accepted.
 
-Latest integrated implementation baseline: TASK-035 composable global shortcuts on the unversioned incubation baseline; exact implementation and merge identifiers are recorded by Git history.
+Latest integrated implementation baseline: TASK-037 native UI/UX motion refinement on the unversioned incubation baseline; exact implementation and merge identifiers are recorded by Git history.
 
 ## Development evidence gaps
 
@@ -99,6 +101,8 @@ The next implementation or verification Task must be selected explicitly by the 
 - TASK-022 的 Swift/Rust 语言合同与 Vision 修复已实现：七门语言的归一/路由、设置持久化、通用提示词、Qwen-MT 映射、未适配代码拒绝和 Vision 配置均有回归测试。最新固定开发 App 已重建并签名通过；当前 xctest 图形服务无法创建 Vision CVPixelBuffer（OSStatus -6662），沙盒外探针已证明自动检测下日/韩/中/英样本有结果；现场固定 App 截图 OCR、长标签和完整窗口验收保留为独立证据缺口，不阻止其它孵化 Task。
 
 ## Latest verification
+
+- TASK-037（已关闭，实现提交 `7aa921c`）：`Screenshot` 19/19、`WidthPreset` 7/7 与完成态正文动画回归 1/1 通过。最终 `./scripts/check.sh` 通过 24 项 Rust、180 项 Swift、Swift Package、Xcode Debug、结构、脚本、空白与 diff 门禁，`FloatingPanel.swift` 为 795 行。`./scripts/build-test-app.sh` 验证固定 App 为 `com.marla.app`、`0.0.0`、macOS 14.0、arm64，Paper Lantern 资源、稳定签名 `API Usage Monitor Dev` 与 designated requirement 有效。固定 App 的浅色、深色、Reduce Motion 和前景整屏透明材质证据五维复审为 8/8/9/9/8；用户逐帧截图未加入仓库。项目所有者于 2026-09-01 明确要求关闭、提交并合并，完成连续动效现场验收。
 
 - TASK-035（已关闭）：最终 `./scripts/check.sh` 通过 24 项 Rust、全部 Swift、Swift Package、Xcode Debug、结构、格式、脚本、空白与 diff 门禁；`./scripts/build-test-app.sh` 重建并验证固定 Release `artifacts/Marla_dev.app` 为 `com.marla.app`、`0.0.0`、macOS 14.0、arm64 和稳定签名。真实固定 App 验证单窗口行内编辑、三行互斥、取消/提交/恢复默认、错误 AX 语义、0 秒原因提示和焦点恢复；折叠、D 展开与 Space 展开均为 820×592。浅色、深色和 Reduce Motion 五维复审均为 8/8/9/9/8；正常模式保留 0.32 秒 matched-geometry 融合，Reduce Motion 使用 identity transition 且无短状态动画。实现提交为 `02484d8`。
 

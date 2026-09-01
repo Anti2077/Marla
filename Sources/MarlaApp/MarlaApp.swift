@@ -21,6 +21,17 @@ extension EnvironmentValues {
 
 private struct MarlaGlassSurfaceModifier: ViewModifier {
     let cornerRadius: CGFloat
+    @Environment(\.colorScheme) private var colorScheme
+
+    private var outlineColor: Color {
+        colorScheme == .light
+            ? Color.black.opacity(0.14)
+            : DesignTokens.divider.opacity(0.55)
+    }
+
+    private var outlineWidth: CGFloat {
+        colorScheme == .light ? 0.8 : 0.5
+    }
 
     @ViewBuilder
     func body(content: Content) -> some View {
@@ -34,7 +45,7 @@ private struct MarlaGlassSurfaceModifier: ViewModifier {
                 .clipShape(RoundedRectangle(cornerRadius: cornerRadius))
                 .overlay {
                     RoundedRectangle(cornerRadius: cornerRadius)
-                        .stroke(DesignTokens.divider.opacity(0.55), lineWidth: 0.5)
+                        .stroke(outlineColor, lineWidth: outlineWidth)
                 }
         } else {
             content
@@ -42,7 +53,12 @@ private struct MarlaGlassSurfaceModifier: ViewModifier {
                 .clipShape(RoundedRectangle(cornerRadius: cornerRadius))
                 .overlay {
                     RoundedRectangle(cornerRadius: cornerRadius)
-                        .stroke(DesignTokens.divider.opacity(0.65), lineWidth: 0.5)
+                        .stroke(
+                            colorScheme == .light
+                                ? Color.black.opacity(0.14)
+                                : DesignTokens.divider.opacity(0.65),
+                            lineWidth: outlineWidth
+                        )
                 }
         }
     }

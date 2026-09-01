@@ -1,6 +1,6 @@
 # Project Status
 
-Last updated: 2026-09-01
+Last updated: 2026-09-02
 
 Development stage: Incubation / Unreleased
 
@@ -8,7 +8,9 @@ Release target: None. A version is assigned only when the project owner explicit
 
 Overall state: In Progress — unversioned product incubation; no active release contract
 
-Active task: None
+Active task: [`TASK-039`](../tasks/TASK-039-markdown-rendering-polish.md) — 优化翻译窗口 Markdown 排版细节
+
+TASK-039 已在专用分支完成原生 TextKit Markdown 呈现优化：列表使用更清楚的 marker、18pt 层级递进和稳定悬挂对齐；GFM 表格使用一个 8pt 圆角外背景/0.75pt 轮廓并只保留内部 cell 分隔线；fenced code 使用 8pt 圆角、0.75pt 边框、12pt 内边距和更清楚的等宽层级；项目所有者截图指出的 inline code 已收敛为 6pt 圆角及首尾各 6pt 视觉扩展。解析、canonical Markdown、复制/重试/切换语义、表格列宽与居中合同、连续选择、结果卡尺寸/滚动/动效、单层系统玻璃和 Rust core 均未改变。定向 Markdown 29/29、完整 24 项 Rust/Swift suite、Xcode Debug、结构与 diff 门禁、固定签名 Release App 均通过；浅色/深色 Markdown 几何与真实桌面玻璃整屏证据已完成，五维复审为 8/8/8/9/7。Task 保持 Active，等待项目所有者在固定 App 中体验后决定关闭。
 
 TASK-037 已完成：共享动效语义现区分 100ms Reduce Motion 透明度、120ms 反馈、160ms 内容、180ms 布局、220ms 重排、320ms 快捷键融合与 900ms 等待呼吸；Settings、API 编辑器与拖拽、OCR 设置、Quick Input、结果卡、截图确认和快捷键局部状态使用明确且可中断的局部过渡，系统菜单/窗口行为保持系统拥有。结果卡宽度预设使用固定顶边的唯一目标 frame，SwiftUI 内容宽度逐帧跟随 AppKit 实际宽度，过渡 resize 不再并发启动高度动画；streaming→completed 不再对正文容器或 raw 文本触发几何动画。浅色玻璃表面增加自适应中性轮廓，Reduce Motion、键盘焦点、Escape 和辅助技术路径保持完整。`WidthPreset` 7/7、完成态正文动画回归 1/1、完整 24 项 Rust/180 项 Swift、Xcode Debug、结构门禁与固定签名 Release App 均通过；五维复审为 8/8/9/9/8。项目所有者于 2026-09-01 明确要求关闭、提交并合并，完成现场验收。未跟踪 `website/` 与 TASK-036 首页原型未纳入本 Task。
 
@@ -42,7 +44,7 @@ Blocked tasks: None.
 
 ## Current objective
 
-当前没有 Active implementation Task。下一项产品实现、修复或验证工作仍必须由项目所有者从直接请求、Ideas、Backlog 或证据缺口中明确选择，Agent 不自动从旧 `0.1.0` 草案或 Roadmap 提升工作。
+当前 Active implementation Task 为 TASK-039，由项目所有者从直接请求明确选择。它只优化既有原生 Markdown/TextKit 投影的列表、GFM 表格和代码呈现细节，不改变内容、Provider、窗口或架构合同。
 
 TASK-023 已完成整体代码审查、自动化验证与固定 Release 测试 App 交付：Rust 翻译与模型列表取消从 10ms 轮询改为事件驱动唤醒，SSE 单个未完成帧增加 1 MiB 内存上限，严格 Clippy 与 shell 语法检查纳入统一验证，5 个公开 unsafe FFI 函数补齐安全合同；`artifacts/Marla_dev.app` 已重建并通过稳定签名验证。
 

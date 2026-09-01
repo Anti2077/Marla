@@ -6,6 +6,9 @@ extension NSAttributedString.Key {
     static let marlaInlineCodeBackground = NSAttributedString.Key("com.marla.inline-code-background")
     static let marlaCodeBlockBackground = NSAttributedString.Key("com.marla.code-block-background")
     static let marlaCodeBlockBorder = NSAttributedString.Key("com.marla.code-block-border")
+    static let marlaTableBackground = NSAttributedString.Key("com.marla.table-background")
+    static let marlaTableHeaderBackground = NSAttributedString.Key("com.marla.table-header-background")
+    static let marlaTableBorder = NSAttributedString.Key("com.marla.table-border")
 }
 
 struct MarkdownResultSelectableText: NSViewRepresentable {
@@ -58,14 +61,15 @@ struct MarkdownResultSelectableText: NSViewRepresentable {
 }
 
 final class MarkdownSelectableTextView: NSTextView {
-    static let codeBlockCornerRadius: CGFloat = 5
-    static let inlineCodeCornerRadius: CGFloat = 3
-    static let inlineCodeHorizontalPadding: CGFloat = 3
+    static let codeBlockCornerRadius: CGFloat = 8
+    static let tableCornerRadius: CGFloat = 8
+    static let inlineCodeCornerRadius: CGFloat = 6
+    static let inlineCodeHorizontalPadding: CGFloat = 6
 
     private var installedContents: NSAttributedString?
 
     override func draw(_ dirtyRect: NSRect) {
-        drawCodeBackgrounds(in: dirtyRect)
+        drawMarkdownBackgrounds(in: dirtyRect)
         super.draw(dirtyRect)
     }
 
@@ -120,7 +124,7 @@ final class MarkdownSelectableTextView: NSTextView {
         )
     }
 
-    private func drawCodeBackgrounds(in dirtyRect: NSRect) {
+    private func drawMarkdownBackgrounds(in dirtyRect: NSRect) {
         guard let layoutManager,
               let textContainer,
               let textStorage,
@@ -140,6 +144,14 @@ final class MarkdownSelectableTextView: NSTextView {
         )
         guard visibleCharacterRange.length > 0 else { return }
 
+        drawTableBackgrounds(
+            visibleCharacterRange: visibleCharacterRange,
+            layoutManager: layoutManager,
+            textContainer: textContainer,
+            textStorage: textStorage,
+            origin: origin,
+            dirtyRect: dirtyRect
+        )
         drawCodeBlockBackgrounds(
             visibleCharacterRange: visibleCharacterRange,
             layoutManager: layoutManager,
@@ -156,6 +168,94 @@ final class MarkdownSelectableTextView: NSTextView {
             origin: origin,
             dirtyRect: dirtyRect
         )
+    }
+
+    private func drawTableBackgrounds(
+        visibleCharacterRange: NSRange,
+        layoutManager: NSLayoutManager,
+        textContainer: NSTextContainer,
+        textStorage: NSTextStorage,
+        origin: NSPoint,
+        dirtyRect: NSRect
+    ) {
+        var visitedRanges = Set<Int>()
+        let fullRange = NSRange(location: 0, length: textStorage.length)
+        textStorage.enumerateAttribute(
+            .marlaTableBackground,
+            in: visibleCharacterRange
+        ) { value, range, _ in
+            guard value != nil else { return }
+            var effectiveRange = NSRange()
+            guard let fillColor = textStorage.attribute(
+                .marlaTableBackground,
+                at: range.location,
+                longestEffectiveRange: &effectiveRange,
+                in: fullRange
+            ) as? NSColor,
+                visitedRanges.insert(effectiveRange.location).inserted else {
+                return
+            }
+
+            let glyphRange = layoutManager.glyphRange(
+                forCharacterRange: effectiveRange,
+                actualCharacterRange: nil
+            )
+            var glyphRect = layoutManager.boundingRect(forGlyphRange: glyphRange, in: textContainer)
+            guard !glyphRect.isEmpty else { return }
+            glyphRect.origin.x = 0
+            glyphRect.size.width = textContainer.size.width
+            let tableRect = glyphRect
+                .insetBy(dx: 0, dy: -8)
+                .offsetBy(dx: origin.x, dy: origin.y)
+            guard tableRect.intersects(dirtyRect) else { return }
+
+            let pathRect = tableRect.insetBy(dx: 0.375, dy: 0.375)
+            let path = NSBezierPath(
+                roundedRect: pathRect,
+                xRadius: Self.tableCornerRadius,
+                yRadius: Self.tableCornerRadius
+            )
+            fillColor.setFill()
+            path.fill()
+
+            var headerRange = NSRange()
+            if let headerColor = textStorage.attribute(
+                .marlaTableHeaderBackground,
+                at: effectiveRange.location,
+                longestEffectiveRange: &headerRange,
+                in: effectiveRange
+            ) as? NSColor {
+                let headerGlyphRange = layoutManager.glyphRange(
+                    forCharacterRange: headerRange,
+                    actualCharacterRange: nil
+                )
+                var headerRect = layoutManager.boundingRect(
+                    forGlyphRange: headerGlyphRange,
+                    in: textContainer
+                )
+                headerRect.origin.x = 0
+                headerRect.size.width = textContainer.size.width
+                headerRect = headerRect
+                    .insetBy(dx: 0, dy: -8)
+                    .offsetBy(dx: origin.x, dy: origin.y)
+
+                NSGraphicsContext.saveGraphicsState()
+                path.addClip()
+                headerColor.setFill()
+                headerRect.fill()
+                NSGraphicsContext.restoreGraphicsState()
+            }
+
+            if let borderColor = textStorage.attribute(
+                .marlaTableBorder,
+                at: effectiveRange.location,
+                effectiveRange: nil
+            ) as? NSColor {
+                borderColor.setStroke()
+                path.lineWidth = 0.75
+                path.stroke()
+            }
+        }
     }
 
     private func drawCodeBlockBackgrounds(
@@ -197,7 +297,7 @@ final class MarkdownSelectableTextView: NSTextView {
                 .offsetBy(dx: origin.x, dy: origin.y)
             guard blockRect.intersects(dirtyRect) else { return }
 
-            let pathRect = blockRect.insetBy(dx: 0.25, dy: 0.25)
+            let pathRect = blockRect.insetBy(dx: 0.375, dy: 0.375)
             let path = NSBezierPath(
                 roundedRect: pathRect,
                 xRadius: Self.codeBlockCornerRadius,
@@ -211,7 +311,7 @@ final class MarkdownSelectableTextView: NSTextView {
                 effectiveRange: nil
             ) as? NSColor {
                 borderColor.setStroke()
-                path.lineWidth = 0.5
+                path.lineWidth = 0.75
                 path.stroke()
             }
         }
@@ -278,10 +378,13 @@ enum MarkdownResultAttributedDocument {
     private static let bodyFont = NSFont.systemFont(ofSize: 15)
     private static let bodyColor = NSColor.labelColor
     private static let secondaryColor = NSColor.secondaryLabelColor
-    private static let tertiaryColor = NSColor.tertiaryLabelColor
     private static let dividerColor = NSColor.separatorColor
-    private static let subtleBackground = NSColor.labelColor.withAlphaComponent(0.065)
-    private static let alternatingRowBackground = NSColor.labelColor.withAlphaComponent(0.025)
+    private static let inlineCodeBackground = NSColor.labelColor.withAlphaComponent(0.09)
+    private static let codeBlockBackground = NSColor.labelColor.withAlphaComponent(0.085)
+    private static let codeBlockBorder = NSColor.labelColor.withAlphaComponent(0.16)
+    private static let tableBackground = NSColor.labelColor.withAlphaComponent(0.018)
+    private static let tableHeaderBackground = NSColor.labelColor.withAlphaComponent(0.055)
+    private static let tableBorder = NSColor.labelColor.withAlphaComponent(0.14)
 
     static func build(
         _ document: MarkdownResultDocument,
@@ -373,7 +476,7 @@ enum MarkdownResultAttributedDocument {
             let isCode = intent?.contains(.code) == true
             let isBold = forceBold || intent?.contains(.stronglyEmphasized) == true
             let isItalic = forceItalic || intent?.contains(.emphasized) == true
-            var font = isCode ? NSFont.monospacedSystemFont(ofSize: 13, weight: .regular) : baseFont
+            var font = isCode ? NSFont.monospacedSystemFont(ofSize: 13, weight: .medium) : baseFont
             var traits: NSFontTraitMask = []
             if isBold { traits.insert(.boldFontMask) }
             if isItalic { traits.insert(.italicFontMask) }
@@ -383,7 +486,7 @@ enum MarkdownResultAttributedDocument {
                 .font: font,
                 .foregroundColor: baseColor,
             ]
-            if isCode { attributes[.marlaInlineCodeBackground] = subtleBackground }
+            if isCode { attributes[.marlaInlineCodeBackground] = inlineCodeBackground }
             if intent?.contains(.strikethrough) == true { attributes[.strikethroughStyle] = 1 }
             if let link = run.link { attributes[.link] = link }
             result.append(NSAttributedString(string: text, attributes: attributes))
@@ -412,20 +515,25 @@ enum MarkdownResultAttributedDocument {
         to result: NSMutableAttributedString
     ) {
         let paragraph = NSMutableParagraphStyle()
-        let baseIndent = CGFloat(max(0, depth - 1)) * 14
+        let baseIndent = CGFloat(max(0, depth - 1)) * 18
         paragraph.firstLineHeadIndent = baseIndent
         paragraph.headIndent = baseIndent + 28
         paragraph.tabStops = [
             NSTextTab(textAlignment: .right, location: baseIndent + 20),
             NSTextTab(textAlignment: .left, location: baseIndent + 28),
         ]
-        paragraph.paragraphSpacing = 4
+        paragraph.lineSpacing = 2
+        paragraph.paragraphSpacing = 6
+
+        let markerFont = marker == "•"
+            ? NSFont.systemFont(ofSize: 15, weight: .semibold)
+            : NSFont.monospacedDigitSystemFont(ofSize: 13, weight: .semibold)
 
         let item = NSMutableAttributedString(
             string: "\t\(marker)\t",
             attributes: [
-                .font: bodyFont,
-                .foregroundColor: secondaryColor,
+                .font: markerFont,
+                .foregroundColor: bodyColor,
             ]
         )
         item.append(inline(content))
@@ -459,36 +567,36 @@ enum MarkdownResultAttributedDocument {
         to result: NSMutableAttributedString
     ) {
         let block = NSTextBlock()
-        block.setWidth(8, type: .absoluteValueType, for: .padding)
-        block.setWidth(0.5, type: .absoluteValueType, for: .border)
+        block.setWidth(12, type: .absoluteValueType, for: .padding)
         block.setContentWidth(100, type: .percentageValueType)
 
         let paragraph = NSMutableParagraphStyle()
         paragraph.textBlocks = [block]
-        paragraph.paragraphSpacing = 8
+        paragraph.lineSpacing = 3
+        paragraph.paragraphSpacing = 12
 
         let code = NSMutableAttributedString()
         if let language, !language.isEmpty {
             code.append(NSAttributedString(
                 string: "\(language)\n",
                 attributes: [
-                    .font: NSFont.systemFont(ofSize: 11),
-                    .foregroundColor: tertiaryColor,
+                    .font: NSFont.monospacedSystemFont(ofSize: 11, weight: .semibold),
+                    .foregroundColor: secondaryColor,
                 ]
             ))
         }
         code.append(NSAttributedString(
             string: String(content.characters).removingTrailingLineBreaks(),
             attributes: [
-                .font: NSFont.monospacedSystemFont(ofSize: 13, weight: .regular),
+                .font: NSFont.monospacedSystemFont(ofSize: 13, weight: .medium),
                 .foregroundColor: bodyColor,
             ]
         ))
         code.addAttributes(
             [
                 .paragraphStyle: paragraph,
-                .marlaCodeBlockBackground: subtleBackground,
-                .marlaCodeBlockBorder: dividerColor,
+                .marlaCodeBlockBackground: codeBlockBackground,
+                .marlaCodeBlockBorder: codeBlockBorder,
             ],
             range: NSRange(location: 0, length: code.length)
         )
@@ -501,6 +609,7 @@ enum MarkdownResultAttributedDocument {
         to result: NSMutableAttributedString
     ) {
         guard let columnCount = markdownTable.rows.first?.count, columnCount > 0 else { return }
+        let tableStart = result.length
         let textTable = NSTextTable()
         textTable.numberOfColumns = columnCount
         textTable.layoutAlgorithm = .fixedLayoutAlgorithm
@@ -510,6 +619,7 @@ enum MarkdownResultAttributedDocument {
         let columnPercentages = tableColumnPercentages(markdownTable)
 
         for (rowIndex, row) in markdownTable.rows.enumerated() {
+            let rowStart = result.length
             for (columnIndex, content) in row.enumerated() {
                 let cell = NSTextTableBlock(
                     table: textTable,
@@ -518,16 +628,18 @@ enum MarkdownResultAttributedDocument {
                     startingColumn: columnIndex,
                     columnSpan: 1
                 )
-                cell.setWidth(0.5, type: .absoluteValueType, for: .border)
-                cell.setBorderColor(dividerColor)
+                cell.setWidth(0, type: .absoluteValueType, for: .border)
+                if rowIndex > 0 {
+                    cell.setWidth(0.5, type: .absoluteValueType, for: .border, edge: .minY)
+                    cell.setBorderColor(dividerColor, for: .minY)
+                }
+                if columnIndex > 0 {
+                    cell.setWidth(0.5, type: .absoluteValueType, for: .border, edge: .minX)
+                    cell.setBorderColor(dividerColor, for: .minX)
+                }
                 cell.setWidth(8, type: .absoluteValueType, for: .padding)
                 cell.setContentWidth(columnPercentages[columnIndex], type: .percentageValueType)
                 cell.verticalAlignment = .middleAlignment
-                if rowIndex == 0 {
-                    cell.backgroundColor = subtleBackground
-                } else if rowIndex.isMultiple(of: 2) {
-                    cell.backgroundColor = alternatingRowBackground
-                }
 
                 let paragraph = NSMutableParagraphStyle()
                 paragraph.textBlocks = [cell]
@@ -550,7 +662,21 @@ enum MarkdownResultAttributedDocument {
                 rendered.append(NSAttributedString(string: "\n"))
                 result.append(rendered)
             }
+            if rowIndex == 0 {
+                result.addAttribute(
+                    .marlaTableHeaderBackground,
+                    value: tableHeaderBackground,
+                    range: NSRange(location: rowStart, length: result.length - rowStart)
+                )
+            }
         }
+        result.addAttributes(
+            [
+                .marlaTableBackground: tableBackground,
+                .marlaTableBorder: tableBorder,
+            ],
+            range: NSRange(location: tableStart, length: result.length - tableStart)
+        )
         result.append(NSAttributedString(string: "\n"))
     }
 

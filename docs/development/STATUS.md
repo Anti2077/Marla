@@ -20,6 +20,10 @@ Parallel task worktree: [`TASK-038`](../tasks/TASK-038-api-profile-reorder-motio
 
 TASK-038 实现已完成并等待项目所有者现场验收：API Profile 重排现在分离 hover 临时顺序与最终一次持久化提交，取消恢复初始顺序；等高空槽使用方向敏感的向下 40%/向上 60% 阈值和 220ms 平滑让位，快速反向采用当前视觉顺序。AppKit dragging session 持续按屏幕 Y 驱动插入位置，因此指针横向离开列表或纵向越过首尾行后仍继续挤压；成功释放以 140ms Panel 落点和 120ms 真实行交接完成。固定 580×76pt 预览、真实手柄锚点、透明 1×1pt 原生 drag item、无障碍移动与 Reduce Motion 合同保留。7 项定向测试、最终完整检查和固定签名 App 重建通过；临时独立 bundle 已确认越界挤压与 `Esc` 取消，但 Computer Use 不能可靠产生原生 mouse-up，成功释放手感、浅色/深色五维复审和 Reduce Motion 仍需项目所有者实鼠标确认。专用分支 `Anti2077/task-038-api-profile-reorder-motion` 从本地 `main@506c4cf` 创建，TASK-036 官网工作位于主工作树并继续保持 Active。
 
+Parallel task worktree: [`TASK-039`](../tasks/TASK-039-markdown-rendering-polish.md) — Markdown 呈现实现已合入 `main`，Task 保持 Active 并等待项目所有者现场验收。
+
+TASK-039 已在专用分支完成原生 TextKit Markdown 呈现优化：列表使用更清楚的 marker、18pt 层级递进和稳定悬挂对齐；GFM 表格使用一个 8pt 圆角外背景/0.75pt 轮廓并只保留内部 cell 分隔线；fenced code 使用 8pt 圆角、0.75pt 边框、12pt 内边距和更清楚的等宽层级；项目所有者截图指出的 inline code 已收敛为 6pt 圆角及首尾各 6pt 视觉扩展。解析、canonical Markdown、复制/重试/切换语义、表格列宽与居中合同、连续选择、结果卡尺寸/滚动/动效、单层系统玻璃和 Rust core 均未改变。定向 Markdown 29/29、完整 24 项 Rust/Swift suite、Xcode Debug、结构与 diff 门禁、固定签名 Release App 均通过；浅色/深色 Markdown 几何与真实桌面玻璃整屏证据已完成，五维复审为 8/8/8/9/7。Task 保持 Active，等待项目所有者在固定 App 中体验后决定关闭。
+
 TASK-037 已完成：共享动效语义现区分 100ms Reduce Motion 透明度、120ms 反馈、160ms 内容、180ms 布局、220ms 重排、320ms 快捷键融合与 900ms 等待呼吸；Settings、API 编辑器与拖拽、OCR 设置、Quick Input、结果卡、截图确认和快捷键局部状态使用明确且可中断的局部过渡，系统菜单/窗口行为保持系统拥有。结果卡宽度预设使用固定顶边的唯一目标 frame，SwiftUI 内容宽度逐帧跟随 AppKit 实际宽度，过渡 resize 不再并发启动高度动画；streaming→completed 不再对正文容器或 raw 文本触发几何动画。浅色玻璃表面增加自适应中性轮廓，Reduce Motion、键盘焦点、Escape 和辅助技术路径保持完整。`WidthPreset` 7/7、完成态正文动画回归 1/1、完整 24 项 Rust/180 项 Swift、Xcode Debug、结构门禁与固定签名 Release App 均通过；五维复审为 8/8/9/9/8。项目所有者于 2026-09-01 明确要求关闭、提交并合并，完成现场验收。未跟踪 `website/` 与 TASK-036 首页原型未纳入本 Task。
 
 TASK-035 已完成：快捷键设置使用 `fn / ⇧ / ⌃ / ⌥ / ⌘` 修饰键切换与 32pt 单主键单元，编辑器直接位于每行操作名称和启用开关之间的留白，不打开 popover、sheet 或额外窗口；同一时间只展开一行。默认键位为划词 `⌃⇧D`、截图 `⌃⇧S`、快速输入 `⌃⇧Space`；完整旧默认配置会迁移，自定义配置保持不变；Fn/Globe 继续复用 Carbon 全局热键路径，不新增持续全局监听或权限。macOS 26 使用折叠 `.regular.interactive()`、展开 `.regular` 和 0.32 秒 matched geometry 将快捷键 chip 融合为固定 332×32pt 编辑条；Reduce Motion 使用 identity transition 并关闭短状态动画。最终折叠、D 展开和 Space 展开均保持 820×592；主键与修饰键共用 20pt 内容高度，外层 capsule 以 4pt 上下内边距形成连续玻璃边框，主键捕获态为居中 `ellipsis`，应用键为 24pt 圆形。无效或注册失败时确认键显示感叹号，独立 hover 命中层以 0 秒延迟同步显示具体原因。浅色、深色和 Reduce Motion 五维复审均为 8/8/9/9/8；完整检查与固定签名 App 已通过。实体 Fn/Globe 触发仍取决于具体键盘和系统 Globe 设置，不声明为已现场验证。
@@ -55,6 +59,8 @@ Blocked tasks: None.
 当前 Active implementation Task 为 TASK-036，由项目所有者从直接请求明确选择。官网原型必须与原生 App 隔离，并以当前产品定义、品牌边界和真实实现为准；旧 `0.1.0` 草案或 Roadmap 不提升额外范围。
 
 TASK-038 位于明确安排的独立工作树；实现已合入 `main`，但仍需项目所有者完成真实鼠标成功释放、Reduce Motion 与浅色证据验收后再决定关闭。
+
+TASK-039 同样位于明确安排的独立工作树；实现已合入 `main`，但仍需项目所有者在固定 App 中体验后再决定关闭。
 
 TASK-023 已完成整体代码审查、自动化验证与固定 Release 测试 App 交付：Rust 翻译与模型列表取消从 10ms 轮询改为事件驱动唤醒，SSE 单个未完成帧增加 1 MiB 内存上限，严格 Clippy 与 shell 语法检查纳入统一验证，5 个公开 unsafe FFI 函数补齐安全合同；`artifacts/Marla_dev.app` 已重建并通过稳定签名验证。
 

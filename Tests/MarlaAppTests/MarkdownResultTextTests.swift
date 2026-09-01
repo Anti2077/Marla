@@ -150,6 +150,45 @@ final class MarkdownResultTextTests: XCTestCase {
     }
 
     @MainActor
+    func testListMarkersAndNestedItemsUseStableReadableParagraphGeometry() throws {
+        let markdown = """
+        - First item with enough text to wrap naturally
+          - Nested item
+
+        1. Ordered item
+        """
+        let document = try XCTUnwrap(MarkdownResultDocument.parse(markdown))
+        let rendered = MarkdownResultAttributedDocument.build(document)
+        let string = rendered.string as NSString
+
+        let firstRange = string.range(of: "\t•\tFirst")
+        let nestedRange = string.range(of: "\t•\tNested")
+        let orderedRange = string.range(of: "\t1.\tOrdered")
+        XCTAssertNotEqual(firstRange.location, NSNotFound)
+        XCTAssertNotEqual(nestedRange.location, NSNotFound)
+        XCTAssertNotEqual(orderedRange.location, NSNotFound)
+
+        let firstStyle = try XCTUnwrap(
+            rendered.attribute(.paragraphStyle, at: firstRange.location, effectiveRange: nil)
+                as? NSParagraphStyle
+        )
+        let nestedStyle = try XCTUnwrap(
+            rendered.attribute(.paragraphStyle, at: nestedRange.location, effectiveRange: nil)
+                as? NSParagraphStyle
+        )
+        XCTAssertEqual(firstStyle.headIndent, 28, accuracy: 0.001)
+        XCTAssertEqual(nestedStyle.firstLineHeadIndent, 18, accuracy: 0.001)
+        XCTAssertEqual(nestedStyle.headIndent, 46, accuracy: 0.001)
+        XCTAssertEqual(firstStyle.lineSpacing, 2, accuracy: 0.001)
+        XCTAssertEqual(firstStyle.paragraphSpacing, 6, accuracy: 0.001)
+
+        for range in [firstRange, orderedRange] {
+            let font = try XCTUnwrap(rendered.attribute(.font, at: range.location + 1, effectiveRange: nil) as? NSFont)
+            XCTAssertTrue(NSFontManager.shared.traits(of: font).contains(.boldFontMask))
+        }
+    }
+
+    @MainActor
     func testCodeStylingUsesCustomRoundedBackgroundAttributes() throws {
         let markdown = """
         First `TOKEN`.
@@ -204,10 +243,46 @@ final class MarkdownResultTextTests: XCTestCase {
             font: font
         )
 
-        XCTAssertEqual(first.minX, firstGlyphRect.minX - 3, accuracy: 0.001)
-        XCTAssertEqual(first.maxX, firstGlyphRect.maxX + 3, accuracy: 0.001)
+        XCTAssertEqual(first.minX, firstGlyphRect.minX - 6, accuracy: 0.001)
+        XCTAssertEqual(first.maxX, firstGlyphRect.maxX + 6, accuracy: 0.001)
         XCTAssertLessThan(first.height, firstGlyphRect.height)
         XCTAssertLessThan(first.maxY, second.minY)
+    }
+
+    @MainActor
+    func testTableUsesRoundedDecorationAttributesAndOnlyInternalCellBorders() throws {
+        let markdown = """
+        | Name | Value |
+        | --- | --- |
+        | Alpha | 1 |
+        """
+        let document = try XCTUnwrap(MarkdownResultDocument.parse(markdown))
+        let rendered = MarkdownResultAttributedDocument.build(document)
+        let string = rendered.string as NSString
+
+        let headerFirst = string.range(of: "Name")
+        let headerSecond = string.range(of: "Value")
+        let bodyFirst = string.range(of: "Alpha")
+        XCTAssertNotNil(rendered.attribute(.marlaTableBackground, at: headerFirst.location, effectiveRange: nil))
+        XCTAssertNotNil(rendered.attribute(.marlaTableHeaderBackground, at: headerFirst.location, effectiveRange: nil))
+        XCTAssertNotNil(rendered.attribute(.marlaTableBorder, at: bodyFirst.location, effectiveRange: nil))
+
+        let firstHeaderBlock = try XCTUnwrap(
+            (rendered.attribute(.paragraphStyle, at: headerFirst.location, effectiveRange: nil)
+                as? NSParagraphStyle)?.textBlocks.first as? NSTextTableBlock
+        )
+        let secondHeaderBlock = try XCTUnwrap(
+            (rendered.attribute(.paragraphStyle, at: headerSecond.location, effectiveRange: nil)
+                as? NSParagraphStyle)?.textBlocks.first as? NSTextTableBlock
+        )
+        let firstBodyBlock = try XCTUnwrap(
+            (rendered.attribute(.paragraphStyle, at: bodyFirst.location, effectiveRange: nil)
+                as? NSParagraphStyle)?.textBlocks.first as? NSTextTableBlock
+        )
+        XCTAssertNil(firstHeaderBlock.borderColor(for: .minX))
+        XCTAssertNil(firstHeaderBlock.borderColor(for: .minY))
+        XCTAssertNotNil(secondHeaderBlock.borderColor(for: .minX))
+        XCTAssertNotNil(firstBodyBlock.borderColor(for: .minY))
     }
 
     func testPlainTextProjectionRemovesMarkupAndUsesTSVForTables() throws {

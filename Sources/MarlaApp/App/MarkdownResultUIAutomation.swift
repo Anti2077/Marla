@@ -26,6 +26,12 @@ extension MarlaApplicationModel {
         case "markdown-code-styling-wide":
             isWide = true
             presentMarkdownCodeStylingUIAutomationFixture()
+        case "markdown-rendering-polish":
+            isWide = false
+            presentMarkdownRenderingPolishUIAutomationFixture()
+        case "markdown-rendering-polish-wide":
+            isWide = true
+            presentMarkdownRenderingPolishUIAutomationFixture()
         case "markdown-comparison":
             isWide = false
             presentMarkdownComparisonUIAutomationFixture()
@@ -36,10 +42,9 @@ extension MarlaApplicationModel {
             return false
         }
 
-        if isWide {
-            DispatchQueue.main.async { [weak self] in
-                self?.panelCoordinator.setResultWidthForUIAutomation(ResultCardLayout.maximumWidth)
-            }
+        let targetWidth = isWide ? ResultCardLayout.maximumWidth : ResultCardLayout.minimumWidth
+        DispatchQueue.main.asyncAfter(deadline: .now() + MarlaMotion.contentDuration + 0.05) { [weak self] in
+            self?.panelCoordinator.setResultWidthForUIAutomation(targetWidth)
         }
         return true
     }
@@ -189,6 +194,46 @@ extension MarlaApplicationModel {
             第二行保留 `npm run sidecar:windows` 命令。
 
             输出目录为 `src-tauri/binaries/`，目标包括 `aarch64-apple-darwin` 与 `x86_64-apple-darwin`。
+            """,
+            state: .completed,
+            contentFormat: .semanticMarkdown
+        )
+        panelCoordinator.showResult(
+            store: sessionStore,
+            at: nil,
+            pointer: NSEvent.mouseLocation,
+            activate: true
+        )
+    }
+
+    func presentMarkdownRenderingPolishUIAutomationFixture() {
+        sessionStore.installUIAutomationFixture(
+            surface: .quickInput,
+            sourceText: "# Markdown Rendering\n\nLists, tables, and code stay readable in one native text surface.",
+            translation: """
+            # 部署检查
+
+            结构清楚，不会把每段内容都变成卡片。
+
+            1. 准备运行环境
+               1. 检查 `MARLA_API_KEY` 是否只存在于 Keychain
+               2. 较长说明换行后仍与首行正文对齐
+            2. 执行验证
+
+            - 列表 marker 清楚但不抢过正文
+
+            | 检查项 | 命令 | 状态 |
+            | :--- | :---: | ---: |
+            | Swift 测试 | `swift test` | 通过 |
+            | 完整门禁 | `./scripts/check.sh` | 通过 |
+            | 空值回退 |  | 待确认 |
+
+            行内代码 `semanticMarkdown` 与正文保持清楚区分。
+
+            ```zsh
+            swift test --filter MarkdownResultTextTests
+            ./scripts/check.sh
+            ```
             """,
             state: .completed,
             contentFormat: .semanticMarkdown

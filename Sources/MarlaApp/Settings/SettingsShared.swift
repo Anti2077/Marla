@@ -167,6 +167,8 @@ struct APIProfileSummaryRow: View {
     let canMoveUp: Bool
     let canMoveDown: Bool
     @Binding var draggingProfileID: UUID?
+    @Environment(\.accessibilityReduceMotion) private var accessibilityReduceMotion
+    @Environment(\.marlaReduceMotionOverride) private var reduceMotionOverride
 
     private var isDragging: Bool {
         draggingProfileID == profile.id
@@ -251,15 +253,27 @@ struct APIProfileSummaryRow: View {
         .opacity(isDragging ? 0 : 1)
         .allowsHitTesting(!isDragging)
         .padding(.vertical, DesignTokens.spaceM)
-        .animation(.easeOut(duration: 0.12), value: isDragging)
+        .animation(
+            MarlaMotion.animation(
+                MarlaMotion.feedback,
+                reducesMotion: reducesMotion,
+                reducedMotionAnimation: MarlaMotion.reducedOpacity
+            ),
+            value: isDragging
+        )
         .onDrop(
             of: [UTType.plainText.identifier],
             delegate: APIProfileDropDelegate(
                 targetProfileID: profile.id,
                 draggingProfileID: $draggingProfileID,
+                reducesMotion: reducesMotion,
                 onMove: onDrop
             )
         )
+    }
+
+    private var reducesMotion: Bool {
+        accessibilityReduceMotion || reduceMotionOverride
     }
 }
 
@@ -302,6 +316,8 @@ private struct APIProfileDragSource: NSViewRepresentable {
     let profile: TranslationAPIProfile
     let isDefault: Bool
     @Binding var draggingProfileID: UUID?
+    @Environment(\.accessibilityReduceMotion) private var accessibilityReduceMotion
+    @Environment(\.marlaReduceMotionOverride) private var reduceMotionOverride
 
     func makeNSView(context: Context) -> APIProfileDragSourceView {
         let view = APIProfileDragSourceView()
@@ -313,15 +329,31 @@ private struct APIProfileDragSource: NSViewRepresentable {
         nsView.profile = profile
         nsView.isDefault = isDefault
         nsView.onDragStarted = {
-            withAnimation(.easeOut(duration: 0.12)) {
+            withAnimation(
+                MarlaMotion.animation(
+                    MarlaMotion.feedback,
+                    reducesMotion: reducesMotion,
+                    reducedMotionAnimation: MarlaMotion.reducedOpacity
+                )
+            ) {
                 draggingProfileID = profile.id
             }
         }
         nsView.onDragEnded = {
-            withAnimation(.easeOut(duration: 0.14)) {
+            withAnimation(
+                MarlaMotion.animation(
+                    MarlaMotion.content,
+                    reducesMotion: reducesMotion,
+                    reducedMotionAnimation: MarlaMotion.reducedOpacity
+                )
+            ) {
                 draggingProfileID = nil
             }
         }
+    }
+
+    private var reducesMotion: Bool {
+        accessibilityReduceMotion || reduceMotionOverride
     }
 }
 
@@ -562,6 +594,7 @@ private struct APIProfileDragPreview: View {
 private struct APIProfileDropDelegate: DropDelegate {
     let targetProfileID: UUID
     @Binding var draggingProfileID: UUID?
+    let reducesMotion: Bool
     let onMove: (UUID) -> Bool
 
     func validateDrop(info: DropInfo) -> Bool {
@@ -571,7 +604,7 @@ private struct APIProfileDropDelegate: DropDelegate {
     func dropEntered(info: DropInfo) {
         guard let draggingProfileID,
               draggingProfileID != targetProfileID else { return }
-        withAnimation(.snappy(duration: 0.22)) {
+        withAnimation(MarlaMotion.animation(MarlaMotion.reorder, reducesMotion: reducesMotion)) {
             _ = onMove(draggingProfileID)
         }
     }
@@ -584,4 +617,3 @@ private struct APIProfileDropDelegate: DropDelegate {
         return true
     }
 }
-

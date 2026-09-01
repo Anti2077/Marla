@@ -52,6 +52,8 @@ struct SettingsView: View {
     @State private var pendingNewProfileID: UUID?
     @State private var draggingProfileID: UUID?
     @State private var editingShortcutAction: GlobalShortcutAction?
+    @Environment(\.accessibilityReduceMotion) private var accessibilityReduceMotion
+    @Environment(\.marlaReduceMotionOverride) private var reduceMotionOverride
 
     var body: some View {
         HStack(spacing: 0) {
@@ -67,8 +69,18 @@ struct SettingsView: View {
                 case .ocr: ocrPage
                 }
             }
+            .id(selectedPage)
+            .transition(MarlaMotion.contentTransition(reducesMotion: reducesMotion))
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         }
+        .animation(
+            MarlaMotion.animation(
+                MarlaMotion.content,
+                reducesMotion: reducesMotion,
+                reducedMotionAnimation: MarlaMotion.reducedOpacity
+            ),
+            value: selectedPage
+        )
         .frame(minWidth: 820, minHeight: 560)
         .environment(
             \.marlaReduceMotionOverride,
@@ -145,6 +157,10 @@ struct SettingsView: View {
                         .clipShape(RoundedRectangle(cornerRadius: DesignTokens.radiusS))
                 }
                 .buttonStyle(.plain)
+                .animation(
+                    MarlaMotion.animation(MarlaMotion.feedback, reducesMotion: reducesMotion),
+                    value: selectedPage
+                )
                 .accessibilityAddTraits(selectedPage == page ? .isSelected : [])
             }
             Spacer()
@@ -196,6 +212,7 @@ struct SettingsView: View {
                     Label("拖动翻译窗口后，下次会从这个位置打开。", systemImage: "arrow.up.and.down.and.arrow.left.and.right")
                         .font(AppFont.caption)
                         .foregroundStyle(DesignTokens.secondaryText)
+                        .transition(MarlaMotion.contentTransition(reducesMotion: reducesMotion))
                 }
 
                 if settings.translationWindowPlacement == .fixedXCentered {
@@ -219,8 +236,17 @@ struct SettingsView: View {
                             .foregroundStyle(DesignTokens.secondaryText)
                     }
                     .frame(minHeight: 32)
+                    .transition(MarlaMotion.contentTransition(reducesMotion: reducesMotion))
                 }
             }
+            .animation(
+                MarlaMotion.animation(
+                    MarlaMotion.content,
+                    reducesMotion: reducesMotion,
+                    reducedMotionAnimation: MarlaMotion.reducedOpacity
+                ),
+                value: settings.translationWindowPlacement
+            )
 
             SettingsSection(title: "受保护取词", systemImage: "doc.on.clipboard") {
                 Label("模拟 Copy 获取完整选区格式", systemImage: "checkmark.shield")
@@ -439,5 +465,11 @@ struct SettingsView: View {
     private func openPrivacySettings() {
         guard let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility") else { return }
         NSWorkspace.shared.open(url)
+    }
+
+    private var reducesMotion: Bool {
+        accessibilityReduceMotion
+            || reduceMotionOverride
+            || ProcessInfo.processInfo.environment["MARLA_UI_TEST_REDUCE_MOTION"] == "1"
     }
 }

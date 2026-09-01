@@ -1339,6 +1339,12 @@ final class MarlaAppTests: XCTestCase {
         )
     }
 
+    func testTranslationCompletionDoesNotTriggerBodyLayoutAnimation() {
+        XCTAssertFalse(TranslationCardMotionPolicy.showsPartialFailure(for: .streaming))
+        XCTAssertFalse(TranslationCardMotionPolicy.showsPartialFailure(for: .completed))
+        XCTAssertTrue(TranslationCardMotionPolicy.showsPartialFailure(for: .failed(message: "网络错误")))
+    }
+
     @MainActor
     func testPreferredHeightContainsTheHostedStreamingCardBeforeTheScreenLimit() {
         let store = makeSessionStore()
@@ -1549,6 +1555,107 @@ final class MarlaAppTests: XCTestCase {
             anchor: .center
         )
         XCTAssertEqual(centered.midY, currentAbove.midY)
+    }
+
+    @MainActor
+    func testWidthPresetFrameKeepsTopAndRequestedHorizontalAnchorStable() {
+        let current = NSRect(x: 220, y: 160, width: 400, height: 240)
+        let visibleFrame = NSRect(x: 0, y: 0, width: 1_200, height: 800)
+
+        let centered = ResultPanelWidthPresetFrameCalculator.targetFrame(
+            current: current,
+            width: 600,
+            height: 180,
+            preservesLeadingEdge: false,
+            visibleFrame: visibleFrame
+        )
+        let leading = ResultPanelWidthPresetFrameCalculator.targetFrame(
+            current: current,
+            width: 600,
+            height: 180,
+            preservesLeadingEdge: true,
+            visibleFrame: visibleFrame
+        )
+
+        XCTAssertEqual(centered.midX, current.midX, accuracy: 0.001)
+        XCTAssertEqual(centered.maxY, current.maxY, accuracy: 0.001)
+        XCTAssertEqual(centered.height, 180, accuracy: 0.001)
+        XCTAssertEqual(leading.minX, current.minX, accuracy: 0.001)
+        XCTAssertEqual(leading.maxY, current.maxY, accuracy: 0.001)
+    }
+
+    @MainActor
+    func testWidthPresetFrameAppliesReflowedWidthAndHeightAtomically() {
+        let visibleFrame = NSRect(x: 0, y: 0, width: 1_200, height: 800)
+        let current = NSRect(x: 220, y: 240, width: 380, height: 333)
+        let wide = ResultPanelWidthPresetFrameCalculator.targetFrame(
+            current: current,
+            width: 680,
+            height: 214,
+            preservesLeadingEdge: false,
+            visibleFrame: visibleFrame
+        )
+
+        XCTAssertEqual(wide.maxY, current.maxY, accuracy: 0.001)
+        XCTAssertEqual(wide.height, 214, accuracy: 0.001)
+        XCTAssertEqual(wide.width, 680, accuracy: 0.001)
+    }
+
+    @MainActor
+    func testWidthPresetFrameClampsCombinedSizeToVisibleWorkspace() {
+        let visibleFrame = NSRect(x: 100, y: 50, width: 900, height: 700)
+        let current = NSRect(x: 760, y: 180, width: 380, height: 280)
+
+        let frame = ResultPanelWidthPresetFrameCalculator.targetFrame(
+            current: current,
+            width: 680,
+            height: 220,
+            preservesLeadingEdge: false,
+            visibleFrame: visibleFrame
+        )
+
+        XCTAssertEqual(frame.maxX, visibleFrame.maxX - 8, accuracy: 0.001)
+        XCTAssertEqual(frame.maxY, current.maxY, accuracy: 0.001)
+        XCTAssertEqual(frame.height, 220, accuracy: 0.001)
+    }
+
+    func testWidthPresetTransitionConsumesIntermediateAndTargetResizeFrames() {
+        var transition = ResultPanelWidthPresetTransition()
+        transition.begin(targetWidth: 680, currentWidth: 380)
+
+        XCTAssertTrue(transition.consumesResize(at: 440))
+        XCTAssertEqual(transition.targetWidth, 680)
+        XCTAssertTrue(transition.consumesResize(at: 679.75))
+        XCTAssertNil(transition.targetWidth)
+        XCTAssertFalse(transition.consumesResize(at: 640))
+    }
+
+    func testWidthPresetTransitionRapidReversalReplacesTarget() {
+        var transition = ResultPanelWidthPresetTransition()
+        transition.begin(targetWidth: 680, currentWidth: 380)
+        transition.begin(targetWidth: 380, currentWidth: 560)
+
+        XCTAssertTrue(transition.consumesResize(at: 560))
+        XCTAssertEqual(transition.targetWidth, 380)
+        XCTAssertTrue(transition.consumesResize(at: 380))
+        XCTAssertNil(transition.targetWidth)
+    }
+
+    func testWidthPresetTransitionResetStopsConsumingResizeFrames() {
+        var transition = ResultPanelWidthPresetTransition()
+        transition.begin(targetWidth: 680, currentWidth: 380)
+        transition.reset()
+
+        XCTAssertNil(transition.targetWidth)
+        XCTAssertFalse(transition.consumesResize(at: 520))
+    }
+
+    func testWidthPresetTransitionDoesNotStartForTheCurrentWidth() {
+        var transition = ResultPanelWidthPresetTransition()
+        transition.begin(targetWidth: 520, currentWidth: 520.25)
+
+        XCTAssertNil(transition.targetWidth)
+        XCTAssertFalse(transition.consumesResize(at: 560))
     }
 
     func testRememberedPositionUsesTheTopEdgeWhenHeightChanges() {
@@ -2015,6 +2122,89 @@ final class MarlaAppTests: XCTestCase {
 
         XCTAssertEqual(finishCount, 1)
         XCTAssertTrue(wasCancelled)
+    }
+
+    @MainActor
+    func testScreenshotConfirmationDelaysCompletionUntilFeedbackFinishes() async {
+        var finishCount = 0
+        var finishedRect = NSRect.zero
+        let finished = expectation(description: "selection confirmation finishes")
+        let session = ScreenshotSelectionSession(
+            reducesMotion: false,
+            confirmationDuration: 0.03
+        ) { rect, cancelled in
+            finishCount += 1
+            finishedRect = rect
+            XCTAssertFalse(cancelled)
+            finished.fulfill()
+        }
+
+        session.begin(at: NSPoint(x: 10, y: 20))
+        session.confirm(at: NSPoint(x: 110, y: 80))
+
+        XCTAssertTrue(session.isConfirming)
+        XCTAssertEqual(finishCount, 0)
+        await fulfillment(of: [finished], timeout: 1)
+        XCTAssertEqual(finishCount, 1)
+        XCTAssertEqual(finishedRect, NSRect(x: 10, y: 20, width: 100, height: 60))
+        XCTAssertFalse(session.isConfirming)
+        XCTAssertEqual(session.confirmationProgress, 1, accuracy: 0.001)
+    }
+
+    @MainActor
+    func testScreenshotConfirmationKeepsGeometryFixedForReduceMotion() {
+        var wasCancelled = false
+        let session = ScreenshotSelectionSession(
+            reducesMotion: true,
+            confirmationDuration: 1
+        ) { _, cancelled in
+            wasCancelled = cancelled
+        }
+
+        session.begin(at: NSPoint(x: 10, y: 20))
+        session.confirm(at: NSPoint(x: 110, y: 80))
+
+        XCTAssertTrue(session.isConfirming)
+        XCTAssertEqual(session.confirmationCornerInset, 0)
+        session.cancel()
+        XCTAssertTrue(wasCancelled)
+        XCTAssertFalse(session.isConfirming)
+        XCTAssertEqual(session.confirmationProgress, 0, accuracy: 0.001)
+    }
+
+    @MainActor
+    func testEscapeCanCancelDuringScreenshotConfirmation() {
+        var finishCount = 0
+        var wasCancelled = false
+        let session = ScreenshotSelectionSession(
+            reducesMotion: false,
+            confirmationDuration: 1
+        ) { _, cancelled in
+            finishCount += 1
+            wasCancelled = cancelled
+        }
+        let view = ScreenshotSelectionView(session: session)
+        let escape = NSEvent.keyEvent(
+            with: .keyDown,
+            location: .zero,
+            modifierFlags: [],
+            timestamp: 0,
+            windowNumber: 0,
+            context: nil,
+            characters: "\u{1B}",
+            charactersIgnoringModifiers: "\u{1B}",
+            isARepeat: false,
+            keyCode: 53
+        )
+
+        session.begin(at: NSPoint(x: 10, y: 20))
+        session.confirm(at: NSPoint(x: 110, y: 80))
+        view.keyDown(with: try! XCTUnwrap(escape))
+        session.cancel()
+
+        XCTAssertEqual(finishCount, 1)
+        XCTAssertTrue(wasCancelled)
+        XCTAssertFalse(session.isConfirming)
     }
 
     func testScreenshotMagnifierFlipsAtEdgesAndClampsSampleRect() {

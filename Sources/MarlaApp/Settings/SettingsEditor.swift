@@ -23,6 +23,12 @@ struct APIProfileEditorView: View {
     @FocusState private var focusedField: FocusedField?
     @StateObject private var connectionTester = TranslationConnectionTester()
     @StateObject private var modelListFetcher = TranslationModelListFetcher()
+    @Environment(\.accessibilityReduceMotion) private var accessibilityReduceMotion
+    @Environment(\.marlaReduceMotionOverride) private var reduceMotionOverride
+
+    private var reducesMotion: Bool {
+        accessibilityReduceMotion || reduceMotionOverride
+    }
 
     init(
         settings: MarlaSettingsStore,
@@ -86,36 +92,81 @@ struct APIProfileEditorView: View {
                             .textFieldStyle(.roundedBorder)
                             .frame(width: 360)
                     }
-                    if settings.hasCredential(for: profile.id) {
-                        Label("API Key 已安全保存在 macOS Keychain", systemImage: "checkmark.shield")
+                    Group {
+                        if settings.hasCredential(for: profile.id) {
+                            Label("API Key 已安全保存在 macOS Keychain", systemImage: "checkmark.shield")
+                                .font(AppFont.caption)
+                                .foregroundStyle(DesignTokens.secondaryText)
+                                .padding(.leading, 136)
+                                .transition(MarlaMotion.contentTransition(reducesMotion: reducesMotion))
+                        }
+                    }
+                    .animation(
+                        MarlaMotion.animation(
+                            MarlaMotion.feedback,
+                            reducesMotion: reducesMotion,
+                            reducedMotionAnimation: MarlaMotion.reducedOpacity
+                        ),
+                        value: settings.hasCredential(for: profile.id)
+                    )
+                    Group {
+                        if let saveErrorMessage {
+                            Label(saveErrorMessage, systemImage: "exclamationmark.triangle")
+                                .font(AppFont.caption)
+                                .foregroundStyle(DesignTokens.warning)
+                                .padding(.leading, 136)
+                                .transition(MarlaMotion.contentTransition(reducesMotion: reducesMotion))
+                        }
+                    }
+                    .animation(
+                        MarlaMotion.animation(
+                            MarlaMotion.feedback,
+                            reducesMotion: reducesMotion,
+                            reducedMotionAnimation: MarlaMotion.reducedOpacity
+                        ),
+                        value: saveErrorMessage
+                    )
+                    modelField
+                    Group {
+                        if modelListFetcher.isLoading {
+                            HStack(spacing: DesignTokens.spaceS) {
+                                ProgressView().controlSize(.small)
+                                Text("正在通过 Rust 核心获取可用模型…")
+                            }
                             .font(AppFont.caption)
                             .foregroundStyle(DesignTokens.secondaryText)
                             .padding(.leading, 136)
-                    }
-                    if let saveErrorMessage {
-                        Label(saveErrorMessage, systemImage: "exclamationmark.triangle")
-                            .font(AppFont.caption)
-                            .foregroundStyle(DesignTokens.warning)
-                            .padding(.leading, 136)
-                    }
-                    modelField
-                    if modelListFetcher.isLoading {
-                        HStack(spacing: DesignTokens.spaceS) {
-                            ProgressView().controlSize(.small)
-                            Text("正在通过 Rust 核心获取可用模型…")
+                            .transition(MarlaMotion.contentTransition(reducesMotion: reducesMotion))
+                        } else if let modelListMessage = modelListFetcher.message {
+                            Label(modelListMessage, systemImage: "exclamationmark.triangle")
+                                .font(AppFont.caption)
+                                .foregroundStyle(DesignTokens.warning)
+                                .padding(.leading, 136)
+                                .transition(MarlaMotion.contentTransition(reducesMotion: reducesMotion))
                         }
-                        .font(AppFont.caption)
-                        .foregroundStyle(DesignTokens.secondaryText)
-                        .padding(.leading, 136)
-                    } else if let modelListMessage = modelListFetcher.message {
-                        Label(modelListMessage, systemImage: "exclamationmark.triangle")
-                            .font(AppFont.caption)
-                            .foregroundStyle(DesignTokens.warning)
-                            .padding(.leading, 136)
                     }
-                    if !modelListFetcher.models.isEmpty {
-                        modelListDisclosure
+                    .animation(
+                        MarlaMotion.animation(
+                            MarlaMotion.feedback,
+                            reducesMotion: reducesMotion,
+                            reducedMotionAnimation: MarlaMotion.reducedOpacity
+                        ),
+                        value: modelListFetcher.isLoading
+                    )
+                    Group {
+                        if !modelListFetcher.models.isEmpty {
+                            modelListDisclosure
+                                .transition(MarlaMotion.contentTransition(reducesMotion: reducesMotion))
+                        }
                     }
+                    .animation(
+                        MarlaMotion.animation(
+                            MarlaMotion.content,
+                            reducesMotion: reducesMotion,
+                            reducedMotionAnimation: MarlaMotion.reducedOpacity
+                        ),
+                        value: modelListFetcher.models
+                    )
                     connectionTestRow
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -279,20 +330,31 @@ struct APIProfileEditorView: View {
                     .controlSize(.small)
                     .disabled(connectionTester.isTesting)
                     .help("先保存当前配置与非空 API Key，再使用同一份已保存配置测试连接")
-                if connectionTester.isTesting {
-                    ProgressView().controlSize(.small)
-                    Text("测试中…")
-                        .font(AppFont.caption)
-                        .foregroundStyle(DesignTokens.secondaryText)
-                } else if let connectionMessage = connectionTester.message {
-                    Image(systemName: connectionTester.didSucceed ? "checkmark.circle.fill" : "exclamationmark.triangle.fill")
-                        .foregroundStyle(connectionTester.didSucceed ? DesignTokens.success : DesignTokens.warning)
-                    Text(connectionMessage)
-                        .font(AppFont.caption)
-                        .foregroundStyle(connectionTester.didSucceed ? DesignTokens.success : DesignTokens.secondaryText)
-                        .lineLimit(2)
-                        .help(connectionMessage)
+                Group {
+                    if connectionTester.isTesting {
+                        ProgressView().controlSize(.small)
+                        Text("测试中…")
+                            .font(AppFont.caption)
+                            .foregroundStyle(DesignTokens.secondaryText)
+                    } else if let connectionMessage = connectionTester.message {
+                        Image(systemName: connectionTester.didSucceed ? "checkmark.circle.fill" : "exclamationmark.triangle.fill")
+                            .foregroundStyle(connectionTester.didSucceed ? DesignTokens.success : DesignTokens.warning)
+                        Text(connectionMessage)
+                            .font(AppFont.caption)
+                            .foregroundStyle(connectionTester.didSucceed ? DesignTokens.success : DesignTokens.secondaryText)
+                            .lineLimit(2)
+                            .help(connectionMessage)
+                    }
                 }
+                .transition(MarlaMotion.contentTransition(reducesMotion: reducesMotion))
+                .animation(
+                    MarlaMotion.animation(
+                        MarlaMotion.feedback,
+                        reducesMotion: reducesMotion,
+                        reducedMotionAnimation: MarlaMotion.reducedOpacity
+                    ),
+                    value: connectionTester.isTesting
+                )
             }
             .frame(width: 360, alignment: .leading)
         }

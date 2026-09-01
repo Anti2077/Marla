@@ -52,6 +52,8 @@ Marla 已有稳定的产品定义、Paper Lantern 品牌和可展示的真实 Ap
 | 2026-08-30 | Project owner | 确认当前视觉方向正确，要求继续升级网页、增加更好的动画，真实素材以后再补且当前留空 | 旧实机截图需全部退出页面；所有展示位改成高质感、固定比例且可直接替换的空媒体舞台；重新验证 GSAP、响应式、键盘与 Reduce Motion | Verified |
 | 2026-08-30 | Project owner | 先把当前 Task 保存为分支提交，后续继续制作，不合并到 `main` | 当前成果形成可恢复的分支检查点；TASK-036 保持 Active，不执行 merge 或 push | Verified |
 | 2026-09-01 | Project owner | 重新激活 TASK-036，并明确全部待录制素材 | 在专用分支同步最新原生 App 基线；素材计划收敛为 3 段视频母版和 1 张快捷键设置截图，覆盖 6 个网页展示位；仍不把 TASK-036 合并到 `main` | Active |
+| 2026-09-01 | Project owner | 不以减少工作量为目标；每个展示位独立制作视频，快捷键设置也必须展示真实动画 | 修正上一条复用方案：交付 6 段独立桌面视频，三入口另有 3 段 1:1 移动剪辑，共 9 个 MP4 和 9 个同名 WebP poster；快捷键覆盖展开、互斥切换和收拢 | Active |
+| 2026-09-01 | Project owner | 建立专用素材目录并提供统一命名规则 | 审核通过的网页成品放入 `website/public/media/desktop/`、`mobile/` 和 `posters/`；命名采用 `marla-{scene}--{variant}-{ratio}.{ext}`，原始录屏不进入仓库 | Active |
 
 ## Current evidence
 
@@ -60,7 +62,7 @@ Marla 已有稳定的产品定义、Paper Lantern 品牌和可展示的真实 Ap
 - `PRODUCT.md`、`UX_PRINCIPLES.md`、`BRAND.md` 与 ADR-0008 已定义真实产品能力、Paper Lantern 正式标志和严格品牌边界。
 - `artifacts/ui-review/` 仍保留原生 App 的历史视觉证据，但本首页不再直接加载这些截图。
 - `website/` 已有 React + Vite 页面、Geist 字体、Lucide 图标、GSAP ScrollTrigger、固定比例空媒体舞台和试机录屏规格；没有修改原生 App 源码。2026-08-30 的追加范围已把旧截图媒体替换成空舞台并升级动效，新增 Hero 的“选区→关系线→附近结果”低频信号、入口切换反馈、媒体流动线、Bento/故事 hover 和滚动 reveal。
-- 2026-09-01 重新激活后，采集工作明确为 4 份源素材：划词、截图、Quick Input + Markdown 三段 16:10 视频母版，以及一张快捷键设置截图；它们通过复用和裁切覆盖 Hero、三入口、Markdown 与快捷键共 6 个展示位。
+- 2026-09-01 重新激活后，最终素材计划为 6 段独立桌面视频：Hero、划词、截图、Quick Input、结构化 Markdown、快捷键设置；划词、截图、Quick Input 另做 1:1 移动端剪辑，共 9 个 MP4 和 9 个同名 WebP poster。快捷键设置必须保留真实行内编辑动画。
 - 浏览器实测 375/768/1024/1440px 均为两行 Hero、零横向溢出和零首屏文字越界；桌面 Bento 12+6+6 正好填满 24 个栅格单元。
 - Reduce Motion 实测匹配成功，pin spacer 为 0，Hero/层叠卡片全部直接可见，跑马灯动画降为 0.01ms；控制台无 warning/error。
 

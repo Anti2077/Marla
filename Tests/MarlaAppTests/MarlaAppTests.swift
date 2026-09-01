@@ -848,6 +848,137 @@ final class MarlaAppTests: XCTestCase {
         XCTAssertEqual(restored.profiles.map(\.id), [firstID, secondID, thirdID])
     }
 
+    func testAPIProfileReorderUsesExplicitBeforeAndAfterInsertions() {
+        let firstID = UUID()
+        let secondID = UUID()
+        let thirdID = UUID()
+        var state = APIProfileReorderState()
+
+        state.begin(profileID: firstID, order: [firstID, secondID, thirdID])
+
+        XCTAssertEqual(state.phase, .dragging)
+        XCTAssertTrue(state.sourceIsHidden)
+        XCTAssertFalse(state.moveInsertion(relativeTo: secondID, placement: .before))
+        XCTAssertEqual(state.visualOrder, [firstID, secondID, thirdID])
+        XCTAssertTrue(state.moveInsertion(relativeTo: secondID, placement: .after))
+        XCTAssertEqual(state.visualOrder, [secondID, firstID, thirdID])
+        XCTAssertFalse(state.moveInsertion(relativeTo: secondID, placement: .after))
+        XCTAssertTrue(state.moveInsertion(relativeTo: secondID, placement: .before))
+        XCTAssertEqual(state.visualOrder, [firstID, secondID, thirdID])
+        XCTAssertTrue(state.moveInsertion(relativeTo: thirdID, placement: .after))
+        XCTAssertEqual(state.visualOrder, [secondID, thirdID, firstID])
+        XCTAssertEqual(state.activeIndexDelta, 2)
+    }
+
+    func testAPIProfileReorderUsesDirectionSensitiveEarlyInsertionThresholds() {
+        let firstID = UUID()
+        let secondID = UUID()
+        var downward = APIProfileReorderState()
+        downward.begin(profileID: firstID, order: [firstID, secondID])
+
+        XCTAssertTrue(downward.moveInsertion(relativeTo: secondID, pointerYFraction: 0.41))
+        XCTAssertEqual(downward.visualOrder, [secondID, firstID])
+        XCTAssertTrue(downward.moveInsertion(relativeTo: secondID, pointerYFraction: 0.59))
+        XCTAssertEqual(downward.visualOrder, [firstID, secondID])
+
+        var upward = APIProfileReorderState()
+        upward.begin(profileID: secondID, order: [firstID, secondID])
+
+        XCTAssertTrue(upward.moveInsertion(relativeTo: firstID, pointerYFraction: 0.59))
+        XCTAssertEqual(upward.visualOrder, [secondID, firstID])
+        XCTAssertEqual(APIProfileDragGeometry.downwardInsertionFraction, 0.40)
+        XCTAssertEqual(APIProfileDragGeometry.upwardInsertionFraction, 0.60)
+        XCTAssertEqual(MarlaMotion.apiProfileDropDuration, 0.14)
+    }
+
+    func testAPIProfileReorderTracksVerticalPointerOutsideTheListBounds() {
+        let firstID = UUID()
+        let secondID = UUID()
+        let thirdID = UUID()
+        let startingFrame = CGRect(x: 214, y: 328, width: 580, height: 76)
+        var state = APIProfileReorderState()
+        state.begin(profileID: firstID, order: [firstID, secondID, thirdID])
+
+        let secondSlotFrame = APIProfileDragGeometry.landingFrame(
+            startingFrame: startingFrame,
+            indexDelta: 1
+        )
+        let earlyDownwardScreenY = secondSlotFrame.maxY
+            - (APIProfileDragGeometry.rowSize.height * 0.41)
+        XCTAssertTrue(
+            state.moveInsertion(
+                screenY: earlyDownwardScreenY,
+                startingFrame: startingFrame
+            )
+        )
+        XCTAssertEqual(state.visualOrder, [secondID, firstID, thirdID])
+
+        XCTAssertTrue(
+            state.moveInsertion(
+                screenY: secondSlotFrame.minY - 200,
+                startingFrame: startingFrame
+            )
+        )
+        XCTAssertEqual(state.visualOrder, [secondID, thirdID, firstID])
+    }
+
+    func testAPIProfileReorderCommitsOnlyTheResolvedVisualOrder() {
+        let firstID = UUID()
+        let secondID = UUID()
+        let thirdID = UUID()
+        var state = APIProfileReorderState()
+
+        state.begin(profileID: firstID, order: [firstID, secondID, thirdID])
+        XCTAssertTrue(state.moveInsertion(relativeTo: thirdID, placement: .after))
+
+        XCTAssertEqual(state.resolve(success: true), [secondID, thirdID, firstID])
+        XCTAssertEqual(state.phase, .settling)
+        XCTAssertTrue(state.sourceIsHidden)
+
+        state.revealSource()
+        XCTAssertFalse(state.sourceIsHidden)
+        state.finish()
+        XCTAssertEqual(state.phase, .idle)
+        XCTAssertNil(state.activeProfileID)
+        XCTAssertTrue(state.visualOrder.isEmpty)
+    }
+
+    func testAPIProfileReorderCancellationRestoresInitialOrderBeforeReveal() {
+        let firstID = UUID()
+        let secondID = UUID()
+        let thirdID = UUID()
+        var state = APIProfileReorderState()
+
+        state.begin(profileID: thirdID, order: [firstID, secondID, thirdID])
+        XCTAssertTrue(state.moveInsertion(relativeTo: firstID, placement: .before))
+        XCTAssertEqual(state.visualOrder, [thirdID, firstID, secondID])
+
+        XCTAssertNil(state.resolve(success: false))
+        XCTAssertEqual(state.visualOrder, [firstID, secondID, thirdID])
+        XCTAssertEqual(state.phase, .settling)
+        XCTAssertTrue(state.sourceIsHidden)
+    }
+
+    @MainActor
+    func testAPIProfileReorderStoreRejectsIncompleteOrderAndPersistsOneValidOrder() {
+        let suite = "com.marla.tests.profile-reorder-state.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suite)!
+        defaults.removePersistentDomain(forName: suite)
+        let keychain = KeychainCredentialStore(service: "com.marla.tests", account: UUID().uuidString)
+        let settings = MarlaSettingsStore(defaults: defaults, keychain: keychain)
+        let firstID = settings.addProfile()
+        let secondID = settings.addProfile()
+        let thirdID = settings.addProfile()
+
+        XCTAssertFalse(settings.setProfileOrder([thirdID, firstID]))
+        XCTAssertEqual(settings.profiles.map(\.id), [firstID, secondID, thirdID])
+        XCTAssertTrue(settings.setProfileOrder([thirdID, firstID, secondID]))
+        XCTAssertEqual(settings.profiles.map(\.id), [thirdID, firstID, secondID])
+
+        let restored = MarlaSettingsStore(defaults: defaults, keychain: keychain)
+        XCTAssertEqual(restored.profiles.map(\.id), [thirdID, firstID, secondID])
+    }
+
     func testProfileDragPreviewKeepsTheGrabbedHandlePointUnderThePointer() {
         let handleLocation = CGPoint(x: 9, y: 31)
         let pointerLocation = CGPoint(x: 440, y: 280)
@@ -870,6 +1001,22 @@ final class MarlaAppTests: XCTestCase {
         )
         XCTAssertEqual(APIProfileDragGeometry.previewSize, APIProfileDragGeometry.rowSize)
         XCTAssertEqual(APIProfileDragGeometry.systemDraggingImageSize, CGSize(width: 1, height: 1))
+    }
+
+    func testAPIProfileReorderLandingFrameAlignsWithTheCurrentSlotHandle() {
+        let startingFrame = CGRect(x: 214, y: 328, width: 580, height: 76)
+
+        let landingFrame = APIProfileDragGeometry.landingFrame(
+            startingFrame: startingFrame,
+            indexDelta: 2
+        )
+
+        XCTAssertEqual(landingFrame.minX, startingFrame.minX)
+        XCTAssertEqual(
+            landingFrame.minY,
+            startingFrame.minY - (2 * APIProfileDragGeometry.rowStride)
+        )
+        XCTAssertEqual(landingFrame.size, APIProfileDragGeometry.previewSize)
     }
 
     @MainActor

@@ -285,6 +285,16 @@ final class MarlaSettingsStore: ObservableObject {
         return true
     }
 
+    @discardableResult
+    func setProfileOrder(_ orderedIDs: [UUID]) -> Bool {
+        guard orderedIDs.count == profiles.count,
+              Set(orderedIDs) == Set(profiles.map(\.id)) else { return false }
+        guard orderedIDs != profiles.map(\.id) else { return true }
+        let profilesByID = Dictionary(uniqueKeysWithValues: profiles.map { ($0.id, $0) })
+        profiles = orderedIDs.compactMap { profilesByID[$0] }
+        return profiles.count == orderedIDs.count
+    }
+
     func removeProfile(id: UUID) {
         guard let index = profiles.firstIndex(where: { $0.id == id }) else { return }
         let replacementDefaultID = nextEnabledProfileID(after: index, excluding: id)

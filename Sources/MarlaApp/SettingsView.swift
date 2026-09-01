@@ -3,11 +3,6 @@ import MarlaCore
 import SwiftUI
 import UniformTypeIdentifiers
 
-import AppKit
-import MarlaCore
-import SwiftUI
-import UniformTypeIdentifiers
-
 enum SettingsPage: String, CaseIterable, Identifiable {
     case general
     case languages
@@ -50,7 +45,7 @@ struct SettingsView: View {
     @State private var selectedPage: SettingsPage = .general
     @State private var editorPresentation: APIProfileEditorPresentation?
     @State private var pendingNewProfileID: UUID?
-    @State private var draggingProfileID: UUID?
+    @State private var apiProfileReorder = APIProfileReorderState()
     @State private var editingShortcutAction: GlobalShortcutAction?
     @Environment(\.accessibilityReduceMotion) private var accessibilityReduceMotion
     @Environment(\.marlaReduceMotionOverride) private var reduceMotionOverride
@@ -292,8 +287,9 @@ struct SettingsView: View {
                 )
                 .frame(maxWidth: .infinity, minHeight: 180)
             } else {
+                let displayedProfiles = apiProfileReorder.orderedProfiles(settings.profiles)
                 VStack(spacing: 0) {
-                    ForEach(Array(settings.profiles.enumerated()), id: \.element.id) { index, profile in
+                    ForEach(Array(displayedProfiles.enumerated()), id: \.element.id) { index, profile in
                         APIProfileSummaryRow(
                             profile: profile,
                             isDefault: settings.defaultProfileID == profile.id,
@@ -307,11 +303,71 @@ struct SettingsView: View {
                             onSetDefault: { settings.setDefaultProfile(profile.id) },
                             onMoveUp: { settings.moveProfile(id: profile.id, by: -1) },
                             onMoveDown: { settings.moveProfile(id: profile.id, by: 1) },
-                            onDrop: { settings.moveProfile(id: $0, onto: profile.id) },
                             onDelete: { removeProfile(profile.id) },
                             canMoveUp: index > 0,
-                            canMoveDown: index < settings.profiles.count - 1,
-                            draggingProfileID: $draggingProfileID
+                            canMoveDown: index < displayedProfiles.count - 1,
+                            activeProfileID: apiProfileReorder.activeProfileID,
+                            sourceIsHidden: apiProfileReorder.sourceIsHidden
+                                && apiProfileReorder.activeProfileID == profile.id,
+                            onDragStarted: {
+                                withAnimation(
+                                    MarlaMotion.animation(
+                                        MarlaMotion.feedback,
+                                        reducesMotion: reducesMotion,
+                                        reducedMotionAnimation: MarlaMotion.reducedOpacity
+                                    )
+                                ) {
+                                    apiProfileReorder.begin(
+                                        profileID: profile.id,
+                                        order: settings.profiles.map(\.id)
+                                    )
+                                }
+                            },
+                            onDragMoved: { screenY, startingFrame in
+                                withAnimation(
+                                    MarlaMotion.animation(
+                                        MarlaMotion.reorder,
+                                        reducesMotion: reducesMotion
+                                    )
+                                ) {
+                                    _ = apiProfileReorder.moveInsertion(
+                                        screenY: screenY,
+                                        startingFrame: startingFrame
+                                    )
+                                }
+                            },
+                            onDropEntered: { targetProfileID, pointerYFraction in
+                                _ = apiProfileReorder.moveInsertion(
+                                    relativeTo: targetProfileID,
+                                    pointerYFraction: pointerYFraction
+                                )
+                            },
+                            onDropResolved: { succeeded in
+                                let indexDelta = succeeded ? apiProfileReorder.activeIndexDelta : 0
+                                let committedOrder = withAnimation(
+                                    MarlaMotion.animation(MarlaMotion.reorder, reducesMotion: reducesMotion)
+                                ) {
+                                    apiProfileReorder.resolve(success: succeeded)
+                                }
+                                if let committedOrder {
+                                    _ = settings.setProfileOrder(committedOrder)
+                                }
+                                return indexDelta
+                            },
+                            onSourceReveal: {
+                                withAnimation(
+                                    MarlaMotion.animation(
+                                        MarlaMotion.feedback,
+                                        reducesMotion: reducesMotion,
+                                        reducedMotionAnimation: MarlaMotion.reducedOpacity
+                                    )
+                                ) {
+                                    apiProfileReorder.revealSource()
+                                }
+                            },
+                            onDragFinished: {
+                                apiProfileReorder.finish()
+                            }
                         )
                         if index < settings.profiles.count - 1 { Divider() }
                     }
@@ -324,6 +380,12 @@ struct SettingsView: View {
                 .font(AppFont.caption)
                 .foregroundStyle(DesignTokens.secondaryText)
         }
+        .onDrop(
+            of: [UTType.plainText.identifier],
+            delegate: APIProfileExtendedDropDelegate(
+                activeProfileID: apiProfileReorder.activeProfileID
+            )
+        )
     }
 
     private var languagesPage: some View {

@@ -8,13 +8,17 @@ Release target: None. A version is assigned only when the project owner explicit
 
 Overall state: In Progress — unversioned product incubation; no active release contract
 
-Active task: [`TASK-036`](../tasks/TASK-036-product-homepage-prototype.md) — 构建符合 Marla 产品定位的官网首页原型
+Active task (main worktree): [`TASK-036`](../tasks/TASK-036-product-homepage-prototype.md) — 构建符合 Marla 产品定位的官网首页原型
 
 TASK-036 官网首页原型于 2026-09-01 由项目所有者重新激活并在专用分支继续；项目所有者于 2026-09-02 明确授权将当前已验证基线合并到 `main` 并推送远端。独立 `website/` 工程使用 React、Vite、Geist、Lucide 和 GSAP ScrollTrigger，以 Paper Lantern 和真实原生 App 录屏解释 Marla 的原地翻译体验；旧实机截图、静态产品照片和网页伪动画均未作为产品证据。第一批桌面素材现有 5 个唯一 H.264 MP4：Hero/结构化 Markdown 两个 5:4 展示位按项目所有者决定复用同一份原地翻译素材，划词、截图、Quick Input 和快捷键各使用独立录屏。网页已删除全部 WebP poster 和背景图回退，所有产品展示位只加载视频。普通动态模式下所有已挂载视频从加载后持续静音循环，不再因视口可见比例自动暂停；Hero 在滚动时保持原尺寸。三入口仍只挂载当前选中的 7:5 视频，视频框不经过透明隐藏，切换后新视频立即播放。播放控制位于视频外侧的 42px 工具条，用户手动暂停会保持；Hero 优先预载，其余视频只预载 metadata。Markdown 与快捷键卡片不使用文案或绝对定位覆盖画面，Reduce Motion 默认停在视频起始位置且允许用户主动播放。三个入口的 1:1 移动端视频仍待补充，期间移动布局按原始 7:5 比例完整显示桌面素材而不强裁关键内容。4K/60fps 母版保留在 Git 忽略的本地目录，网页成品统一进入 `website/public/media/`。本轮 `npm run lint`、`npm run build`、`git diff --check`、仓库级 `./scripts/check.sh` 和真实浏览器回归通过：滚到页面底部后 4 个已挂载视频仍全部播放并持续推进；截图入口视频跨过 9.27 秒片尾后继续循环；Hero 滚动前后保持 1080px 与 1:1 transform；切换入口、手动控制和 Reduce Motion 行为正常，控制台无 warning/error。原生 App、发布版本、下载承诺、定价、用户量和未经验证的隐私/合作声明均未改变或新增。
 
 TASK-036 同一轮新增 GitHub 仓库首页装修：根 README 现在以 Paper Lantern 和真实原地翻译 MP4 入口建立品牌首屏，把三种入口、原生 Swift/AppKit + 嵌入式 Rust 边界、逐路径隐私事实、孵化/未发布状态和开发导航组织为可快速扫描的项目介绍。GitHub 会剥离 README 内联 `<video>`，因此这里使用直接 MP4 链接而不放静态产品截图。README 明确没有公共下载、正式版本、已公证包、更新器或已选择的公共许可证；没有修改远端 About、Topics、Social preview、Pages 或域名。
 
 TASK-036 官网视觉同轮改为无边框体系：Hero 真实录屏居中并移除装饰外框、阴影、侧导轨和悬浮标签；导航、入口、Bento、故事、原则与 Footer 通过留白和品牌色面建立层级，未选中入口透明，焦点环、播放按钮命中区和箭头结构继续承担必要交互语义。1440×1000 与 390×844 均无横向溢出；移动 Hero 标题为 2 行、视频完整落在首屏并露出下一章节提示。Reduce Motion 下 4 个视频停在起始位置且没有 poster，pin spacer 为 0，所有关键内容可见；控制台无 warning/error。五维复审为 9/9/9/8/8。
+
+Parallel task worktree: [`TASK-038`](../tasks/TASK-038-api-profile-reorder-motion.md) — API Profile 重排实现已合入 `main`，Task 保持 Active 并等待项目所有者现场验收。
+
+TASK-038 实现已完成并等待项目所有者现场验收：API Profile 重排现在分离 hover 临时顺序与最终一次持久化提交，取消恢复初始顺序；等高空槽使用方向敏感的向下 40%/向上 60% 阈值和 220ms 平滑让位，快速反向采用当前视觉顺序。AppKit dragging session 持续按屏幕 Y 驱动插入位置，因此指针横向离开列表或纵向越过首尾行后仍继续挤压；成功释放以 140ms Panel 落点和 120ms 真实行交接完成。固定 580×76pt 预览、真实手柄锚点、透明 1×1pt 原生 drag item、无障碍移动与 Reduce Motion 合同保留。7 项定向测试、最终完整检查和固定签名 App 重建通过；临时独立 bundle 已确认越界挤压与 `Esc` 取消，但 Computer Use 不能可靠产生原生 mouse-up，成功释放手感、浅色/深色五维复审和 Reduce Motion 仍需项目所有者实鼠标确认。专用分支 `Anti2077/task-038-api-profile-reorder-motion` 从本地 `main@506c4cf` 创建，TASK-036 官网工作位于主工作树并继续保持 Active。
 
 TASK-037 已完成：共享动效语义现区分 100ms Reduce Motion 透明度、120ms 反馈、160ms 内容、180ms 布局、220ms 重排、320ms 快捷键融合与 900ms 等待呼吸；Settings、API 编辑器与拖拽、OCR 设置、Quick Input、结果卡、截图确认和快捷键局部状态使用明确且可中断的局部过渡，系统菜单/窗口行为保持系统拥有。结果卡宽度预设使用固定顶边的唯一目标 frame，SwiftUI 内容宽度逐帧跟随 AppKit 实际宽度，过渡 resize 不再并发启动高度动画；streaming→completed 不再对正文容器或 raw 文本触发几何动画。浅色玻璃表面增加自适应中性轮廓，Reduce Motion、键盘焦点、Escape 和辅助技术路径保持完整。`WidthPreset` 7/7、完成态正文动画回归 1/1、完整 24 项 Rust/180 项 Swift、Xcode Debug、结构门禁与固定签名 Release App 均通过；五维复审为 8/8/9/9/8。项目所有者于 2026-09-01 明确要求关闭、提交并合并，完成现场验收。未跟踪 `website/` 与 TASK-036 首页原型未纳入本 Task。
 
@@ -49,6 +53,8 @@ Blocked tasks: None.
 ## Current objective
 
 当前 Active implementation Task 为 TASK-036，由项目所有者从直接请求明确选择。官网原型必须与原生 App 隔离，并以当前产品定义、品牌边界和真实实现为准；旧 `0.1.0` 草案或 Roadmap 不提升额外范围。
+
+TASK-038 位于明确安排的独立工作树；实现已合入 `main`，但仍需项目所有者完成真实鼠标成功释放、Reduce Motion 与浅色证据验收后再决定关闭。
 
 TASK-023 已完成整体代码审查、自动化验证与固定 Release 测试 App 交付：Rust 翻译与模型列表取消从 10ms 轮询改为事件驱动唤醒，SSE 单个未完成帧增加 1 MiB 内存上限，严格 Clippy 与 shell 语法检查纳入统一验证，5 个公开 unsafe FFI 函数补齐安全合同；`artifacts/Marla_dev.app` 已重建并通过稳定签名验证。
 
@@ -86,6 +92,7 @@ Latest integrated implementation baseline: TASK-037 native UI/UX motion refineme
 
 ## Development evidence gaps
 
+- TASK-038 的定向测试、完整检查、固定签名 App、深色越界挤压、`Esc` 取消和深色五维复审 8/8/8/8/7 已通过；项目所有者仍需用真实鼠标验证向上/向下成功释放、快速反向、140ms/120ms 放置手感、无残留 Panel、Reduce Motion，以及浅色五维复审。
 - TASK-035 已验证 Fn/Globe 的 AppKit flag、Carbon mask、显示、校验和回滚路径；实体 Fn + 主键能否从其它应用触发仍依赖具体键盘固件与 macOS Globe 键设置，因此不声明为通用现场通过。
 - Real Japanese, Korean, Chinese, and English screenshot OCR plus source-language routing do not yet have final fixed development-App verification after the TASK-022 Vision repair.
 - `docs/versions/0.1.0/ACCEPTANCE.md` 已随未发布草案撤回；其中未勾选项保留历史语境，但不是当前孵化期阻塞。
@@ -93,9 +100,9 @@ Latest integrated implementation baseline: TASK-037 native UI/UX motion refineme
 
 ## Next selectable work
 
-The next implementation or verification Task must be selected explicitly by the project owner from a direct request, Ideas, Backlog, or a current evidence gap. The Agent does not auto-promote any item, and the withdrawn `0.1.0` checklist does not determine the queue.
+TASK-038 remains the only Active implementation Task and must be accepted or explicitly paused before another shared-worktree implementation Task is selected. After that, the next implementation or verification Task must be selected explicitly by the project owner from a direct request, Ideas, Backlog, or a current evidence gap; the withdrawn `0.1.0` checklist does not determine the queue.
 
-当前验证队列只有 `RV-005`。RV-001～004 已关闭并只作为 `VERIFICATION.md` 中的基线证据保留，不是可选工作。
+除当前 TASK-038 现场验收外，验证队列只有 `RV-005`。RV-001～004 已关闭并只作为 `VERIFICATION.md` 中的基线证据保留，不是可选工作。
 
 ## Current risks
 
@@ -107,6 +114,8 @@ The next implementation or verification Task must be selected explicitly by the 
 - TASK-022 的 Swift/Rust 语言合同与 Vision 修复已实现：七门语言的归一/路由、设置持久化、通用提示词、Qwen-MT 映射、未适配代码拒绝和 Vision 配置均有回归测试。最新固定开发 App 已重建并签名通过；当前 xctest 图形服务无法创建 Vision CVPixelBuffer（OSStatus -6662），沙盒外探针已证明自动检测下日/韩/中/英样本有结果；现场固定 App 截图 OCR、长标签和完整窗口验收保留为独立证据缺口，不阻止其它孵化 Task。
 
 ## Latest verification
+
+- TASK-038（Active，等待现场验收）：`APIProfileReorder` 7/7 通过，覆盖 40%/60% 阈值、快速反向、列表越界纵向追踪、取消恢复、一次提交和落点几何；最终 `./scripts/check.sh` 通过 24 项 Rust、全量 Swift、Swift Package、Xcode Debug、结构与 diff 门禁。最终 `./scripts/build-test-app.sh` 验证固定 App 为 `com.marla.app`、`0.0.0`、macOS 14.0、arm64，Paper Lantern 资源、稳定签名 `API Usage Monitor Dev` 与 designated requirement 有效。临时独立 bundle 的深色现场操作确认指针横向离开列表右侧后仍继续挤压，`Esc` 取消恢复顺序并移除 Panel；深色真实截图五维复审为 8/8/8/8/7。成功 mouse-up、浅色证据和 Reduce Motion 尚未由项目所有者完成。
 
 - TASK-037（已关闭，实现提交 `7aa921c`）：`Screenshot` 19/19、`WidthPreset` 7/7 与完成态正文动画回归 1/1 通过。最终 `./scripts/check.sh` 通过 24 项 Rust、180 项 Swift、Swift Package、Xcode Debug、结构、脚本、空白与 diff 门禁，`FloatingPanel.swift` 为 795 行。`./scripts/build-test-app.sh` 验证固定 App 为 `com.marla.app`、`0.0.0`、macOS 14.0、arm64，Paper Lantern 资源、稳定签名 `API Usage Monitor Dev` 与 designated requirement 有效。固定 App 的浅色、深色、Reduce Motion 和前景整屏透明材质证据五维复审为 8/8/9/9/8；用户逐帧截图未加入仓库。项目所有者于 2026-09-01 明确要求关闭、提交并合并，完成连续动效现场验收。
 

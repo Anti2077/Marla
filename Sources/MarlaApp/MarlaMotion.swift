@@ -11,6 +11,7 @@ enum MarlaMotion {
     static let contentDuration: TimeInterval = 0.16
     static let layoutDuration: TimeInterval = 0.18
     static let reorderDuration: TimeInterval = 0.22
+    static let apiProfileDropDuration: TimeInterval = 0.14
     static let shortcutMorphDuration: TimeInterval = 0.32
     static let screenshotConfirmationDuration: TimeInterval = 0.12
     static let breathingDuration: TimeInterval = 0.90
@@ -18,7 +19,7 @@ enum MarlaMotion {
     static let feedback = Animation.easeOut(duration: feedbackDuration)
     static let content = Animation.easeOut(duration: contentDuration)
     static let layout = Animation.smooth(duration: layoutDuration)
-    static let reorder = Animation.snappy(duration: reorderDuration)
+    static let reorder = Animation.smooth(duration: reorderDuration)
     static let shortcutMorph = Animation.smooth(duration: shortcutMorphDuration)
     static let reducedOpacity = Animation.easeOut(duration: reducedOpacityDuration)
     static let breathing = Animation.easeInOut(duration: breathingDuration)

@@ -34,6 +34,7 @@ Marla 已有稳定的产品定义、Paper Lantern 品牌和可展示的真实 Ap
 - 首页准确呈现划词翻译、截图翻译、Quick Input、结构化 Markdown、Provider 自选和隐私边界。
 - 提供桌面与移动端响应式布局、键盘可访问性、清晰焦点状态和 `prefers-reduced-motion` 降级。
 - 补充运行说明、自动化检查和浏览器截图证据，并同步 Task 与 `STATUS.md`。
+- 装修仓库根 `README.md` 作为 GitHub 项目首页：用 Paper Lantern、真实录屏封面、产品工作流、隐私边界、项目状态和开发入口建立简洁可信的信息层级。
 
 ## Out of Scope
 
@@ -42,6 +43,8 @@ Marla 已有稳定的产品定义、Paper Lantern 品牌和可展示的真实 Ap
 - 创建公开下载链接、发布版本或暗示 Marla 已经公开发布。
 - 声称完全离线、零数据上传、已拥有用户数量、媒体评价或未经证实的合作关系。
 - 修改 Paper Lantern 主标志或 AppIcon。
+- 修改 GitHub 仓库 About、Topics、Social preview、Pages、域名或其他远端设置。
+- 宣布公共许可证、公开下载或发布状态；这些仍需项目所有者另行决策。
 
 ## Scope changes during the conversation
 
@@ -59,6 +62,8 @@ Marla 已有稳定的产品定义、Paper Lantern 品牌和可展示的真实 Ap
 | 2026-09-01 | Project owner | 实机查看后发现多个视频被界面元素遮挡，允许调整视频位置、效果和页面布局 | 播放控制移出录屏画面；三入口由覆盖式手风琴改为三段切换和单一大舞台；快捷键卡片取消绝对定位；桌面与手机均按素材原始比例完整显示，并重新验证遮挡、溢出、键盘和 Reduce Motion | Verified |
 | 2026-09-02 | Project owner | 所有视频展示位改为自动循环，并修复首次到达三入口区域时画面空白、看起来没有播放 | 移除视频的视口相交门槛和入口视频框的透明度入场；所有已挂载视频静音自动循环且进入画面时立即可见，入口切换后新挂载视频立即播放；保留手动暂停和 Reduce Motion 默认封面 | Verified |
 | 2026-09-02 | Project owner | 优化视频性能，只在展示位至少 50% 可见时播放 | 使用 50% IntersectionObserver 阈值统一控制播放与暂停；Hero 保持优先预载，其余视频只预载 metadata；保留循环、手动暂停、Reduce Motion 和入口视频始终可见 | Verified |
+| 2026-09-02 | Project owner | 装修 GitHub 主页 | 重做根 README 的品牌首屏、真实产品展示、工作流、隐私/发布边界和开发导航；复用正式标志与真实录屏封面，不虚构下载、许可或发布声明 | Verified |
+| 2026-09-02 | Project owner | Hero 视频位置不自然，并要求整页采用无边框设计语言 | Hero 改为居中、无外框的真实产品影片并删除悬浮标签；导航、入口、Bento、故事、原则与 Footer 以留白和色面建立层级，不再依赖装饰性描边、卡片阴影或圆角；保留焦点环、播放按钮命中区和箭头几何等必要交互边界 | Verified |
 
 ## Current evidence
 
@@ -66,7 +71,7 @@ Marla 已有稳定的产品定义、Paper Lantern 品牌和可展示的真实 Ap
 - 仓库没有 `package.json` 或现成网页工程。
 - `PRODUCT.md`、`UX_PRINCIPLES.md`、`BRAND.md` 与 ADR-0008 已定义真实产品能力、Paper Lantern 正式标志和严格品牌边界。
 - `artifacts/ui-review/` 仍保留原生 App 的历史视觉证据，但本首页不再直接加载这些截图。
-- `website/` 已有 React + Vite 页面、Geist 字体、Lucide 图标、GSAP ScrollTrigger、固定比例媒体舞台和真实桌面录屏；没有修改原生 App 源码。2026-08-30 的追加范围先把旧截图替换成空舞台并升级动效，随后以真实视频和封面替换占位内容；本轮根据实机查看结果重做三入口与快捷键媒体布局，同时保留 Hero、Bento/故事的产品叙事和滚动关系。
+- `website/` 已有 React + Vite 页面、Geist 字体、Lucide 图标、GSAP ScrollTrigger、固定比例媒体舞台和真实桌面录屏；没有修改原生 App 源码。2026-08-30 的追加范围先把旧截图替换成空舞台并升级动效，随后以真实视频和封面替换占位内容；本轮根据实机查看结果重做三入口与快捷键媒体布局，再把 Hero、导航、入口、Bento、故事、原则与 Footer 统一为无装饰描边的留白/色面体系，同时保留原有产品叙事和滚动关系。
 - 2026-09-01 第一批成品为 5 个唯一桌面 MP4 和 5 个同名 WebP：Hero 与结构化 Markdown 按项目所有者决定复用同一份 5:4 素材；划词、截图、Quick Input 和快捷键各自独立。三个入口的 1:1 移动端剪辑和封面仍待补充，最终唯一文件总数调整为 8 个 MP4 和 8 个 WebP。
 - 早期空舞台阶段浏览器实测 375/768/1024/1440px 均为两行 Hero；当前媒体布局重新实测 1440×1000 与 390×844，两个视口均为零横向溢出，桌面 Bento 继续以 12+6+6 填满 24 个栅格单元。
 - Reduce Motion 实测匹配成功，pin spacer 为 0，Hero/层叠卡片全部直接可见，跑马灯动画降为 0.01ms；控制台无 warning/error。
@@ -88,6 +93,9 @@ Marla 已有稳定的产品定义、Paper Lantern 品牌和可展示的真实 Ap
 - [x] 运行说明、Task 和 `STATUS.md` 已同步到待项目所有者视觉确认的状态。
 - [x] 素材分镜、导出规格、隐私检查、目录和命名说明均提供中文正文，技术标识与文件路径保持可直接使用。
 - [x] 视频展示位达到至少 50% 可见时静音播放并持续循环，低于 50% 时暂停；入口视频框不经过透明隐藏，切换入口后按当前可见比例决定播放；每个展示位提供键盘可操作的播放/暂停按钮，手动暂停保持有效，Reduce Motion 默认停在 WebP 封面。
+- [x] Hero 真实录屏居中且不使用装饰外框、阴影、侧导轨或悬浮标签；页面主要章节不依赖重复卡片描边建立层级，未选中入口透明，激活色面与焦点环仍清楚表达状态。
+- [x] GitHub 仓库首页在首屏清楚呈现 Marla 名称、Paper Lantern、原地翻译定位和真实 App 画面，并能快速进入产品能力、隐私边界、项目状态、开发命令与完整文档。
+- [x] 根 README 的图片、视频、锚点和仓库内链接有效；技术、版本、平台、隐私和分发表述与当前代码、规格及 `STATUS.md` 一致。
 
 ## Verification
 
@@ -111,7 +119,11 @@ git diff --check
 
 2026-09-02 自动循环与首次显示修正结果：`npm run lint`、`npm run build` 和 `git diff --check` 通过。入口视频不再由 ScrollTrigger 或切换动画写入透明隐藏；所有挂载视频使用静音 `autoplay`、`loop` 与提前加载，并由播放状态逻辑保留手动暂停和 Reduce Motion 降级。
 
+2026-09-02 GitHub 仓库首页装修结果：根 README 的所有本地图片、MP4、文档和脚本目标均存在；Swift 6.2、macOS 14 与 Rust 1.85 声明分别和 `Package.swift`、`rust/marla-core/Cargo.toml` 一致。GitHub 官方 Markdown API 成功渲染品牌图、四枚状态徽章、真实录屏封面、信息表和折叠说明；`./scripts/check.sh` 与 `git diff --check` 通过。
+
 2026-09-02 视频性能修正结果：`npm run lint`、`npm run build` 和 `git diff --check` 通过。每个展示位使用独立的 50% IntersectionObserver 阈值，低于阈值暂停并在重新达到阈值后恢复；Hero 使用 `preload="auto"`，其余当前挂载视频使用 `preload="metadata"`。
+
+2026-09-02 无边框视觉修正结果：删除 Hero 浮签、装饰外框、卡片阴影和已停用网页模拟舞台的 CSS；导航、媒体工具条、入口、Bento、故事、原则轮播与 Footer 改由间距和品牌色面组织。`npm run lint`、`npm run build`、`git diff --check` 与仓库级 `./scripts/check.sh` 通过；全仓结果为 24 项 Rust、180 项 Swift、Swift Package、Xcode Debug 和结构门禁全绿。
 
 ### Manual
 
@@ -140,6 +152,8 @@ git diff --check
 2026-09-02 自动循环浏览器证据：新页面初始挂载的 Hero、当前入口、Markdown 与快捷键 4 个视频均为 `autoplay = true`、`loop = true`、`muted = true`、`paused = false`，包括尚未进入视口的展示位。按项目所有者截图对应的 1274×990 视口首次滚入入口区域后等待超过原 420ms 动画时长，视频框仍为 `opacity = 1`、`visibility = visible` 且时间持续前进；切换截图入口后同样立即可见并播放。Quick Input 实测跨过 9.27 秒片尾后从 5.39 秒回到 1.16 秒并继续播放；手动暂停期间时间保持 1.28 秒，恢复后继续前进。Reduce Motion 下 4 个视频均为 `currentTime = 0`、`paused = true`，显式播放仍可覆盖；恢复普通动态后 4 个视频全部继续播放，控制台无 warning/error。
 
 2026-09-02 视频性能浏览器证据：入口视频在计算可见比例 48.3% 时为 `paused = true`，回到 52.9% 后为 `paused = false`，完全滚出后再次暂停；容器始终为 `opacity = 1`、`visibility = visible`。切换截图入口时展示位可见比例 90.4%，新视频立即播放。手动暂停期间时间保持 1.72 秒，恢复后继续前进。Reduce Motion 下 4 个视频均停在 0 秒；恢复普通模式并保留入口滚动位置后，只有超过 50% 的当前入口视频播放，其余视频保持暂停。Hero 的 `preload` 为 `auto`，其余 3 个当前挂载视频为 `metadata`；控制台无 warning/error。
+
+2026-09-02 无边框视觉浏览器证据：1440×1000 下 Hero 标题为 2 行，真实 5:4 视频居中且与文字/按钮保持正间距，页面 `scrollWidth = innerWidth = 1440`；三入口仅激活项使用靛青色面，未选中项背景透明。390×844 下标题仍为 2 行，Hero 视频完整落在 390px 视口内并露出下一章节提示，整页 `scrollWidth = innerWidth = 390`，未发现文字或控件横向溢出；故事色面保持 358px 内容宽度。Reduce Motion 下 4 个视频停在封面、pin spacer 为 0、Hero/Bento/故事内容全部可见；控制台无 warning/error。五维复审为产品定位 9/10、视觉层级 9/10、响应式 9/10、交互与无障碍 8/10、动效与性能 8/10。
 
 ## Required Reading
 

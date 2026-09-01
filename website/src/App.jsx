@@ -498,16 +498,7 @@ function App() {
         </div>
 
         <div className="hero-product">
-          <div className="product-halo" aria-hidden="true" />
           <HeroMediaStage />
-          <div className="product-note note-left">
-            <span className="note-mark" aria-hidden="true" />
-            靠近原文
-          </div>
-          <div className="product-note note-right">
-            <Command aria-hidden="true" size={16} />
-            随叫随到
-          </div>
         </div>
         <a className="hero-scroll" href="#experience" aria-label="继续浏览 Marla 产品体验">
           <span>继续</span>

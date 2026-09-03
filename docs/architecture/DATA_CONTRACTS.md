@@ -56,6 +56,8 @@ Swift snapshots native/secondary preferences and complete source content into ea
 
 API Keys are transferred in request memory only and must never be logged. Swift persistently owns one versioned Keychain vault item containing independent logical entries keyed by translation-profile identity plus one fixed GLM-OCR account; Rust receives only the credential for one narrow request and never receives or persists the vault.
 
+Provider thinking control is a Rust-internal request-body capability, not an FFI field or user preference. Standard `/models` data does not provide a cross-vendor reasoning capability contract. The current mapping therefore requires both a recognized official host and a bounded model family: official DeepSeek V4, GLM 4.7, and supported Volcengine Ark combinations receive `thinking: { type: "disabled" }`; supported DashScope Qwen hybrid-thinking combinations receive `enable_thinking: false`. Qwen-MT preserves its User-only `translation_options` request, GLM 5.3 and other forced-thinking models receive no false disabled claim, Ark's translation-specialized Doubao model receives no unrelated field, and unknown OpenAI-compatible endpoints receive neither private field. Capability detection never sends a generation request.
+
 ## Provider events
 
 Streaming translation emits lifecycle and block-update events so presentation can remain vendor-independent:

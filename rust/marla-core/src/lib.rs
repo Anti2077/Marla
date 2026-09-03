@@ -480,26 +480,85 @@ enum ProviderLanguageMode {
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+enum ProviderThinkingMode {
+    Omit,
+    ThinkingDisabled,
+    EnableThinkingFalse,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 struct ProviderCapabilities {
     message_mode: ProviderMessageMode,
     language_mode: ProviderLanguageMode,
     stream_content_mode: StreamContentMode,
+    thinking_mode: ProviderThinkingMode,
 }
 
-fn provider_capabilities(model: &str) -> ProviderCapabilities {
-    if model.trim().to_ascii_lowercase().starts_with("qwen-mt-") {
+fn provider_capabilities(endpoint: &Endpoint) -> ProviderCapabilities {
+    let model = endpoint.model.trim().to_ascii_lowercase();
+    if model.starts_with("qwen-mt-") {
         ProviderCapabilities {
             message_mode: ProviderMessageMode::UserOnly,
             language_mode: ProviderLanguageMode::TranslationOptions,
             stream_content_mode: StreamContentMode::Cumulative,
+            thinking_mode: ProviderThinkingMode::Omit,
         }
     } else {
         ProviderCapabilities {
             message_mode: ProviderMessageMode::SystemAndUser,
             language_mode: ProviderLanguageMode::SystemPrompt,
             stream_content_mode: StreamContentMode::Delta,
+            thinking_mode: provider_thinking_mode(endpoint, &model),
         }
     }
+}
+
+fn provider_thinking_mode(endpoint: &Endpoint, model: &str) -> ProviderThinkingMode {
+    let Some(host) = reqwest::Url::parse(endpoint.base_url.trim())
+        .ok()
+        .and_then(|url| url.host_str().map(str::to_owned))
+    else {
+        return ProviderThinkingMode::Omit;
+    };
+
+    let supports_thinking_disabled = (host == "api.deepseek.com"
+        && model_family_matches(model, "deepseek-v4"))
+        || (host == "open.bigmodel.cn" && model_family_matches(model, "glm-4.7"))
+        || (host == "ark.cn-beijing.volces.com" && ark_supports_disabled_thinking(model));
+    if supports_thinking_disabled {
+        ProviderThinkingMode::ThinkingDisabled
+    } else if dashscope_host(&host) && dashscope_supports_disabled_thinking(model) {
+        ProviderThinkingMode::EnableThinkingFalse
+    } else {
+        ProviderThinkingMode::Omit
+    }
+}
+
+fn model_family_matches(model: &str, family: &str) -> bool {
+    model == family
+        || model
+            .strip_prefix(family)
+            .is_some_and(|suffix| matches!(suffix.as_bytes().first(), Some(b'-' | b'.')))
+}
+
+fn ark_supports_disabled_thinking(model: &str) -> bool {
+    model_family_matches(model, "doubao-seed-1")
+        || model_family_matches(model, "deepseek-v4")
+        || model_family_matches(model, "glm-4.7")
+}
+
+fn dashscope_host(host: &str) -> bool {
+    matches!(
+        host,
+        "dashscope.aliyuncs.com" | "dashscope-intl.aliyuncs.com" | "dashscope-us.aliyuncs.com"
+    )
+}
+
+fn dashscope_supports_disabled_thinking(model: &str) -> bool {
+    model_family_matches(model, "qwen3-max")
+        || model_family_matches(model, "qwen-plus")
+        || model_family_matches(model, "qwen-flash")
+        || model_family_matches(model, "qwen-turbo")
 }
 
 fn normalized_stream_delta(
@@ -619,8 +678,8 @@ fn validate_request(request: &TranslationRequest) -> Result<String, (&'static st
 }
 
 fn request_json(request: &TranslationRequest) -> serde_json::Value {
-    let capabilities = provider_capabilities(&request.endpoint.model);
-    match (capabilities.message_mode, capabilities.language_mode) {
+    let capabilities = provider_capabilities(&request.endpoint);
+    let mut payload = match (capabilities.message_mode, capabilities.language_mode) {
         (ProviderMessageMode::UserOnly, ProviderLanguageMode::TranslationOptions) => {
             serde_json::json!({
                 "model": request.endpoint.model,
@@ -652,7 +711,23 @@ fn request_json(request: &TranslationRequest) -> serde_json::Value {
             })
         }
         _ => unreachable!("provider capabilities must describe a supported request strategy"),
+    };
+    let object = payload
+        .as_object_mut()
+        .expect("translation request payload must be an object");
+    match capabilities.thinking_mode {
+        ProviderThinkingMode::Omit => {}
+        ProviderThinkingMode::ThinkingDisabled => {
+            object.insert(
+                "thinking".to_string(),
+                serde_json::json!({"type": "disabled"}),
+            );
+        }
+        ProviderThinkingMode::EnableThinkingFalse => {
+            object.insert("enable_thinking".to_string(), serde_json::json!(false));
+        }
     }
+    payload
 }
 
 fn emit_failed(
@@ -816,7 +891,7 @@ async fn run_translation(
     let mut translated = String::new();
     let mut received_first_token = false;
     let mut received_done = false;
-    let content_mode = provider_capabilities(&request.endpoint.model).stream_content_mode;
+    let content_mode = provider_capabilities(&request.endpoint).stream_content_mode;
 
     while !received_done {
         let event_deadline = if received_first_token {
@@ -1611,6 +1686,8 @@ mod tests {
         assert_eq!(payload["messages"].as_array().unwrap().len(), 1);
         assert_eq!(payload["translation_options"]["source_lang"], "auto");
         assert_eq!(payload["translation_options"]["target_lang"], "Chinese");
+        assert!(payload.get("thinking").is_none());
+        assert!(payload.get("enable_thinking").is_none());
 
         request.source_language = Some("ja".to_string());
         request.target = Target {
@@ -1630,6 +1707,55 @@ mod tests {
             Ok(String::new())
         );
         assert!(normalized_stream_delta("玛拉", "不同", StreamContentMode::Cumulative).is_err());
+    }
+
+    #[test]
+    fn builds_provider_specific_disabled_thinking_requests() {
+        let mut request = valid_request();
+
+        request.endpoint.base_url = "https://api.deepseek.com/v1".to_string();
+        request.endpoint.model = "deepseek-v4-flash".to_string();
+        assert_eq!(request_json(&request)["thinking"]["type"], "disabled");
+
+        request.endpoint.base_url = "https://open.bigmodel.cn/api/paas/v4".to_string();
+        request.endpoint.model = "glm-4.7-flash".to_string();
+        assert_eq!(request_json(&request)["thinking"]["type"], "disabled");
+
+        request.endpoint.base_url = "https://ark.cn-beijing.volces.com/api/v3".to_string();
+        request.endpoint.model = "doubao-seed-1-8-251228".to_string();
+        assert_eq!(request_json(&request)["thinking"]["type"], "disabled");
+
+        request.endpoint.base_url = "https://dashscope.aliyuncs.com/compatible-mode/v1".to_string();
+        request.endpoint.model = "qwen-plus".to_string();
+        let payload = request_json(&request);
+        assert_eq!(payload["enable_thinking"], false);
+        assert!(payload.get("thinking").is_none());
+    }
+
+    #[test]
+    fn omits_private_thinking_fields_when_the_contract_is_unknown_or_forced() {
+        let mut request = valid_request();
+        let assert_omitted = |request: &TranslationRequest| {
+            let payload = request_json(request);
+            assert!(payload.get("thinking").is_none());
+            assert!(payload.get("enable_thinking").is_none());
+            assert_eq!(payload.as_object().unwrap().len(), 3);
+        };
+
+        request.endpoint.model = "deepseek-v4-flash".to_string();
+        assert_omitted(&request);
+
+        request.endpoint.base_url = "https://open.bigmodel.cn/api/paas/v4".to_string();
+        request.endpoint.model = "glm-5.3-flash".to_string();
+        assert_omitted(&request);
+
+        request.endpoint.base_url = "https://ark.cn-beijing.volces.com/api/v3".to_string();
+        request.endpoint.model = "doubao-seed-translation-250915".to_string();
+        assert_omitted(&request);
+
+        request.endpoint.base_url = "https://dashscope.aliyuncs.com/compatible-mode/v1".to_string();
+        request.endpoint.model = "qwen3.5-flash".to_string();
+        assert_omitted(&request);
     }
 
     #[test]

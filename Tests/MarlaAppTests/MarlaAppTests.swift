@@ -1416,6 +1416,181 @@ final class MarlaAppTests: XCTestCase {
         XCTAssertLessThanOrEqual(clampedRemembered.maxY, visible.maxY - 8)
     }
 
+    func testAutomaticPanelPlacementPutsScreenshotToTheRightWithoutOverlap() {
+        let visible = NSRect(x: 0, y: 0, width: 1440, height: 900)
+        let source = ScreenRect(x: 280, y: 340, width: 320, height: 180)
+        let result = PanelPlacementCalculator.placement(
+            visibleFrame: visible,
+            requestedWidth: 380,
+            requestedHeight: 224,
+            minimumWidth: ResultCardLayout.minimumWidth,
+            maximumWidth: ResultCardLayout.maximumWidth,
+            anchor: source,
+            pointer: CGPoint(x: 500, y: 430),
+            surface: .screenshot,
+            placement: .automatic
+        )
+
+        XCTAssertEqual(result.automaticSide, .right)
+        XCTAssertEqual(result.frame.minX, source.x + source.width + 12, accuracy: 0.001)
+        XCTAssertFalse(result.frame.intersects(NSRect(x: source.x, y: source.y, width: source.width, height: source.height)))
+    }
+
+    func testAutomaticPanelPlacementFallsBackLeftAtScreenshotRightEdge() {
+        let visible = NSRect(x: 0, y: 0, width: 1200, height: 800)
+        let source = ScreenRect(x: 850, y: 280, width: 300, height: 220)
+        let result = PanelPlacementCalculator.placement(
+            visibleFrame: visible,
+            requestedWidth: 380,
+            requestedHeight: 224,
+            minimumWidth: ResultCardLayout.minimumWidth,
+            maximumWidth: ResultCardLayout.maximumWidth,
+            anchor: source,
+            pointer: nil,
+            surface: .screenshot,
+            placement: .automatic
+        )
+
+        XCTAssertEqual(result.automaticSide, .left)
+        XCTAssertEqual(result.frame.maxX, source.x - 12, accuracy: 0.001)
+        XCTAssertFalse(result.frame.intersects(NSRect(x: source.x, y: source.y, width: source.width, height: source.height)))
+    }
+
+    func testAutomaticPanelPlacementPrefersBelowThenAboveForSelection() {
+        let visible = NSRect(x: 0, y: 0, width: 1440, height: 900)
+        let middle = ScreenRect(x: 560, y: 500, width: 280, height: 30)
+        let below = PanelPlacementCalculator.placement(
+            visibleFrame: visible,
+            requestedWidth: 380,
+            requestedHeight: 224,
+            anchor: middle,
+            pointer: nil,
+            surface: .selection,
+            placement: .automatic
+        )
+        XCTAssertEqual(below.automaticSide, .below)
+        XCTAssertEqual(below.frame.maxY, middle.y - 12, accuracy: 0.001)
+
+        let nearBottom = ScreenRect(x: 560, y: 80, width: 280, height: 30)
+        let above = PanelPlacementCalculator.placement(
+            visibleFrame: visible,
+            requestedWidth: 380,
+            requestedHeight: 224,
+            anchor: nearBottom,
+            pointer: nil,
+            surface: .selection,
+            placement: .automatic
+        )
+        XCTAssertEqual(above.automaticSide, .above)
+        XCTAssertEqual(above.frame.minY, nearBottom.y + nearBottom.height + 12, accuracy: 0.001)
+    }
+
+    func testAutomaticPanelPlacementUsesPointerForMissingGeometryAndQuickInput() {
+        let visible = NSRect(x: -1200, y: 100, width: 1200, height: 800)
+        let pointer = CGPoint(x: -180, y: 300)
+        let result = PanelPlacementCalculator.placement(
+            visibleFrame: visible,
+            requestedWidth: 380,
+            requestedHeight: 224,
+            anchor: nil,
+            pointer: pointer,
+            surface: .selection,
+            placement: .automatic
+        )
+
+        XCTAssertEqual(result.automaticSide, .pointer)
+        XCTAssertEqual(result.frame.midX, -198, accuracy: 0.001)
+        XCTAssertEqual(result.frame.midY, pointer.y, accuracy: 0.001)
+        XCTAssertGreaterThanOrEqual(result.frame.minX, visible.minX + 8)
+        XCTAssertLessThanOrEqual(result.frame.maxX, visible.maxX - 8)
+    }
+
+    func testAutomaticPanelPlacementKeepsLargeSourceFallbackVisibleAndMinimizesOverlap() {
+        let visible = NSRect(x: 0, y: 0, width: 1200, height: 800)
+        let source = NSRect(x: 40, y: 40, width: 1120, height: 720)
+        let result = AutomaticPanelPlacementCalculator.placement(
+            visibleFrame: visible,
+            panelSize: NSSize(width: 380, height: 224),
+            source: source,
+            surface: .screenshot
+        )
+
+        XCTAssertEqual(result.automaticSide, .below)
+        XCTAssertGreaterThanOrEqual(result.frame.minX, visible.minX + 8)
+        XCTAssertLessThanOrEqual(result.frame.maxX, visible.maxX - 8)
+        XCTAssertGreaterThanOrEqual(result.frame.minY, visible.minY + 8)
+        XCTAssertLessThanOrEqual(result.frame.maxY, visible.maxY - 8)
+    }
+
+    func testAutomaticPanelPlacementCapsVerticalGrowthAwayFromSelection() {
+        let visible = NSRect(x: 0, y: 0, width: 1440, height: 900)
+        let source = NSRect(x: 560, y: 500, width: 280, height: 30)
+        let maximum = AutomaticPanelPlacementCalculator.maximumPanelHeight(
+            baseMaximum: 540,
+            side: .below,
+            visibleFrame: visible,
+            source: source
+        )
+
+        XCTAssertEqual(maximum, 480, accuracy: 0.001)
+    }
+
+    func testAutomaticPanelPlacementChoosesDisplayWithLargestSourceIntersection() {
+        let screens = [
+            NSRect(x: -1200, y: 0, width: 1200, height: 800),
+            NSRect(x: 0, y: 0, width: 1440, height: 900)
+        ]
+        let source = NSRect(x: -100, y: 300, width: 500, height: 220)
+
+        let index = PanelTargetScreenCalculator.index(
+            screenFrames: screens,
+            source: source,
+            pointer: CGPoint(x: -50, y: 400)
+        )
+
+        XCTAssertEqual(index, 1)
+    }
+
+    func testAutomaticPanelPlacementSidesMapToStableGrowthAndWidthEdges() {
+        XCTAssertEqual(AutomaticPanelPlacementSide.below.growthAnchor, .top)
+        XCTAssertEqual(AutomaticPanelPlacementSide.above.growthAnchor, .bottom)
+        XCTAssertEqual(AutomaticPanelPlacementSide.right.horizontalAnchor, .leading)
+        XCTAssertEqual(AutomaticPanelPlacementSide.left.horizontalAnchor, .trailing)
+    }
+
+    func testAutomaticPanelPlacementKeepsSideAfterWidthChangeWhenGapStillFits() {
+        let visible = NSRect(x: 0, y: 0, width: 1_440, height: 900)
+        let source = NSRect(x: 240, y: 340, width: 240, height: 180)
+
+        let result = AutomaticPanelPlacementCalculator.placementAfterWidthChange(
+            visibleFrame: visible,
+            panelSize: NSSize(width: 760, height: 224),
+            source: source,
+            surface: .screenshot,
+            currentSide: .right
+        )
+
+        XCTAssertEqual(result.automaticSide, .right)
+        XCTAssertEqual(result.frame.minX, source.maxX + 12, accuracy: 0.001)
+    }
+
+    func testAutomaticPanelPlacementChangesSideAfterWidthChangeWouldLoseGap() {
+        let visible = NSRect(x: 0, y: 0, width: 1_440, height: 900)
+        let source = NSRect(x: 620, y: 340, width: 240, height: 180)
+
+        let result = AutomaticPanelPlacementCalculator.placementAfterWidthChange(
+            visibleFrame: visible,
+            panelSize: NSSize(width: 760, height: 224),
+            source: source,
+            surface: .screenshot,
+            currentSide: .right
+        )
+
+        XCTAssertEqual(result.automaticSide, .below)
+        XCTAssertEqual(result.frame.maxY, source.minY - 12, accuracy: 0.001)
+        XCTAssertFalse(result.frame.intersects(source))
+    }
+
     @MainActor
     func testTranslationWindowPlacementPersistsAndUsesSafeDefaults() {
         let suite = "com.marla.tests.window-placement.\(UUID().uuidString)"
@@ -1424,7 +1599,7 @@ final class MarlaAppTests: XCTestCase {
         let keychain = KeychainCredentialStore(service: "com.marla.tests", account: UUID().uuidString)
         let settings = MarlaSettingsStore(defaults: defaults, keychain: keychain)
 
-        XCTAssertEqual(settings.translationWindowPlacement, .followMouse)
+        XCTAssertEqual(settings.translationWindowPlacement, .automatic)
         XCTAssertEqual(settings.translationWindowFixedX, TranslationWindowPlacement.defaultFixedX)
         settings.translationWindowPlacement = .fixedXCentered
         settings.translationWindowFixedX = -640
@@ -1436,6 +1611,12 @@ final class MarlaAppTests: XCTestCase {
         XCTAssertEqual(restored.translationWindowFixedX, -640)
         XCTAssertEqual(restored.translationWindowWidthPreset, .wide)
         XCTAssertEqual(restored.translationWindowLastTopLeft, CGPoint(x: 420, y: 510))
+
+        defaults.set(TranslationWindowPlacement.followMouse.rawValue, forKey: "translationWindowPlacement.v1")
+        XCTAssertEqual(
+            MarlaSettingsStore(defaults: defaults, keychain: keychain).translationWindowPlacement,
+            .followMouse
+        )
     }
 
     @MainActor
@@ -1713,14 +1894,21 @@ final class MarlaAppTests: XCTestCase {
             current: current,
             width: 600,
             height: 180,
-            preservesLeadingEdge: false,
+            horizontalAnchor: .center,
             visibleFrame: visibleFrame
         )
         let leading = ResultPanelWidthPresetFrameCalculator.targetFrame(
             current: current,
             width: 600,
             height: 180,
-            preservesLeadingEdge: true,
+            horizontalAnchor: .leading,
+            visibleFrame: visibleFrame
+        )
+        let trailing = ResultPanelWidthPresetFrameCalculator.targetFrame(
+            current: current,
+            width: 600,
+            height: 180,
+            horizontalAnchor: .trailing,
             visibleFrame: visibleFrame
         )
 
@@ -1729,6 +1917,8 @@ final class MarlaAppTests: XCTestCase {
         XCTAssertEqual(centered.height, 180, accuracy: 0.001)
         XCTAssertEqual(leading.minX, current.minX, accuracy: 0.001)
         XCTAssertEqual(leading.maxY, current.maxY, accuracy: 0.001)
+        XCTAssertEqual(trailing.maxX, current.maxX, accuracy: 0.001)
+        XCTAssertEqual(trailing.maxY, current.maxY, accuracy: 0.001)
     }
 
     @MainActor
@@ -1739,7 +1929,7 @@ final class MarlaAppTests: XCTestCase {
             current: current,
             width: 680,
             height: 214,
-            preservesLeadingEdge: false,
+            horizontalAnchor: .center,
             visibleFrame: visibleFrame
         )
 
@@ -1757,7 +1947,7 @@ final class MarlaAppTests: XCTestCase {
             current: current,
             width: 680,
             height: 220,
-            preservesLeadingEdge: false,
+            horizontalAnchor: .center,
             visibleFrame: visibleFrame
         )
 

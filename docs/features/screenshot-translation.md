@@ -21,6 +21,8 @@ The configurable global shortcut defaults to `⌃⇧S`. Settings composes it fro
 5. Send canonical OCR text/Markdown, never image pixels, to the configured translation API.
 6. Present translation-first or comparison output in the shared result card. Translation retry and language/API switching reuse canonical OCR content without uploading again.
 
+When the shared translation-window setting is automatic, the result card first attempts to sit 12pt to the right of the selected screenshot region without intersecting it. If the visible workspace cannot contain the minimum-width card there, placement deterministically tries the left, below, and above sides. If an unusually large region leaves no non-overlapping side, the card remains fully visible and uses the candidate with the least overlap rather than extending beyond the workspace.
+
 ## Acceptance criteria
 
 - Escape cancellation belongs to the active screenshot session and does not depend on a selection view retaining keyboard focus. The selection window handles raw `sendEvent`, AppKit key-equivalent, and `cancelOperation` routing, with session-scoped local/global monitors and a system event-tap fallback removed as soon as the session finishes.
@@ -33,6 +35,7 @@ The configurable global shortcut defaults to `⌃⇧S`. Settings composes it fro
 - OCR success is retained if translation fails.
 - Vision promises plain text and reading order only. GLM structure is normalized into Markdown, but pixel-identical page reconstruction is not promised.
 - Multi-display scale and coordinates are correct.
+- Automatic placement prefers the selected region's right side, never overlaps it when a non-overlapping visible candidate exists, and remains inside one display's visible workspace at screen edges.
 
 ## Not included
 

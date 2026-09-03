@@ -6,7 +6,7 @@ The nearby-card baseline and TASK-028 protected-Copy acquisition contract are im
 
 ## Goal
 
-Translate selected content in a nearby anchored card without unnecessarily activating Marla or changing the source document. The result card's appearance can be configured in General settings as centered, near the pointer, at a fixed horizontal coordinate with vertical centering, or at the last remembered window position. The last-position mode stores the panel's top-left edge, so streaming height growth keeps the top edge stable. The action row exposes persistent narrow, medium, and wide width presets through a compact hover control, while direct horizontal dragging remains available.
+Translate selected content in a nearby anchored card without unnecessarily activating Marla or changing the source document. General settings default to automatic source avoidance and also offer centered, near-pointer, fixed-horizontal/vertically-centered, and last-remembered positions. The last-position mode stores the panel's top-left edge, so streaming height growth keeps the top edge stable. The action row exposes persistent narrow, medium, and wide width presets through a compact hover control, while direct horizontal dragging remains available.
 
 ## Trigger
 
@@ -19,7 +19,7 @@ Translate selected content in a nearby anchored card without unnecessarily activ
 1. Bind the trigger-time frontmost application and verify Accessibility trust.
 2. Run one protected simulated `⌘C` transaction and normalize only the newly copied content.
 3. Resolve optional selection bounds through non-content Accessibility geometry without collecting selected or nearby text.
-4. Present a stable non-activating card above or below the selection, or near the pointer when reliable bounds are unavailable.
+4. Present a stable non-activating card below, above, right, or left of the selection according to automatic available-space priority, or near the pointer when reliable bounds are unavailable.
 5. Stream translated block updates and allow transient, pinned, translation-only, and comparison presentation.
 
 ## TASK-028 production contract
@@ -55,7 +55,8 @@ The redacted audit may compare complete pre/post Pasteboard snapshots and report
 
 ## Degradation
 
-- If precise bounds are unavailable, place the complete result card near the pointer without changing or retrying the translation request.
+- In automatic window-placement mode, place the complete result card below the selection when space permits, then prefer above, right, and left without covering the selected bounds. This order keeps the next reading area and the selected source visible for both single-line and multi-line selections.
+- If no side can fully contain the card, keep it inside the visible workspace and choose the placement with the least source overlap. If precise bounds are unavailable, place it near the pointer without changing or retrying the translation request.
 - If protected Copy produces no new content, the source app changes, the transaction times out, or restoration cannot be verified, send no translation request and show a specific error with a Quick Input action.
 - Do not use Accessibility content as a retry or fallback after any Copy failure.
 - If the source application scrolls, moves, or loses focus, dismiss an unpinned overlay.
@@ -70,6 +71,7 @@ The redacted audit may compare complete pre/post Pasteboard snapshots and report
 - A newly copied genuine `.html` representation and trusted literal HTML table plain text share one safe native converter; valid rectangular `tr`/`th`/`td` input becomes GFM before Provider submission, while complex or invalid input remains the complete original `plainText`.
 - Original Pasteboard contents are fully restored unless a newer external write makes restoration unsafe; failure is explicit and starts no translation.
 - Missing or multi-line geometry never claims line-perfect source covering.
+- Automatic placement uses Accessibility geometry only as a non-content anchor and never changes the protected-Copy content source.
 - Escape or outside interaction can dismiss transient output.
 - Streaming updates do not repeatedly move the panel.
 - Completed GFM tables measure each column from the longest visible header/cell text with reasonable minimum and maximum weights, wrap overflowing cells naturally within the card body, and keep other blocks fixed while preserving the continuous result/cross-block selection contract. The 380pt/760pt, light/dark, Reduce Motion, wrapping, and cross-block-selection checks are verified under TASK-028.

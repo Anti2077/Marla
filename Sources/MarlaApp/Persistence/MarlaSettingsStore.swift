@@ -96,7 +96,7 @@ final class MarlaSettingsStore: ObservableObject {
         ocrProvider = OCRProviderKind(rawValue: defaults.string(forKey: Keys.ocrProvider) ?? "") ?? .vision
         translationWindowPlacement = TranslationWindowPlacement(
             rawValue: defaults.string(forKey: Keys.translationWindowPlacement) ?? ""
-        ) ?? .followMouse
+        ) ?? .automatic
         let fixedX = defaults.object(forKey: Keys.translationWindowFixedX) as? Double
         translationWindowFixedX = CGFloat(
             fixedX.flatMap { $0.isFinite ? $0 : nil }

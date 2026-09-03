@@ -8,7 +8,9 @@ Release target: None. A version is assigned only when the project owner explicit
 
 Overall state: In Progress — unversioned product incubation; no active release contract
 
-Active task (main worktree): [`TASK-036`](../tasks/TASK-036-product-homepage-prototype.md) — 构建符合 Marla 产品定位的官网首页原型
+Active task (this worktree): [`TASK-042`](../tasks/TASK-042-automatic-window-placement.md) — 按划词与截图来源位置自动避让翻译窗口
+
+TASK-042 已由项目所有者于 2026-09-02 从本地 `main@0b15e4d` 直接立项，专用分支为 `Anti2077/task-042-automatic-window-placement`。本轮已实现持久化“自动”窗口位置并将其作为无既有偏好时的新默认值：截图结果优先位于框选区右侧且不相交，空间不足时按左、下、上确定性回退；划词结果优先位于选区下方、其次上方并以左右兜底，缺少可靠几何时回退鼠标附近；Quick Input 保持鼠标附近。流式增长保持初始避让方向，用户主动切换宽度时仅在当前方向无法继续保留 12pt 间距后重新选边。现有四种手动位置、受保护 Copy、Accessibility 非内容定位边界、ScreenCaptureKit/OCR/Provider 合同和结果卡视觉结构均未改变。定向测试、完整检查、固定签名 Release App 重建以及设置页浅色/深色五维复审已经通过；Computer Use 无法枚举无主窗口的 LSUIElement App，真实单行/底边/多行划词及中央/右边缘/近全屏截图相对位置仍需项目所有者在固定 App 中现场验收。
 
 TASK-036 官网首页原型于 2026-09-01 由项目所有者重新激活并在专用分支继续；项目所有者于 2026-09-02 明确授权将当前已验证基线合并到 `main` 并推送远端。独立 `website/` 工程使用 React、Vite、Geist、Lucide 和 GSAP ScrollTrigger，以 Paper Lantern 和真实原生 App 录屏解释 Marla 的原地翻译体验；旧实机截图、静态产品照片和网页伪动画均未作为产品证据。第一批桌面素材现有 5 个唯一 H.264 MP4：Hero/结构化 Markdown 两个 5:4 展示位按项目所有者决定复用同一份原地翻译素材，划词、截图、Quick Input 和快捷键各使用独立录屏。网页已删除全部 WebP poster 和背景图回退，所有产品展示位只加载视频。普通动态模式下所有已挂载视频从加载后持续静音循环，不再因视口可见比例自动暂停；Hero 在滚动时保持原尺寸。三入口仍只挂载当前选中的 7:5 视频，视频框不经过透明隐藏，切换后新视频立即播放。播放控制位于视频外侧的 42px 工具条，用户手动暂停会保持；Hero 优先预载，其余视频只预载 metadata。Markdown 与快捷键卡片不使用文案或绝对定位覆盖画面，Reduce Motion 默认停在视频起始位置且允许用户主动播放。三个入口的 1:1 移动端视频仍待补充，期间移动布局按原始 7:5 比例完整显示桌面素材而不强裁关键内容。4K/60fps 母版保留在 Git 忽略的本地目录，网页成品统一进入 `website/public/media/`。本轮 `npm run lint`、`npm run build`、`git diff --check`、仓库级 `./scripts/check.sh` 和真实浏览器回归通过：滚到页面底部后 4 个已挂载视频仍全部播放并持续推进；截图入口视频跨过 9.27 秒片尾后继续循环；Hero 滚动前后保持 1080px 与 1:1 transform；切换入口、手动控制和 Reduce Motion 行为正常，控制台无 warning/error。原生 App、发布版本、下载承诺、定价、用户量和未经验证的隐私/合作声明均未改变或新增。
 
@@ -52,7 +54,7 @@ Blocked tasks: None.
 
 ## Current objective
 
-当前 Active implementation Task 为 TASK-036，由项目所有者从直接请求明确选择。官网原型必须与原生 App 隔离，并以当前产品定义、品牌边界和真实实现为准；旧 `0.1.0` 草案或 Roadmap 不提升额外范围。
+当前 Active implementation Task 为 TASK-042，由项目所有者从直接请求明确选择。自动定位只消费当前已有的划词/截图全局几何并改进 AppKit Panel 放置；不得扩展为自动监听划词、读取 Accessibility 内容、持久化截图、原地覆盖或改变 Provider/Rust 合同。TASK-036 官网工作保留在其既有记录和分支历史中，不纳入本 Task。
 
 TASK-023 已完成整体代码审查、自动化验证与固定 Release 测试 App 交付：Rust 翻译与模型列表取消从 10ms 轮询改为事件驱动唤醒，SSE 单个未完成帧增加 1 MiB 内存上限，严格 Clippy 与 shell 语法检查纳入统一验证，5 个公开 unsafe FFI 函数补齐安全合同；`artifacts/Marla_dev.app` 已重建并通过稳定签名验证。
 

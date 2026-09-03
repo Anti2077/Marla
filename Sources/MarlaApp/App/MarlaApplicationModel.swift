@@ -47,6 +47,10 @@ final class MarlaApplicationModel: ObservableObject {
     var screenshotCoordinator: ScreenshotCaptureCoordinator { services.screenshotCoordinator }
     var visionOCR: VisionOCRService { services.visionOCR }
     var glmOCR: GLMOCRService { services.glmOCR }
+    var inPlaceTranslation: InPlaceTranslationService { services.inPlaceTranslation }
+    var screenshotTranslationOverlay: ScreenshotTranslationOverlayCoordinator {
+        services.screenshotTranslationOverlay
+    }
     var shortcutManager: GlobalShortcutManager { services.shortcutManager }
     var settingsWindowCoordinator: MarlaSettingsWindowCoordinator { services.settingsWindowCoordinator }
 
@@ -84,6 +88,7 @@ final class MarlaApplicationModel: ObservableObject {
             switch action {
             case .selection: self?.translateSelection()
             case .screenshot: self?.translateScreenshot()
+            case .inPlace: self?.translateInPlace()
             case .quickInput: self?.showQuickInput()
             }
         }
@@ -130,6 +135,7 @@ final class MarlaApplicationModel: ObservableObject {
     }
 
     func translateSelection() {
+        screenshotTranslationOverlay.close()
         if let activeSelectionReadCancellation {
             activeSelectionReadCancellation.cancel()
             return
@@ -328,6 +334,7 @@ final class MarlaApplicationModel: ObservableObject {
     }
 
     func showQuickInput() {
+        screenshotTranslationOverlay.close()
         panelCoordinator.showQuickInput(store: sessionStore, pointer: NSEvent.mouseLocation)
     }
 
@@ -351,6 +358,11 @@ final class MarlaApplicationModel: ObservableObject {
         }
 
         if presentMarkdownUIAutomationFixture(named: scenario) {
+            scheduleUIAutomationSnapshotIfRequested()
+            return
+        }
+
+        if presentInPlaceOverlayUIAutomationFixture(named: scenario) {
             scheduleUIAutomationSnapshotIfRequested()
             return
         }
@@ -514,6 +526,9 @@ final class MarlaApplicationModel: ObservableObject {
             panelCoordinator.showResult(store: sessionStore, at: nil, pointer: NSEvent.mouseLocation, activate: true)
         case "settings":
             openSettings()
+        case "settings-ocr":
+            settings.requestSettingsNavigation(to: .ocr)
+            openSettings()
         case "settings-api", "settings-editor":
             if settings.profiles.isEmpty {
                 let firstID = settings.addProfile()
@@ -591,7 +606,11 @@ final class MarlaApplicationModel: ObservableObject {
     private static func captureFrontmostApplicationWindow(to path: String) throws {
         let visibleWindows = NSApp.windows.filter(\.isVisible)
         let scenario = ProcessInfo.processInfo.environment["MARLA_UI_TEST_SCENARIO"]
-        let capturesFullDisplaySurface = scenario == "screenshot" || scenario == "screenshot-from-settings"
+        let capturesFullDisplaySurface = scenario == "screenshot"
+            || scenario == "screenshot-from-settings"
+            || scenario == "in-place-overlay"
+            || scenario == "in-place-overlay-waiting"
+            || scenario == "in-place-overlay-failure"
         let visibleSheet = visibleWindows
             .lazy
             .compactMap(\.attachedSheet)

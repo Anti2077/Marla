@@ -255,15 +255,34 @@ struct TranslationCardView: View {
                             title: "云端结构识别失败，正在改用本机 Vision…",
                             tint: DesignTokens.warning
                         )
+                    case .inPlaceTranslation:
+                        StateLine(
+                            symbol: "rectangle.inset.filled.and.person.filled",
+                            title: "正在准备原位译文…",
+                            tint: DesignTokens.accent
+                        )
                     case .vision, nil:
                         StateLine(symbol: "viewfinder", title: "正在识别框选文字…", tint: DesignTokens.accent)
                     }
                 case .awaitingFirstToken:
-                    HStack(spacing: DesignTokens.spaceS) {
-                        BreathingDot(reduceMotion: reduceMotion)
-                        Text("等待译文")
-                            .font(AppFont.body)
-                            .foregroundStyle(DesignTokens.secondaryText)
+                    if session.ocrActivity == .inPlaceTranslation {
+                        VStack(alignment: .leading, spacing: DesignTokens.spaceXS) {
+                            StateLine(
+                                symbol: "text.below.photo",
+                                title: "正在生成原位译文",
+                                tint: DesignTokens.accent
+                            )
+                            Text("译文完成后会覆盖到刚才框选的区域。")
+                                .font(AppFont.caption)
+                                .foregroundStyle(DesignTokens.secondaryText)
+                        }
+                    } else {
+                        HStack(spacing: DesignTokens.spaceS) {
+                            BreathingDot(reduceMotion: reduceMotion)
+                            Text("等待译文")
+                                .font(AppFont.body)
+                                .foregroundStyle(DesignTokens.secondaryText)
+                        }
                     }
                 case let .failed(message):
                     ErrorStateView(

@@ -84,10 +84,30 @@ private final class FakeKeychainItems {
 }
 
 final class MarlaAppTests: XCTestCase {
+    func testScreenshotTranslationIntentsKeepNearbyAndInPlacePathsIndependent() {
+        XCTAssertEqual(
+            ScreenshotTranslationIntent.nearby.ocrProvider(configuredProvider: .glmOCR),
+            .glmOCR
+        )
+        XCTAssertFalse(ScreenshotTranslationIntent.nearby.usesInPlaceOverlay)
+        XCTAssertTrue(ScreenshotTranslationIntent.nearby.presentsNearbyResultCardAfterCapture)
+        XCTAssertTrue(ScreenshotTranslationIntent.nearby.presentsNearbyFailureCardBeforeCapture)
+        XCTAssertTrue(ScreenshotTranslationIntent.nearby.allowsVisionFallback)
+        XCTAssertEqual(
+            ScreenshotTranslationIntent.inPlace.ocrProvider(configuredProvider: .vision),
+            .glmOCR
+        )
+        XCTAssertTrue(ScreenshotTranslationIntent.inPlace.usesInPlaceOverlay)
+        XCTAssertFalse(ScreenshotTranslationIntent.inPlace.presentsNearbyResultCardAfterCapture)
+        XCTAssertFalse(ScreenshotTranslationIntent.inPlace.presentsNearbyFailureCardBeforeCapture)
+        XCTAssertFalse(ScreenshotTranslationIntent.inPlace.allowsVisionFallback)
+    }
+
     func testDefaultShortcutBindingsAndInternalConflictDetection() {
         let defaults = ShortcutBinding.defaults
         XCTAssertEqual(defaults[.selection]?.displayName, "⌃⇧D")
         XCTAssertEqual(defaults[.screenshot]?.displayName, "⌃⇧S")
+        XCTAssertEqual(defaults[.inPlace]?.displayName, "⌃⇧I")
         XCTAssertEqual(defaults[.quickInput]?.displayName, "⌃⇧Space")
 
         let conflict = ShortcutBinding.conflictingAction(
@@ -172,7 +192,7 @@ final class MarlaAppTests: XCTestCase {
     }
 
     @MainActor
-    func testCompleteLegacyShortcutDefaultsMigrateButCustomBindingsRemainUntouched() throws {
+    func testCompletePriorShortcutDefaultsMigrateButCustomBindingsRemainUntouched() throws {
         let legacySuite = "com.marla.tests.shortcut-legacy-migration.\(UUID().uuidString)"
         let legacyDefaults = UserDefaults(suiteName: legacySuite)!
         legacyDefaults.removePersistentDomain(forName: legacySuite)
@@ -189,6 +209,23 @@ final class MarlaAppTests: XCTestCase {
             try JSONDecoder().decode([GlobalShortcutAction: ShortcutBinding].self, from: migratedData),
             ShortcutBinding.defaults
         )
+
+        let priorSuite = "com.marla.tests.shortcut-pre-in-place-migration.\(UUID().uuidString)"
+        let priorDefaults = UserDefaults(suiteName: priorSuite)!
+        priorDefaults.removePersistentDomain(forName: priorSuite)
+        defer { priorDefaults.removePersistentDomain(forName: priorSuite) }
+        priorDefaults.set(
+            try JSONEncoder().encode(ShortcutBinding.preInPlaceDefaults),
+            forKey: "shortcutBindings"
+        )
+        priorDefaults.set(
+            try JSONEncoder().encode(Set(ShortcutBinding.preInPlaceDefaults.keys)),
+            forKey: "shortcutEnabledActions.v1"
+        )
+
+        let priorMigrated = GlobalShortcutManager(registerHotKeys: false, defaults: priorDefaults)
+        XCTAssertEqual(priorMigrated.bindings, ShortcutBinding.defaults)
+        XCTAssertEqual(priorMigrated.enabledActions, Set(GlobalShortcutAction.allCases))
 
         let customSuite = "com.marla.tests.shortcut-custom-migration.\(UUID().uuidString)"
         let customDefaults = UserDefaults(suiteName: customSuite)!
@@ -1143,6 +1180,9 @@ final class MarlaAppTests: XCTestCase {
         XCTAssertFalse(manager.isEnabled(.screenshot))
         XCTAssertNil(dispatched)
 
+        manager.handleHotKey(id: GlobalShortcutAction.inPlace.hotKeyID)
+        XCTAssertEqual(dispatched, .inPlace)
+
         let restored = GlobalShortcutManager(registerHotKeys: false, defaults: defaults)
         XCTAssertFalse(restored.isEnabled(.screenshot))
         XCTAssertTrue(restored.isEnabled(.selection))
@@ -1151,10 +1191,13 @@ final class MarlaAppTests: XCTestCase {
         XCTAssertEqual(restored.enabledActions, Set(GlobalShortcutAction.allCases))
     }
 
-    func testScreenshotShortcutUsesAnAvailableSystemSymbol() {
+    func testScreenshotShortcutsUseAvailableSystemSymbols() {
         XCTAssertEqual(GlobalShortcutAction.screenshot.symbolName, "viewfinder")
         XCTAssertNotNil(
             NSImage(systemSymbolName: GlobalShortcutAction.screenshot.symbolName, accessibilityDescription: nil)
+        )
+        XCTAssertNotNil(
+            NSImage(systemSymbolName: GlobalShortcutAction.inPlace.symbolName, accessibilityDescription: nil)
         )
     }
 

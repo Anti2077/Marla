@@ -331,6 +331,7 @@ public struct TranslationFFIRequest: Codable, Equatable, Sendable {
     public let target: TranslationTarget
     public let endpoint: TranslationEndpointConfiguration
     public let timeouts: TranslationTimeouts
+    public let inPlaceBlocks: [InPlaceTranslationSourceBlock]?
 
     public init(
         requestID: UUID,
@@ -338,15 +339,17 @@ public struct TranslationFFIRequest: Codable, Equatable, Sendable {
         sourceLanguage: TranslationLanguage?,
         target: TranslationTarget,
         endpoint: TranslationEndpointConfiguration,
-        timeouts: TranslationTimeouts = .default
+        timeouts: TranslationTimeouts = .default,
+        inPlaceBlocks: [InPlaceTranslationSourceBlock]? = nil
     ) {
-        self.schemaVersion = 3
+        self.schemaVersion = 4
         self.requestID = requestID
         self.sourceContent = sourceContent
         self.sourceLanguage = sourceLanguage
         self.target = target
         self.endpoint = endpoint
         self.timeouts = timeouts
+        self.inPlaceBlocks = inPlaceBlocks
     }
 }
 

@@ -1,5 +1,9 @@
 # Data Contracts
 
+## Status
+
+The OCR, translation and bounded geometry-aware screenshot contracts below describe the implemented incubation baseline. Real GLM credential acceptance remains separately tracked as `RV-005`; synthetic overlay evidence does not replace it.
+
 ## Translation intent
 
 A `TranslationIntent` records the user's requested operation, its input kind, source and target language, presentation preference, and contextual snapshot.
@@ -36,11 +40,17 @@ Translation updates may refer to stable acquisition blocks when the source and p
 
 Vision blocks represent recognized lines and reading order only. Table, Markdown, formula, and document-layout semantics are not inferred. GLM-OCR maps Provider labels into the same `ContentBlockKind`, assigns stable page/block IDs, treats absent confidence as unknown, and accepts either 0...1 coordinates or pixel coordinates divided by returned page dimensions. Geometry remains activity-scoped and is not added to recent translations.
 
+TASK-041 does not change generated `semanticMarkdown` into an isomorphic document format. It introduces a separate layout-translation result whose only correspondence is an exact stable-ID mapping back to the canonical GLM blocks. Source `bounds` and `readingOrder` remain immutable acquisition evidence; translated text never carries replacement bounds or becomes a new source of geometry.
+
+Markdown inside a translated in-place block remains content, not presentation geometry. Swift may derive a non-authoritative render projection from that content using the shared native Markdown parser. Non-table blocks contribute visible characters without structural markers. A `.table` source block may expand only when its target is exactly one bounded, rectangular GFM table; every derived cell retains the original stable ID plus local row/column metadata. Cell frames, widths, heights and grid lines are renderer-owned derivatives inside the immutable source table bound. Provider IDs, source bounds and the result contract remain one block, and background/fit rejection plus rendered/omitted counts are atomic at that source-block boundary.
+
 ## FFI OCR request
 
 The Swift/Rust OCR boundary uses UTF-8 JSON request `schemaVersion: 1` and event schema version 1 under C ABI version 4. A request contains request ID, Base64 image bytes, `image/png` or `image/jpeg`, the request-scoped GLM API Key, and connect/overall timeouts. Rust adds the fixed data-URL prefix and sends `model: glm-ocr`, disabled crop/visualization returns, and the same request ID to the fixed official endpoint. The Authorization header contains the raw API Key required by this Provider contract. Unknown schema, empty credentials, unsupported MIME type and empty payload are rejected.
 
 Events are `started`, `completed`, `failed`, or `cancelled`. Completion contains the actual Provider, normalized `OCRDocument`, and canonical `TranslationContent`. Swift copies callback bytes before return, discards stale request IDs, and retains only canonical content for translation retry. The opaque OCR handle uses the same explicit cancel/release lifecycle as translation; cancellation never starts fallback.
+
+For the implemented nearby-card path, including ordinary screenshot translation with GLM-OCR, Swift retains only canonical content after OCR. One exception applies to the independent in-place entry: its screenshot task retains the same captured image, selection `globalRect` and normalized GLM `OCRDocument` in activity-scoped memory until the overlay is presented or the path degrades. Raw response and Base64/upload bytes are not part of that retained context. Ordinary screenshot completion, Vision completion and GLM-to-Vision fallback never retain geometry for presentation.
 
 ## Context snapshot
 
@@ -50,11 +60,33 @@ No `ContextSnapshot` fields cross the current translation boundary. The type rem
 
 ## FFI translation request
 
-The Swift/Rust translation boundary uses UTF-8 JSON request `schemaVersion: 3` while provider events remain schema version 1. A request contains a request ID, `sourceContent`, an optional resolved source language, one explicit resolved target language, endpoint configuration, optional request-scoped credential, and timeouts. `sourceContent` has an exact `text` value plus `format`, currently `plainText` or `semanticMarkdown`; unknown formats and old request schemas are rejected. Supported language codes are `zh-Hans`, `en`, `ja`, `fr`, `es`, `de`, and `ko`. A missing source language means the Provider may detect source; target is never implicit at the Rust boundary. Rust copies request bytes synchronously and never retains a Swift buffer.
+The implemented Swift/Rust translation boundary uses UTF-8 JSON request `schemaVersion: 4` while Provider events remain schema version 1. A request contains a request ID, `sourceContent`, an optional resolved source language, one explicit resolved target language, endpoint configuration, optional request-scoped credential, timeouts and an optional `inPlaceBlocks` collection. `sourceContent` has an exact `text` value plus `format`, currently `plainText` or `semanticMarkdown`; unknown formats and old request schemas are rejected. Supported language codes are `zh-Hans`, `en`, `ja`, `fr`, `es`, `de`, and `ko`. A missing source language means the Provider may detect source; target is never implicit at the Rust boundary. Rust copies request bytes synchronously and never retains a Swift buffer. Ordinary callers omit `inPlaceBlocks` and otherwise preserve the prior schema-v3 semantics.
 
 Swift snapshots native/secondary preferences and complete source content into each card, resolves automatic routing before encoding, and preserves those snapshots across retry or API-profile switching. Source/target UI changes create a new request ID from the existing content without reacquisition. Quick Input and GLM-OCR submit canonical `semanticMarkdown`; selection uses it only when protected-Copy structure evidence is reliable and otherwise uses the newly copied `plainText`; Vision OCR always uses `plainText`. Detection identifiers, OCR confidence and layout geometry are not persisted.
 
 API Keys are transferred in request memory only and must never be logged. Swift persistently owns one versioned Keychain vault item containing independent logical entries keyed by translation-profile identity plus one fixed GLM-OCR account; Rust receives only the credential for one narrow request and never receives or persists the vault.
+
+## TASK-041 layout translation contract
+
+Layout translation is a distinct semantic mode inside the shared schema-v4 translation request/result contract. It does not make ordinary `plainText` or `semanticMarkdown` content block-isomorphic. The request schema remains synchronized across Rust and Swift. The C ABI stays at version 4 because TASK-041 changes no exported function signature, callback lifetime or ownership rule; JSON request evolution is an independent compatibility identifier.
+
+One request contains:
+
+- one request ID and `schemaVersion: 4`;
+- the resolved optional source and explicit target language;
+- the configured translation endpoint, request-scoped credential and timeouts;
+- an `inPlaceBlocks` collection containing the complete ordered block set from one canonical GLM `OCRDocument`;
+- for each `InPlaceTranslationSourceBlock`, exactly its stable ID, `ContentBlockKind` and complete source text.
+
+The request sends the blocks as one contextual group. It must not issue independent Provider calls per line or block, because those calls would lose document, sentence, list and table context. Screenshot pixels, normalized bounds, `globalRect`, confidence and AppKit objects are not required by the translation Provider and do not cross this Rust translation boundary.
+
+For System+User providers, the Provider-facing prompt requires one non-empty target string for each input ID. Qwen-MT is different: it accepts one User Message plus `translation_options` and treats that entire Message as text to translate, so Marla must not place JSON control instructions in it. Its one complete User Message contains the ordered source texts between exact request-scoped BEGIN/END boundaries derived from the block index and an allowlisted `ContentBlockKind`; it does not expose the real stable IDs. Rust accepts a strict structured result when available, otherwise restores the bounded texts in source order, reattaches the canonical source IDs, and then runs the same validation as every other Provider.
+
+Rust parses the complete result before presentation and rejects it when the schema is wrong; an ID is duplicate, unknown or missing; a Qwen boundary is missing, modified or surrounded by extra output; an expected translation is empty; or a code span, URL, command, variable, template placeholder or other protected payload is damaged. Validation compares the result against the exact request block set. Provider order is not geometry and cannot replace source reading order.
+
+The normalized `InPlaceTranslationResult` contains an ordered `blocks` array of `{ id, text }` values covering the validated source IDs. It contains no translated bounds. Swift joins each `InPlaceTranslatedBlock` back to the immutable source block only by ID, preserving source bounds, kind and reading order. Invalid or stale results never reach translated drawing. An invalid current result changes the existing overlay to failed; a stale request ID changes nothing.
+
+Layout translation cancellation and release use the same opaque-handle discipline as other asynchronous FFI work. Callback bytes are valid only for the synchronous callback and must be copied before return. A cancelled, superseded or non-owning request ID cannot publish translated blocks or start overlay construction.
 
 ## Provider events
 
@@ -69,6 +101,18 @@ Streaming translation emits lifecycle and block-update events so presentation ca
 Every event includes schema version and request ID. Swift discards events whose request ID no longer owns the card. Callback bytes are valid only during the callback and must be copied before returning.
 
 The request content format determines the expected translated content format for the current first-stage session. Streaming events continue to carry string deltas so Swift remains Provider-independent; Qwen-MT cumulative chunks are normalized to deltas before crossing the callback. The completed string is retained with its session format for retry, profile switching, recent in-memory restoration, and copy.
+
+TASK-041 layout translation reuses event schema version 1 but does not emit ordinary Markdown `delta` events. Rust buffers the Provider stream, including Qwen-MT cumulative chunks, validates the full stable-ID result and emits its canonical `InPlaceTranslationResult` JSON only in `completed.text`. Partial or unvalidated block output cannot cross into in-place rendering.
+
+## In-place presentation contract
+
+Swift/AppKit owns the activity-scoped screenshot context and overlay presentation lifecycle. The screenshot task and overlay coordinator together retain one frozen `CGImage`, its macOS global `NSRect`, the canonical GLM `OCRDocument`, the validated translated blocks and the owning request identity for no longer than the active path requires. Rust never receives `CGImage`, `NSRect`, `NSWindow`, colors, fonts or render objects.
+
+An overlay render plan maps each accepted source `NormalizedRect` into the frozen image and original global selection frame. Mapping uses source geometry only; target text length and Provider order never move a block. The plan may add native typography, alignment, wrapping, row-wise background restoration and a bounded font size. Missing/out-of-range bounds, unsafe overlap, unreliable background or text below the readable font floor rejects that block and leaves its frozen source pixels unchanged; Provider contract failure or a plan with no accepted block fails before translated drawing.
+
+The overlay window is created immediately after capture with the same global frame as the selection, uses the frozen crop as its background and is non-activating on presentation. The same panel and content view own recognizing, translating, translated and failed stages. Final rendering produces one composited background by interpolating same-row pixels across each accepted source glyph region, then draws all translated strings directly; it does not create per-block mask views or text controls. Invalid results, zero accepted blocks or rendering failure leave that overlay visible with a compact failure status. A rejected individual block is never approximated; its frozen original remains visible. Vision results and GLM-to-Vision fallback results are never eligible for this contract, and the independent intent never routes to them after capture.
+
+The screenshot, global rectangle, canonical blocks, translated blocks, masks and render plan have one activity-scoped lifetime. Successful presentation retains them only while the overlay is visible. `Esc`, the close action, a new screenshot, cancellation, source-session replacement and App termination close the overlay, cancel owned work and release the whole context. None of those values may be written to files, Preferences, logs, recent translations or a persistent cache. Synthetic UI fixtures use only deterministic non-user content and are evidence for rendering, not for a real GLM request.
 
 ## Markdown result projection and copy
 

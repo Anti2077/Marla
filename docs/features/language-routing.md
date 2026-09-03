@@ -28,7 +28,7 @@ For screenshot input, Vision first enables automatic language detection and inte
 
 ## Provider boundary
 
-Swift resolves every request to an optional supported source plus one explicit supported target. Translation JSON schema v3 carries both values together with formatted `sourceContent` to Rust. Provider capabilities select the language and message strategy: generic OpenAI-compatible models receive source/target and optional Markdown instructions in the System Message, while Qwen-MT receives matching `translation_options.source_lang` and `target_lang`, uses `auto` only when Swift has no supported source, and receives source content through its sole User Message.
+Swift resolves every request to an optional supported source plus one explicit supported target. Translation JSON schema v4 carries both values together with formatted `sourceContent` and an optional GLM screenshot `inPlaceBlocks` collection to Rust; ordinary language-routing requests omit that collection and retain the prior semantics. Provider capabilities select the language and message strategy: generic OpenAI-compatible models receive source/target and optional Markdown instructions in the System Message, while Qwen-MT receives matching `translation_options.source_lang` and `target_lang`, uses `auto` only when Swift has no supported source, and receives source content through its sole User Message.
 
 ## UI
 

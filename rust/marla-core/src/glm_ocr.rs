@@ -424,11 +424,21 @@ fn normalized_bounds(
             y2 / dimensions.height,
         )
     };
+    if ![x1, y1, x2, y2].iter().all(|value| value.is_finite())
+        || x1 < 0.0
+        || y1 < 0.0
+        || x2 > 1.0
+        || y2 > 1.0
+        || x2 <= x1
+        || y2 <= y1
+    {
+        return None;
+    }
     Some(NormalizedRect {
-        x: x1.clamp(0.0, 1.0),
-        y: y1.clamp(0.0, 1.0),
-        width: (x2 - x1).clamp(0.0, 1.0),
-        height: (y2 - y1).clamp(0.0, 1.0),
+        x: x1,
+        y: y1,
+        width: x2 - x1,
+        height: y2 - y1,
     })
 }
 
@@ -637,6 +647,31 @@ mod tests {
         assert_eq!(result.document.blocks[0].kind, "title");
         assert_eq!(result.document.blocks[1].bounds.expect("bounds").width, 0.8);
         assert_eq!(result.content.text, "# Title\n\nBody");
+    }
+
+    #[test]
+    fn rejects_out_of_range_or_reversed_layout_boxes() {
+        let response = json!({
+            "data": {
+                "layout_details": [{
+                    "width": 1000,
+                    "height": 500,
+                    "blocks": [
+                        {"index": 0, "label": "text", "content": "Outside", "bbox_2d": [900, 20, 1100, 80]},
+                        {"index": 1, "label": "text", "content": "Reversed", "bbox_2d": [0.8, 0.2, 0.4, 0.3]}
+                    ]
+                }]
+            }
+        });
+        let result = normalize_response(&response).expect("normalized response");
+        assert!(
+            result
+                .document
+                .blocks
+                .iter()
+                .all(|block| block.bounds.is_none())
+        );
+        assert_eq!(result.content.text, "Outside\n\nReversed");
     }
 
     #[test]

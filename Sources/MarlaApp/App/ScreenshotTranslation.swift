@@ -3,14 +3,28 @@ import MarlaCore
 
 extension MarlaApplicationModel {
     func translateScreenshot() {
+        beginScreenshotTranslation(intent: .nearby)
+    }
+
+    func translateInPlace() {
+        beginScreenshotTranslation(intent: .inPlace)
+    }
+
+    private func beginScreenshotTranslation(intent: ScreenshotTranslationIntent) {
+        screenshotTranslationOverlay.close()
+        inPlaceTranslation.cancelActiveRequest()
         let pointer = NSEvent.mouseLocation
         guard screenRecordingAuthorized else {
-            showPermissionError(
-                "截图翻译需要屏幕录制权限。",
-                surface: .screenshot,
-                pointer: pointer,
-                recovery: .openScreenRecordingSettings
-            )
+            if intent.presentsNearbyFailureCardBeforeCapture {
+                showPermissionError(
+                    "截图翻译需要屏幕录制权限。",
+                    surface: .screenshot,
+                    pointer: pointer,
+                    recovery: .openScreenRecordingSettings
+                )
+            } else {
+                requestScreenRecordingAccess()
+            }
             return
         }
         let originatingApplication = NSWorkspace.shared.frontmostApplication
@@ -22,35 +36,58 @@ extension MarlaApplicationModel {
             restoreFrontmostApplication(originatingApplication)
             switch result {
             case let .success(capture):
-                startScreenshotOCR(capture: capture, pointer: pointer)
+                startScreenshotOCR(capture: capture, pointer: pointer, intent: intent)
             case let .failure(error):
-                handleScreenshotSelectionFailure(error, pointer: pointer)
+                handleScreenshotSelectionFailure(error, pointer: pointer, intent: intent)
             }
         }
     }
 
-    private func startScreenshotOCR(capture: CapturedScreenshot, pointer: CGPoint) {
+    private func startScreenshotOCR(
+        capture: CapturedScreenshot,
+        pointer: CGPoint,
+        intent: ScreenshotTranslationIntent
+    ) {
         let anchor = ScreenRect(
             x: capture.globalRect.origin.x,
             y: capture.globalRect.origin.y,
             width: capture.globalRect.width,
             height: capture.globalRect.height
         )
-        let provider = settings.ocrProvider
+        let provider = intent.ocrProvider(configuredProvider: settings.ocrProvider)
         let requestID = sessionStore.beginRecognizing(
             anchor: anchor,
             pointer: pointer,
             provider: provider
         )
-        panelCoordinator.showResult(store: sessionStore, at: anchor, pointer: pointer, activate: false)
+        if intent.usesInPlaceOverlay {
+            screenshotTranslationOverlay.presentWaiting(
+                capture: capture,
+                requestID: requestID,
+                onCancel: { [weak self] in
+                    guard let self, sessionStore.session?.id == requestID else { return }
+                    glmOCR.cancelActiveRequest()
+                    inPlaceTranslation.cancelActiveRequest()
+                    sessionStore.close()
+                }
+            )
+        } else if intent.presentsNearbyResultCardAfterCapture {
+            panelCoordinator.showResult(store: sessionStore, at: anchor, pointer: pointer, activate: false)
+        }
 
         if provider == .glmOCR, settings.glmOCRAPIKey == nil {
+            let message = intent.usesInPlaceOverlay
+                ? "原位翻译需要 GLM-OCR API Key"
+                : "云端 GLM-OCR 没有已保存的 API Key。请先在 OCR 设置中保存 Key。"
             sessionStore.fail(
-                "云端 GLM-OCR 没有已保存的 API Key。请先在 OCR 设置中保存 Key。",
+                message,
                 code: .invalidConfiguration,
                 for: requestID,
                 recovery: .openOCRSettings
             )
+            if intent.usesInPlaceOverlay {
+                screenshotTranslationOverlay.showFailure(message, for: requestID)
+            }
             return
         }
 
@@ -60,11 +97,59 @@ extension MarlaApplicationModel {
                 do {
                     let result = try await glmOCR.recognize(capture.image, apiKey: apiKey, requestID: requestID)
                     try Task.checkCancellation()
-                    sessionStore.submitOCRResult(result, for: requestID)
+                    guard intent.usesInPlaceOverlay else {
+                        sessionStore.submitOCRResult(result, for: requestID)
+                        return
+                    }
+                    screenshotTranslationOverlay.updateStage(.translating, for: requestID)
+                    guard let configuration = sessionStore.prepareInPlaceTranslation(result, for: requestID) else {
+                        screenshotTranslationOverlay.showFailure(
+                            inPlaceFailureMessage(fallback: "无法开始原位翻译"),
+                            for: requestID
+                        )
+                        return
+                    }
+                    do {
+                        let translated = try await inPlaceTranslation.translate(
+                            document: result.document,
+                            configuration: configuration,
+                            requestID: requestID
+                        )
+                        try Task.checkCancellation()
+                        let layout = try InPlaceOverlayLayoutBuilder.make(
+                            document: result.document,
+                            translation: translated,
+                            canvasSize: capture.globalRect.size
+                        )
+                        if try screenshotTranslationOverlay.apply(layout: layout, for: requestID) {
+                            sessionStore.completeInPlaceTranslation(for: requestID)
+                        }
+                    } catch is CancellationError {
+                        return
+                    } catch {
+                        let message = error.localizedDescription
+                        sessionStore.fail(
+                            message,
+                            code: .invalidResponse,
+                            for: requestID
+                        )
+                        screenshotTranslationOverlay.showFailure(message, for: requestID)
+                    }
                     return
                 } catch is CancellationError {
                     return
                 } catch {
+                    if !intent.allowsVisionFallback {
+                        let message = error.localizedDescription
+                        sessionStore.fail(
+                            message,
+                            code: .invalidResponse,
+                            for: requestID,
+                            retryable: true
+                        )
+                        screenshotTranslationOverlay.showFailure(message, for: requestID)
+                        return
+                    }
                     sessionStore.beginVisionFallback(for: requestID)
                 }
             }
@@ -92,9 +177,25 @@ extension MarlaApplicationModel {
         sessionStore.attachOCRTask(task, for: requestID)
     }
 
-    private func handleScreenshotSelectionFailure(_ error: any Error, pointer: CGPoint) {
+    private func inPlaceFailureMessage(fallback: String) -> String {
+        guard let session = sessionStore.session,
+              case let .failed(message) = session.state
+        else { return fallback }
+        return message
+    }
+
+    private func handleScreenshotSelectionFailure(
+        _ error: any Error,
+        pointer: CGPoint,
+        intent: ScreenshotTranslationIntent
+    ) {
         if case ScreenshotError.cancelled = error {
             sessionStore.close()
+        } else if !intent.presentsNearbyFailureCardBeforeCapture {
+            sessionStore.close()
+            if case ScreenshotError.captureFailed = error {
+                requestScreenRecordingAccess()
+            }
         } else {
             sessionStore.startText("", surface: .screenshot, anchor: nil, pointer: pointer)
             sessionStore.fail(

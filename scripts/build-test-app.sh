@@ -89,7 +89,17 @@ build_settings=$(
         -showBuildSettings
 )
 
-if ! print -r -- "${build_settings}" | rg -q "LIBRARY_SEARCH_PATHS = .*${project_root}/target/release"; then
+xcode_project_root=$(
+    print -r -- "${build_settings}" |
+        /usr/bin/sed -n 's/^[[:space:]]*PROJECT_DIR = //p' |
+        /usr/bin/head -n 1
+)
+if [[ -z ${xcode_project_root} ]]; then
+    print -u2 "Release build settings did not expose PROJECT_DIR."
+    exit 1
+fi
+
+if ! print -r -- "${build_settings}" | rg -q "LIBRARY_SEARCH_PATHS = .*${xcode_project_root}/target/release"; then
     print -u2 "Release does not resolve the Rust library from target/release."
     exit 1
 fi

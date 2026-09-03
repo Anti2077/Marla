@@ -25,8 +25,9 @@ The metaphor describes product behavior, not decoration. Marla does not turn the
 ## Initial entry points
 
 1. Translation of selected text in a nearby card, triggered by a configurable shortcut.
-2. Screenshot translation of a selected screen region.
-3. Quick input when no source text is already available.
+2. Screenshot translation of a selected screen region into a nearby card.
+3. Independent in-place translation of a selected screen region using GLM-OCR geometry.
+4. Quick input when no source text is already available.
 
 ## Initial output modes
 
@@ -34,6 +35,7 @@ The metaphor describes product behavior, not decoration. Marla does not turn the
 - aligned comparison mode;
 - pinned or transient presentation;
 - system speech using macOS voices.
+- bounded same-frame screenshot reconstruction for the independent in-place entry.
 
 ## Current non-capabilities
 
@@ -42,7 +44,7 @@ These items are not implemented in the current incubation baseline. This list re
 - PDF, Office, and batch document translation;
 - a full document workspace;
 - local GLM-OCR;
-- source-text-covering in-place translation, rejected after the experimental surface performed poorly in real use;
+- selected-text inline covering, rejected after the experimental surface performed poorly in real use and still removed;
 - contextual window metadata and nearby-text enhancement;
 - persistent translation history;
 - arbitrary live-page pixel-perfect replacement;
@@ -57,3 +59,5 @@ These items are not implemented in the current incubation baseline. This list re
 - normal operation remains below the documented memory budget;
 - the current privacy boundary sends only explicitly triggered source content; Vision keeps screenshot pixels local, while explicitly selected GLM-OCR uploads only the chosen crop under its Settings disclosure; bounded context enhancement requires a separate owner-authorized Task and the Accepted ADR constraints;
 - failures degrade to a usable local or nearby-panel experience.
+
+When the user explicitly invokes the independent in-place translation entry, Marla immediately places the same frozen crop in a temporary nonactivating overlay at the captured frame, then keeps GLM-OCR waiting, layout translation, completion and failure inside that one surface. Ordinary screenshot translation remains a nearby-card function even when its selected OCR Provider is GLM-OCR; independent in-place translation never opens that card after capture and does not fall back to Vision geometry. The overlay is limited to the captured region, keeps all pixels and layout data memory-only, remains immediately dismissible, and redraws only blocks whose coordinates, text fit and row-wise background reconstruction are reliable; an individual rejected block keeps its frozen source pixels. Invalid block identity, no reliable block or rendering failure leaves an explicit compact failure state over the same frozen region. This does not authorize live-page replacement, Vision-estimated geometry, selected-text covering or pixel-perfect restoration of source UI.

@@ -183,7 +183,7 @@ final class MarlaCoreTests: XCTestCase {
         )
         let data = try JSONEncoder().encode(request)
         let object = try XCTUnwrap(JSONSerialization.jsonObject(with: data) as? [String: Any])
-        XCTAssertEqual(object["schemaVersion"] as? Int, 3)
+        XCTAssertEqual(object["schemaVersion"] as? Int, 4)
         XCTAssertEqual(
             object["requestID"] as? String,
             "00000000-0000-0000-0000-000000000001"
@@ -202,6 +202,33 @@ final class MarlaCoreTests: XCTestCase {
         let target = try XCTUnwrap(object["target"] as? [String: Any])
         XCTAssertEqual(target["mode"] as? String, "explicit")
         XCTAssertEqual(target["language"] as? String, "ja")
+        XCTAssertNil(object["inPlaceBlocks"])
+    }
+
+    func testInPlaceTranslationRequestEncodesStableBlockContract() throws {
+        let request = TranslationFFIRequest(
+            requestID: UUID(uuidString: "00000000-0000-0000-0000-000000000041")!,
+            sourceContent: .semanticMarkdown("# Hello\n\n`npm test`"),
+            sourceLanguage: .english,
+            target: .simplifiedChinese,
+            endpoint: TranslationEndpointConfiguration(model: "demo"),
+            inPlaceBlocks: [
+                InPlaceTranslationSourceBlock(id: "heading-0", kind: .heading, sourceText: "Hello"),
+                InPlaceTranslationSourceBlock(id: "code-1", kind: .code, sourceText: "npm test")
+            ]
+        )
+
+        let data = try JSONEncoder().encode(request)
+        let object = try XCTUnwrap(JSONSerialization.jsonObject(with: data) as? [String: Any])
+        XCTAssertEqual(object["schemaVersion"] as? Int, 4)
+        let blocks = try XCTUnwrap(object["inPlaceBlocks"] as? [[String: Any]])
+        XCTAssertEqual(blocks.count, 2)
+        XCTAssertEqual(blocks[0]["id"] as? String, "heading-0")
+        XCTAssertEqual(blocks[0]["kind"] as? String, "heading")
+        XCTAssertEqual(blocks[0]["sourceText"] as? String, "Hello")
+        XCTAssertEqual(blocks[1]["id"] as? String, "code-1")
+        XCTAssertEqual(blocks[1]["kind"] as? String, "code")
+        XCTAssertEqual(blocks[1]["sourceText"] as? String, "npm test")
     }
 
     func testTranslationSurfacesDeclareHonestDefaultContentFormats() {

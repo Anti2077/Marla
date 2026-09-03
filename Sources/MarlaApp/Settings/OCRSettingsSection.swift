@@ -103,6 +103,12 @@ struct OCRSettingsSection: View {
                 detail: "GLM-OCR 使用固定官方接口和模型；无需填写 URL 或质量参数。"
             )
             StatusLine(
+                icon: "viewfinder",
+                tint: settings.hasGLMOCRAPIKey ? DesignTokens.success : DesignTokens.warning,
+                title: settings.hasGLMOCRAPIKey ? "原位翻译可用" : "原位翻译需要 API Key",
+                detail: "菜单中的独立“原位翻译”始终使用 GLM-OCR 的结构和坐标；普通“截图翻译”仍显示附近结果卡。"
+            )
+            StatusLine(
                 icon: "icloud.and.arrow.up",
                 tint: DesignTokens.warning,
                 title: "所选截图会上传",
@@ -112,7 +118,7 @@ struct OCRSettingsSection: View {
                 icon: "doc.richtext",
                 tint: DesignTokens.accent,
                 title: "结构化识别",
-                detail: "识别表格、公式、代码与版面后，直接进入 Markdown 翻译和原生渲染。云端失败会提示并改用 Vision。"
+                detail: "识别表格、公式、代码与版面，为原位覆盖提供结构和坐标。云端失败会提示并改用 Vision。"
             )
 
             VStack(alignment: .leading, spacing: DesignTokens.spaceS) {

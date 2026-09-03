@@ -6,12 +6,14 @@ import Foundation
 enum GlobalShortcutAction: String, CaseIterable, Codable, Sendable {
     case selection
     case screenshot
+    case inPlace
     case quickInput
 
     var title: String {
         switch self {
         case .selection: "划词翻译"
         case .screenshot: "截图翻译"
+        case .inPlace: "原位翻译"
         case .quickInput: "快速输入"
         }
     }
@@ -20,6 +22,7 @@ enum GlobalShortcutAction: String, CaseIterable, Codable, Sendable {
         switch self {
         case .selection: "text.viewfinder"
         case .screenshot: "viewfinder"
+        case .inPlace: "rectangle.dashed"
         case .quickInput: "keyboard"
         }
     }
@@ -28,6 +31,7 @@ enum GlobalShortcutAction: String, CaseIterable, Codable, Sendable {
         switch self {
         case .selection: 1
         case .screenshot: 2
+        case .inPlace: 4
         case .quickInput: 3
         }
     }
@@ -37,6 +41,7 @@ enum GlobalShortcutAction: String, CaseIterable, Codable, Sendable {
         case 1: self = .selection
         case 2: self = .screenshot
         case 3: self = .quickInput
+        case 4: self = .inPlace
         default: return nil
         }
     }
@@ -124,6 +129,13 @@ struct ShortcutBinding: Codable, Equatable, Sendable {
     }
 
     static let defaults: [GlobalShortcutAction: ShortcutBinding] = [
+        .selection: ShortcutBinding(keyCode: 2, modifiers: NSEvent.ModifierFlags.control.rawValue | NSEvent.ModifierFlags.shift.rawValue),
+        .screenshot: ShortcutBinding(keyCode: 1, modifiers: NSEvent.ModifierFlags.control.rawValue | NSEvent.ModifierFlags.shift.rawValue),
+        .inPlace: ShortcutBinding(keyCode: 34, modifiers: NSEvent.ModifierFlags.control.rawValue | NSEvent.ModifierFlags.shift.rawValue),
+        .quickInput: ShortcutBinding(keyCode: 49, modifiers: NSEvent.ModifierFlags.control.rawValue | NSEvent.ModifierFlags.shift.rawValue),
+    ]
+
+    static let preInPlaceDefaults: [GlobalShortcutAction: ShortcutBinding] = [
         .selection: ShortcutBinding(keyCode: 2, modifiers: NSEvent.ModifierFlags.control.rawValue | NSEvent.ModifierFlags.shift.rawValue),
         .screenshot: ShortcutBinding(keyCode: 1, modifiers: NSEvent.ModifierFlags.control.rawValue | NSEvent.ModifierFlags.shift.rawValue),
         .quickInput: ShortcutBinding(keyCode: 49, modifiers: NSEvent.ModifierFlags.control.rawValue | NSEvent.ModifierFlags.shift.rawValue),
@@ -339,21 +351,23 @@ final class GlobalShortcutManager: ObservableObject, GlobalShortcutManaging {
     }
 
     private func load() {
-        var migratedLegacyDefaults = false
+        var migratedCompleteDefaults = false
         if let data = defaults.data(forKey: "shortcutBindings"),
            let decoded = try? JSONDecoder().decode([GlobalShortcutAction: ShortcutBinding].self, from: data) {
-            if decoded == ShortcutBinding.legacyDefaults {
+            if decoded == ShortcutBinding.legacyDefaults || decoded == ShortcutBinding.preInPlaceDefaults {
                 bindings = ShortcutBinding.defaults
-                migratedLegacyDefaults = true
+                migratedCompleteDefaults = true
             } else {
                 bindings = decoded
             }
         }
         if let data = defaults.data(forKey: "shortcutEnabledActions.v1"),
            let decoded = try? JSONDecoder().decode(Set<GlobalShortcutAction>.self, from: data) {
-            enabledActions = decoded
+            enabledActions = decoded == Set(ShortcutBinding.preInPlaceDefaults.keys)
+                ? Set(GlobalShortcutAction.allCases)
+                : decoded
         }
-        if migratedLegacyDefaults {
+        if migratedCompleteDefaults {
             save()
         }
     }

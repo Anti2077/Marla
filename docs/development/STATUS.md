@@ -8,7 +8,9 @@ Release target: None. A version is assigned only when the project owner explicit
 
 Overall state: In Progress — unversioned product incubation; no active release contract
 
-Active task (main worktree): [`TASK-036`](../tasks/TASK-036-product-homepage-prototype.md) — 构建符合 Marla 产品定位的官网首页原型
+Active task (current branch): [`TASK-041`](../tasks/TASK-041-in-place-screenshot-translation.md) — 修复真实 GLM 原位结果把 Markdown 标题与整表源码按普通文本绘制的问题。
+
+TASK-041 已因项目所有者的真实固定 App 结果再次打开：Qwen-MT 块边界修复后的真实 GLM-OCR + 翻译已成功进入完成态，但 GLM 实际把标题、整张表和段落返回为 3 个 block，旧 overlay 把 `##` 标题和完整 GFM 表格当普通字符串绘制。现在普通 Markdown 会投影为可见文本，一个整表 block 会原子展开为原生单元格几何；31 项 Rust、208 项 Swift、统一检查、固定签名 Release App 和新三块 fixture 浅色/深色截图均通过，Task 只等待项目所有者在最新 App 上重复真实完成态。
 
 TASK-036 官网首页原型于 2026-09-01 由项目所有者重新激活并在专用分支继续；项目所有者于 2026-09-02 明确授权将当前已验证基线合并到 `main` 并推送远端。独立 `website/` 工程使用 React、Vite、Geist、Lucide 和 GSAP ScrollTrigger，以 Paper Lantern 和真实原生 App 录屏解释 Marla 的原地翻译体验；旧实机截图、静态产品照片和网页伪动画均未作为产品证据。第一批桌面素材现有 5 个唯一 H.264 MP4：Hero/结构化 Markdown 两个 5:4 展示位按项目所有者决定复用同一份原地翻译素材，划词、截图、Quick Input 和快捷键各使用独立录屏。网页已删除全部 WebP poster 和背景图回退，所有产品展示位只加载视频。普通动态模式下所有已挂载视频从加载后持续静音循环，不再因视口可见比例自动暂停；Hero 在滚动时保持原尺寸。三入口仍只挂载当前选中的 7:5 视频，视频框不经过透明隐藏，切换后新视频立即播放。播放控制位于视频外侧的 42px 工具条，用户手动暂停会保持；Hero 优先预载，其余视频只预载 metadata。Markdown 与快捷键卡片不使用文案或绝对定位覆盖画面，Reduce Motion 默认停在视频起始位置且允许用户主动播放。三个入口的 1:1 移动端视频仍待补充，期间移动布局按原始 7:5 比例完整显示桌面素材而不强裁关键内容。4K/60fps 母版保留在 Git 忽略的本地目录，网页成品统一进入 `website/public/media/`。本轮 `npm run lint`、`npm run build`、`git diff --check`、仓库级 `./scripts/check.sh` 和真实浏览器回归通过：滚到页面底部后 4 个已挂载视频仍全部播放并持续推进；截图入口视频跨过 9.27 秒片尾后继续循环；Hero 滚动前后保持 1080px 与 1:1 transform；切换入口、手动控制和 Reduce Motion 行为正常，控制台无 warning/error。原生 App、发布版本、下载承诺、定价、用户量和未经验证的隐私/合作声明均未改变或新增。
 
@@ -52,7 +54,7 @@ Blocked tasks: None.
 
 ## Current objective
 
-当前 Active implementation Task 为 TASK-036，由项目所有者从直接请求明确选择。官网原型必须与原生 App 隔离，并以当前产品定义、品牌边界和真实实现为准；旧 `0.1.0` 草案或 Roadmap 不提升额外范围。
+请项目所有者在最新固定 App 中重复 TASK-041 的真实 GLM 标题/整表/段落截图，确认标题语法不可见、GFM 表格成为原生单元格网格且没有旧文字拖影；通过后关闭 TASK-041 与 `RV-005`。TASK-036 官网工作继续留在其独立分支与历史记录中，不与本原生 App 分支共享写入范围。
 
 TASK-023 已完成整体代码审查、自动化验证与固定 Release 测试 App 交付：Rust 翻译与模型列表取消从 10ms 轮询改为事件驱动唤醒，SSE 单个未完成帧增加 1 MiB 内存上限，严格 Clippy 与 shell 语法检查纳入统一验证，5 个公开 unsafe FFI 函数补齐安全合同；`artifacts/Marla_dev.app` 已重建并通过稳定签名验证。
 
@@ -62,14 +64,15 @@ TASK-021 已完成：结果卡支持 380–760pt 横向调整，流式译文在�
 
 ## Current implemented baseline
 
-- Native SwiftUI/AppKit menu-bar application with selection translation, screenshot translation, and quick input.
+- Native SwiftUI/AppKit menu-bar application with selection translation, screenshot translation, independent in-place translation, and quick input.
 - Nearby result card with streaming, comparison, copy, retry, system speech, pinning, cancellation, target switching, and actionable error states.
 - Result cards start at a compact 380pt width and content-driven height, resize horizontally up to 760pt or the visible-workspace limit, reflow height with streamed wrapping while keeping their anchored edge stable, and cap at 60% of the visible workspace before scrolling translation content internally. TASK-034 adds persistent narrow/medium/wide presets (380/520/680pt) through a compact hover control in the result-card action row.
 - Production selection content comes only from one protected simulated-Copy transaction bound to the trigger-time frontmost application. It snapshots every readable Pasteboard representation, accepts only the new Copy result, restores and verifies the original snapshot on every controlled exit, refuses to overwrite a newer external write, rejects focus changes, and reports only redacted lifecycle evidence.
 - Accessibility remains the permission and optional non-content positioning substrate. Its standard range, Web Text Marker, bounded graph, identity, and geometry helpers are not allowed to provide or fall back to translation content.
 - Selection translation always uses the complete nearby result card; the rejected single-line source-covering and pointer-estimate prototype has been removed together with its setting and runtime path.
 - Pre-selection full-display ScreenCaptureKit freezing with Marla-window exclusion and same-frame cross-display selection/loupe/crop composition. Vision remains default, local and plain-text; selected GLM-OCR uses one Keychain Key, memory-only bounded encoding, a fixed cloud contract, visible waiting/fallback state and canonical semantic Markdown.
-- Embedded Rust static library with C ABI v4, translation request schema v3, OCR request schema v1, shared async runtime, generic OpenAI-compatible SSE, Qwen-MT and GLM-OCR adapters, timeouts, cancellation, structure normalization and stale-event isolation.
+- The independent in-place entry immediately presents the frozen crop in a same-frame nonactivating AppKit overlay, then updates that same panel through GLM recognition, one complete stable-ID layout translation request, native self-drawn translated text, or failure. Reliable text regions are restored in one continuous bitmap before drawing; an unreliable block keeps its frozen source pixels while other reliable blocks continue. Missing geometry for every block, invalid IDs or protected payloads, and rendering failure remain visible in the same overlay. Ordinary screenshot translation always uses the nearby result card, including when GLM-OCR is its selected Provider; Vision never synthesizes layout.
+- Embedded Rust static library with C ABI v4, translation request schema v4, OCR request schema v1, shared async runtime, generic OpenAI-compatible SSE, Qwen-MT and GLM-OCR adapters, timeouts, cancellation, structure normalization and stale-event isolation. Ordinary translation callers omit the optional `inPlaceBlocks` field and retain the prior request semantics.
 - Grouped Settings, Carbon shortcuts, Keychain credential storage, permission guidance, light/dark appearance, Reduce Motion, and verified test-app packaging.
 - Xcode SwiftUI previews for the main menu, Settings, translation-card states, and quick input, with preview-safe fixtures that avoid system integrations.
 - Menu setup status that automatically yields to three bounded in-memory recent translations once API, Accessibility, and Screen Recording are ready; selecting a recent result performs no network request and quitting clears the list.
@@ -86,20 +89,20 @@ TASK-021 已完成：结果卡支持 380–760pt 横向调整，流式译文在�
 - Paper Lantern is the selected Marla brand mark and product metaphor: “a little light beside the reader.” The canonical SVG and reference PNG exports live under `Resources/Brand/PaperLantern/`; the 10-slot macOS AppIcon catalog is compiled into Debug and Release builds. The menu-bar identity item uses a separate 18pt monochrome Paper Lantern template; the MenuBarExtra panel header uses a 33.6pt full-color rendition while its text group has a 14pt upward optical correction that makes the approximately 24pt top inset 1.5 times the 16pt leading inset; selection/screenshot result-card headers use a 24pt full-color identity mark and 17pt title. Quick Input and all functional controls continue to use SF Symbols.
 - Quick Input preserves complete semantic Markdown through the Provider and session. Awaiting remains raw; from the first non-empty streaming delta, Markdown uses the same native heading/list/quote/code/link/table projection and TextKit height semantics as completion. Copy and request-changing actions retain the canonical string, while plain-text sessions and failed partial output remain unrendered. TASK-039 adds clearer list hierarchy, one rounded GFM table outline, and refined fenced/inline code styling without changing canonical content; the fixed-App result was accepted on 2026-09-02.
 
-Latest integrated implementation baseline: TASK-038 API profile reorder continuity plus TASK-039 native Markdown presentation polish on the unversioned incubation baseline; exact implementation and merge identifiers are recorded by Git history.
+Latest verified implementation on this branch: TASK-041 geometry-aware screenshot in-place translation plus the Markdown/GFM native projection fix over the integrated TASK-038/TASK-039 unversioned incubation baseline. The project owner authorized a snapshot commit and remote push on 2026-09-04; TASK-041 remains Active pending the latest fixed-App network retest and is not described as merged or complete.
 
 ## Development evidence gaps
 
 - TASK-035 已验证 Fn/Globe 的 AppKit flag、Carbon mask、显示、校验和回滚路径；实体 Fn + 主键能否从其它应用触发仍依赖具体键盘固件与 macOS Globe 键设置，因此不声明为通用现场通过。
 - Real Japanese, Korean, Chinese, and English screenshot OCR plus source-language routing do not yet have final fixed development-App verification after the TASK-022 Vision repair.
 - `docs/versions/0.1.0/ACCEPTANCE.md` 已随未发布草案撤回；其中未勾选项保留历史语境，但不是当前孵化期阻塞。
-- TASK-033 的 mock Provider、固定 Release UI 与错误/回退路径已经验证；真实 GLM-OCR 成功调用作为 `RV-005` 保留，需项目所有者在 SecureField 中自行输入 Key 后完成，Agent 不读取、输入、输出或记录该凭据。
+- TASK-033 的 OCR mock、固定 Release UI 与错误/回退路径，以及 TASK-041 的合成原位覆盖窗口均已验证。项目所有者真实 GLM-OCR + Qwen-MT 已成功到达中文完成态并暴露 Markdown 源码直绘；最新 renderer 的同一路径复测继续由 `RV-005` 跟踪，Agent 不读取、输入、输出或记录凭据。
 
 ## Next selectable work
 
-TASK-036 remains the only Active implementation Task. After it is completed or explicitly paused, the next implementation or verification Task must be selected explicitly by the project owner from a direct request, Ideas, Backlog, or a current evidence gap; the withdrawn `0.1.0` checklist does not determine the queue.
+TASK-041 is the only Active implementation Task on this isolated native-App branch and is waiting for the project owner's latest fixed-App GLM completion retest. TASK-036 remains active only in its separately arranged homepage branch.
 
-当前验证队列只有 `RV-005`。RV-001～004 已关闭并只作为 `VERIFICATION.md` 中的基线证据保留，不是可选工作。
+当前验证队列只有 `RV-005`，现已从“Provider 是否能成功”缩小为“最新 Markdown/GFM renderer 是否在同一真实网络完成态正确显示”。RV-001～004 已关闭并只作为 `VERIFICATION.md` 中的基线证据保留。
 
 ## Current risks
 

@@ -24,11 +24,13 @@ Transient translation surfaces should use non-activating AppKit panels where pra
 
 ## Prefer reversible overlays
 
-Marla never mutates or visually covers source content. Selection translation uses a nearby anchored card with honest pointer fallback when exact geometry is unavailable.
+Marla never mutates source content. Selection and ordinary screenshot translation use a nearby anchored card with honest pointer fallback when exact geometry is unavailable. The independent in-place translation entry temporarily covers only its own captured rectangle: the frozen pixels appear immediately after capture, and the same nonactivating surface owns recognition, translation, completion and failure. Reliable GLM-OCR glyph regions are restored from their row-wise neighboring pixels before block-keyed translations are drawn at those coordinates. The window must remain visibly dismissible and memory-only; closing it reveals the untouched source application beneath it.
 
 ## Degrade honestly
 
-When exact line geometry is unavailable, present a nearby translation panel. Do not pretend an imprecise overlay is exact.
+For selection and ordinary screenshot translation, present a nearby translation panel when exact line geometry is unavailable. Do not pretend an imprecise overlay is exact.
+
+Inside independent screenshot reconstruction, Provider ID mismatch, no reliable positioned block or rendering failure keeps the frozen screenshot in the same overlay and changes its compact status to the specific failure. It does not open a nearby result card. A complete validated block translation may still contain individual OCR regions with missing bounds, severe overlap, unreadable fit or complex background; those regions keep their frozen source pixels while reliable blocks render in place. Never estimate Vision layout, invent coordinates or draw a rejected block approximately.
 
 ## Keep privacy visible
 

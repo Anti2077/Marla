@@ -30,6 +30,7 @@ enum OCRActivity: Equatable {
     case vision
     case glmOCR
     case visionFallback
+    case inPlaceTranslation
 }
 
 extension TranslationSurface {
@@ -96,9 +97,11 @@ struct CardSession: Identifiable, Equatable {
             switch ocrActivity {
             case .glmOCR: "正在解析结构"
             case .visionFallback: "正在改用 Vision"
+            case .inPlaceTranslation: "正在生成原位译文"
             case .vision, nil: "正在识别"
             }
-        case .awaitingFirstToken: "等待译文"
+        case .awaitingFirstToken:
+            ocrActivity == .inPlaceTranslation ? "正在生成原位译文" : "等待译文"
         case .streaming: "翻译中"
         case .completed: "已完成"
         case .failed: "需要处理"
@@ -247,6 +250,60 @@ final class TranslationSessionStore: ObservableObject {
         session?.sourceContent = result.content
         session?.detectedSourceLanguage = sourceLanguageDetector(text)
         startRequest(for: id)
+    }
+
+    func prepareInPlaceTranslation(
+        _ result: OCRResult,
+        for id: UUID
+    ) -> InPlaceTranslationConfiguration? {
+        guard var current = session, current.id == id else { return nil }
+        let text = result.content.text
+        guard !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            fail(
+                "没有识别到文字，请重新框选更清晰的区域。",
+                code: .invalidResponse,
+                for: id,
+                recovery: .reselectScreenshot
+            )
+            return nil
+        }
+        guard let profile = settings.profile(id: current.profileID),
+              let endpoint = settings.endpoint(for: profile.id) else {
+            fail(
+                "请先在设置中配置翻译 API。",
+                code: .invalidConfiguration,
+                for: id,
+                recovery: .openSettings
+            )
+            return nil
+        }
+        current.sourceContent = result.content
+        current.detectedSourceLanguage = sourceLanguageDetector(text)
+        current.state = .awaitingFirstToken
+        current.ocrActivity = .inPlaceTranslation
+        current.profileID = profile.id
+        current.profileName = profile.name
+        current.errorCode = nil
+        current.errorRetryable = false
+        current.recoveryAction = nil
+        session = current
+        return InPlaceTranslationConfiguration(
+            sourceContent: current.sourceContent,
+            sourceLanguage: current.resolvedSourceLanguage,
+            target: .explicit(current.resolvedTargetLanguage),
+            endpoint: endpoint
+        )
+    }
+
+    func completeInPlaceTranslation(for id: UUID) {
+        guard var current = session, current.id == id else { return }
+        ocrTask = nil
+        current.state = .completed
+        current.ocrActivity = nil
+        current.errorCode = nil
+        current.errorRetryable = false
+        current.recoveryAction = nil
+        session = current
     }
 
     func installUIAutomationFixture(
@@ -434,6 +491,9 @@ final class TranslationSessionStore: ObservableObject {
         if current.state.isTerminal {
             handle?.release()
             handle = nil
+        }
+        if event.type == "delta" || event.type == "completed" {
+            current.ocrActivity = nil
         }
         session = current
         recordRecentTranslationIfEligible(current)

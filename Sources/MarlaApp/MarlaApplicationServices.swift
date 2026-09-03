@@ -13,6 +13,8 @@ final class MarlaApplicationServices {
     let screenshotCoordinator: ScreenshotCaptureCoordinator
     let visionOCR: VisionOCRService
     let glmOCR: GLMOCRService
+    let inPlaceTranslation: InPlaceTranslationService
+    let screenshotTranslationOverlay: ScreenshotTranslationOverlayCoordinator
     let shortcutManager: GlobalShortcutManager
     let settingsWindowCoordinator: MarlaSettingsWindowCoordinator
 
@@ -27,6 +29,8 @@ final class MarlaApplicationServices {
         screenshotCoordinator = ScreenshotCaptureCoordinator()
         visionOCR = VisionOCRService()
         glmOCR = GLMOCRService()
+        inPlaceTranslation = InPlaceTranslationService()
+        screenshotTranslationOverlay = ScreenshotTranslationOverlayCoordinator()
         shortcutManager = GlobalShortcutManager(registerHotKeys: installsInteractiveMonitors)
         settingsWindowCoordinator = MarlaSettingsWindowCoordinator()
     }

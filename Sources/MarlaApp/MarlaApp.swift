@@ -237,6 +237,13 @@ struct MenuBarView: View {
                     model.translateScreenshot()
                 }
                 EntryButton(
+                    title: "原位翻译",
+                    shortcut: shortcuts.bindings[.inPlace]?.displayName ?? "⌃⇧I",
+                    symbol: GlobalShortcutAction.inPlace.symbolName
+                ) {
+                    model.translateInPlace()
+                }
+                EntryButton(
                     title: "快速输入",
                     shortcut: shortcuts.bindings[.quickInput]?.displayName ?? "⌃⇧Space",
                     symbol: "keyboard"

@@ -2,7 +2,7 @@
 
 ## Status
 
-Current incubation architecture accepted. The 2026-08-17 reopened TASK-028 completed streaming native Markdown projection and unified TextKit height measurement. No public release target is currently assigned.
+Current incubation architecture accepted. The 2026-08-17 reopened TASK-028 completed streaming native Markdown projection and unified TextKit height measurement. TASK-041 implements the bounded GLM-only screenshot reconstruction branch, including the Qwen-MT User-only boundary adapter; real credential acceptance remains tracked separately as `RV-005`. No public release target is currently assigned.
 
 ## Platform
 
@@ -24,7 +24,13 @@ Trigger Provider
   -> OCR Provider when required
   -> Translation Provider
   -> Translation Session
-  -> Overlay Presenter
+  -> Nearby Result Presenter
+
+Independent in-place translation branch:
+Screen Capture + globalRect + canonical OCRDocument
+  -> Whole-block Layout Translation
+  -> Strict ID / payload validation
+  -> AppKit In-place Overlay Presenter
 ```
 
 Platform acquisition and presentation nodes run in Swift/AppKit. Provider orchestration, normalized processing, context classification, caching, and translation-session logic move through the Rust core. Swift-facing models remain at the bridge boundary until their Rust equivalents and ABI contracts are implemented.
@@ -46,7 +52,7 @@ The bridge is in-process. Marla does not start a localhost backend or a separate
 
 ### Trigger providers
 
-The default global shortcuts are `⌃⇧D` for selection, `⌃⇧S` for screenshot, and `⌃⇧Space` for quick input. All are configurable. Selection translation has no pressure-event or source-covering experimental path.
+The default global shortcuts are `⌃⇧D` for selection, `⌃⇧S` for ordinary screenshot translation, `⌃⇧I` for independent in-place translation, and `⌃⇧Space` for quick input. All are configurable. Selection translation has no pressure-event or source-covering experimental path.
 
 ### Selection reader
 
@@ -62,13 +68,17 @@ Quick Input invokes this boundary from its native Paste command and inserts the 
 
 ### Screenshot capture
 
-Uses ScreenCaptureKit to capture every active display before presenting selection windows. The AppKit selection layer, loupe, and final crop all use those session-only frozen frames; confirmation composites the cross-display crop without a second live capture. Full-display frames are released when selection finishes. The selected crop enters Vision locally by default. When the user explicitly selects GLM-OCR, Swift encodes the crop in memory as PNG or bounded JPEG (9.5 MB safety cap below the Provider's 10 MB limit), transfers only request bytes across the in-process FFI, and releases crop/encoding/response references when OCR completes, is cancelled, or is replaced. Marla does not persist screenshots or active layout blocks.
+Uses ScreenCaptureKit to capture every active display before presenting selection windows. The AppKit selection layer, loupe, and final crop all use those session-only frozen frames; confirmation composites the cross-display crop without a second live capture. Full-display frames are released when selection finishes. Ordinary screenshot translation enters Vision locally by default and may use the explicitly configured GLM-OCR Provider while retaining nearby-card presentation. The independent in-place entry always uses GLM-OCR. Swift encodes only an explicitly triggered GLM crop in memory as PNG or bounded JPEG (9.5 MB safety cap below the Provider's 10 MB limit), transfers only request bytes across the in-process FFI, and releases crop/encoding/response references when OCR completes, is cancelled, or is replaced. Marla does not persist screenshots or active layout blocks.
+
+The independent in-place entry uses a narrower implemented lifetime: Swift creates the overlay from the selected crop and its `globalRect` immediately after capture, then adds the normalized `OCRDocument` and translated blocks to that same activity-scoped context as results arrive. Encoded upload bytes and raw Provider response do not survive OCR normalization. Ordinary screenshot translation, Vision and GLM-to-Vision fallback never create an in-place context. The screenshot, geometry, restored composite, render plan and translated blocks remain memory-only and are released together at the terminal session boundary.
 
 ### OCR provider
 
 OCR Settings persists a Provider choice with Vision as the default. Vision enables automatic language detection, limits explicit candidates to the seven product-language identifiers supported by the current runtime, and normalizes recognized lines into stable `plainText` blocks and reading order.
 
-The owner-authorized TASK-033 adds cloud GLM-OCR through the fixed official `layout_parsing` endpoint and `glm-ocr` model. Swift owns the explicit upload disclosure, Keychain credential, image encoding and lifecycle. Rust owns HTTP, timeout/cancellation, response parsing, block-label mapping, coordinate normalization, safe literal-table conversion and deterministic `semanticMarkdown` reconstruction. `layout_details` is canonical; Provider `md_results` is not accepted as lossless source because it may alter URLs, code, commands, variables and placeholders. A missing saved GLM Key stops before upload and opens OCR Settings. Network, timeout, rate-limit, authorization, encoding, Provider and invalid-response failures visibly fall back to Vision; user cancellation never does.
+The owner-authorized TASK-033 adds cloud GLM-OCR through the fixed official `layout_parsing` endpoint and `glm-ocr` model. Swift owns the explicit upload disclosure, Keychain credential, image encoding and lifecycle. Rust owns HTTP, timeout/cancellation, response parsing, block-label mapping, coordinate normalization, safe literal-table conversion and deterministic `semanticMarkdown` reconstruction. `layout_details` is canonical; Provider `md_results` is not accepted as lossless source because it may alter URLs, code, commands, variables and placeholders. A missing saved GLM Key stops before upload. Network, timeout, rate-limit, authorization, encoding, Provider and invalid-response failures in ordinary screenshot translation visibly fall back to Vision; user cancellation never does. The independent in-place intent keeps those failures in its already-present overlay and never starts Vision.
+
+Only a GLM result produced by the independent in-place entry with at least one canonical block having usable, in-range normalized bounds is eligible for translated overlay drawing. A successful GLM result from ordinary screenshot translation still uses the nearby card. Absent confidence remains unknown and cannot be presented as measured certainty. Vision remains the default local plain-text path for ordinary screenshots. GLM request/contract failures and layouts with no reliable block in the independent intent retain the frozen crop and a compact failure status in the same overlay.
 
 ### Context engine
 
@@ -78,11 +88,19 @@ The accepted future engine may build bounded context only when translation is tr
 
 The current implementation exposes multiple named OpenAI-compatible Chat Completions streaming profiles, with an ordered enabled subset, one enabled default for new sessions when available, and explicit switching among enabled profiles on result cards. Each profile supplies a URL mode, address, model, optional API Key, and persisted enabled state. Base URL mode appends `/chat/completions`; Complete URL mode preserves the supplied request URL. Rust also derives and requests the standard `/models` endpoint for the current URL mode, returning provider-independent model IDs through the versioned asynchronous C ABI. Swift persists non-sensitive profile data and enabled/order/default invariants in preferences, while all profile credentials use independent logical entries inside one versioned Keychain vault item. The vault is loaded after application launch and cached for the process so translation and profile switching perform no Keychain lookup. Model discovery and connection testing receive the current non-empty editor key draft before falling back to the cached profile credential. Rust owns URL resolution, model discovery, request prompting, SSE parsing, timeouts, explicit retry, cancellation, and normalized events. No default vendor or automatic fallback is selected.
 
-Swift also persists one global native language and a different secondary language from the `zh-Hans`/`en`/`ja`/`fr`/`es`/`de`/`ko` product set. For each explicitly triggered source, Swift uses macOS Natural Language locally, snapshots the detected/overridden source plus preferences into the card, resolves automatic target routing, and sends JSON request schema v3 with `sourceContent`, optional source language, and explicit target. Quick Input and GLM-OCR submit `semanticMarkdown`; selection does so only when protected-Copy representation evidence survives normalization; Vision always uses `plainText`. Rust validates the content format and language codes, then uses Provider capabilities to choose System/User roles, prompt versus `translation_options` language instructions, and delta versus cumulative stream normalization. An unknown source uses Provider source detection but still has an explicit native-language target; detection text, identifier, and confidence are not persisted.
+Swift also persists one global native language and a different secondary language from the `zh-Hans`/`en`/`ja`/`fr`/`es`/`de`/`ko` product set. For each explicitly triggered source, Swift uses macOS Natural Language locally, snapshots the detected/overridden source plus preferences into the card, resolves automatic target routing, and sends JSON request schema v4 with `sourceContent`, optional source language, explicit target and optional `inPlaceBlocks`. Quick Input and ordinary translation omit `inPlaceBlocks`; Quick Input and GLM-OCR submit `semanticMarkdown`, selection does so only when protected-Copy representation evidence survives normalization, and Vision always uses `plainText`. Rust validates the content format and language codes, then uses Provider capabilities to choose System/User roles, prompt versus `translation_options` language instructions, and delta versus cumulative stream normalization. An unknown source uses Provider source detection but still has an explicit native-language target; detection text, identifier, and confidence are not persisted.
+
+Schema v4 adds optional `inPlaceBlocks` to the shared translation envelope while leaving ordinary requests with that field absent. This is a distinct layout-translation semantic contract, not a change that makes `semanticMarkdown` one-to-one. One in-place request carries the complete ordered GLM block set with stable IDs, allowlisted kinds and source text so document, sentence and table context stays available. Rust owns the layout-specific prompt, Provider adaptation and strict validation of the response schema, exact ID set, duplicate/unknown/missing IDs, empty target values and protected payloads. Generic System+User models receive the strict JSON contract directly. Qwen-MT receives one instruction-free User Message containing the complete source set inside exact request-scoped block boundaries; after cumulative streaming, Rust restores canonical source IDs and applies the same strict validation. The validated result contains no Provider-authored bounds and cannot mutate source geometry. Any current contract failure stops translated drawing and updates the existing overlay failure state; stale results are ignored.
 
 ### Presentation
 
-Selection and screenshot translation use the same nearby non-activating result card in the current implementation. The source-covering and pointer-estimate single-line experiment was rejected after real use and removed; live-image rewriting is not part of the current architecture. Quick input uses an activatable version of the same surface near the pointer.
+Selection and ordinary screenshot translation use the same nearby non-activating result card, whether ordinary screenshots use Vision or GLM-OCR. The independent in-place entry always uses the bounded overlay described below once capture succeeds. The source-covering and pointer-estimate single-line selection experiment was rejected after real use and remains removed; live-image rewriting is not part of the current architecture. Quick input uses an activatable version of the nearby surface near the pointer.
+
+TASK-041 does not restore that rejected selection-text experiment. Its independent entry accepts only an explicitly captured, frozen GLM screenshot; ordinary screenshot translation never routes into this presenter. A dedicated Swift/AppKit coordinator immediately creates and owns the activity context, borderless non-activating window, window level/frame, multi-display global-coordinate mapping, request-ID guarded stages, close/Escape behavior and native rendering view. The window frame equals the original `globalRect`; the frozen crop is its background. After validation, the existing native Markdown parser projects headings, lists and inline syntax to visible text. A GLM `.table` block containing exactly one valid GFM table becomes a set of native cells under the same source ID, with measured square-root-weighted columns, wrapped row heights, shared fitted typography and explicit cell alignment. Literal heading markers, pipes and delimiter rows never enter drawing. Rust never receives or owns AppKit objects.
+
+The Provider result still passes complete schema, ID-set and protected-payload validation before translated drawing. Swift then applies bounds, overlap, background-restoration and text-fit checks per source block: reliable blocks enter the render plan, while a rejected block keeps its frozen source pixels. Ordinary blocks use same-row background interpolation. Table cells are accepted, restored and counted atomically; each table row receives one robust sampled background across its cells before a single AppKit view draws cell text and grid lines. If one table cell fails fit/background/overlap checks, the complete source table stays frozen, never a partial table. Invalid Provider output, no reliable block or render failure updates the compact status inside the same overlay; no nearby card is created. The first slice preserves reliable document structure and location, but does not claim the source application's exact font, control semantics, material, gradient or pixel-identical appearance.
+
+The overlay remains reversible and does not activate merely by appearing. A discoverable close control, VoiceOver summary/close action, `Esc`, new capture, explicit cancellation, source-session replacement and App termination all cancel owned network work, close the window and release activity data. Reduce Motion removes the progress animation; contrast remains readable in the compact state and direct text drawing. The normal result card remains the only presentation for selection, Quick Input, Vision and ordinary GLM screenshot sessions.
 
 TASK-028 requires presentation to treat formatted content and its display as separate layers. The translation session retains the complete Provider-returned string and its `plainText` or `semanticMarkdown` format as canonical content. Copy, retry, source/target changes, API-profile switching, and in-memory recent restoration read that canonical content, never a rendered projection. Awaiting remains raw. From the first non-empty streaming delta, `semanticMarkdown` attempts the same safe SwiftUI/AppKit-native read-only projection used in `completed`; a temporarily incomplete or unparseable fragment falls back to its current raw characters without changing canonical content. Dense updates are coalesced on a bounded interval of approximately 40ms, avoiding a full attributed-document rebuild and window animation for every character. `plainText`, failed partial output, and cancelled sessions keep the existing plain presentation. The projection uses no WebView, executes no HTML or scripts, and loads no remote resources. A persistent incremental Markdown AST remains outside the current architecture slice.
 
@@ -98,17 +116,17 @@ The primary copy action reads canonical Markdown and removes only terminal non-s
 idle
   -> acquiring
   -> recognizing (Vision / GLM structure / visible Vision fallback)
-  -> awaitingFirstToken
-  -> streaming
-  -> completed / failed / cancelled
+  -> nearby translation: awaitingFirstToken -> streaming -> completed
+  -> independent in-place entry: overlayRecognizing -> overlayTranslating -> validating -> overlayTranslated
+  -> overlayFailed / cancelled
 ```
 
-Cancellation propagates to OCR and translation network work. A translation failure must not discard successfully recognized source content.
+Cancellation propagates to OCR, ordinary translation and TASK-041 layout-translation network work. An in-place translation or render failure keeps its frozen source visible until the user closes or replaces the overlay. Stale request IDs and superseded activity contexts cannot update, present or replace a newer session.
 
 ## Storage
 
 - translation and GLM-OCR API credentials: independent logical entries in one versioned Keychain vault
-- screenshots: memory-only by default
+- screenshots, screenshot geometry, masks, translated layout blocks and overlay render plans: activity-scoped memory only; TASK-041 retains an eligible frozen crop only until its overlay session ends
 - contextual window cache: disabled in the current implementation
 - persistent history: not present in the current implementation
 - durable terminology: explicit user approval required

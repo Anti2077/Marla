@@ -38,7 +38,9 @@ enum ScreenshotBackgroundRestorer {
                 return RestorationCandidate(
                     block: block,
                     pixelRect: pixelRect,
-                    appearance: surface.appearance(around: pixelRect)
+                    appearance: block.tableCell == nil
+                        ? surface.appearance(around: pixelRect)
+                        : surface.tableAppearance(in: pixelRect)
                 )
             }
             guard candidates.allSatisfy({ $0.appearance.variation <= maximumVariation }) else { continue }
@@ -64,20 +66,20 @@ enum ScreenshotBackgroundRestorer {
         return RestoredScreenshot(
             image: restoredImage,
             blocks: accepted,
-            renderedSourceBlockCount: Set(accepted.map(\.block.id)).count
+            renderedSourceBlockCount: Set(accepted.flatMap(\.block.sourceIDs)).count
         )
     }
 
     private static func stableGroups(from blocks: [InPlaceOverlayBlock]) -> [[InPlaceOverlayBlock]] {
-        var orderedIDs: [String] = []
-        var grouped: [String: [InPlaceOverlayBlock]] = [:]
+        var orderedKeys: [[String]] = []
+        var grouped: [[String]: [InPlaceOverlayBlock]] = [:]
         for block in blocks {
-            if grouped[block.id] == nil {
-                orderedIDs.append(block.id)
+            if grouped[block.sourceGroupKey] == nil {
+                orderedKeys.append(block.sourceGroupKey)
             }
-            grouped[block.id, default: []].append(block)
+            grouped[block.sourceGroupKey, default: []].append(block)
         }
-        return orderedIDs.compactMap { grouped[$0] }
+        return orderedKeys.compactMap { grouped[$0] }
     }
 }
 
@@ -137,6 +139,53 @@ private final class PixelSurface {
         return ScreenshotBackgroundSampler.robustAppearance(colors: colors)
     }
 
+    func tableAppearance(in rect: CGRect) -> ScreenshotBackgroundAppearance {
+        // Renderer-derived cell edges can cross source glyphs. Use the original cell area,
+        // not those edges, and require a dominant background throughout all four quadrants.
+        let area = rect.insetBy(dx: min(2, rect.width / 8), dy: min(2, rect.height / 8))
+        let side = 24
+        var samples: [(pixel: PixelSample, quadrant: Int)] = []
+        for row in 0..<side {
+            for column in 0..<side {
+                // Stagger the lattice so ruled lines and checkerboards cannot alias to one color.
+                let fx = (Double(column) + 0.2 + Double(row % 3) * 0.25) / Double(side)
+                let fy = (Double(row) + 0.2 + Double(column % 3) * 0.25) / Double(side)
+                let x = Int(area.minX + area.width * CGFloat(fx))
+                let y = Int(area.minY + area.height * CGFloat(fy))
+                let pixel = originalRead(x: x, y: y)
+                samples.append((pixel, (row < side / 2 ? 0 : 2) + (column < side / 2 ? 0 : 1)))
+            }
+        }
+        var bins: [Int: [PixelSample]] = [:]
+        for sample in samples {
+            let red = Int(sample.pixel.red) / 16
+            let green = Int(sample.pixel.green) / 16
+            let blue = Int(sample.pixel.blue) / 16
+            bins[red * 256 + green * 16 + blue, default: []].append(sample.pixel)
+        }
+        let largestKey = bins.keys.sorted().max { bins[$0]!.count < bins[$1]!.count }
+        guard let largestKey, let dominant = PixelSample.median(bins[largestKey] ?? []) else {
+            return ScreenshotBackgroundAppearance(color: .windowBackgroundColor, textColor: .labelColor, variation: 1)
+        }
+        let support = samples.filter { $0.pixel.distance(to: dominant) <= 0.065 }
+        let coverage = Double(support.count) / Double(samples.count)
+        var quadrantCounts = [0, 0, 0, 0]
+        for sample in support { quadrantCounts[sample.quadrant] += 1 }
+        let quadrantSize = Double(side * side / 4)
+        let distributed = quadrantCounts.allSatisfy { count in
+            Double(count) / quadrantSize >= 0.45
+        }
+        let colors = support.map { sample in
+            NSColor(deviceRed: CGFloat(sample.pixel.red) / 255, green: CGFloat(sample.pixel.green) / 255,
+                    blue: CGFloat(sample.pixel.blue) / 255, alpha: 1)
+        }
+        let appearance = ScreenshotBackgroundSampler.robustAppearance(colors: colors)
+        return ScreenshotBackgroundAppearance(
+            color: appearance.color, textColor: appearance.textColor,
+            variation: coverage >= 0.62 && distributed ? appearance.variation : 1
+        )
+    }
+
     func eraseText(in rawRect: CGRect) {
         let expansion = max(4, min(12, Int((rawRect.height * 0.18).rounded())))
         let rawMinX = max(0, Int(floor(rawRect.minX)))
@@ -180,6 +229,7 @@ private final class PixelSurface {
     }
 
     func eraseTableCells(_ candidates: [ScreenshotBackgroundRestorer.RestorationCandidate]) {
+        let preservesSourceGrid = candidates.first?.block.tableCell?.preservesSourceGrid ?? true
         let rows = Dictionary(grouping: candidates) { $0.block.tableCell?.row ?? 0 }
         for row in rows.keys.sorted() {
             guard let candidates = rows[row] else { continue }
@@ -187,7 +237,11 @@ private final class PixelSurface {
                 colors: candidates.map(\.appearance.color)
             )
             for candidate in candidates {
-                fillInterior(of: candidate.pixelRect, color: rowAppearance.color)
+                fillInterior(
+                    of: candidate.pixelRect,
+                    color: rowAppearance.color,
+                    inset: preservesSourceGrid ? 2 : 0
+                )
             }
         }
     }
@@ -269,13 +323,13 @@ private final class PixelSurface {
         )
     }
 
-    private func fillInterior(of rawRect: CGRect, color: NSColor) {
+    private func fillInterior(of rawRect: CGRect, color: NSColor, inset: CGFloat) {
         guard let converted = color.usingColorSpace(.deviceRGB) else { return }
-        let inset = rawRect.insetBy(dx: 2, dy: 2)
-        let minX = max(0, Int(ceil(inset.minX)))
-        let maxX = min(width - 1, Int(floor(inset.maxX)))
-        let minY = max(0, Int(ceil(inset.minY)))
-        let maxY = min(height - 1, Int(floor(inset.maxY)))
+        let fillRect = rawRect.insetBy(dx: inset, dy: inset)
+        let minX = max(0, Int(ceil(fillRect.minX)))
+        let maxX = min(width - 1, Int(floor(fillRect.maxX)))
+        let minY = max(0, Int(ceil(fillRect.minY)))
+        let maxY = min(height - 1, Int(floor(fillRect.maxY)))
         guard minX <= maxX, minY <= maxY else { return }
         let sample = PixelSample(
             red: UInt8(clamping: Int((converted.redComponent * 255).rounded())),

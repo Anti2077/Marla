@@ -288,6 +288,40 @@ final class MarlaAppTests: XCTestCase {
     }
 
     @MainActor
+    func testInPlaceTranslationExperimentDefaultsOffAndPersists() {
+        let suite = "com.marla.tests.in-place-experiment.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suite)!
+        defaults.removePersistentDomain(forName: suite)
+        let keychain = KeychainCredentialStore(service: suite, account: UUID().uuidString)
+        let settings = MarlaSettingsStore(defaults: defaults, keychain: keychain)
+
+        XCTAssertFalse(settings.isInPlaceTranslationEnabled)
+        settings.isInPlaceTranslationEnabled = true
+
+        let restored = MarlaSettingsStore(defaults: defaults, keychain: keychain)
+        XCTAssertTrue(restored.isInPlaceTranslationEnabled)
+    }
+
+    @MainActor
+    func testDisabledInPlaceExperimentSuppressesShortcutWithoutChangingUserPreference() {
+        let suite = "com.marla.tests.in-place-shortcut.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suite)!
+        defaults.removePersistentDomain(forName: suite)
+        let manager = GlobalShortcutManager(registerHotKeys: false, defaults: defaults)
+        var dispatchedAction: GlobalShortcutAction?
+        manager.onAction = { dispatchedAction = $0 }
+
+        manager.setFeatureEnabled(false, for: .inPlace)
+        manager.handleHotKey(id: GlobalShortcutAction.inPlace.hotKeyID)
+        XCTAssertNil(dispatchedAction)
+        XCTAssertTrue(manager.isEnabled(.inPlace))
+
+        manager.setFeatureEnabled(true, for: .inPlace)
+        manager.handleHotKey(id: GlobalShortcutAction.inPlace.hotKeyID)
+        XCTAssertEqual(dispatchedAction, .inPlace)
+    }
+
+    @MainActor
     func testGLMOCRKeyUsesVaultBlankSaveDoesNotOverwriteAndRemoveIsExplicit() throws {
         let items = FakeKeychainItems()
         let keychain = KeychainCredentialStore(service: "com.marla.tests.glm-key", backend: items.backend)

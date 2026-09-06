@@ -188,6 +188,174 @@ final class InPlaceOverlayTests: XCTestCase {
         XCTAssertTrue(layout.blocks.allSatisfy { !$0.text.contains("---") })
     }
 
+    func testLayoutReassemblesSplitGLMTableFragmentsIntoOneNativeTable() throws {
+        let document = OCRDocument(blocks: [
+            ContentBlock(
+                id: "table-header",
+                kind: .paragraph,
+                sourceText: "| # | 功能 | 能为您带来什么 |",
+                bounds: NormalizedRect(x: 0.04, y: 0.18, width: 0.92, height: 0.08),
+                readingOrder: 0
+            ),
+            ContentBlock(
+                id: "table-delimiter",
+                kind: .paragraph,
+                sourceText: "| --- | --- | --- |",
+                bounds: NormalizedRect(x: 0.04, y: 0.27, width: 0.35, height: 0.05),
+                readingOrder: 1
+            ),
+            ContentBlock(
+                id: "table-body-a",
+                kind: .paragraph,
+                sourceText: "| 01 | 灵活的拓扑结构 | 本地或远程测试 |\n| 02 | 实时测量 | 带宽、RTT 和抖动 |",
+                bounds: NormalizedRect(x: 0.04, y: 0.33, width: 0.92, height: 0.18),
+                readingOrder: 2
+            ),
+            ContentBlock(
+                id: "table-body-b",
+                kind: .paragraph,
+                sourceText: "| 03 | 受控自动化 | 远程启动与清理 |\n| 04 | 跨平台工作流 | 原生凭据与双语界面 |",
+                bounds: NormalizedRect(x: 0.04, y: 0.52, width: 0.92, height: 0.18),
+                readingOrder: 3
+            )
+        ])
+        let translation = InPlaceTranslationResult(blocks: [
+            InPlaceTranslatedBlock(id: "table-header", text: "| # | Capability | What it gives you |"),
+            InPlaceTranslatedBlock(id: "table-delimiter", text: "| --- | --- | --- |"),
+            InPlaceTranslatedBlock(
+                id: "table-body-a",
+                text: "| 01 | Flexible topology | Local or remote tests |\n| 02 | Live measurements | Bandwidth, RTT, and jitter |"
+            ),
+            InPlaceTranslatedBlock(
+                id: "table-body-b",
+                text: "| 03 | Controlled automation | Remote startup and cleanup |\n| 04 | Cross-platform workflow | Native credentials and bilingual UI |"
+            )
+        ])
+
+        let layout = try InPlaceOverlayLayoutBuilder.make(
+            document: document,
+            translation: translation,
+            canvasSize: CGSize(width: 860, height: 520)
+        )
+
+        XCTAssertEqual(layout.blocks.count, 15)
+        XCTAssertEqual(layout.renderedSourceBlockCount, 4)
+        XCTAssertEqual(layout.omittedBlockCount, 0)
+        XCTAssertTrue(layout.blocks.allSatisfy { $0.tableCell != nil })
+        XCTAssertTrue(layout.blocks.allSatisfy { $0.sourceIDs == document.blocks.map(\.id) })
+        XCTAssertTrue(layout.blocks.allSatisfy { $0.tableCell?.preservesSourceGrid == false })
+        XCTAssertTrue(layout.blocks.allSatisfy { !$0.text.contains("|") && !$0.text.contains("---") })
+    }
+
+    func testLayoutNormalizesGLMLiteralHTMLTableBeforeNativeProjection() throws {
+        let source = """
+        <table><tr><th></th><th>Capability</th><th>What it gives you</th></tr><tr><td>01</td><td>Flexible topologies</td><td>Local-to-remote tests</td></tr><tr><td>02</td><td>Live measurements</td><td>Bandwidth, RTT, and jitter</td></tr><tr><td>03</td><td>Controlled automation</td><td>Remote startup and cleanup</td></tr><tr><td>04</td><td>Cross-platform workflow</td><td>Native credentials and bilingual UI</td></tr></table>
+        """
+        let translated = """
+        | | 能力 | 能为您带来什么 |
+        | --- | --- | --- |
+        | 01 | 灵活的拓扑结构 | 本地到远程测试 |
+        | 02 | 实时测量 | 带宽、RTT 和抖动 |
+        | 03 | 受控自动化 | 远程启动与清理 |
+        | 04 | 跨平台工作流 | 原生凭据与双语界面 |
+        """
+        let document = OCRDocument(blocks: [
+            ContentBlock(
+                id: "glm-table",
+                kind: .table,
+                sourceText: source,
+                bounds: NormalizedRect(x: 0.02, y: 0.08, width: 0.96, height: 0.84),
+                readingOrder: 0
+            )
+        ])
+
+        let layout = try InPlaceOverlayLayoutBuilder.make(
+            document: document,
+            translation: InPlaceTranslationResult(blocks: [
+                InPlaceTranslatedBlock(id: "glm-table", text: translated)
+            ]),
+            canvasSize: CGSize(width: 900, height: 520)
+        )
+
+        XCTAssertEqual(layout.blocks.count, 15)
+        XCTAssertEqual(layout.renderedSourceBlockCount, 1)
+        XCTAssertEqual(layout.omittedBlockCount, 0)
+        XCTAssertTrue(layout.blocks.allSatisfy { $0.sourceIDs == ["glm-table"] })
+        XCTAssertTrue(layout.blocks.allSatisfy { $0.tableCell?.preservesSourceGrid == true })
+        XCTAssertTrue(layout.blocks.allSatisfy { !$0.text.contains("<table") && !$0.text.contains("|") })
+        XCTAssertEqual(
+            layout.blocks.first { $0.tableCell?.row == 1 && $0.tableCell?.column == 1 }?.text,
+            "灵活的拓扑结构"
+        )
+    }
+
+    func testLayoutFreezesMalformedTableSyntaxInsteadOfDrawingItAsParagraphText() throws {
+        let document = OCRDocument(blocks: [
+            ContentBlock(
+                id: "malformed-table",
+                kind: .paragraph,
+                sourceText: "| 功能 | 说明 |\n| --- | --- |\n| 快速 | 原位覆盖 |",
+                bounds: NormalizedRect(x: 0.05, y: 0.1, width: 0.9, height: 0.3),
+                readingOrder: 0
+            ),
+            ContentBlock(
+                id: "paragraph",
+                kind: .paragraph,
+                sourceText: "保持可见",
+                bounds: NormalizedRect(x: 0.05, y: 0.72, width: 0.9, height: 0.12),
+                readingOrder: 1
+            )
+        ])
+        let layout = try InPlaceOverlayLayoutBuilder.make(
+            document: document,
+            translation: InPlaceTranslationResult(blocks: [
+                InPlaceTranslatedBlock(
+                    id: "malformed-table",
+                    text: "| Capability | Description |\n| not a delimiter | --- |\n| Fast | In-place overlay |"
+                ),
+                InPlaceTranslatedBlock(id: "paragraph", text: "Remains visible")
+            ]),
+            canvasSize: CGSize(width: 640, height: 360)
+        )
+
+        XCTAssertEqual(layout.blocks.map(\.id), ["paragraph"])
+        XCTAssertEqual(layout.renderedSourceBlockCount, 1)
+        XCTAssertEqual(layout.omittedBlockCount, 1)
+        XCTAssertFalse(layout.blocks.contains { $0.text.contains("|") || $0.text.contains("---") })
+    }
+
+    func testLayoutFreezesDenseOrphanTableRowsAsOneUnsafeRun() throws {
+        let rows = (0..<4).map { row in
+            ContentBlock(
+                id: "row-\(row)",
+                kind: .paragraph,
+                sourceText: "| \(row) | 紧密行 | 说明 |",
+                bounds: NormalizedRect(x: 0.05, y: 0.2 + Double(row) * 0.055, width: 0.9, height: 0.05),
+                readingOrder: row
+            )
+        }
+        let paragraph = ContentBlock(
+            id: "safe",
+            kind: .paragraph,
+            sourceText: "安全段落",
+            bounds: NormalizedRect(x: 0.05, y: 0.72, width: 0.9, height: 0.12),
+            readingOrder: 4
+        )
+        let translation = InPlaceTranslationResult(blocks: (0..<4).map { row in
+            InPlaceTranslatedBlock(id: "row-\(row)", text: "| \(row) | Dense row | Description |")
+        } + [InPlaceTranslatedBlock(id: "safe", text: "Safe paragraph")])
+
+        let layout = try InPlaceOverlayLayoutBuilder.make(
+            document: OCRDocument(blocks: rows + [paragraph]),
+            translation: translation,
+            canvasSize: CGSize(width: 640, height: 360)
+        )
+
+        XCTAssertEqual(layout.blocks.map(\.id), ["safe"])
+        XCTAssertEqual(layout.renderedSourceBlockCount, 1)
+        XCTAssertEqual(layout.omittedBlockCount, 4)
+    }
+
     func testLayoutRejectsMalformedOrUnreadableTableAsOneSourceBlock() throws {
         let block = ContentBlock(
             id: "table",

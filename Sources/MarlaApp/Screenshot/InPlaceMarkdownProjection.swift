@@ -21,11 +21,28 @@ struct InPlaceOverlayTableCell: Equatable {
     let rowCount: Int
     let columnCount: Int
     let alignment: InPlaceOverlayTextAlignment
+    let preservesSourceGrid: Bool
+
+    init(
+        row: Int,
+        column: Int,
+        rowCount: Int,
+        columnCount: Int,
+        alignment: InPlaceOverlayTextAlignment,
+        preservesSourceGrid: Bool = true
+    ) {
+        self.row = row
+        self.column = column
+        self.rowCount = rowCount
+        self.columnCount = columnCount
+        self.alignment = alignment
+        self.preservesSourceGrid = preservesSourceGrid
+    }
 }
 
 struct InPlaceMarkdownTable: Equatable {
     let alignments: [InPlaceOverlayTextAlignment]
-    let rows: [[String]]
+    let rows: [[AttributedString]]
 }
 
 enum InPlaceMarkdownProjection {
@@ -59,11 +76,47 @@ enum InPlaceMarkdownProjection {
                 case .trailing: .trailing
                 }
             },
-            rows: table.rows.map { row in
-                row.map {
-                    String($0.characters).trimmingCharacters(in: .whitespacesAndNewlines)
-                }
-            }
+            rows: table.rows
         )
+    }
+
+    static func containsTableSyntax(_ markdown: String) -> Bool {
+        markdown
+            .split(separator: "\n", omittingEmptySubsequences: false)
+            .map { $0.trimmingCharacters(in: .whitespaces) }
+            .filter { !$0.isEmpty }
+            .contains(where: isTableRow)
+    }
+
+    private static func isTableRow(_ line: String) -> Bool {
+        var separatorCount = 0
+        var index = line.startIndex
+        var codeDelimiterLength: Int?
+        while index < line.endIndex {
+            let character = line[index]
+            if character == "\\" {
+                index = line.index(after: index)
+                if index < line.endIndex { index = line.index(after: index) }
+                continue
+            }
+            if character == "`" {
+                var runEnd = index
+                var runLength = 0
+                while runEnd < line.endIndex, line[runEnd] == "`" {
+                    runLength += 1
+                    runEnd = line.index(after: runEnd)
+                }
+                if let active = codeDelimiterLength {
+                    if active == runLength { codeDelimiterLength = nil }
+                } else {
+                    codeDelimiterLength = runLength
+                }
+                index = runEnd
+                continue
+            }
+            if character == "|", codeDelimiterLength == nil { separatorCount += 1 }
+            index = line.index(after: index)
+        }
+        return separatorCount >= 2 || (separatorCount == 1 && (line.hasPrefix("|") || line.hasSuffix("|")))
     }
 }

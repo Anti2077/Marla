@@ -59,6 +59,7 @@
 		A10000000000000000000036 /* OCR/CloudOCRImageEncoder.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000036 /* CloudOCRImageEncoder.swift */; };
 		A10000000000000000000037 /* OCR/GLMOCRService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000037 /* GLMOCRService.swift */; };
 		A10000000000000000000038 /* Settings/OCRSettingsSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000038 /* OCRSettingsSection.swift */; };
+		A10000000000000000000053 /* Settings/ExperimentalSettingsSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000053 /* ExperimentalSettingsSection.swift */; };
 		A10000000000000000000039 /* Settings/TranslationWindowPlacement.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000039 /* TranslationWindowPlacement.swift */; };
 		A10000000000000000000040 /* Settings/TranslationWindowWidthPreset.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000040 /* TranslationWindowWidthPreset.swift */; };
 		A10000000000000000000041 /* Panel/FloatingPanelEventRouting.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000041 /* FloatingPanelEventRouting.swift */; };
@@ -75,6 +76,10 @@
 		A1000000000000000000004C /* Screenshot/ScreenshotTranslationIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2000000000000000000004C /* ScreenshotTranslationIntent.swift */; };
 		A1000000000000000000004D /* Screenshot/ScreenshotBackgroundRestoration.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2000000000000000000004D /* ScreenshotBackgroundRestoration.swift */; };
 		A1000000000000000000004E /* Screenshot/InPlaceMarkdownProjection.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2000000000000000000004E /* InPlaceMarkdownProjection.swift */; };
+		A1000000000000000000004F /* Screenshot/InPlaceMarkdownAttributedText.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2000000000000000000004F /* InPlaceMarkdownAttributedText.swift */; };
+		A10000000000000000000050 /* Screenshot/InPlaceTableGrouping.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000050 /* InPlaceTableGrouping.swift */; };
+		A10000000000000000000051 /* Screenshot/InPlaceOverlayChrome.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000051 /* InPlaceOverlayChrome.swift */; };
+		A10000000000000000000052 /* Screenshot/InPlaceWindowContent.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000052 /* InPlaceWindowContent.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -157,9 +162,14 @@
 		A2000000000000000000004C /* ScreenshotTranslationIntent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreenshotTranslationIntent.swift; sourceTree = "<group>"; };
 		A2000000000000000000004D /* ScreenshotBackgroundRestoration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreenshotBackgroundRestoration.swift; sourceTree = "<group>"; };
 		A2000000000000000000004E /* InPlaceMarkdownProjection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InPlaceMarkdownProjection.swift; sourceTree = "<group>"; };
+		A2000000000000000000004F /* InPlaceMarkdownAttributedText.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InPlaceMarkdownAttributedText.swift; sourceTree = "<group>"; };
+		A20000000000000000000050 /* InPlaceTableGrouping.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InPlaceTableGrouping.swift; sourceTree = "<group>"; };
 		A2000000000000000000004B /* InPlaceOverlayUIAutomation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InPlaceOverlayUIAutomation.swift; sourceTree = "<group>"; };
 		A2000000000000000000000F /* libMarlaCore.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = libMarlaCore.a; sourceTree = BUILT_PRODUCTS_DIR; };
 		A20000000000000000000010 /* Marla.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Marla.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		A20000000000000000000051 /* InPlaceOverlayChrome.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InPlaceOverlayChrome.swift; sourceTree = "<group>"; };
+		A20000000000000000000052 /* InPlaceWindowContent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InPlaceWindowContent.swift; sourceTree = "<group>"; };
+		A20000000000000000000053 /* ExperimentalSettingsSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExperimentalSettingsSection.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -226,11 +236,11 @@
 		A70000000000000000000008 /* App */ = {isa = PBXGroup; children = (A20000000000000000000015 /* MarlaApplicationModel.swift */, A20000000000000000000034 /* ScreenshotTranslation.swift */, A2000000000000000000004B /* InPlaceOverlayUIAutomation.swift */, A20000000000000000000022 /* ResultPanelLayout.swift */, A2000000000000000000002B /* MarkdownResultUIAutomation.swift */, A20000000000000000000031 /* AcceptancePerformanceRecorder.swift */); path = App; sourceTree = "<group>"; };
 		A70000000000000000000009 /* Models */ = {isa = PBXGroup; children = (A20000000000000000000016 /* TranslationAPIProfile.swift */); path = Models; sourceTree = "<group>"; };
 		A7000000000000000000000A /* Persistence */ = {isa = PBXGroup; children = (A20000000000000000000017 /* KeychainCredentialStore.swift */, A20000000000000000000018 /* MarlaSettingsStore.swift */, A20000000000000000000035 /* OCRSettings.swift */); path = Persistence; sourceTree = "<group>"; };
-		A7000000000000000000000B /* Settings */ = {isa = PBXGroup; children = (A20000000000000000000019 /* SettingsWindow.swift */, A20000000000000000000026 /* SettingsShared.swift */, A20000000000000000000046 /* APIProfileReorder.swift */, A20000000000000000000027 /* SettingsEditor.swift */, A20000000000000000000028 /* SettingsSupport.swift */, A20000000000000000000043 /* ShortcutEditor.swift */, A20000000000000000000038 /* OCRSettingsSection.swift */, A20000000000000000000039 /* TranslationWindowPlacement.swift */, A20000000000000000000040 /* TranslationWindowWidthPreset.swift */); path = Settings; sourceTree = "<group>"; };
+		A7000000000000000000000B /* Settings */ = {isa = PBXGroup; children = (A20000000000000000000019 /* SettingsWindow.swift */, A20000000000000000000026 /* SettingsShared.swift */, A20000000000000000000046 /* APIProfileReorder.swift */, A20000000000000000000027 /* SettingsEditor.swift */, A20000000000000000000028 /* SettingsSupport.swift */, A20000000000000000000043 /* ShortcutEditor.swift */, A20000000000000000000038 /* OCRSettingsSection.swift */, A20000000000000000000039 /* TranslationWindowPlacement.swift */, A20000000000000000000040 /* TranslationWindowWidthPreset.swift */, A20000000000000000000053 /* ExperimentalSettingsSection.swift */); path = Settings; sourceTree = "<group>"; };
 		A7000000000000000000000C /* Sessions */ = {isa = PBXGroup; children = (A2000000000000000000001A /* TranslationSessionStore.swift */, A20000000000000000000024 /* QuickInputView.swift */, A2000000000000000000002D /* QuickInputMarkdownEditor.swift */); path = Sessions; sourceTree = "<group>"; };
 		A7000000000000000000000D /* Panel */ = {isa = PBXGroup; children = (A2000000000000000000001B /* FloatingPanel.swift */, A20000000000000000000041 /* FloatingPanelEventRouting.swift */, A20000000000000000000045 /* ResultPanelWindowGeometry.swift */, A20000000000000000000023 /* TranslationCardView.swift */, A2000000000000000000002A /* MarkdownResultText.swift */, A2000000000000000000002E /* MarkdownResultSelectableText.swift */, A2000000000000000000002F /* StreamingMarkdownProjection.swift */); path = Panel; sourceTree = "<group>"; };
 		A7000000000000000000000E /* Shortcuts */ = {isa = PBXGroup; children = (A2000000000000000000001C /* GlobalShortcuts.swift */, A20000000000000000000042 /* ShortcutModifier.swift */); path = Shortcuts; sourceTree = "<group>"; };
-		A7000000000000000000000F /* Screenshot */ = {isa = PBXGroup; children = (A2000000000000000000001D /* ScreenshotCapture.swift */, A2000000000000000000001E /* ScreenshotSelection.swift */, A2000000000000000000004C /* ScreenshotTranslationIntent.swift */, A20000000000000000000048 /* InPlaceTranslationService.swift */, A20000000000000000000049 /* InPlaceOverlayLayout.swift */, A2000000000000000000004E /* InPlaceMarkdownProjection.swift */, A2000000000000000000004D /* ScreenshotBackgroundRestoration.swift */, A2000000000000000000004A /* ScreenshotTranslationOverlay.swift */); path = Screenshot; sourceTree = "<group>"; };
+		A7000000000000000000000F /* Screenshot */ = {isa = PBXGroup; children = (A2000000000000000000001D /* ScreenshotCapture.swift */, A2000000000000000000001E /* ScreenshotSelection.swift */, A2000000000000000000004C /* ScreenshotTranslationIntent.swift */, A20000000000000000000048 /* InPlaceTranslationService.swift */, A20000000000000000000049 /* InPlaceOverlayLayout.swift */, A2000000000000000000004E /* InPlaceMarkdownProjection.swift */, A2000000000000000000004F /* InPlaceMarkdownAttributedText.swift */, A20000000000000000000050 /* InPlaceTableGrouping.swift */, A20000000000000000000052 /* InPlaceWindowContent.swift */, A20000000000000000000051 /* InPlaceOverlayChrome.swift */, A2000000000000000000004D /* ScreenshotBackgroundRestoration.swift */, A2000000000000000000004A /* ScreenshotTranslationOverlay.swift */); path = Screenshot; sourceTree = "<group>"; };
 		A70000000000000000000010 /* OCR */ = {isa = PBXGroup; children = (A2000000000000000000001F /* VisionOCR.swift */, A20000000000000000000036 /* CloudOCRImageEncoder.swift */, A20000000000000000000037 /* GLMOCRService.swift */); path = OCR; sourceTree = "<group>"; };
 		A70000000000000000000011 /* Selection */ = {isa = PBXGroup; children = (A20000000000000000000020 /* AccessibilitySelectionReader.swift */, A20000000000000000000021 /* ClipboardSelectionFallback.swift */, A20000000000000000000025 /* AccessibilitySelectionModels.swift */); path = Selection; sourceTree = "<group>"; };
 		A70000000000000000000012 /* Content */ = {isa = PBXGroup; children = (A2000000000000000000002C /* NativeFormattedContent.swift */, A20000000000000000000030 /* LiteralHTMLTableNormalizer.swift */); path = Content; sourceTree = "<group>"; };
@@ -421,6 +431,11 @@
 				A10000000000000000000048 /* Screenshot/InPlaceTranslationService.swift in Sources */,
 				A10000000000000000000049 /* Screenshot/InPlaceOverlayLayout.swift in Sources */,
 				A1000000000000000000004E /* Screenshot/InPlaceMarkdownProjection.swift in Sources */,
+				A1000000000000000000004F /* Screenshot/InPlaceMarkdownAttributedText.swift in Sources */,
+				A10000000000000000000050 /* Screenshot/InPlaceTableGrouping.swift in Sources */,
+				A10000000000000000000052 /* Screenshot/InPlaceWindowContent.swift in Sources */,
+				A10000000000000000000053 /* Settings/ExperimentalSettingsSection.swift in Sources */,
+				A10000000000000000000051 /* Screenshot/InPlaceOverlayChrome.swift in Sources */,
 				A1000000000000000000004D /* Screenshot/ScreenshotBackgroundRestoration.swift in Sources */,
 				A1000000000000000000004A /* Screenshot/ScreenshotTranslationOverlay.swift in Sources */,
 				A1000000000000000000004C /* Screenshot/ScreenshotTranslationIntent.swift in Sources */,

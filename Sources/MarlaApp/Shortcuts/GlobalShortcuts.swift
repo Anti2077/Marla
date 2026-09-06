@@ -216,6 +216,7 @@ final class GlobalShortcutManager: ObservableObject, GlobalShortcutManaging {
     var onAction: ((GlobalShortcutAction) -> Void)?
     private var eventHandler: EventHandlerRef?
     private var registeredHotKeys: [GlobalShortcutAction: EventHotKeyRef] = [:]
+    private var suppressedActions = Set<GlobalShortcutAction>()
     private let defaults: UserDefaults
     private let shouldRegisterHotKeys: Bool
 
@@ -241,7 +242,7 @@ final class GlobalShortcutManager: ObservableObject, GlobalShortcutManaging {
         )
         if status != noErr {
             conflictMessage = "无法初始化全局快捷键服务（错误 \(status)）。"
-        } else if let action = register(bindings, enabledActions: enabledActions) {
+        } else if let action = register(bindings, enabledActions: registrationActions(enabledActions)) {
             conflictMessage = "\(action.title)的快捷键已被系统或其他应用占用，请重新录制。"
         }
     }
@@ -258,14 +259,37 @@ final class GlobalShortcutManager: ObservableObject, GlobalShortcutManaging {
         } else {
             candidate.remove(action)
         }
-        if let unavailable = register(bindings, enabledActions: candidate) {
-            _ = register(bindings, enabledActions: previous)
+        if let unavailable = register(bindings, enabledActions: registrationActions(candidate)) {
+            _ = register(bindings, enabledActions: registrationActions(previous))
             conflictMessage = "\(unavailable.title)的快捷键已被系统或其他应用占用，请重新录制。"
             return
         }
         enabledActions = candidate
         conflictMessage = nil
         save()
+    }
+
+    func setFeatureEnabled(_ enabled: Bool, for action: GlobalShortcutAction) {
+        let wasSuppressed = suppressedActions.contains(action)
+        if enabled {
+            suppressedActions.remove(action)
+        } else {
+            suppressedActions.insert(action)
+        }
+        guard wasSuppressed != !enabled else { return }
+
+        let effectiveActions = registrationActions(enabledActions)
+        if let unavailable = register(bindings, enabledActions: effectiveActions) {
+            if enabled {
+                suppressedActions.insert(action)
+            } else {
+                suppressedActions.remove(action)
+            }
+            _ = register(bindings, enabledActions: registrationActions(enabledActions))
+            conflictMessage = "\(unavailable.title)的快捷键已被系统或其他应用占用，请重新录制。"
+        } else {
+            conflictMessage = nil
+        }
     }
 
     @discardableResult
@@ -282,8 +306,8 @@ final class GlobalShortcutManager: ObservableObject, GlobalShortcutManaging {
         let previous = bindings
         var candidate = bindings
         candidate[action] = binding
-        if let unavailable = register(candidate, enabledActions: enabledActions) {
-            _ = register(previous, enabledActions: enabledActions)
+        if let unavailable = register(candidate, enabledActions: registrationActions(enabledActions)) {
+            _ = register(previous, enabledActions: registrationActions(enabledActions))
             conflictMessage = "\(unavailable.title)的 \(binding.displayName) 已被占用，请使用其他组合键。"
             return false
         }
@@ -297,8 +321,8 @@ final class GlobalShortcutManager: ObservableObject, GlobalShortcutManaging {
         let previous = bindings
         let previousEnabled = enabledActions
         let allEnabled = Set(GlobalShortcutAction.allCases)
-        if let unavailable = register(ShortcutBinding.defaults, enabledActions: allEnabled) {
-            _ = register(previous, enabledActions: previousEnabled)
+        if let unavailable = register(ShortcutBinding.defaults, enabledActions: registrationActions(allEnabled)) {
+            _ = register(previous, enabledActions: registrationActions(previousEnabled))
             conflictMessage = "默认快捷键 \(unavailable.title) 已被占用，请保留当前设置或重新录制。"
             return
         }
@@ -313,8 +337,15 @@ final class GlobalShortcutManager: ObservableObject, GlobalShortcutManaging {
     }
 
     func handleHotKey(id: UInt32) {
-        guard let action = GlobalShortcutAction(hotKeyID: id), isEnabled(action) else { return }
+        guard let action = GlobalShortcutAction(hotKeyID: id),
+              isEnabled(action),
+              !suppressedActions.contains(action)
+        else { return }
         onAction?(action)
+    }
+
+    private func registrationActions(_ actions: Set<GlobalShortcutAction>) -> Set<GlobalShortcutAction> {
+        actions.subtracting(suppressedActions)
     }
 
     private func register(

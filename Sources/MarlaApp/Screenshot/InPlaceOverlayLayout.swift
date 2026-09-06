@@ -21,6 +21,7 @@ enum InPlaceOverlayLayoutError: LocalizedError, Equatable {
 
 struct InPlaceOverlayBlock: Equatable {
     let id: String
+    let sourceIDs: [String]
     let kind: ContentBlockKind
     let text: String
     let normalizedBounds: NormalizedRect
@@ -30,9 +31,11 @@ struct InPlaceOverlayBlock: Equatable {
     let fontWeight: NSFont.Weight
     let usesMonospacedFont: Bool
     let tableCell: InPlaceOverlayTableCell?
+    let attributedText: NSAttributedString?
 
     init(
         id: String,
+        sourceIDs: [String] = [],
         kind: ContentBlockKind,
         text: String,
         normalizedBounds: NormalizedRect,
@@ -41,9 +44,11 @@ struct InPlaceOverlayBlock: Equatable {
         fontSize: CGFloat,
         fontWeight: NSFont.Weight,
         usesMonospacedFont: Bool,
-        tableCell: InPlaceOverlayTableCell? = nil
+        tableCell: InPlaceOverlayTableCell? = nil,
+        attributedText: NSAttributedString? = nil
     ) {
         self.id = id
+        self.sourceIDs = sourceIDs.isEmpty ? [id] : sourceIDs
         self.kind = kind
         self.text = text
         self.normalizedBounds = normalizedBounds
@@ -53,7 +58,10 @@ struct InPlaceOverlayBlock: Equatable {
         self.fontWeight = fontWeight
         self.usesMonospacedFont = usesMonospacedFont
         self.tableCell = tableCell
+        self.attributedText = attributedText
     }
+
+    var sourceGroupKey: [String] { sourceIDs }
 }
 
 struct InPlaceOverlayLayout: Equatable {
@@ -61,7 +69,7 @@ struct InPlaceOverlayLayout: Equatable {
     let blocks: [InPlaceOverlayBlock]
     let sourceBlockCount: Int
 
-    var renderedSourceBlockCount: Int { Set(blocks.map(\.id)).count }
+    var renderedSourceBlockCount: Int { Set(blocks.flatMap(\.sourceIDs)).count }
     var omittedBlockCount: Int { sourceBlockCount - renderedSourceBlockCount }
 }
 
@@ -69,7 +77,6 @@ struct InPlaceOverlayLayout: Equatable {
 enum InPlaceOverlayLayoutBuilder {
     private static let minimumDimension: CGFloat = 3
     private static let minimumFontSize: CGFloat = 8
-    private static let textInset: CGFloat = 1
     private static let horizontalAllowance: CGFloat = 1.5
     private static let verticalAllowance: CGFloat = 2
     private static let tableHorizontalInset: CGFloat = 6
@@ -94,65 +101,75 @@ enum InPlaceOverlayLayoutBuilder {
               Set(sourceIDs) == Set(translatedIDs)
         else { throw InPlaceOverlayLayoutError.mismatchedBlockIDs }
 
-        let textByID = translation.textByID
         var planned: [InPlaceOverlayBlock] = []
         planned.reserveCapacity(document.blocks.count)
-        for source in document.blocks {
-            guard let bounds = source.bounds else { continue }
-            guard bounds.x.isFinite,
-                  bounds.y.isFinite,
-                  bounds.width.isFinite,
-                  bounds.height.isFinite,
-                  bounds.x >= 0,
-                  bounds.y >= 0,
-                  bounds.width > 0,
-                  bounds.height > 0,
-                  bounds.x + bounds.width <= 1,
-                  bounds.y + bounds.height <= 1
-            else { continue }
-            let sourceFrame = frame(for: bounds, canvasSize: canvasSize)
-            guard sourceFrame.width >= minimumDimension, sourceFrame.height >= minimumDimension else { continue }
-            guard let translatedText = textByID[source.id]?.trimmingCharacters(in: .whitespacesAndNewlines),
-                  !translatedText.isEmpty
-            else { throw InPlaceOverlayLayoutError.mismatchedBlockIDs }
-
-            if source.kind == .table {
-                guard let translatedTable = InPlaceMarkdownProjection.table(from: translatedText),
+        for unit in InPlaceTableGrouping.units(document: document, translation: translation) {
+            switch unit.content {
+            case .omitted:
+                continue
+            case let .table(sourceIDs, sourceMarkdown, translatedMarkdown, bounds, preservesSourceGrid):
+                let sourceFrame = frame(for: bounds, canvasSize: canvasSize)
+                guard sourceFrame.width >= minimumDimension,
+                      sourceFrame.height >= minimumDimension,
+                      let translatedTable = InPlaceMarkdownProjection.table(from: translatedMarkdown),
                       let tableBlocks = tableBlocks(
-                          id: source.id,
-                          sourceMarkdown: source.sourceText,
+                          id: sourceIDs[0],
+                          sourceIDs: sourceIDs,
+                          sourceMarkdown: sourceMarkdown,
                           translatedTable: translatedTable,
-                          sourceFrame: sourceFrame,
-                          canvasSize: canvasSize
+                          sourceFrame: preservesSourceGrid
+                              ? sourceFrame
+                              : renderingFrame(for: sourceFrame, canvasSize: canvasSize),
+                          canvasSize: canvasSize,
+                          preservesSourceGrid: preservesSourceGrid
                       )
                 else { continue }
                 planned.append(contentsOf: tableBlocks)
-                continue
-            }
+            case let .single(source, rawTranslatedText):
+                guard let bounds = source.bounds else { continue }
+                guard bounds.x.isFinite,
+                      bounds.y.isFinite,
+                      bounds.width.isFinite,
+                      bounds.height.isFinite,
+                      bounds.x >= 0,
+                      bounds.y >= 0,
+                      bounds.width > 0,
+                      bounds.height > 0,
+                      bounds.x + bounds.width <= 1,
+                      bounds.y + bounds.height <= 1
+                else { continue }
+                let sourceFrame = frame(for: bounds, canvasSize: canvasSize)
+                guard sourceFrame.width >= minimumDimension,
+                      sourceFrame.height >= minimumDimension
+                else { continue }
+                let translatedText = rawTranslatedText.trimmingCharacters(in: .whitespacesAndNewlines)
+                guard !translatedText.isEmpty else {
+                    throw InPlaceOverlayLayoutError.mismatchedBlockIDs
+                }
 
-            let visibleText = InPlaceMarkdownProjection.visibleText(from: translatedText)
-            guard !visibleText.isEmpty else { continue }
-            let frame = renderingFrame(for: sourceFrame, canvasSize: canvasSize)
-            let style = style(for: source.kind, frame: frame)
-            guard let fontSize = fittingFontSize(
-                text: visibleText,
-                frame: frame.insetBy(dx: textInset, dy: textInset),
-                style: style
-            ) else { continue }
+                let frame = renderingFrame(for: sourceFrame, canvasSize: canvasSize)
+                let style = style(for: source.kind, frame: frame)
+                guard let fitted = fittingAttributedText(
+                    markdown: translatedText,
+                    frame: frame.insetBy(dx: 2, dy: 1),
+                    style: style
+                ) else { continue }
 
-            planned.append(
-                InPlaceOverlayBlock(
-                    id: source.id,
-                    kind: source.kind,
-                    text: visibleText,
-                    normalizedBounds: bounds,
-                    sourceFrame: sourceFrame,
-                    frame: frame,
-                    fontSize: fontSize,
-                    fontWeight: style.weight,
-                    usesMonospacedFont: style.monospaced
+                planned.append(
+                    InPlaceOverlayBlock(
+                        id: source.id,
+                        kind: source.kind,
+                        text: fitted.attributedText.string,
+                        normalizedBounds: bounds,
+                        sourceFrame: sourceFrame,
+                        frame: frame,
+                        fontSize: fitted.fontSize,
+                        fontWeight: style.weight,
+                        usesMonospacedFont: style.monospaced,
+                        attributedText: fitted.attributedText
+                    )
                 )
-            )
+            }
         }
         let accepted = removingSevereOverlaps(from: planned)
         guard !accepted.isEmpty else { throw InPlaceOverlayLayoutError.noRenderableBlocks }
@@ -186,10 +203,12 @@ enum InPlaceOverlayLayoutBuilder {
 
     private static func tableBlocks(
         id: String,
+        sourceIDs: [String],
         sourceMarkdown: String,
         translatedTable: InPlaceMarkdownTable,
         sourceFrame: CGRect,
-        canvasSize: CGSize
+        canvasSize: CGSize,
+        preservesSourceGrid: Bool
     ) -> [InPlaceOverlayBlock]? {
         let rowCount = translatedTable.rows.count
         guard rowCount > 0,
@@ -251,18 +270,21 @@ enum InPlaceOverlayLayoutBuilder {
                 let weight: NSFont.Weight = row == 0 ? .semibold : .regular
                 guard contentFrame.width > 0,
                       contentFrame.height > 0,
-                      textFits(
+                      let attributedText = tableCellAttributedText(
                           translatedTable.rows[row][column],
-                          frame: contentFrame,
                           fontSize: fontSize,
-                          weight: weight
-                      )
+                          weight: weight,
+                          alignment: alignment,
+                          forceBold: row == 0
+                      ),
+                      attributedTextFits(attributedText, frame: contentFrame)
                 else { return nil }
                 blocks.append(
                     InPlaceOverlayBlock(
                         id: id,
+                        sourceIDs: sourceIDs,
                         kind: .table,
-                        text: translatedTable.rows[row][column],
+                        text: attributedText.string,
                         normalizedBounds: normalizedBounds(for: cellFrame, canvasSize: canvasSize),
                         sourceFrame: cellFrame,
                         frame: cellFrame,
@@ -274,8 +296,10 @@ enum InPlaceOverlayLayoutBuilder {
                             column: column,
                             rowCount: rowCount,
                             columnCount: columnCount,
-                            alignment: alignment
-                        )
+                            alignment: alignment,
+                            preservesSourceGrid: preservesSourceGrid
+                        ),
+                        attributedText: attributedText
                     )
                 )
                 left += columnWidth
@@ -296,7 +320,8 @@ enum InPlaceOverlayLayoutBuilder {
         for table in tables {
             for row in table.rows {
                 for column in 0..<min(columnCount, row.count) {
-                    let width = (row[column] as NSString).size(withAttributes: [.font: measuringFont]).width
+                    let visibleText = String(row[column].characters)
+                    let width = (visibleText as NSString).size(withAttributes: [.font: measuringFont]).width
                     measured[column] = max(measured[column], width + tableHorizontalInset * 2)
                 }
             }
@@ -307,42 +332,56 @@ enum InPlaceOverlayLayoutBuilder {
     }
 
     private static func requiredTableRowHeights(
-        rows: [[String]],
+        rows: [[AttributedString]],
         columnWidths: [CGFloat],
         fontSize: CGFloat
     ) -> [CGFloat] {
         rows.enumerated().map { row, cells in
             let weight: NSFont.Weight = row == 0 ? .semibold : .regular
-            let font = NSFont.systemFont(ofSize: fontSize, weight: weight)
-            let paragraph = NSMutableParagraphStyle()
-            paragraph.lineBreakMode = .byWordWrapping
-            let contentHeight = cells.enumerated().map { column, text in
+            let contentHeight = cells.enumerated().map { column, content in
                 let width = max(1, columnWidths[column] - tableHorizontalInset * 2)
-                return ceil((text as NSString).boundingRect(
-                    with: CGSize(width: width, height: .greatestFiniteMagnitude),
-                    options: [.usesLineFragmentOrigin, .usesFontLeading],
-                    attributes: [.font: font, .paragraphStyle: paragraph]
-                ).height)
-            }.max() ?? ceil(font.ascender - font.descender)
+                let alignment = column == 0 ? InPlaceOverlayTextAlignment.center : .leading
+                let attributed = tableCellAttributedText(
+                    content,
+                    fontSize: fontSize,
+                    weight: weight,
+                    alignment: alignment,
+                    forceBold: row == 0
+                )
+                return attributed.map {
+                    InPlaceMarkdownAttributedText.measuredSize($0, width: width).height
+                } ?? .greatestFiniteMagnitude
+            }.max() ?? ceil(fontSize * 1.2)
             return contentHeight + tableVerticalInset * 2
         }
     }
 
-    private static func textFits(
-        _ text: String,
-        frame: CGRect,
+    private static func tableCellAttributedText(
+        _ content: AttributedString,
         fontSize: CGFloat,
-        weight: NSFont.Weight
-    ) -> Bool {
-        let font = NSFont.systemFont(ofSize: fontSize, weight: weight)
-        let paragraph = NSMutableParagraphStyle()
-        paragraph.lineBreakMode = .byWordWrapping
-        let measured = (text as NSString).boundingRect(
-            with: CGSize(width: frame.width, height: .greatestFiniteMagnitude),
-            options: [.usesLineFragmentOrigin, .usesFontLeading],
-            attributes: [.font: font, .paragraphStyle: paragraph]
+        weight: NSFont.Weight,
+        alignment: InPlaceOverlayTextAlignment,
+        forceBold: Bool
+    ) -> NSAttributedString? {
+        guard fontSize > 0 else { return nil }
+        return InPlaceMarkdownAttributedText.buildCell(
+            content,
+            configuration: .init(
+                baseFontSize: fontSize,
+                baseWeight: weight,
+                usesMonospacedFont: false,
+                alignment: alignment.appKitValue
+            ),
+            forceBold: forceBold
         )
-        return ceil(measured.width) <= ceil(frame.width) && ceil(measured.height) <= ceil(frame.height)
+    }
+
+    private static func attributedTextFits(
+        _ attributedText: NSAttributedString,
+        frame: CGRect
+    ) -> Bool {
+        let measured = InPlaceMarkdownAttributedText.measuredSize(attributedText, width: frame.width)
+        return measured.width <= ceil(frame.width) && measured.height <= ceil(frame.height)
     }
 
     private static func normalizedBounds(for frame: CGRect, canvasSize: CGSize) -> NormalizedRect {
@@ -384,27 +423,30 @@ enum InPlaceOverlayLayoutBuilder {
         )
     }
 
-    private static func fittingFontSize(
-        text: String,
+    private struct FittedAttributedText {
+        let fontSize: CGFloat
+        let attributedText: NSAttributedString
+    }
+
+    private static func fittingAttributedText(
+        markdown: String,
         frame: CGRect,
         style: TextStyle
-    ) -> CGFloat? {
+    ) -> FittedAttributedText? {
         guard frame.width > 0, frame.height > 0 else { return nil }
         var size = style.preferredSize
         while size >= minimumFontSize {
-            let font = style.monospaced
-                ? NSFont.monospacedSystemFont(ofSize: size, weight: style.weight)
-                : NSFont.systemFont(ofSize: size, weight: style.weight)
-            let paragraph = NSMutableParagraphStyle()
-            paragraph.lineBreakMode = .byWordWrapping
-            paragraph.lineSpacing = 0
-            let measured = (text as NSString).boundingRect(
-                with: CGSize(width: frame.width, height: .greatestFiniteMagnitude),
-                options: [.usesLineFragmentOrigin, .usesFontLeading],
-                attributes: [.font: font, .paragraphStyle: paragraph]
-            )
-            if ceil(measured.width) <= ceil(frame.width), ceil(measured.height) <= ceil(frame.height) {
-                return size
+            if let attributedText = InPlaceMarkdownAttributedText.build(
+                markdown: markdown,
+                configuration: .init(
+                    baseFontSize: size,
+                    baseWeight: style.weight,
+                    usesMonospacedFont: style.monospaced,
+                    alignment: .left
+                )
+            ), attributedText.length > 0,
+               attributedTextFits(attributedText, frame: frame) {
+                return FittedAttributedText(fontSize: size, attributedText: attributedText)
             }
             size -= 0.5
         }
@@ -429,28 +471,28 @@ enum InPlaceOverlayLayoutBuilder {
                 acceptedIndices.append(index)
             }
         }
-        let acceptedIDs = Set(acceptedIndices.map { groups[$0].id })
-        return blocks.filter { acceptedIDs.contains($0.id) }
+        let acceptedKeys = Set(acceptedIndices.map { groups[$0].key })
+        return blocks.filter { acceptedKeys.contains($0.sourceGroupKey) }
     }
 
     private struct BlockGroup {
-        let id: String
+        let key: [String]
         let frame: CGRect
     }
 
     private static func stableGroups(from blocks: [InPlaceOverlayBlock]) -> [BlockGroup] {
-        var orderedIDs: [String] = []
-        var frames: [String: CGRect] = [:]
+        var orderedKeys: [[String]] = []
+        var frames: [[String]: CGRect] = [:]
         for block in blocks {
-            if let frame = frames[block.id] {
-                frames[block.id] = frame.union(block.sourceFrame)
+            if let frame = frames[block.sourceGroupKey] {
+                frames[block.sourceGroupKey] = frame.union(block.sourceFrame)
             } else {
-                orderedIDs.append(block.id)
-                frames[block.id] = block.sourceFrame
+                orderedKeys.append(block.sourceGroupKey)
+                frames[block.sourceGroupKey] = block.sourceFrame
             }
         }
-        return orderedIDs.compactMap { id in
-            frames[id].map { BlockGroup(id: id, frame: $0) }
+        return orderedKeys.compactMap { key in
+            frames[key].map { BlockGroup(key: key, frame: $0) }
         }
     }
 

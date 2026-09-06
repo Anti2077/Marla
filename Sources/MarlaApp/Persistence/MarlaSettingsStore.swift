@@ -27,6 +27,9 @@ final class MarlaSettingsStore: ObservableObject {
     @Published var ocrProvider: OCRProviderKind {
         didSet { defaults.set(ocrProvider.rawValue, forKey: Keys.ocrProvider) }
     }
+    @Published var isInPlaceTranslationEnabled: Bool {
+        didSet { defaults.set(isInPlaceTranslationEnabled, forKey: Keys.inPlaceTranslationEnabled) }
+    }
     @Published var translationWindowPlacement: TranslationWindowPlacement {
         didSet { defaults.set(translationWindowPlacement.rawValue, forKey: Keys.translationWindowPlacement) }
     }
@@ -52,6 +55,7 @@ final class MarlaSettingsStore: ObservableObject {
         static let secondaryLanguage = "translationSecondaryLanguage.v1"
         static let onboardingSkipped = "onboardingSkipped"
         static let ocrProvider = "ocrProvider.v1"
+        static let inPlaceTranslationEnabled = "inPlaceTranslationEnabled.v1"
         static let translationWindowPlacement = "translationWindowPlacement.v1"
         static let translationWindowFixedX = "translationWindowFixedX.v1"
         static let translationWindowWidthPreset = "translationWindowWidthPreset.v1"
@@ -94,6 +98,7 @@ final class MarlaSettingsStore: ObservableObject {
             : storedSecondaryLanguage
         onboardingSkipped = defaults.bool(forKey: Keys.onboardingSkipped)
         ocrProvider = OCRProviderKind(rawValue: defaults.string(forKey: Keys.ocrProvider) ?? "") ?? .vision
+        isInPlaceTranslationEnabled = defaults.object(forKey: Keys.inPlaceTranslationEnabled) as? Bool ?? false
         translationWindowPlacement = TranslationWindowPlacement(
             rawValue: defaults.string(forKey: Keys.translationWindowPlacement) ?? ""
         ) ?? .followMouse

@@ -29,6 +29,8 @@ final class ScreenshotTranslationOverlayCoordinator: NSObject, NSWindowDelegate 
     private var contentView: InPlaceTranslationOverlayView?
     private var escapeMonitor: ScreenshotEscapeMonitor?
     private var onCancel: (() -> Void)?
+    private var onTransfer: ((UUID) -> Bool)?
+    private var chromeState: InPlaceChromeState?
     private(set) var activeRequestID: UUID?
     private(set) var stage: InPlaceOverlayStage?
 
@@ -43,40 +45,55 @@ final class ScreenshotTranslationOverlayCoordinator: NSObject, NSWindowDelegate 
     }
 
     var isPresented: Bool { panel?.isVisible == true }
-    var presentedFrame: CGRect? { panel?.frame }
+    var presentedFrame: CGRect? {
+        guard let panel, let contentView else { return nil }
+        return panel.convertToScreen(contentView.convert(contentView.bounds, to: nil))
+    }
+    var chromeFrame: CGRect? { panel?.frame }
+    var canTransfer: Bool { chromeState?.canTransfer == true }
     var panelIdentity: ObjectIdentifier? { panel.map(ObjectIdentifier.init) }
 
     func presentWaiting(
         capture: CapturedScreenshot,
         requestID: UUID,
-        onCancel: @escaping () -> Void
+        onCancel: @escaping () -> Void,
+        onTransfer: ((UUID) -> Bool)? = nil
     ) {
         dismiss(notifyCancellation: true)
         let contentView = InPlaceTranslationOverlayView(
             frame: CGRect(origin: .zero, size: capture.globalRect.size),
-            image: capture.image,
-            onClose: { [weak self] in self?.close() }
+            image: capture.image
         )
+        let chromeState = InPlaceChromeState()
+        let container = InPlaceChromeContainer(
+            captureView: contentView, state: chromeState,
+            onClose: { [weak self] in self?.close() },
+            onTransfer: { [weak self] in self?.transferToWindow(for: requestID) }
+        )
+        let windowFrame = InPlaceChromeGeometry.windowFrame(for: capture.globalRect)
         let panel = InPlaceTranslationPanel(
-            contentRect: capture.globalRect,
+            contentRect: windowFrame,
             styleMask: [.borderless, .nonactivatingPanel],
             backing: .buffered,
             defer: false
         )
         panel.delegate = self
-        panel.contentView = contentView
-        panel.isOpaque = true
-        panel.backgroundColor = .black
+        panel.contentView = container
+        panel.isOpaque = false
+        panel.backgroundColor = .clear
+        panel.acceptsMouseMovedEvents = true
         panel.hasShadow = false
         panel.level = .floating
         panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .stationary]
         panel.hidesOnDeactivate = false
         panel.isReleasedWhenClosed = false
-        panel.setFrame(capture.globalRect, display: true)
+        panel.setFrame(windowFrame, display: true)
 
         self.panel = panel
         self.contentView = contentView
         self.onCancel = onCancel
+        self.onTransfer = onTransfer
+        self.chromeState = chromeState
         activeRequestID = requestID
         stage = .recognizing
 
@@ -90,6 +107,10 @@ final class ScreenshotTranslationOverlayCoordinator: NSObject, NSWindowDelegate 
     func updateStage(_ newStage: InPlaceOverlayStage, for requestID: UUID) -> Bool {
         guard requestID == activeRequestID, let contentView else { return false }
         stage = newStage
+        switch newStage {
+        case .translated: break
+        default: chromeState?.canTransfer = false
+        }
         contentView.update(stage: newStage)
         return true
     }
@@ -116,6 +137,24 @@ final class ScreenshotTranslationOverlayCoordinator: NSObject, NSWindowDelegate 
         dismiss(notifyCancellation: true)
     }
 
+    func enableTransfer(for requestID: UUID) {
+        guard requestID == activeRequestID, case .translated = stage, onTransfer != nil else { return }
+        chromeState?.canTransfer = true
+    }
+
+    @discardableResult
+    func transferToWindow(for requestID: UUID) -> Bool {
+        guard requestID == activeRequestID, case .translated = stage,
+              canTransfer, let onTransfer, onTransfer(requestID) else { return false }
+        // A successful handoff keeps the completed text session; it is not cancellation.
+        dismiss(notifyCancellation: false)
+        return true
+    }
+
+    func setChromeProximityForUIAutomation(_ isNear: Bool) {
+        chromeState?.fixtureProximity = isNear
+    }
+
     func windowWillClose(_ notification: Notification) {
         dismiss(notifyCancellation: true)
     }
@@ -127,6 +166,8 @@ final class ScreenshotTranslationOverlayCoordinator: NSObject, NSWindowDelegate 
     private func dismiss(notifyCancellation: Bool) {
         let cancellation = onCancel
         onCancel = nil
+        onTransfer = nil
+        chromeState = nil
         activeRequestID = nil
         stage = nil
         escapeMonitor?.remove()
@@ -143,7 +184,7 @@ final class ScreenshotTranslationOverlayCoordinator: NSObject, NSWindowDelegate 
 
 @MainActor
 private final class InPlaceTranslationPanel: NSPanel {
-    override var canBecomeKey: Bool { false }
+    override var canBecomeKey: Bool { true }
     override var canBecomeMain: Bool { false }
 }
 
@@ -217,12 +258,10 @@ private final class InPlaceTranslationOverlayView: NSView {
     private var displayImage: NSImage
     private var renderedBlocks: [RestoredScreenshotBlock] = []
     private let statusView = StatusView(frame: .zero)
-    private let closeButton: ClosureButton
 
-    init(frame: CGRect, image: CGImage, onClose: @escaping () -> Void) {
+    init(frame: CGRect, image: CGImage) {
         sourceImage = image
         displayImage = NSImage(cgImage: image, size: frame.size)
-        closeButton = ClosureButton(frame: .zero)
         super.init(frame: frame)
         wantsLayer = true
         layer?.masksToBounds = true
@@ -231,17 +270,6 @@ private final class InPlaceTranslationOverlayView: NSView {
         setAccessibilityLabel("原位翻译，正在识别截图结构")
 
         addSubview(statusView)
-        closeButton.onPress = onClose
-        closeButton.image = NSImage(systemSymbolName: "xmark", accessibilityDescription: "关闭原位翻译")
-        closeButton.imagePosition = .imageOnly
-        closeButton.isBordered = false
-        closeButton.contentTintColor = .white
-        closeButton.wantsLayer = true
-        closeButton.layer?.cornerRadius = 15
-        closeButton.layer?.backgroundColor = NSColor.black.withAlphaComponent(0.62).cgColor
-        closeButton.toolTip = "关闭原位翻译"
-        closeButton.setAccessibilityLabel("关闭原位翻译")
-        addSubview(closeButton)
         layoutControls()
         update(stage: .recognizing)
     }
@@ -294,6 +322,60 @@ private final class InPlaceTranslationOverlayView: NSView {
 
     private func draw(_ item: RestoredScreenshotBlock) {
         let block = item.block
+        let attributedText = block.attributedText ?? fallbackAttributedText(for: block)
+        let drawableText = InPlaceMarkdownAttributedText.preparedForDrawing(
+            attributedText,
+            textColor: item.appearance.textColor
+        )
+        var drawingFrame = block.tableCell == nil
+            ? block.frame.insetBy(dx: 2, dy: 1)
+            : block.frame.insetBy(dx: 6, dy: 3)
+        if block.tableCell != nil {
+            let measured = InPlaceMarkdownAttributedText.measuredSize(
+                attributedText,
+                width: drawingFrame.width
+            )
+            drawingFrame.origin.y += max(0, (drawingFrame.height - measured.height) / 2)
+            drawingFrame.size.height = min(drawingFrame.height, measured.height)
+        }
+        drawCodeBlockBackgrounds(
+            for: attributedText,
+            in: drawingFrame,
+            textColor: item.appearance.textColor
+        )
+        drawableText.draw(
+            with: drawingFrame,
+            options: [.usesLineFragmentOrigin, .usesFontLeading]
+        )
+    }
+
+    private func drawCodeBlockBackgrounds(
+        for attributedText: NSAttributedString,
+        in drawingFrame: CGRect,
+        textColor: NSColor
+    ) {
+        let rects = InPlaceMarkdownAttributedText.codeBlockRects(
+            in: attributedText,
+            width: drawingFrame.width
+        )
+        for textKitRect in rects {
+            let blockRect = CGRect(
+                x: drawingFrame.minX,
+                y: drawingFrame.maxY - textKitRect.maxY - 2,
+                width: drawingFrame.width,
+                height: textKitRect.height + 4
+            ).intersection(drawingFrame)
+            guard !blockRect.isNull, !blockRect.isEmpty else { continue }
+            let path = NSBezierPath(roundedRect: blockRect, xRadius: 4, yRadius: 4)
+            textColor.withAlphaComponent(0.085).setFill()
+            path.fill()
+            textColor.withAlphaComponent(0.16).setStroke()
+            path.lineWidth = 0.75
+            path.stroke()
+        }
+    }
+
+    private func fallbackAttributedText(for block: InPlaceOverlayBlock) -> NSAttributedString {
         let font = block.usesMonospacedFont
             ? NSFont.monospacedSystemFont(ofSize: block.fontSize, weight: block.fontWeight)
             : NSFont.systemFont(ofSize: block.fontSize, weight: block.fontWeight)
@@ -301,41 +383,24 @@ private final class InPlaceTranslationOverlayView: NSView {
         paragraph.lineBreakMode = .byWordWrapping
         paragraph.lineSpacing = 0
         paragraph.alignment = block.tableCell?.alignment.appKitValue ?? .left
-        var drawingFrame = block.tableCell == nil
-            ? block.frame.insetBy(dx: 2, dy: 1)
-            : block.frame.insetBy(dx: 6, dy: 3)
-        if block.tableCell != nil {
-            let measured = (block.text as NSString).boundingRect(
-                with: CGSize(width: drawingFrame.width, height: .greatestFiniteMagnitude),
-                options: [.usesLineFragmentOrigin, .usesFontLeading],
-                attributes: [.font: font, .paragraphStyle: paragraph]
-            )
-            drawingFrame.origin.y += max(0, (drawingFrame.height - ceil(measured.height)) / 2)
-            drawingFrame.size.height = min(drawingFrame.height, ceil(measured.height))
-        }
-        (block.text as NSString).draw(
-            with: drawingFrame,
-            options: [.usesLineFragmentOrigin, .usesFontLeading],
-            attributes: [
-                .font: font,
-                .foregroundColor: item.appearance.textColor,
-                .paragraphStyle: paragraph
-            ]
+        return NSAttributedString(
+            string: block.text,
+            attributes: [.font: font, .paragraphStyle: paragraph]
         )
     }
 
     private func drawTableGrids(in items: [RestoredScreenshotBlock]) {
-        var orderedIDs: [String] = []
-        var groups: [String: [RestoredScreenshotBlock]] = [:]
+        var orderedKeys: [[String]] = []
+        var groups: [[String]: [RestoredScreenshotBlock]] = [:]
         for item in items where item.block.tableCell != nil {
-            if groups[item.block.id] == nil {
-                orderedIDs.append(item.block.id)
+            if groups[item.block.sourceGroupKey] == nil {
+                orderedKeys.append(item.block.sourceGroupKey)
             }
-            groups[item.block.id, default: []].append(item)
+            groups[item.block.sourceGroupKey, default: []].append(item)
         }
 
-        for id in orderedIDs {
-            guard let group = groups[id],
+        for key in orderedKeys {
+            guard let group = groups[key],
                   let first = group.first,
                   let metadata = first.block.tableCell
             else { continue }
@@ -367,28 +432,11 @@ private final class InPlaceTranslationOverlayView: NSView {
 
     private func layoutControls() {
         let top = max(8, bounds.maxY - 38)
-        closeButton.frame = CGRect(x: max(8, bounds.maxX - 38), y: top, width: 30, height: 30)
         statusView.frame.origin = CGPoint(
-            x: max(8, closeButton.frame.minX - statusView.frame.width - 6),
+            x: max(8, bounds.maxX - 50 - statusView.frame.width),
             y: top
         )
     }
-}
-
-@MainActor
-private final class ClosureButton: NSButton {
-    var onPress: (() -> Void)?
-
-    override init(frame frameRect: NSRect) {
-        super.init(frame: frameRect)
-        target = self
-        action = #selector(press)
-    }
-
-    @available(*, unavailable)
-    required init?(coder: NSCoder) { nil }
-
-    @objc private func press() { onPress?() }
 }
 
 struct ScreenshotBackgroundAppearance {

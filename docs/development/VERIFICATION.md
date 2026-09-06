@@ -6,7 +6,7 @@
 
 | ID | 工作 | 状态 | 说明 |
 | --- | --- | --- | --- |
-| RV-005 | GLM-OCR 真实凭据成功路径 | In Progress | 项目所有者真实调用已成功经过 GLM-OCR 与 Qwen-MT，并以标题、整表、段落 3 个 block 显示中文完成态；该结果暴露 Markdown 源码直绘缺陷。修复后的固定 App 已通过同粒度 fixture，仍待项目所有者复测真实完成态。 |
+| RV-005 | 原位表格背景修复后的实机验收 | In Progress | 所有者已确认迁移窗口可正常显示译文表格；授权的 3 次真实请求也都返回有效表格，故障已定位为原位背景误判。内部采样修复、本地原图扰动复测、234 项 Swift 和固定 App 构建通过，仍待修复后真实点击/外观验收。实验性开关与实验室页面的自动化门控已通过，但不替代真实 GLM/系统玻璃验收。 |
 
 ### RV-005：GLM-OCR 真实凭据成功路径
 
@@ -21,8 +21,8 @@
 - 代码核对确认 Qwen-MT 使用单 User Message 与 `translation_options`，会把整个 Message 当作待译文本。修复后 User Message 不含 JSON 控制说明或真实 stable ID，只含一次完整、有序、按请求 token 隔离的 block BEGIN/END 边界载荷；Rust 恢复真实 ID 后仍执行原有完整 block 集、非空译文和 protected-payload 校验。
 - 项目所有者的后续真实固定 App 截图已显示中文完成态，证明 GLM-OCR、Qwen-MT 边界恢复和同一 overlay 更新实际成功；真实 GLM 粒度为标题、整张 GFM table、段落 3 个 block。截图同时证明旧 renderer 直接显示了标题 `##`、pipe 和 delimiter，这一展示缺陷不再归类为 Provider 合同失败。
 - 项目所有者随后补充的 Markdown 源码截图文件时间为 2026-09-02 18:58:27，早于包含 `InPlaceMarkdownProjection` 与原生 table 展开的固定 Release 可执行文件时间 19:11:27；因此它继续作为旧 renderer 缺陷证据，不构成最新构建复测。19:11 构建已按绝对路径启动，真实网络完成态仍须在该运行实例中重新触发。
-- 最新 `./scripts/check.sh` 通过 31 项 Rust 与 208 项 Swift 测试、Swift Package、Xcode Debug、Clippy、格式、工程结构、脚本、空白与 diff 门禁。新增完整 C ABI/mock 累计 SSE 回归证明 Provider 边界；原位 overlay 17 项定向测试另覆盖 Markdown visible-text、GFM cell 几何、整表原子恢复/拒绝、源 block 计数和无横向文字拖影。
-- 最新 `./scripts/build-test-app.sh` 已重建固定 Release App，并验证 Release Rust 路径、Bundle ID `com.marla.app`、版本 `0.0.0`、macOS 14.0、arm64、Paper Lantern 资源、稳定签名与 designated requirement。三块合成完成态已通过，最新真实网络完成态仍待项目所有者复测。
+- 最新 `./scripts/check.sh` 通过 31 项 Rust 与 216 项 Swift 测试、Swift Package、Xcode Debug、Clippy、格式、工程结构、脚本、空白与 diff 门禁。新增完整 C ABI/mock 累计 SSE 回归证明 Provider 边界；8 项新富 Markdown 属性测试全部通过，原有 17 项 overlay 回归继续通过，原位/Markdown 定向过滤共 27 项。
+- 最新 `./scripts/build-test-app.sh` 已重建固定 Release App，并验证 Release Rust 路径、Bundle ID `com.marla.app`、版本 `0.0.0`、macOS 14.0、arm64、Paper Lantern 资源、稳定签名与 designated requirement。完整富 Markdown 合成完成态已通过，最新真实网络完成态仍待项目所有者复测。
 
 ## 已完成验证证据（不是待办）
 
@@ -37,10 +37,23 @@ RV-001～004 均已关闭，不属于当前工作队列。保留这些编号和�
 
 ### TASK-041 合成原位覆盖证据
 
-- `./scripts/check.sh` 通过 31 项 Rust 与 208 项 Swift 测试、Swift Package、Xcode Debug、Clippy、Rust formatting、工程结构、脚本、空白与 diff 门禁；`plutil -lint Marla.xcodeproj/project.pbxproj` 通过。新增测试明确验证 Markdown heading 投影、一个 GFM 整表 block 的原生 cell 几何、整表原子背景/适配拒绝、源 block 计数和无旧文字横向拖影；既有 intent 分流、背景修复与 Qwen-MT 边界回归继续通过。
+- 2026-09-05 表格背景误拒绝定位：所有者 18:04 迁移截图证明同次译文已是中文原生表格；此前把单一 HTML 规范化断点当作该样本确定根因的结论不完整。经所有者明确授权，修复前 3 次实际 GLM-OCR + 已配置翻译调用均返回 3 个 block、合法 5×3 表格，源/译解析一致，均生成 15 个 cell；背景修复得到 0、15、15 个表格 cell。只记录结构计数，不保留完整 OCR/译文 JSON、请求、配置或密钥。
+- 本地原图以相同文字/译文做 ±6px 几何扰动，旧 perimeter sampler 得到成功/拒绝/成功；改用原始 cell 内部密集主色采样后三者均生成并修复 15 个 cell。普通文字阈值不变；新增非用户合成回归覆盖浅/深背景跨边界字形、棋盘格采样混叠、宽渐变和单个复杂象限。
+- 最终完整检查为 31 Rust、234 Swift、Xcode Debug、结构与 diff 门禁全通过；固定签名 Release App 已重建。修复后另启动的网络对照迟未产生可确认结果，已停止该测试进程，不计入通过次数，也不推断是 API 还是凭据等待。临时联网入口和含原图文字的探针已移除；最终 App 不包含诊断入口，不保存 OCR/译文 JSON 或截图。原图未删除。
+- 最新 2026-09-05 顶部边框修订：41 项 InPlace、31 Rust、230 Swift、Xcode Debug 与固定签名 Release 构建通过。复现到隐藏 `FloatingPanelCoordinator` 的 local/global dismissal handler 会在原位按钮 action 前调用 `hide()` 清空共享 session；现要求 panel 可见才有权关闭/消费事件。新增集成回归按“点击监听→实际 app handoff→已显示结果卡的外部点击”顺序验证不清空原位、可以迁移、正常结果卡仍关闭；已显示后隐藏的窗口也不再误清下一会话。
+- 常态 6pt、展开侧/底 10pt；顶部外扩 36pt，28pt 高按钮居中。侧/底 12pt、顶部 40pt 固定预留让截图坐标不随展开改变。`/private/tmp/marla-041-topbar-in-place-overlay-hover-light.png`、`/private/tmp/marla-041-topbar-in-place-overlay-small-dark.png`、`/private/tmp/marla-041-topbar-in-place-overlay-light.png` 和 `/private/tmp/marla-041-topbar-in-place-overlay-transfer-light.png` 为新 Release 的降低透明度布局截图，不冒充系统玻璃或真实鼠标证据。新增布局五维为 8/8/8/7/7，截图外顶部按钮不与内容相交。
+- 交互 fixture `in-place-overlay-interactive` 已显式启用生产结果卡事件监听（其它无凭据/无全局快捷键限制不变）。临时独立 App 标识用于避免操作所有者的真实实例；Computer Use 连接两次 timeout，未成功执行真实鼠标点击或完成系统玻璃复审。关闭测试进程后交给所有者复测，不把程序直接调用 transfer 的旧 fixture 标为该点击链路验收。
+- 2026-09-05 玻璃边框/主动迁移：当前目录 `./scripts/check.sh` 通过 31 Rust、228 Swift 和 Xcode Debug，39 项 InPlace 定向测试通过；固定 `artifacts/Marla_dev.app` Release 及稳定签名验证通过。新增 8 项测试验证实际截图 content globalRect 不变、边缘迟滞/操作区、只在完成态单次迁移、失败/过期动作保护、完整 Markdown/无坐标块保留、语言/profile 不变、无凭据读取和无自动最近记录。旧测试数为上一轮证据，不代表当前总数。
+- 新离线图位于 `/private/tmp/marla-041-in-place-overlay-light.png`、`/private/tmp/marla-041-in-place-overlay-dark.png`、`/private/tmp/marla-041-in-place-overlay-hover-light.png`、`/private/tmp/marla-041-in-place-overlay-hover-dark.png`、`/private/tmp/marla-041-in-place-overlay-small-light.png`、`/private/tmp/marla-041-in-place-overlay-transfer-light.png` 和 `/private/tmp/marla-041-chrome-reduced.png`。确认靠近态动作标签、小区域图标、迁移后现有结果卡及可滚动 Markdown。离屏 cache 不包含完整系统 glass effect，不能用于宣称真实玻璃材质通过；本轮另通过 Computer Use 的系统合成图确认浅色细环可见。
+- 本轮五维仅针对新增边框/动作区与迁移窗口：Philosophy 8、Hierarchy 8、Craft 7、Functionality 7、Originality 7；现有富文本 fixture 中 H1/H3 间距偏紧不作为本轮修复完成项。真实指针靠近/离开及深色系统材质、键盘/VoiceOver 和真实 GLM 验收继续待所有者操作；不把内部设定 proximity 的 fixture 当鼠标实测。
+- `./scripts/check.sh` 通过 31 项 Rust 与 217 项 Swift 测试、Swift Package、Xcode Debug、Clippy、Rust formatting、工程结构、脚本、空白与 diff 门禁；`plutil -lint Marla.xcodeproj/project.pbxproj` 通过。8 项新属性测试明确验证 H1-H6、行内语义、代码、引用、任务/嵌套列表、表格 cell 富文本和同一 attributed document 的拟合/绘制合同；GLM literal HTML 整表、既有 GFM 原子表格、intent 分流、背景修复与 Qwen-MT 边界回归继续通过。
 - `./scripts/build-test-app.sh` 从 Release Rust 库重建固定 `artifacts/Marla_dev.app`，验证 Bundle ID `com.marla.app`、版本 `0.0.0`、macOS 14.0、arm64、Paper Lantern 资源、稳定签名 `API Usage Monitor Dev` 和 designated requirement。
 - 最新完成态 fixture 已改为真实 GLM 的标题、整表、段落 3 个源 block，并生成 `/private/tmp/marla-task041-md-table-clean-light.png` 与 `/private/tmp/marla-task041-md-table-clean-dark.png`。两张均为 1520x960 Retina 像素，对应 760x480 逻辑覆盖 frame；标题无 `##`，表格无 pipe/delimiter 源码，原生三列五行网格、多行换行和交替行底色完整，且无旧英文横向拖影。原有 `final2` waiting、Reduce Motion 和 failure 图继续覆盖未改变的状态。
+- 新增回归复现 GLM `layout_details` 直接返回 literal HTML 整表的形态；布局层在源表校验前调用 `LiteralHTMLTableNormalizer`，与 `InPlaceTranslationService` 的 canonical GFM 输入保持一致。测试确认 3 列 5 行表格生成 15 个 native cells，而不是因源 HTML 无法被 GFM parser 识别而整表冻结。
+- 最新固定 Release App 以单块 GLM literal HTML 表格输入生成 `/private/tmp/marla-task041-glm-html-table.png`；截图确认中文原生表格、网格与行内样式可见，没有 HTML/GFM 标记或英文源文字。五维复审为 8/9/9/9/8。
+- 最终完整富 Markdown fixture 为 `/private/tmp/marla-task041-rich-markdown-final-light.png` 与 `/private/tmp/marla-task041-rich-markdown-final-dark.png`。两张均为 1720x1240 Retina 像素，对应 860x620 逻辑覆盖 frame；H1/H3/H6 层级、粗体/斜体/粗斜体/删除线、链接、行内代码、整块 fenced-code 背景、引用、任务/嵌套列表及富文本表格 cell 清楚可见，无 Markdown 控制标记、裁切或重叠。
 - 相同新 Release 产物的菜单浅色/深色证据为 `/private/tmp/marla-task041-final2-menu-light.png` 与 `/private/tmp/marla-task041-final2-menu-dark.png`；OCR 设置浅色/深色证据为 `/private/tmp/marla-task041-final2-ocr-settings-light.png` 与 `/private/tmp/marla-task041-final2-ocr-settings-dark.png`。菜单明确并列“截图翻译” `⌃⇧S` 和“原位翻译” `⌃⇧I`；设置明确原位翻译始终使用 GLM-OCR，而普通截图翻译继续显示附近结果卡。
+- 实验性开关验证：`MarlaSettingsStore` 的 `inPlaceTranslationEnabled.v1` 默认值为 `false` 且可恢复；设置侧栏显示“实验室”及“原位翻译”开关。关闭时菜单和快捷键设置隐藏独立入口，`.inPlace` 不注册但保留用户偏好，直接触发被拒绝；重新开启恢复入口和快捷键，关闭活动实验会话会取消请求并关闭 overlay。普通“截图翻译”入口与行为未改变。
 - 混合质量布局由自动化验证：一个完整返回但无坐标的 block 会保留冻结原图，其它可靠 block 仍继续排版；当前确定性完成态 fixture 覆盖 3 个真实粒度源 block，其中整表在 renderer 内派生 15 个 cell，但完成态仍按 1 个 table source block 统计。
 - 项目所有者提供的 1640x838 真实表格截图经本机 Vision 临时诊断得到 22 个文字框，并完整经过生产 `InPlaceOverlayLayoutBuilder` 与 `ScreenshotBackgroundRestorer`；输出 `/private/tmp/marla-task041-user-screenshot-restored-structure.png` 已目视确认旧英文、inline-code 空壳和块状白框消失，三列表格横竖线及交替行底色连续。该诊断的译文是临时人工映射，几何来自 Vision，只证明真实截图像素和生产修复管线，不是 GLM-OCR 或翻译 Provider 的真实网络证据。
 - `swiftui-design-skill` 对独立功能的菜单、OCR 设置与覆盖层做最终五维复审，Philosophy / Visual Hierarchy / Craft Quality / Functionality / Originality 为 8/9/9/9/8；全部高于 7 分门槛。实现使用非激活 `NSPanel`、冻结截图背景、连续背景修复位图、单一 AppKit 自绘文字表面、SF Symbol 关闭按钮、VoiceOver block 元素和现有已测试的 session-scoped Escape monitor。

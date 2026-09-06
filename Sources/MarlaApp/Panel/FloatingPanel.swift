@@ -304,27 +304,28 @@ final class FloatingPanelCoordinator: NSObject, NSWindowDelegate {
         globalMonitor = NSEvent.addGlobalMonitorForEvents(matching: [.leftMouseDown, .rightMouseDown, .keyDown]) { [weak self] event in
             Task { @MainActor [weak self] in
                 guard let self else { return }
-                if event.type == .keyDown, event.keyCode != 53 { return }
-                guard self.model?.sessionStore.session?.isPinned != true else { return }
-                self.hide()
+                _ = self.handleDismissalEvent(event, isLocal: false)
             }
         }
         localMonitor = NSEvent.addLocalMonitorForEvents(
             matching: [.leftMouseDown, .rightMouseDown, .keyDown]
         ) { [weak self] event in
             guard let self else { return event }
-            if event.type == .keyDown, event.keyCode == 53 {
-                guard self.model?.sessionStore.session?.isPinned != true else { return event }
-                self.hide()
-                return nil
-            }
-            if event.type != .keyDown,
-               !FloatingPanelEventRouting.isPanelRelatedWindow(event.window, panel: self.panel),
-               self.model?.sessionStore.session?.isPinned != true {
-                self.hide()
-            }
-            return event
+            return self.handleDismissalEvent(event, isLocal: true) ? nil : event
         }
+    }
+
+    // Hidden result panels do not own the shared session (e.g. during in-place translation).
+    @discardableResult
+    func handleDismissalEvent(_ event: NSEvent, isLocal: Bool) -> Bool {
+        guard panel?.isVisible == true, model?.sessionStore.session?.isPinned != true else { return false }
+        if event.type == .keyDown {
+            guard event.keyCode == 53 else { return false }
+            hide()
+            return isLocal
+        }
+        if !isLocal || !FloatingPanelEventRouting.isPanelRelatedWindow(event.window, panel: panel) { hide() }
+        return false
     }
     func attach(model: MarlaApplicationModel) {
         self.model = model

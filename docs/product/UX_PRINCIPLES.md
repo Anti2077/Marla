@@ -6,7 +6,7 @@ Marla is a paper lantern beside the reader: it illuminates unfamiliar language w
 
 ## Stay in place
 
-Translation belongs near the selected text, captured region, or pointer. Marla should not make a main window the default destination.
+Translation belongs near the selected text, captured region, or pointer. Marla should not make a main window the default destination. The independent in-place screenshot surface is experimental and opt-in from Settings > 实验室, so ordinary screenshot translation remains the predictable default path.
 
 ## Show intent immediately
 
@@ -25,6 +25,14 @@ Transient translation surfaces should use non-activating AppKit panels where pra
 ## Prefer reversible overlays
 
 Marla never mutates source content. Selection and ordinary screenshot translation use a nearby anchored card with honest pointer fallback when exact geometry is unavailable. The independent in-place translation entry temporarily covers only its own captured rectangle: the frozen pixels appear immediately after capture, and the same nonactivating surface owns recognition, translation, completion and failure. Reliable GLM-OCR glyph regions are restored from their row-wise neighboring pixels before block-keyed translations are drawn at those coordinates. The window must remain visibly dismissible and memory-only; closing it reveals the untouched source application beneath it.
+
+## Reveal actions deliberately
+
+The active TASK-041 glass-chrome revision keeps a visible boundary around the frozen region: SwiftUI renders a translucent 6pt idle ring, expanding to 10pt sides/bottom and a 36pt top glass band on edge approach. Fixed exterior reserves of 12pt at the sides/bottom and 40pt above the screenshot prevent movement, scaling or reflow. The 28pt-high transfer button appears centered inside the expanded top band, never over the screenshot; the existing close action stays discoverable. Session-local tracking includes the header so reaching its action does not collapse it and is removed with the overlay; this does not authorize global polling or source-window monitoring. Keyboard and accessibility actions can reveal the expanded controls without pointer hover. Reduced-motion, reduced-transparency and increased-contrast preferences preserve a clear boundary and readable actions.
+
+After successful completion only, the user may explicitly move the full validated translation into the existing translation window. This is a presentation choice, never an automatic transition or error fallback. Preserve all ordered Markdown, including translations omitted by the overlay quality gate, without capture, OCR or translation repeating; close the overlay and release its screenshot/layout context. Retain only the card's text and existing metadata, without automatically adding history. These are the extension's required behaviors; its implementation and visual acceptance remain tracked by the active Task.
+
+Input belongs to the visible surface. A hidden ordinary translation window must not consume the overlay's click or Escape or clear its shared session before an action executes. Interaction verification must exercise the production dismissal monitors, not only an isolated rendering fixture.
 
 ## Degrade honestly
 

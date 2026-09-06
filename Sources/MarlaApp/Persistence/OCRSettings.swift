@@ -3,6 +3,7 @@ import MarlaCore
 
 enum SettingsNavigationDestination: Equatable {
     case ocr
+    case lab
 }
 
 extension MarlaSettingsStore {

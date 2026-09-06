@@ -7,6 +7,7 @@ extension MarlaApplicationModel {
     }
 
     func translateInPlace() {
+        guard settings.isInPlaceTranslationEnabled else { return }
         beginScreenshotTranslation(intent: .inPlace)
     }
 
@@ -69,6 +70,9 @@ extension MarlaApplicationModel {
                     glmOCR.cancelActiveRequest()
                     inPlaceTranslation.cancelActiveRequest()
                     sessionStore.close()
+                },
+                onTransfer: { [weak self] id in
+                    self?.moveInPlaceTranslationToWindow(for: id) ?? false
                 }
             )
         } else if intent.presentsNearbyResultCardAfterCapture {
@@ -122,7 +126,9 @@ extension MarlaApplicationModel {
                             canvasSize: capture.globalRect.size
                         )
                         if try screenshotTranslationOverlay.apply(layout: layout, for: requestID) {
-                            sessionStore.completeInPlaceTranslation(for: requestID)
+                            let content = InPlaceWindowContent.make(document: result.document, translation: translated)
+                            sessionStore.completeInPlaceTranslation(for: requestID, content: content)
+                            if content != nil { screenshotTranslationOverlay.enableTransfer(for: requestID) }
                         }
                     } catch is CancellationError {
                         return
@@ -182,6 +188,16 @@ extension MarlaApplicationModel {
               case let .failed(message) = session.state
         else { return fallback }
         return message
+    }
+
+    @discardableResult
+    func moveInPlaceTranslationToWindow(for requestID: UUID) -> Bool {
+        guard screenshotTranslationOverlay.activeRequestID == requestID,
+              let session = sessionStore.prepareInPlaceWindowTransfer(for: requestID) else { return false }
+        panelCoordinator.showResult(
+            store: sessionStore, at: session.anchor, pointer: session.pointer, activate: true
+        )
+        return true
     }
 
     private func handleScreenshotSelectionFailure(

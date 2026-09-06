@@ -3,20 +3,27 @@ import MarlaCore
 
 extension MarlaApplicationModel {
     func presentInPlaceOverlayUIAutomationFixture(named scenario: String) -> Bool {
-        let supported = ["in-place-overlay", "in-place-overlay-waiting", "in-place-overlay-failure"]
+        let supported = ["in-place-overlay", "in-place-overlay-waiting", "in-place-overlay-failure",
+                         "in-place-overlay-hover", "in-place-overlay-transfer", "in-place-overlay-small",
+                         "in-place-overlay-interactive"]
         guard supported.contains(scenario),
               let screen = NSScreen.main
         else { return false }
 
-        let size = CGSize(width: 760, height: 480)
+        let isSmall = scenario == "in-place-overlay-small"
+        let size = isSmall ? CGSize(width: 240, height: 140) : CGSize(width: 860, height: 620)
         let frame = CGRect(
             x: screen.visibleFrame.midX - size.width / 2,
             y: screen.visibleFrame.midY - size.height / 2,
             width: size.width,
             height: size.height
         )
-        let document = Self.makeInPlaceTableFixtureDocument()
-        let translation = Self.makeInPlaceTableFixtureTranslation()
+        let document = isSmall ? OCRDocument(blocks: [
+            Self.fixtureBlock("short", .paragraph, "A short passage.", 0.08, 0.45, 0.8, 0.4, 0)
+        ]) : Self.makeInPlaceTableFixtureDocument()
+        let translation = isSmall ? InPlaceTranslationResult(blocks: [
+            InPlaceTranslatedBlock(id: "short", text: "一段简短的译文。")
+        ]) : Self.makeInPlaceTableFixtureTranslation()
         guard let layout = try? InPlaceOverlayLayoutBuilder.make(
             document: document,
             translation: translation,
@@ -24,11 +31,16 @@ extension MarlaApplicationModel {
         ), let image = Self.makeInPlaceTableFixtureImage(size: size, document: document, layout: layout)
         else { return false }
 
-        let requestID = UUID()
+        sessionStore.installUIAutomationFixture(
+            surface: .screenshot, sourceText: document.plainText, translation: "", state: .recognizing,
+            contentFormat: .semanticMarkdown, ocrActivity: .glmOCR
+        )
+        guard let requestID = sessionStore.session?.id else { return false }
         screenshotTranslationOverlay.presentWaiting(
             capture: CapturedScreenshot(image: image, globalRect: frame),
             requestID: requestID,
-            onCancel: {}
+            onCancel: { [weak self] in self?.sessionStore.close() },
+            onTransfer: { [weak self] id in self?.moveInPlaceTranslationToWindow(for: id) ?? false }
         )
         if scenario == "in-place-overlay-waiting" {
             return true
@@ -40,7 +52,18 @@ extension MarlaApplicationModel {
 
         do {
             screenshotTranslationOverlay.updateStage(.translating, for: requestID)
-            return try screenshotTranslationOverlay.apply(layout: layout, for: requestID)
+            guard try screenshotTranslationOverlay.apply(layout: layout, for: requestID) else { return false }
+            sessionStore.completeInPlaceTranslation(
+                for: requestID, content: InPlaceWindowContent.make(document: document, translation: translation)
+            )
+            screenshotTranslationOverlay.enableTransfer(for: requestID)
+            if ProcessInfo.processInfo.environment["MARLA_UI_TEST_EXIT_AFTER_CAPTURE"] == "1" {
+                screenshotTranslationOverlay.setChromeProximityForUIAutomation(scenario != "in-place-overlay")
+            }
+            if scenario == "in-place-overlay-transfer" {
+                return screenshotTranslationOverlay.transferToWindow(for: requestID)
+            }
+            return true
         } catch {
             FileHandle.standardError.write(Data("In-place fixture failed: \(error.localizedDescription)\n".utf8))
             return false
@@ -49,44 +72,74 @@ extension MarlaApplicationModel {
 
     private static func makeInPlaceTableFixtureDocument() -> OCRDocument {
         OCRDocument(blocks: [
-            fixtureBlock("title", .title, "# Why Quantum Leap", 0.03, 0.035, 0.72, 0.09, 0),
+            fixtureBlock("title", .title, "# Native Markdown in place", 0.035, 0.035, 0.72, 0.09, 0),
+            fixtureBlock(
+                "headings",
+                .heading,
+                "# Level one\n\n### Level three\n\n###### Level six",
+                0.04, 0.16, 0.50, 0.20, 1
+            ),
+            fixtureBlock(
+                "inline",
+                .paragraph,
+                "**Bold**, *italic*, ***both***, ~~removed~~, `inline code`, and [a link](https://example.com).",
+                0.04, 0.40, 0.50, 0.11, 2
+            ),
+            fixtureBlock(
+                "list",
+                .listItem,
+                "- Parent item\n  - Nested item\n- [ ] Pending\n- [x] Complete",
+                0.04, 0.55, 0.50, 0.17, 3
+            ),
+            fixtureBlock(
+                "code",
+                .code,
+                "```swift\nlet result = translate(capture)\n```",
+                0.59, 0.16, 0.36, 0.20, 4
+            ),
+            fixtureBlock(
+                "quote",
+                .paragraph,
+                "> Structure remains visible while words change.",
+                0.59, 0.41, 0.36, 0.12, 5
+            ),
+            fixtureBlock(
+                "ordered",
+                .listItem,
+                "1. Capture\n2. Recognize\n3. Translate in place",
+                0.59, 0.57, 0.36, 0.15, 6
+            ),
             fixtureBlock(
                 "table",
                 .table,
-                """
-                | # | Capability | What it gives you |
-                | :---: | :--- | :--- |
-                | 1 | Flexible topologies | Local-to-remote tests, two remote SSH endpoints, or a direct connection |
-                | 2 | Live measurements | Bandwidth curves, throughput, transfer totals, RTT, jitter, loss and retransmissions |
-                | 3 | Controlled automation | Remote startup, reuse confirmation, cleanup and host-key verification |
-                | 4 | Cross-platform workflow | Native credentials, bilingual UI, light and dark themes, responsive layouts |
-                """,
-                0.03, 0.18, 0.94, 0.65, 1
-            ),
-            fixtureBlock(
-                "paragraph",
-                .paragraph,
-                "Everything stays visible in one frozen screenshot overlay.",
-                0.04, 0.87, 0.86, 0.07, 2
+                "<table><tr><th>Semantic</th><th>Inline</th><th>Destination</th></tr><tr><td>Strong and emphasis</td><td>code and removed</td><td>Guide</td></tr></table>",
+                0.035, 0.77, 0.93, 0.18, 7
             )
         ])
     }
 
     private static func makeInPlaceTableFixtureTranslation() -> InPlaceTranslationResult {
         InPlaceTranslationResult(blocks: [
-            InPlaceTranslatedBlock(id: "title", text: "## 为什么选择量子跃迁"),
+            InPlaceTranslatedBlock(id: "title", text: "# 原位保留 Markdown 结构"),
+            InPlaceTranslatedBlock(id: "headings", text: "# 一级标题\n\n### 三级标题\n\n###### 六级标题"),
+            InPlaceTranslatedBlock(
+                id: "inline",
+                text: "**粗体**、*斜体*、***粗斜体***、~~删除线~~、`行内代码`与[链接](https://example.com)。"
+            ),
+            InPlaceTranslatedBlock(
+                id: "list",
+                text: "- 父级条目\n  - 嵌套条目\n- [ ] 待完成\n- [x] 已完成"
+            ),
+            InPlaceTranslatedBlock(
+                id: "code",
+                text: "```swift\nlet result = translate(capture)\n```"
+            ),
+            InPlaceTranslatedBlock(id: "quote", text: "> 文字变化时，结构仍留在原处。"),
+            InPlaceTranslatedBlock(id: "ordered", text: "1. 截图\n2. 识别\n3. 原位翻译"),
             InPlaceTranslatedBlock(
                 id: "table",
-                text: """
-                | 编号 | 能力 | 它能为您带来什么 |
-                | :---: | :--- | :--- |
-                | 1 | 灵活的拓扑结构 | 本地到远程测试、两个远程 SSH 端点，或直接连接至现有的 iperf3 服务 |
-                | 2 | 实时测量 | 带宽曲线、吞吐量、传输总量、RTT、抖动、丢包以及 TCP 重传 |
-                | 3 | 受控自动化 | 远程服务启动、复用确认、会话清理以及 SSH 主机密钥验证 |
-                | 4 | 跨平台工作流 | 原生凭据存储、双语界面、浅色和深色主题以及响应式布局 |
-                """
-            ),
-            InPlaceTranslatedBlock(id: "paragraph", text: "所有内容都直接保留在同一个冻结截图覆盖层中。")
+                text: "| 语义 | 行内样式 | 目标 |\n| :--- | :--- | :--- |\n| **粗体**与*斜体* | `代码`与~~删除线~~ | [文档](https://example.com) |"
+            )
         ])
     }
 
@@ -155,34 +208,39 @@ extension MarlaApplicationModel {
             )
         }
 
-        guard let sourceTableBlock = document.blocks.first(where: { $0.kind == .table }),
-              let sourceTable = InPlaceMarkdownProjection.table(from: sourceTableBlock.sourceText)
-        else {
-            NSGraphicsContext.restoreGraphicsState()
-            return nil
-        }
-        let tableBlocks = layout.blocks.filter { $0.id == sourceTableBlock.id && $0.tableCell != nil }
-        for item in tableBlocks {
-            guard let cell = item.tableCell else { continue }
-            if cell.row.isMultiple(of: 2) == false {
-                alternate.setFill()
-                NSBezierPath.fill(item.frame)
+        let tableBlocks = layout.blocks.filter { $0.tableCell != nil }
+        let sourceMarkdown = tableBlocks.first.flatMap { first -> String? in
+            let sourceBlocks = document.blocks.filter { first.sourceIDs.contains($0.id) }
+            guard let sourceTableBlock = sourceBlocks.first else { return nil }
+            if sourceBlocks.count == 1, sourceTableBlock.kind == .table {
+                return LiteralHTMLTableNormalizer.markdown(from: sourceTableBlock.sourceText)
+                    ?? sourceTableBlock.sourceText
             }
-            let paragraph = NSMutableParagraphStyle()
-            paragraph.lineBreakMode = .byWordWrapping
-            paragraph.alignment = cell.alignment.appKitValue
-            let font = NSFont.systemFont(
-                ofSize: item.fontSize,
-                weight: cell.row == 0 ? .semibold : .regular
-            )
-            let value = sourceTable.rows[cell.row][cell.column]
-            (value as NSString).draw(
-                with: item.frame.insetBy(dx: 6, dy: 3),
-                options: [.usesLineFragmentOrigin, .usesFontLeading],
-                attributes: [.font: font, .foregroundColor: text, .paragraphStyle: paragraph]
-            )
+            return sourceBlocks.map(\.sourceText).joined(separator: "\n")
         }
-        if let first = tableBlocks.first {
+        if let first = tableBlocks.first, first.tableCell?.preservesSourceGrid == true,
+           let sourceMarkdown,
+           let sourceTable = InPlaceMarkdownProjection.table(from: sourceMarkdown) {
+            for item in tableBlocks {
+                guard let cell = item.tableCell else { continue }
+                if cell.row.isMultiple(of: 2) == false {
+                    alternate.setFill()
+                    NSBezierPath.fill(item.frame)
+                }
+                let paragraph = NSMutableParagraphStyle()
+                paragraph.lineBreakMode = .byWordWrapping
+                paragraph.alignment = cell.alignment.appKitValue
+                let font = NSFont.systemFont(
+                    ofSize: item.fontSize,
+                    weight: cell.row == 0 ? .semibold : .regular
+                )
+                let value = String(sourceTable.rows[cell.row][cell.column].characters)
+                (value as NSString).draw(
+                    with: item.frame.insetBy(dx: 6, dy: 3),
+                    options: [.usesLineFragmentOrigin, .usesFontLeading],
+                    attributes: [.font: font, .foregroundColor: text, .paragraphStyle: paragraph]
+                )
+            }
             let tableFrame = tableBlocks.dropFirst().reduce(first.frame) { $0.union($1.frame) }
             line.setStroke()
             let grid = NSBezierPath(rect: tableFrame)

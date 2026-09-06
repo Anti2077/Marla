@@ -295,8 +295,12 @@ final class TranslationSessionStore: ObservableObject {
         )
     }
 
-    func completeInPlaceTranslation(for id: UUID) {
+    func completeInPlaceTranslation(for id: UUID, content: TranslationContent? = nil) {
         guard var current = session, current.id == id else { return }
+        if let content {
+            current.translation = content.text
+            current.sourceContent = TranslationContent(format: content.format, text: current.sourceText)
+        }
         ocrTask = nil
         current.state = .completed
         current.ocrActivity = nil
@@ -304,6 +308,15 @@ final class TranslationSessionStore: ObservableObject {
         current.errorRetryable = false
         current.recoveryAction = nil
         session = current
+    }
+
+    @discardableResult
+    func prepareInPlaceWindowTransfer(for id: UUID) -> CardSession? {
+        guard var current = session, current.id == id, current.state == .completed,
+              !current.translation.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return nil }
+        current.isActivating = true
+        session = current
+        return current
     }
 
     func installUIAutomationFixture(

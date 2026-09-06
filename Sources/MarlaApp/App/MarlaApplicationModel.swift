@@ -71,6 +71,7 @@ final class MarlaApplicationModel: ObservableObject {
             settings: settings,
             enableSystemIntegrations: enableSystemIntegrations
         )
+        shortcutManager.setFeatureEnabled(settings.isInPlaceTranslationEnabled, for: .inPlace)
         panelCoordinator.attach(model: self)
         if enableSystemIntegrations {
             if !MarlaRuntime.isUIAutomationSnapshot {
@@ -124,6 +125,15 @@ final class MarlaApplicationModel: ObservableObject {
     func refreshPermissions() {
         accessibilityTrusted = selectionReader.isTrusted
         screenRecordingAuthorized = CGPreflightScreenCaptureAccess()
+    }
+
+    func setInPlaceTranslationEnabled(_ enabled: Bool) {
+        settings.isInPlaceTranslationEnabled = enabled
+        shortcutManager.setFeatureEnabled(enabled, for: .inPlace)
+        guard !enabled else { return }
+        screenshotTranslationOverlay.close()
+        glmOCR.cancelActiveRequest()
+        inPlaceTranslation.cancelActiveRequest()
     }
 
     func requestAccessibilityAccess() {

@@ -9,6 +9,7 @@ enum SettingsPage: String, CaseIterable, Identifiable {
     case api
     case shortcuts
     case ocr
+    case lab
 
     var id: String { rawValue }
 
@@ -19,6 +20,7 @@ enum SettingsPage: String, CaseIterable, Identifiable {
         case .api: "翻译 API"
         case .shortcuts: "快捷键"
         case .ocr: "OCR"
+        case .lab: "实验室"
         }
     }
 
@@ -29,6 +31,7 @@ enum SettingsPage: String, CaseIterable, Identifiable {
         case .api: "network"
         case .shortcuts: "command"
         case .ocr: "text.viewfinder"
+        case .lab: "flask"
         }
     }
 }
@@ -62,6 +65,7 @@ struct SettingsView: View {
                 case .api: apiPage
                 case .shortcuts: shortcutsPage
                 case .ocr: ocrPage
+                case .lab: labPage
                 }
             }
             .id(selectedPage)
@@ -431,11 +435,18 @@ struct SettingsView: View {
         ) {
             SettingsSection(title: "全局入口", systemImage: "command") {
                 ForEach(GlobalShortcutAction.allCases, id: \.self) { action in
-                    ShortcutEditorRow(
-                        action: action,
-                        shortcuts: appModel.shortcutManager,
-                        editingAction: $editingShortcutAction
-                    )
+                    if action != .inPlace || settings.isInPlaceTranslationEnabled {
+                        ShortcutEditorRow(
+                            action: action,
+                            shortcuts: appModel.shortcutManager,
+                            editingAction: $editingShortcutAction
+                        )
+                    }
+                }
+                if !settings.isInPlaceTranslationEnabled {
+                    Label("原位翻译快捷键在实验室中启用后显示。", systemImage: "flask")
+                        .font(AppFont.caption)
+                        .foregroundStyle(DesignTokens.secondaryText)
                 }
                 HStack(spacing: DesignTokens.spaceM) {
                     Image(systemName: "escape")
@@ -488,10 +499,29 @@ struct SettingsView: View {
         }
     }
 
+    private var labPage: some View {
+        SettingsPageShell(
+            title: "实验室",
+            subtitle: "试验中的能力，默认关闭，随时可以撤回"
+        ) {
+            ExperimentalSettingsSection(
+                settings: settings,
+                appModel: appModel
+            )
+        }
+    }
+
     private func applyPendingNavigation() {
-        guard settings.settingsNavigationDestination == .ocr else { return }
-        selectedPage = .ocr
-        settings.consumeSettingsNavigation(.ocr)
+        switch settings.settingsNavigationDestination {
+        case .ocr:
+            selectedPage = .ocr
+            settings.consumeSettingsNavigation(.ocr)
+        case .lab:
+            selectedPage = .lab
+            settings.consumeSettingsNavigation(.lab)
+        case nil:
+            break
+        }
     }
 
     private func removeProfile(_ id: UUID) {

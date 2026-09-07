@@ -358,6 +358,8 @@ final class FloatingPanelCoordinator: NSObject, NSWindowDelegate {
                 store: store,
                 onClose: { [weak self] in self?.hide() },
                 onRecovery: { [weak self] action in self?.model?.performRecovery(action) },
+                onVisionFallback: { [weak self] requestID in self?.model?.fallbackScreenshotOCRToVision(for: requestID) },
+                onCancel: { [weak self] in self?.model?.cancelScreenshotTranslation() },
                 onWidthPresetChange: { [weak self] preset in self?.setWidthPreset(preset) },
                 layout: layout
             )
@@ -445,6 +447,7 @@ final class FloatingPanelCoordinator: NSObject, NSWindowDelegate {
         resultLayoutStore = nil
         resultLayoutModel = nil
         resultLayoutVisibleFrame = nil
+        model?.clearActiveScreenshotVisionFallback()
         panel?.orderOut(nil)
         model?.sessionStore.close()
         SpeechCoordinator.shared.stop()

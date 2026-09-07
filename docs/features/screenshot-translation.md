@@ -6,6 +6,8 @@ The nearby-result-card workflow and the bounded GLM-only in-place reconstruction
 
 TASK-041's 2026-09-05 scope adds SwiftUI glass edge chrome and an explicit completed-result transfer to the existing translation window. The contract below defines that authorized work; its implementation and visual acceptance remain in progress until recorded in the Task and verification documents.
 
+TASK-043 adds a user-controlled degradation action to the ordinary nearby-card path: while ordinary screenshot translation is still in the GLM-OCR recognition stage, the user may choose “快速降级至 Vision”. The implementation preserves the independent in-place contract and the existing automatic fallback after a configured GLM-OCR failure; real-provider acceptance remains tracked separately in RV-006.
+
 ## Goal
 
 Provide two explicit screenshot-region workflows. “截图翻译” uses the configured Vision or GLM-OCR service and always presents a nearby result card. The independent “原位翻译” entry always uses GLM-OCR structure recognition and reconstructs the frozen selected region in place with translated text occupying the same reliable layout blocks.
@@ -23,6 +25,16 @@ The configurable global shortcuts default to `⌃⇧S` for ordinary screenshot t
 5. Ordinary screenshot translation sends canonical OCR text/Markdown to the configured translation API and presents the shared nearby card, including after successful GLM OCR. Independent in-place translation sends the complete stable-ID GLM block set in one layout-translation request. Image pixels never cross the translation boundary.
 6. Update the existing overlay with eligible validated blocks. Individual unreliable blocks keep their frozen source pixels; invalid Provider output, a layout with no reliable block, GLM failure or rendering failure changes only the compact status in that overlay. The independent intent never enters Vision or automatically opens the shared nearby result card after capture.
 7. Only after successful completion, the user may explicitly choose “移到翻译窗口” to move the full validated result into the existing translation window without repeating capture, OCR or translation. This closes the overlay and releases its screenshot and layout context; it is not a failure fallback.
+
+## Ordinary GLM recognition degradation
+
+TASK-043 applies only to ordinary “截图翻译”, whose result is presented in the nearby card. When the selected OCR Provider is GLM-OCR and the session is still recognizing, that card shows “快速降级至 Vision”. The action is a user-requested route change, not an OCR error state.
+
+1. Keep the selected `CapturedScreenshot` in the short-lived active screenshot session and use it as the input for the local Vision request. Do not start a second selection, capture a new image or upload the screenshot to GLM-OCR again.
+2. On one valid click, cancel the in-flight GLM-OCR request and its OCR task, advance the same session to the existing `visionFallback` state, and let the normal nearby-card translation flow continue after Vision returns `plainText`.
+3. Guard the action by the current session and OCR request identity. Once GLM-OCR has completed or failed, Vision has started, translation has started, the session is completed/failed/cancelled, or the session has been replaced or closed, the action is hidden or has no effect. Repeated and stale clicks cannot start another Vision request or update a newer session.
+4. Keep this explicit action distinct from automatic fallback. A configured GLM-OCR network, timeout, authorization, encoding or response failure continues to use the existing visible “云端结构识别失败，正在改用本机 Vision…” state; an intentional user click is not reported as a failure. User cancellation still does not trigger fallback.
+5. This action never appears in the independent “原位翻译” overlay. That path remains GLM-only after capture because Vision does not provide the geometry contract required for in-place reconstruction; its GLM failure remains in the same overlay.
 
 ## GLM in-place flow
 
@@ -65,6 +77,14 @@ The independent entry is an opt-in experimental feature. Its switch is persisted
 - OCR success is retained if translation fails.
 - Vision promises plain text and reading order only. GLM structure is normalized into Markdown, but pixel-identical page reconstruction is not promised.
 - Multi-display scale and coordinates are correct.
+
+### TASK-043 ordinary screenshot degradation contract
+
+- During ordinary GLM-OCR recognition, the nearby result card exposes “快速降级至 Vision” and only then; the action is absent from the in-place overlay and from all later OCR, translation, completion, failure and cancellation states.
+- A valid action cancels the current GLM-OCR request, reuses the same in-memory `CapturedScreenshot`, enters the existing `visionFallback` state and continues the ordinary nearby-card flow after local Vision OCR. It does not reselect, recapture or upload a second screenshot.
+- Session/request identity and one-shot protection reject stale, repeated, replaced or late actions. GLM callbacks arriving after the user action cannot overwrite the Vision session or cause duplicate OCR/translation work.
+- Automatic fallback after a configured GLM-OCR failure remains behaviorally distinct from the user action. The automatic path keeps its existing failure/degradation status; the user action is not presented as an error and does not alter the cancellation rule.
+- The action's state transition, shared screenshot identity, cancellation ordering, route separation and card visibility are covered by dedicated regression tests and a fixed Release build. Real GLM cancellation and owner-operated fixed-App acceptance remain tracked in RV-006; existing TASK-033 automatic-fallback and TASK-041 in-place evidence do not substitute for that acceptance.
 
 ### Implemented GLM in-place path
 

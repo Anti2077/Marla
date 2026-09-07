@@ -9,11 +9,22 @@ enum TranslationCardMotionPolicy {
     }
 }
 
+enum TranslationCardActionVisibility {
+    static func showsVisionFallback(for session: CardSession, hasAction: Bool) -> Bool {
+        hasAction
+            && session.surface == .screenshot
+            && session.state == .recognizing
+            && session.ocrActivity == .glmOCR
+    }
+}
+
 struct TranslationCardView: View {
     @ObservedObject var store: TranslationSessionStore
     @ObservedObject private var layout: ResultPanelLayoutModel
     let onClose: () -> Void
     let onRecovery: (CardRecoveryAction) -> Void
+    let onVisionFallback: ((UUID) -> Void)?
+    let onCancel: (() -> Void)?
     let onWidthPresetChange: ((TranslationWindowWidthPreset) -> Void)?
     @Environment(\.accessibilityReduceMotion) private var systemReduceMotion
     @Environment(\.marlaReduceMotionOverride) private var reduceMotionOverride
@@ -22,6 +33,8 @@ struct TranslationCardView: View {
         store: TranslationSessionStore,
         onClose: @escaping () -> Void,
         onRecovery: @escaping (CardRecoveryAction) -> Void,
+        onVisionFallback: ((UUID) -> Void)? = nil,
+        onCancel: (() -> Void)? = nil,
         onWidthPresetChange: ((TranslationWindowWidthPreset) -> Void)? = nil,
         cardWidth: CGFloat = ResultCardLayout.defaultWidth,
         maximumPanelHeight: CGFloat = .greatestFiniteMagnitude,
@@ -30,6 +43,8 @@ struct TranslationCardView: View {
         self.store = store
         self.onClose = onClose
         self.onRecovery = onRecovery
+        self.onVisionFallback = onVisionFallback
+        self.onCancel = onCancel
         self.onWidthPresetChange = onWidthPresetChange
         self.layout = layout ?? ResultPanelLayoutModel(
             width: cardWidth,
@@ -248,13 +263,37 @@ struct TranslationCardView: View {
                             Text("GLM-OCR 正在识别文字与版面…")
                                 .font(AppFont.caption)
                                 .foregroundStyle(DesignTokens.secondaryText)
+                            if let onVisionFallback,
+                               TranslationCardActionVisibility.showsVisionFallback(
+                                   for: session,
+                                   hasAction: true
+                               ) {
+                                Button {
+                                    onVisionFallback(session.id)
+                                } label: {
+                                    Label("快速降级至 Vision", systemImage: "arrow.triangle.2.circlepath")
+                                }
+                                .buttonStyle(.bordered)
+                                .controlSize(.small)
+                                .help("停止等待 GLM-OCR，使用本机 Vision 识别这次截图")
+                                .accessibilityLabel("快速降级至 Vision")
+                                .accessibilityHint("复用当前截图并改用本机 Vision 识别")
+                            }
                         }
                     case .visionFallback:
-                        StateLine(
-                            symbol: "exclamationmark.arrow.triangle.2.circlepath",
-                            title: "云端结构识别失败，正在改用本机 Vision…",
-                            tint: DesignTokens.warning
-                        )
+                        if session.visionFallbackReason == .userRequested {
+                            StateLine(
+                                symbol: "arrow.triangle.2.circlepath",
+                                title: "正在改用本机 Vision…",
+                                tint: DesignTokens.accent
+                            )
+                        } else {
+                            StateLine(
+                                symbol: "exclamationmark.arrow.triangle.2.circlepath",
+                                title: "云端结构识别失败，正在改用本机 Vision…",
+                                tint: DesignTokens.warning
+                            )
+                        }
                     case .inPlaceTranslation:
                         StateLine(
                             symbol: "rectangle.inset.filled.and.person.filled",
@@ -406,7 +445,7 @@ struct TranslationCardView: View {
                 .buttonStyle(.borderless)
                 .help("朗读或停止译文")
             if !session.state.isTerminal {
-                Button { store.cancel() } label: { Image(systemName: "stop.circle") }
+                Button { onCancel?() ?? store.cancel() } label: { Image(systemName: "stop.circle") }
                     .buttonStyle(.borderless)
                     .help("取消当前翻译")
                     .transition(.opacity)

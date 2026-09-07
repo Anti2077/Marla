@@ -45,7 +45,7 @@ final class MarlaApplicationModel: ObservableObject {
     var sessionStore: TranslationSessionStore { services.sessionStore }
     var panelCoordinator: FloatingPanelCoordinator { services.panelCoordinator }
     var screenshotCoordinator: ScreenshotCaptureCoordinator { services.screenshotCoordinator }
-    var visionOCR: VisionOCRService { services.visionOCR }
+    var visionOCR: VisionOCRProviding { services.visionOCR }
     var glmOCR: GLMOCRService { services.glmOCR }
     var inPlaceTranslation: InPlaceTranslationService { services.inPlaceTranslation }
     var screenshotTranslationOverlay: ScreenshotTranslationOverlayCoordinator {
@@ -56,6 +56,7 @@ final class MarlaApplicationModel: ObservableObject {
 
     private let selectionReader: AccessibilitySelectionReader
     private var activeSelectionReadCancellation: SelectionReadCancellation?
+    var activeScreenshotVisionFallback: (capture: CapturedScreenshot, requestID: UUID)?
     private var applicationDidFinishLaunchingObserver: NSObjectProtocol?
     private var didLoadCredentialsAfterLaunch = false
 
@@ -64,12 +65,14 @@ final class MarlaApplicationModel: ObservableObject {
         settings: MarlaSettingsStore = MarlaSettingsStore(),
         enableSystemIntegrations: Bool = !MarlaRuntime.isXcodePreview,
         accessibilityTrusted: Bool? = nil,
-        screenRecordingAuthorized: Bool? = nil
+        screenRecordingAuthorized: Bool? = nil,
+        visionOCR: VisionOCRProviding? = nil
     ) {
         self.selectionReader = selectionReader
         services = MarlaApplicationServices(
             settings: settings,
-            enableSystemIntegrations: enableSystemIntegrations
+            enableSystemIntegrations: enableSystemIntegrations,
+            visionOCR: visionOCR
         )
         shortcutManager.setFeatureEnabled(settings.isInPlaceTranslationEnabled, for: .inPlace)
         panelCoordinator.attach(model: self)
@@ -131,9 +134,19 @@ final class MarlaApplicationModel: ObservableObject {
         settings.isInPlaceTranslationEnabled = enabled
         shortcutManager.setFeatureEnabled(enabled, for: .inPlace)
         guard !enabled else { return }
+        activeScreenshotVisionFallback = nil
         screenshotTranslationOverlay.close()
         glmOCR.cancelActiveRequest()
         inPlaceTranslation.cancelActiveRequest()
+    }
+
+    func clearActiveScreenshotVisionFallback() {
+        activeScreenshotVisionFallback = nil
+    }
+
+    func cancelScreenshotTranslation() {
+        activeScreenshotVisionFallback = nil
+        sessionStore.cancel()
     }
 
     func requestAccessibilityAccess() {
@@ -145,6 +158,7 @@ final class MarlaApplicationModel: ObservableObject {
     }
 
     func translateSelection() {
+        activeScreenshotVisionFallback = nil
         screenshotTranslationOverlay.close()
         if let activeSelectionReadCancellation {
             activeSelectionReadCancellation.cancel()
@@ -344,6 +358,7 @@ final class MarlaApplicationModel: ObservableObject {
     }
 
     func showQuickInput() {
+        activeScreenshotVisionFallback = nil
         screenshotTranslationOverlay.close()
         panelCoordinator.showQuickInput(store: sessionStore, pointer: NSEvent.mouseLocation)
     }
@@ -420,7 +435,8 @@ final class MarlaApplicationModel: ObservableObject {
                 sourceText: "",
                 translation: "",
                 state: .recognizing,
-                ocrActivity: .visionFallback
+                ocrActivity: .visionFallback,
+                visionFallbackReason: ProcessInfo.processInfo.environment["MARLA_UI_TEST_MANUAL_FALLBACK"] == "1" ? .userRequested : .automaticFailure
             )
             panelCoordinator.showResult(store: sessionStore, at: nil, pointer: NSEvent.mouseLocation, activate: true)
         case "streaming":
@@ -769,7 +785,6 @@ final class MarlaApplicationModel: ObservableObject {
         }
     }
 }
-
 private enum UIAutomationSnapshotError: LocalizedError {
     case windowUnavailable
     case bitmapUnavailable

@@ -12,6 +12,7 @@ extension MarlaApplicationModel {
     }
 
     private func beginScreenshotTranslation(intent: ScreenshotTranslationIntent) {
+        activeScreenshotVisionFallback = nil
         screenshotTranslationOverlay.close()
         inPlaceTranslation.cancelActiveRequest()
         let pointer = NSEvent.mouseLocation
@@ -61,6 +62,9 @@ extension MarlaApplicationModel {
             pointer: pointer,
             provider: provider
         )
+        if provider == .glmOCR, intent == .nearby {
+            activeScreenshotVisionFallback = (capture: capture, requestID: requestID)
+        }
         if intent.usesInPlaceOverlay {
             screenshotTranslationOverlay.presentWaiting(
                 capture: capture,
@@ -80,6 +84,7 @@ extension MarlaApplicationModel {
         }
 
         if provider == .glmOCR, settings.glmOCRAPIKey == nil {
+            activeScreenshotVisionFallback = nil
             let message = intent.usesInPlaceOverlay
                 ? "原位翻译需要 GLM-OCR API Key"
                 : "云端 GLM-OCR 没有已保存的 API Key。请先在 OCR 设置中保存 Key。"
@@ -102,6 +107,7 @@ extension MarlaApplicationModel {
                     let result = try await glmOCR.recognize(capture.image, apiKey: apiKey, requestID: requestID)
                     try Task.checkCancellation()
                     guard intent.usesInPlaceOverlay else {
+                        activeScreenshotVisionFallback = nil
                         sessionStore.submitOCRResult(result, for: requestID)
                         return
                     }
@@ -146,6 +152,7 @@ extension MarlaApplicationModel {
                     return
                 } catch {
                     if !intent.allowsVisionFallback {
+                        activeScreenshotVisionFallback = nil
                         let message = error.localizedDescription
                         sessionStore.fail(
                             message,
@@ -157,28 +164,77 @@ extension MarlaApplicationModel {
                         return
                     }
                     sessionStore.beginVisionFallback(for: requestID)
+                    await recognizeScreenshotWithVision(
+                        capture: capture,
+                        requestID: requestID,
+                        glmFailureMessage: true
+                    )
+                    return
                 }
             }
 
-            do {
-                let document = try await visionOCR.recognize(capture.image)
-                try Task.checkCancellation()
-                sessionStore.submitOCRResult(
-                    OCRResult(provider: .vision, document: document, content: .plainText(document.plainText)),
-                    for: requestID
-                )
-            } catch is CancellationError {
-                return
-            } catch {
-                sessionStore.fail(
-                    provider == .glmOCR
-                        ? "云端结构识别和本机 Vision 都没有识别到文字，请重新框选。"
-                        : "没有识别到文字，请重新框选。",
-                    code: .invalidResponse,
-                    for: requestID,
-                    recovery: .reselectScreenshot
-                )
+            await recognizeScreenshotWithVision(
+                capture: capture,
+                requestID: requestID,
+                glmFailureMessage: provider == .glmOCR
+            )
+        }
+        sessionStore.attachOCRTask(task, for: requestID)
+    }
+
+    private func recognizeScreenshotWithVision(
+        capture: CapturedScreenshot,
+        requestID: UUID,
+        glmFailureMessage: Bool
+    ) async {
+        defer {
+            if activeScreenshotVisionFallback?.requestID == requestID {
+                activeScreenshotVisionFallback = nil
             }
+        }
+        do {
+            let document = try await visionOCR.recognize(capture.image)
+            try Task.checkCancellation()
+            sessionStore.submitOCRResult(
+                OCRResult(provider: .vision, document: document, content: .plainText(document.plainText)),
+                for: requestID
+            )
+        } catch is CancellationError {
+            return
+        } catch {
+            sessionStore.fail(
+                glmFailureMessage
+                    ? "云端结构识别和本机 Vision 都没有识别到文字，请重新框选。"
+                    : "没有识别到文字，请重新框选。",
+                code: .invalidResponse,
+                for: requestID,
+                recovery: .reselectScreenshot
+            )
+        }
+    }
+
+    func fallbackScreenshotOCRToVision(for requestID: UUID) {
+        guard let fallback = activeScreenshotVisionFallback,
+              fallback.requestID == requestID,
+              let session = sessionStore.session,
+              session.id == requestID,
+              session.surface == .screenshot,
+              session.state == .recognizing,
+              session.ocrActivity == .glmOCR
+        else { return }
+
+        activeScreenshotVisionFallback = nil
+        sessionStore.cancelCurrentRequest()
+        glmOCR.cancelActiveRequest()
+        sessionStore.beginVisionFallback(for: requestID, reason: .userRequested)
+
+        let task = Task { @MainActor [weak self] in
+            guard let self else { return }
+            await self.recognizeScreenshotWithVision(
+                capture: fallback.capture,
+                requestID: requestID,
+                glmFailureMessage: false
+            )
         }
         sessionStore.attachOCRTask(task, for: requestID)
     }

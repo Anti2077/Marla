@@ -7,6 +7,7 @@
 | ID | 工作 | 状态 | 说明 |
 | --- | --- | --- | --- |
 | RV-005 | 原位表格背景修复后的实机验收 | In Progress | 所有者已确认迁移窗口可正常显示译文表格；授权的 3 次真实请求也都返回有效表格，故障已定位为原位背景误判。内部采样修复、本地原图扰动复测、234 项 Swift 和固定 App 构建通过，仍待修复后真实点击/外观验收。实验性开关与实验室页面的自动化门控已通过，但不替代真实 GLM/系统玻璃验收。 |
+| RV-006 | 普通截图翻译在 GLM-OCR 识别中的主动降级至 Vision | Pending owner acceptance | TASK-043 的实现、回归测试、固定 Release 构建和浅色/深色/Reduce Motion 离线状态证据已完成；仍需所有者用真实 GLM 配置确认按钮点击会取消当前请求并复用同一 `CapturedScreenshot`，且在原位翻译和后续阶段不出现。 |
 
 ### RV-005：GLM-OCR 真实凭据成功路径
 
@@ -14,6 +15,16 @@
 - 使用不含敏感信息、同时含标题、代码或表格结构的测试截图，确认框选完成后同尺寸 overlay 在 GLM-OCR 请求前立即出现，结构识别、按稳定 ID 返回的布局翻译和结果都在同一 panel/content view 内更新。可靠块覆盖译文，单个无坐标、重叠、无法适配或复杂背景块保留原截图；无可靠块、Provider 合同无效或绘制失败在同一 overlay 内显示具体失败。整个原位路径不出现附近结果卡或 Vision 回退。另行确认普通“截图翻译”在 Vision 与 GLM-OCR 设置下都只显示附近结果卡并保留既有回退。
 - 证据只记录成功/失败、脱敏时延范围与结构类型统计；不记录 Key、Authorization Header、完整截图、Provider 账号或识别正文。
 - 未完成本项不重新打开已完成的 TASK-033；当前 TASK-041 已因真实完成态复现的 Markdown/GFM 展示缺陷保持 Active。
+
+### RV-006：普通截图翻译 GLM-OCR 识别中的主动降级
+
+- TASK-043 已完成代码、会话状态和回归测试；`TranslationCardActionVisibility` 限制按钮只在普通截图的 `recognizing + glmOCR` 状态显示，`MarlaApplicationModel` 以 request/session/OCR 阶段和一次性上下文保护主动降级。自动化证据不替代真实 GLM 验收，也不把 TASK-033 的自动失败回退当作本条手动证据。
+- 最终授权 `./scripts/check.sh` 返回 0，31 项 Rust 与 240 项 Swift 测试通过，Swift Package、Xcode Debug、结构、格式、脚本、空白和 diff 门禁完成；最终固定 Release App 同时通过 `com.marla.app`、`0.0.0`、macOS 14+、arm64、Paper Lantern 资源、稳定签名与 designated requirement 验证。
+- 使用固定 `artifacts/Marla_dev.app`，由项目所有者在 OCR 设置中自行配置并保存 GLM Key，从普通“截图翻译”入口触发一张不含敏感信息的截图。GLM-OCR 仍处于识别等待时，确认附近结果卡显示“快速降级至 Vision”；确认该入口不出现在独立“原位翻译”路径。
+- 在按钮仍有效时点击一次，确认当前 GLM-OCR 请求和 OCR task 被取消，同一活动 `CapturedScreenshot` 直接交给本机 Vision，状态进入既有 `visionFallback`，随后继续普通附近结果卡翻译。不得出现第二次截图选择、第二次 GLM 上传或新的截图内容。
+- 分别检查 GLM 已完成、GLM 已失败并自动回退、Vision 已开始、翻译已开始、完成/失败/取消、关闭、新截图和会话替换后的按钮隐藏或无效行为；确认旧 GLM/Vision 回调不能更新新会话，重复点击不产生重复工作。
+- 固定 Release fixture 已覆盖等待态和用户主动降级态的浅色、深色与 Reduce Motion：`/private/tmp/marla-task043-glm-awaiting-light-final2.png`、`/private/tmp/marla-task043-glm-awaiting-dark-final2.png`、`/private/tmp/marla-task043-glm-awaiting-dark-reduce-final2.png`、`/private/tmp/marla-task043-glm-manual-fallback-light-final2.png`、`/private/tmp/marla-task043-glm-manual-fallback-dark-final2.png`、`/private/tmp/marla-task043-glm-manual-fallback-dark-reduce-final2.png`。首轮等待态的底部操作行裁切已修复；最终按钮、说明、分隔线与操作行无重叠或裁切，主动降级使用中性状态而非错误警告。五维复审为 8/8/8/9/7。
+- 这项手动验收尚未执行。待验证证据应只记录状态、是否复用同一截图以及是否发生重复请求等脱敏结果，不记录 API Key、Authorization Header、完整截图、OCR 正文或 Provider 账号。
 
 ### TASK-041 Qwen-MT 与 Markdown 原位投影证据
 

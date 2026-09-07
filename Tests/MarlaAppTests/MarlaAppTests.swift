@@ -8,6 +8,21 @@ import XCTest
 import Vision
 
 @MainActor
+private final class RecordingVisionOCR: VisionOCRProviding {
+    private let result: OCRDocument
+    private(set) var images: [CGImage] = []
+
+    init(result: OCRDocument) {
+        self.result = result
+    }
+
+    func recognize(_ image: CGImage) async throws -> OCRDocument {
+        images.append(image)
+        return result
+    }
+}
+
+@MainActor
 private final class FakeSelectionClipboard: SelectionClipboardAccess {
     var changeCount = 0
     var text: String?
@@ -352,6 +367,7 @@ final class MarlaAppTests: XCTestCase {
 
         store.beginVisionFallback(for: id)
         XCTAssertEqual(store.session?.statusLabel, "正在改用 Vision")
+        XCTAssertEqual(store.session?.visionFallbackReason, .automaticFailure)
 
         store.submitOCRResult(
             OCRResult(
@@ -365,6 +381,105 @@ final class MarlaAppTests: XCTestCase {
         )
         XCTAssertEqual(store.session?.sourceContent, .semanticMarkdown("# Hello"))
         XCTAssertEqual(store.session?.detectedSourceLanguage, .english)
+    }
+
+    @MainActor
+    func testScreenshotCardOffersManualVisionFallbackOnlyDuringGLMRecognition() {
+        let defaults = UserDefaults(suiteName: "com.marla.tests.ocr-card.\(UUID().uuidString)")!
+        let settings = MarlaSettingsStore(
+            defaults: defaults,
+            keychain: KeychainCredentialStore(service: UUID().uuidString, account: UUID().uuidString)
+        )
+        let store = TranslationSessionStore(settings: settings)
+
+        store.installUIAutomationFixture(
+            surface: .screenshot,
+            sourceText: "",
+            translation: "",
+            state: .recognizing,
+            ocrActivity: .glmOCR
+        )
+        let glmSession = try! XCTUnwrap(store.session)
+        XCTAssertTrue(TranslationCardActionVisibility.showsVisionFallback(for: glmSession, hasAction: true))
+
+        store.installUIAutomationFixture(
+            surface: .screenshot,
+            sourceText: "",
+            translation: "",
+            state: .recognizing,
+            ocrActivity: .visionFallback
+        )
+        let visionSession = try! XCTUnwrap(store.session)
+        XCTAssertFalse(TranslationCardActionVisibility.showsVisionFallback(for: visionSession, hasAction: true))
+
+        store.installUIAutomationFixture(
+            surface: .screenshot,
+            sourceText: "",
+            translation: "",
+            state: .awaitingFirstToken,
+            ocrActivity: .glmOCR
+        )
+        let translatingSession = try! XCTUnwrap(store.session)
+        XCTAssertFalse(TranslationCardActionVisibility.showsVisionFallback(for: translatingSession, hasAction: true))
+    }
+
+    @MainActor
+    func testManualVisionFallbackReusesTheCapturedImageAndIsOneShot() async throws {
+        let defaults = UserDefaults(suiteName: "com.marla.tests.ocr-fallback.\(UUID().uuidString)")!
+        let settings = MarlaSettingsStore(
+            defaults: defaults,
+            keychain: KeychainCredentialStore(service: UUID().uuidString, account: UUID().uuidString)
+        )
+        let vision = RecordingVisionOCR(result: OCRDocument(blocks: [
+            ContentBlock(id: "line-0000", kind: .paragraph, sourceText: "Hello", readingOrder: 0)
+        ]))
+        let model = MarlaApplicationModel(
+            settings: settings,
+            enableSystemIntegrations: false,
+            visionOCR: vision
+        )
+        let image = try makeSolidImage(width: 80, height: 40, color: .white)
+        let capture = CapturedScreenshot(
+            image: image,
+            globalRect: CGRect(x: 40, y: 50, width: 80, height: 40)
+        )
+        let requestID = model.sessionStore.beginRecognizing(
+            anchor: ScreenRect(x: 40, y: 50, width: 80, height: 40),
+            pointer: nil,
+            provider: .glmOCR
+        )
+        model.activeScreenshotVisionFallback = (capture: capture, requestID: requestID)
+
+        model.fallbackScreenshotOCRToVision(for: requestID)
+        model.fallbackScreenshotOCRToVision(for: requestID)
+        XCTAssertEqual(model.sessionStore.session?.ocrActivity, .visionFallback)
+        XCTAssertEqual(model.sessionStore.session?.visionFallbackReason, .userRequested)
+
+        for _ in 0..<10 where vision.images.isEmpty {
+            await Task.yield()
+        }
+        XCTAssertEqual(vision.images.count, 1)
+        XCTAssertTrue(vision.images.first === image)
+        XCTAssertNil(model.activeScreenshotVisionFallback)
+    }
+
+    @MainActor
+    func testCancellingScreenshotTranslationClearsTheActiveFallbackContext() throws {
+        let defaults = UserDefaults(suiteName: "com.marla.tests.ocr-cancel.\(UUID().uuidString)")!
+        let settings = MarlaSettingsStore(
+            defaults: defaults,
+            keychain: KeychainCredentialStore(service: UUID().uuidString, account: UUID().uuidString)
+        )
+        let model = MarlaApplicationModel(settings: settings, enableSystemIntegrations: false)
+        let image = try makeSolidImage(width: 40, height: 20, color: .white)
+        let capture = CapturedScreenshot(image: image, globalRect: CGRect(x: 10, y: 20, width: 40, height: 20))
+        let requestID = model.sessionStore.beginRecognizing(anchor: nil, pointer: nil, provider: .glmOCR)
+        model.activeScreenshotVisionFallback = (capture: capture, requestID: requestID)
+
+        model.cancelScreenshotTranslation()
+
+        XCTAssertEqual(model.sessionStore.session?.state, .cancelled)
+        XCTAssertNil(model.activeScreenshotVisionFallback)
     }
 
     func testSystemSourceLanguageDetectorCoversSupportedLanguages() {
@@ -1560,6 +1675,41 @@ final class MarlaAppTests: XCTestCase {
                 maximumPanelHeight: maximumHeight
             ),
             ResultCardLayout.translationTextHeight(long.translation, width: 380)
+        )
+    }
+
+    @MainActor
+    func testResultCardLayoutReservesRoomForGLMOCRFallbackAction() {
+        let session = CardSession(
+            id: UUID(),
+            surface: .screenshot,
+            profileID: nil,
+            profileName: "测试",
+            sourceContent: .plainText(""),
+            translation: "",
+            target: .automatic,
+            state: .recognizing,
+            ocrActivity: .glmOCR
+        )
+
+        let preferredHeight = ResultCardLayout.preferredPanelHeight(
+            session: session,
+            cardWidth: ResultCardLayout.defaultWidth,
+            maximumPanelHeight: 700
+        )
+
+        XCTAssertEqual(
+            ResultCardLayout.translationContentHeight(
+                session: session,
+                cardWidth: ResultCardLayout.defaultWidth,
+                markdownProjection: nil
+            ),
+            ResultCardLayout.glmOCRRecognitionContentHeight
+        )
+        XCTAssertGreaterThan(preferredHeight, ResultCardLayout.defaultPanelHeight)
+        XCTAssertEqual(
+            preferredHeight,
+            ResultCardLayout.fixedChromeHeight() + ResultCardLayout.glmOCRRecognitionContentHeight
         )
     }
 

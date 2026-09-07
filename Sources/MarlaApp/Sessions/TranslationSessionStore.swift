@@ -33,6 +33,11 @@ enum OCRActivity: Equatable {
     case inPlaceTranslation
 }
 
+enum VisionFallbackReason: Equatable {
+    case automaticFailure
+    case userRequested
+}
+
 extension TranslationSurface {
     var symbolName: String {
         switch self {
@@ -66,6 +71,7 @@ struct CardSession: Identifiable, Equatable {
     var pointer: CGPoint?
     var isActivating = false
     var ocrActivity: OCRActivity?
+    var visionFallbackReason: VisionFallbackReason?
 
     var sourceText: String {
         get { sourceContent.text }
@@ -228,10 +234,14 @@ final class TranslationSessionStore: ObservableObject {
         ocrTask = task
     }
 
-    func beginVisionFallback(for id: UUID) {
+    func beginVisionFallback(
+        for id: UUID,
+        reason: VisionFallbackReason = .automaticFailure
+    ) {
         guard session?.id == id else { return }
         session?.state = .recognizing
         session?.ocrActivity = .visionFallback
+        session?.visionFallbackReason = reason
     }
 
     func submitOCRResult(_ result: OCRResult, for id: UUID) {
@@ -328,7 +338,8 @@ final class TranslationSessionStore: ObservableObject {
         pinned: Bool = false,
         recovery: CardRecoveryAction? = nil,
         contentFormat: TranslationContentFormat = .plainText,
-        ocrActivity: OCRActivity? = nil
+        ocrActivity: OCRActivity? = nil,
+        visionFallbackReason: VisionFallbackReason? = nil
     ) {
         cancelCurrentRequest()
         let id = UUID()
@@ -353,7 +364,8 @@ final class TranslationSessionStore: ObservableObject {
             anchor: nil,
             pointer: NSEvent.mouseLocation,
             isActivating: true,
-            ocrActivity: ocrActivity
+            ocrActivity: ocrActivity,
+            visionFallbackReason: visionFallbackReason
         )
         recordRecentTranslationIfEligible(session)
     }

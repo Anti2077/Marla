@@ -35,6 +35,7 @@ enum ResultCardLayout {
     static let maximumVisibleHeightRatio: CGFloat = 0.6
     static let outerHorizontalPadding: CGFloat = 32
     static let minimumTranslationViewportHeight: CGFloat = 28
+    static let glmOCRRecognitionContentHeight: CGFloat = 68
     static let translationLineHeight: CGFloat = 19
     static let sourceLineHeight: CGFloat = 16
     static let maximumSourceViewportHeight: CGFloat = 110
@@ -89,6 +90,11 @@ enum ResultCardLayout {
         cardWidth: CGFloat,
         markdownProjection: MarkdownProjectionSnapshot?
     ) -> CGFloat {
+        if session.translation.isEmpty,
+           session.state == .recognizing,
+           session.ocrActivity == .glmOCR {
+            return glmOCRRecognitionContentHeight
+        }
         guard let markdownProjection, markdownProjection.matches(session) else {
             return translationTextHeight(session.translation, width: cardWidth)
         }

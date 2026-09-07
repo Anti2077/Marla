@@ -11,7 +11,7 @@ final class MarlaApplicationServices {
     let sessionStore: TranslationSessionStore
     let panelCoordinator: FloatingPanelCoordinator
     let screenshotCoordinator: ScreenshotCaptureCoordinator
-    let visionOCR: VisionOCRService
+    let visionOCR: VisionOCRProviding
     let glmOCR: GLMOCRService
     let inPlaceTranslation: InPlaceTranslationService
     let screenshotTranslationOverlay: ScreenshotTranslationOverlayCoordinator
@@ -20,7 +20,8 @@ final class MarlaApplicationServices {
 
     init(
         settings: MarlaSettingsStore,
-        enableSystemIntegrations: Bool
+        enableSystemIntegrations: Bool,
+        visionOCR: VisionOCRProviding? = nil
     ) {
         let installsInteractiveMonitors = enableSystemIntegrations && !MarlaRuntime.isUIAutomationSnapshot
         self.settings = settings
@@ -29,7 +30,7 @@ final class MarlaApplicationServices {
             && ProcessInfo.processInfo.environment["MARLA_UI_TEST_SCENARIO"] == "in-place-overlay-interactive"
         panelCoordinator = FloatingPanelCoordinator(installEventMonitors: installsInteractiveMonitors || testsInPlaceClicks)
         screenshotCoordinator = ScreenshotCaptureCoordinator()
-        visionOCR = VisionOCRService()
+        self.visionOCR = visionOCR ?? VisionOCRService()
         glmOCR = GLMOCRService()
         inPlaceTranslation = InPlaceTranslationService()
         screenshotTranslationOverlay = ScreenshotTranslationOverlayCoordinator()

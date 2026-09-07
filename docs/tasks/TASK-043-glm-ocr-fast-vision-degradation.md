@@ -1,6 +1,6 @@
 # TASK-043：GLM-OCR 识别中的快速降级至 Vision
 
-Status: Active
+Status: Done
 
 Owner: Project owner + Agent
 
@@ -46,7 +46,7 @@ GLM-OCR 能提供更丰富的结构，但云端网络或响应速度可能让用
 
 | Date | Requested by | Change | Acceptance / verification impact | Status |
 | --- | --- | --- | --- | --- |
-| 2026-09-07 | Project owner | 普通截图翻译的 GLM-OCR 识别进行中增加快速降级至 Vision | 新增按钮状态、取消与同一截图复用、Vision 后续翻译和重复/过期保护测试 | Active |
+| 2026-09-07 | Project owner | 普通截图翻译的 GLM-OCR 识别进行中增加快速降级至 Vision | 新增按钮状态、取消与同一截图复用、Vision 后续翻译和重复/过期保护测试 | Closed |
 
 ## Current evidence
 
@@ -149,10 +149,10 @@ None.
 
 任务完成时填写：
 
-- Verified commit:
+- Verified commit: `6be2c00`（已由合并提交 `58cc129` 合入本地 `main`；尚未推送 `origin/main`）
 - Automated evidence: 31 Rust / 240 Swift，完整 `./scripts/check.sh` 与最终固定 Release 构建通过
 - Manual evidence: 六张无凭据固定 App fixture 完成浅色、深色、380pt 窄宽和 Reduce Motion 五维复审 8/8/8/9/7；真实 GLM 操作尚未执行
 - Documentation updated: `STATUS.md`、`VERIFICATION.md`、截图翻译功能规格和本 Task 已同步
 - Remaining work promoted to: RV-006 项目所有者真实 GLM 取消、同一截图复用与无重复上传验收
-- Scope changes closed:
-- Parallel contributions integrated:
+- Scope changes closed: 2026-09-07 项目所有者提出的普通截图翻译 GLM-OCR 识别中快速降级至 Vision 已完成；真实 GLM 操作仍按 RV-006 单独保留为负责人验收，不改变本 Task 的实现完成状态。
+- Parallel contributions integrated: 截图翻译功能规格与 `VERIFICATION.md` 草稿已整合；主 Agent 完成本 Task、`STATUS.md`、代码、测试和最终验证收束。

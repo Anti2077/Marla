@@ -8,9 +8,11 @@ Release target: None. A version is assigned only when the project owner explicit
 
 Overall state: In Progress — unversioned product incubation; no active release contract
 
-Active task (current branch): [`TASK-043`](../tasks/TASK-043-glm-ocr-fast-vision-degradation.md) — 普通截图翻译在 GLM-OCR 识别进行中的快速降级至本机 Vision；TASK-041 保留在独立分支等待所有者真实体验验收。
+Active task (current branch): None. [`TASK-043`](../tasks/TASK-043-glm-ocr-fast-vision-degradation.md) 已完成并合入本地 `main`；TASK-041 保留在独立分支等待所有者真实体验验收。
 
-当前工作树为 `Anti2077/task-043-glm-ocr-fast-vision-degradation`，从 `main` 独立开发；TASK-041 保留在独立分支等待所有者真实体验验收。TASK-043 的代码、回归测试和功能文档已完成，最终授权检查通过 31 项 Rust 与 240 项 Swift，固定 Release App 已重建。离线 fixture 覆盖 GLM 等待态与用户主动 Vision 降级态的浅色、深色、380pt 窄宽和 Reduce Motion；首轮发现的 224pt 底部操作行裁切已通过状态专用高度测量修复，五维复审为 8/8/8/9/7。真实 GLM 请求取消、按钮点击、同一截图复用和无重复上传仍由所有者按 RV-006 现场验收。
+当前工作树为 `main`；TASK-043 的实现提交为 `6be2c00`，已由 `58cc129` 合入本地 `main`，当前 `main` 尚未推送到 `origin/main`。TASK-043 的代码、回归测试和功能文档已完成，最终授权检查通过 31 项 Rust 与 240 项 Swift，固定 Release App 已重建。离线 fixture 覆盖 GLM 等待态与用户主动 Vision 降级态的浅色、深色、380pt 窄宽和 Reduce Motion；首轮发现的 224pt 底部操作行裁切已通过状态专用高度测量修复，五维复审为 8/8/8/9/7。真实 GLM 请求取消、按钮点击、同一截图复用和无重复上传仍由所有者按 RV-006 现场验收。
+
+TASK-043 已完成并关闭：普通截图翻译在 GLM-OCR 识别期间提供“快速降级至 Vision”入口，取消当前 GLM 请求后复用同一份内存截图进入 Vision；按钮可见性、状态迁移、请求/会话隔离、重复点击保护、生命周期清理和布局回归均已覆盖。真实 GLM 配置下的取消、同一截图复用和无重复上传仍保持为 `RV-006 Pending owner acceptance`，不以离线 fixture 代替。
 
 TASK-036 官网首页原型于 2026-09-01 由项目所有者重新激活并在专用分支继续；项目所有者于 2026-09-02 明确授权将当前已验证基线合并到 `main` 并推送远端。独立 `website/` 工程使用 React、Vite、Geist、Lucide 和 GSAP ScrollTrigger，以 Paper Lantern 和真实原生 App 录屏解释 Marla 的原地翻译体验；旧实机截图、静态产品照片和网页伪动画均未作为产品证据。第一批桌面素材现有 5 个唯一 H.264 MP4：Hero/结构化 Markdown 两个 5:4 展示位按项目所有者决定复用同一份原地翻译素材，划词、截图、Quick Input 和快捷键各使用独立录屏。网页已删除全部 WebP poster 和背景图回退，所有产品展示位只加载视频。普通动态模式下所有已挂载视频从加载后持续静音循环，不再因视口可见比例自动暂停；Hero 在滚动时保持原尺寸。三入口仍只挂载当前选中的 7:5 视频，视频框不经过透明隐藏，切换后新视频立即播放。播放控制位于视频外侧的 42px 工具条，用户手动暂停会保持；Hero 优先预载，其余视频只预载 metadata。Markdown 与快捷键卡片不使用文案或绝对定位覆盖画面，Reduce Motion 默认停在视频起始位置且允许用户主动播放。三个入口的 1:1 移动端视频仍待补充，期间移动布局按原始 7:5 比例完整显示桌面素材而不强裁关键内容。4K/60fps 母版保留在 Git 忽略的本地目录，网页成品统一进入 `website/public/media/`。本轮 `npm run lint`、`npm run build`、`git diff --check`、仓库级 `./scripts/check.sh` 和真实浏览器回归通过：滚到页面底部后 4 个已挂载视频仍全部播放并持续推进；截图入口视频跨过 9.27 秒片尾后继续循环；Hero 滚动前后保持 1080px 与 1:1 transform；切换入口、手动控制和 Reduce Motion 行为正常，控制台无 warning/error。原生 App、发布版本、下载承诺、定价、用户量和未经验证的隐私/合作声明均未改变或新增。
 
@@ -89,7 +91,7 @@ TASK-021 已完成：结果卡支持 380–760pt 横向调整，流式译文在�
 - Paper Lantern is the selected Marla brand mark and product metaphor: “a little light beside the reader.” The canonical SVG and reference PNG exports live under `Resources/Brand/PaperLantern/`; the 10-slot macOS AppIcon catalog is compiled into Debug and Release builds. The menu-bar identity item uses a separate 18pt monochrome Paper Lantern template; the MenuBarExtra panel header uses a 33.6pt full-color rendition while its text group has a 14pt upward optical correction that makes the approximately 24pt top inset 1.5 times the 16pt leading inset; selection/screenshot result-card headers use a 24pt full-color identity mark and 17pt title. Quick Input and all functional controls continue to use SF Symbols.
 - Quick Input preserves complete semantic Markdown through the Provider and session. Awaiting remains raw; from the first non-empty streaming delta, Markdown uses the same native heading/list/quote/code/link/table projection and TextKit height semantics as completion. Copy and request-changing actions retain the canonical string, while plain-text sessions and failed partial output remain unrendered. TASK-039 adds clearer list hierarchy, one rounded GFM table outline, and refined fenced/inline code styling without changing canonical content; the fixed-App result was accepted on 2026-09-02.
 
-Latest verified implementation on this branch: TASK-041 geometry-aware screenshot in-place translation, experimental Lab gate, and complete attributed Markdown/GFM native rendering over the integrated TASK-038/TASK-039 unversioned incubation baseline. The project owner authorized a snapshot commit and remote push on 2026-09-04; TASK-041 remains Active pending the latest fixed-App network retest and is not described as merged or complete.
+Latest verified implementation in the local `main` baseline: TASK-043 GLM-OCR fast Vision fallback over the integrated TASK-038/TASK-039 unversioned incubation baseline. TASK-041 remains Active on its separate branch pending the latest fixed-App network retest and is not described as merged or complete.
 
 ## Development evidence gaps
 

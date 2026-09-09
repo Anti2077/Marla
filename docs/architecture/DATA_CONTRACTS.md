@@ -90,6 +90,8 @@ The normalized `InPlaceTranslationResult` contains an ordered `blocks` array of 
 
 Layout translation cancellation and release use the same opaque-handle discipline as other asynchronous FFI work. Callback bytes are valid only for the synchronous callback and must be copied before return. A cancelled, superseded or non-owning request ID cannot publish translated blocks or start overlay construction.
 
+Provider thinking control is a Rust-internal request-body capability, not an FFI field or user preference. Standard `/models` data does not provide a cross-vendor reasoning capability contract. The current mapping requires both a recognized official host and a bounded model family: confirmed DeepSeek V4, GLM 4.7 and supported Volcengine Ark combinations receive `thinking: { type: "disabled" }`; supported DashScope Qwen hybrid-thinking combinations receive `enable_thinking: false`. Qwen-MT preserves its User-only `translation_options` request, GLM 5.3 and other forced-thinking models receive no false disabled claim, and unknown OpenAI-compatible endpoints receive neither private field. Capability detection never sends a generation request.
+
 ## Provider events
 
 Streaming translation emits lifecycle and block-update events so presentation can remain vendor-independent:

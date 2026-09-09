@@ -32,7 +32,7 @@ Conversation: 2026-09-08，在当前工作树安装并适配本机 Ollama GLM-OC
 - 本机 Ollama 响应没有稳定布局坐标，因此不用于独立原位翻译覆盖层；原位入口继续强制云端 GLM-OCR。
 - 不把模型权重打包进 Marla，不新增 Tauri、Python sidecar、WebView、Marla 自有 localhost 服务或远程代理。
 - 不实现自动模型下载、模型管理器、厂商专属推理参数、批量 OCR、持久化截图或 OCR 历史。
-- 本轮允许在专用分支提交实现与文档；不合并到 `main`，不推送任何分支。
+- 本轮允许在专用分支提交实现与文档；经项目所有者授权后合并到本地 `main`，不推送任何分支。
 
 ## Scope changes during the conversation
 
@@ -114,4 +114,4 @@ Conversation: 2026-09-08，在当前工作树安装并适配本机 Ollama GLM-OC
 
 ## Completion record
 
-Status remains Active due to the owner acceptance gaps above. Implementation commit `ee8d526` and this documentation repair are on `Anti2077/task-045-local-ollama-glm-ocr`; the branch is not merged to `main` and is not pushed. The retired screenshot experiment remains only in the explicitly named recovery stash.
+Status remains Active due to the owner acceptance gaps above. Implementation commit `ee8d526` and documentation repair commit `7955f2d` are now in local `main`; no remote branch was pushed. The retired screenshot experiment remains only in the explicitly named recovery stash.

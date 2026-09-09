@@ -80,6 +80,7 @@
 		A10000000000000000000050 /* Screenshot/InPlaceTableGrouping.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000050 /* InPlaceTableGrouping.swift */; };
 		A10000000000000000000051 /* Screenshot/InPlaceOverlayChrome.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000051 /* InPlaceOverlayChrome.swift */; };
 		A10000000000000000000052 /* Screenshot/InPlaceWindowContent.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000052 /* InPlaceWindowContent.swift */; };
+		A10000000000000000000060 /* Panel/AutomaticPanelPlacement.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000060 /* AutomaticPanelPlacement.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -165,6 +166,7 @@
 		A2000000000000000000004F /* InPlaceMarkdownAttributedText.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InPlaceMarkdownAttributedText.swift; sourceTree = "<group>"; };
 		A20000000000000000000050 /* InPlaceTableGrouping.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InPlaceTableGrouping.swift; sourceTree = "<group>"; };
 		A2000000000000000000004B /* InPlaceOverlayUIAutomation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InPlaceOverlayUIAutomation.swift; sourceTree = "<group>"; };
+		A20000000000000000000060 /* AutomaticPanelPlacement.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AutomaticPanelPlacement.swift; sourceTree = "<group>"; };
 		A2000000000000000000000F /* libMarlaCore.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = libMarlaCore.a; sourceTree = BUILT_PRODUCTS_DIR; };
 		A20000000000000000000010 /* Marla.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Marla.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		A20000000000000000000051 /* InPlaceOverlayChrome.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InPlaceOverlayChrome.swift; sourceTree = "<group>"; };
@@ -238,7 +240,7 @@
 		A7000000000000000000000A /* Persistence */ = {isa = PBXGroup; children = (A20000000000000000000017 /* KeychainCredentialStore.swift */, A20000000000000000000018 /* MarlaSettingsStore.swift */, A20000000000000000000035 /* OCRSettings.swift */); path = Persistence; sourceTree = "<group>"; };
 		A7000000000000000000000B /* Settings */ = {isa = PBXGroup; children = (A20000000000000000000019 /* SettingsWindow.swift */, A20000000000000000000026 /* SettingsShared.swift */, A20000000000000000000046 /* APIProfileReorder.swift */, A20000000000000000000027 /* SettingsEditor.swift */, A20000000000000000000028 /* SettingsSupport.swift */, A20000000000000000000043 /* ShortcutEditor.swift */, A20000000000000000000038 /* OCRSettingsSection.swift */, A20000000000000000000039 /* TranslationWindowPlacement.swift */, A20000000000000000000040 /* TranslationWindowWidthPreset.swift */, A20000000000000000000053 /* ExperimentalSettingsSection.swift */); path = Settings; sourceTree = "<group>"; };
 		A7000000000000000000000C /* Sessions */ = {isa = PBXGroup; children = (A2000000000000000000001A /* TranslationSessionStore.swift */, A20000000000000000000024 /* QuickInputView.swift */, A2000000000000000000002D /* QuickInputMarkdownEditor.swift */); path = Sessions; sourceTree = "<group>"; };
-		A7000000000000000000000D /* Panel */ = {isa = PBXGroup; children = (A2000000000000000000001B /* FloatingPanel.swift */, A20000000000000000000041 /* FloatingPanelEventRouting.swift */, A20000000000000000000045 /* ResultPanelWindowGeometry.swift */, A20000000000000000000023 /* TranslationCardView.swift */, A2000000000000000000002A /* MarkdownResultText.swift */, A2000000000000000000002E /* MarkdownResultSelectableText.swift */, A2000000000000000000002F /* StreamingMarkdownProjection.swift */); path = Panel; sourceTree = "<group>"; };
+		A7000000000000000000000D /* Panel */ = {isa = PBXGroup; children = (A2000000000000000000001B /* FloatingPanel.swift */, A20000000000000000000060 /* AutomaticPanelPlacement.swift */, A20000000000000000000041 /* FloatingPanelEventRouting.swift */, A20000000000000000000045 /* ResultPanelWindowGeometry.swift */, A20000000000000000000023 /* TranslationCardView.swift */, A2000000000000000000002A /* MarkdownResultText.swift */, A2000000000000000000002E /* MarkdownResultSelectableText.swift */, A2000000000000000000002F /* StreamingMarkdownProjection.swift */); path = Panel; sourceTree = "<group>"; };
 		A7000000000000000000000E /* Shortcuts */ = {isa = PBXGroup; children = (A2000000000000000000001C /* GlobalShortcuts.swift */, A20000000000000000000042 /* ShortcutModifier.swift */); path = Shortcuts; sourceTree = "<group>"; };
 		A7000000000000000000000F /* Screenshot */ = {isa = PBXGroup; children = (A2000000000000000000001D /* ScreenshotCapture.swift */, A2000000000000000000001E /* ScreenshotSelection.swift */, A2000000000000000000004C /* ScreenshotTranslationIntent.swift */, A20000000000000000000048 /* InPlaceTranslationService.swift */, A20000000000000000000049 /* InPlaceOverlayLayout.swift */, A2000000000000000000004E /* InPlaceMarkdownProjection.swift */, A2000000000000000000004F /* InPlaceMarkdownAttributedText.swift */, A20000000000000000000050 /* InPlaceTableGrouping.swift */, A20000000000000000000052 /* InPlaceWindowContent.swift */, A20000000000000000000051 /* InPlaceOverlayChrome.swift */, A2000000000000000000004D /* ScreenshotBackgroundRestoration.swift */, A2000000000000000000004A /* ScreenshotTranslationOverlay.swift */); path = Screenshot; sourceTree = "<group>"; };
 		A70000000000000000000010 /* OCR */ = {isa = PBXGroup; children = (A2000000000000000000001F /* VisionOCR.swift */, A20000000000000000000036 /* CloudOCRImageEncoder.swift */, A20000000000000000000037 /* GLMOCRService.swift */); path = OCR; sourceTree = "<group>"; };
@@ -420,6 +422,7 @@
 				A10000000000000000000024 /* Sessions/QuickInputView.swift in Sources */,
 				A1000000000000000000002D /* Sessions/QuickInputMarkdownEditor.swift in Sources */,
 				A1000000000000000000001B /* Panel/FloatingPanel.swift in Sources */,
+				A10000000000000000000060 /* Panel/AutomaticPanelPlacement.swift in Sources */,
 				A10000000000000000000023 /* Panel/TranslationCardView.swift in Sources */,
 				A1000000000000000000002A /* Panel/MarkdownResultText.swift in Sources */,
 				A1000000000000000000002E /* Panel/MarkdownResultSelectableText.swift in Sources */,

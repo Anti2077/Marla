@@ -63,6 +63,8 @@ The independent entry is an opt-in experimental feature. Its switch is persisted
 - Transfer does not automatically add the result to recent translations or persistent history. Existing result-card selection, canonical Markdown/plain-text copy and close behavior apply after transfer.
 - Reduce Motion avoids edge-expansion animation; Reduce Transparency and Increase Contrast retain a visible boundary and readable controls with native material fallback. Merely showing or approaching the overlay does not activate the source-replacing panel.
 
+When the shared translation-window setting is automatic, the result card first attempts to sit 12pt to the right of the selected screenshot region without intersecting it. If the visible workspace cannot contain the minimum-width card there, placement deterministically tries the left, below, and above sides. If an unusually large region leaves no non-overlapping side, the card remains fully visible and uses the candidate with the least overlap rather than extending beyond the workspace.
+
 ## Acceptance criteria
 
 ### Implemented baseline
@@ -77,6 +79,7 @@ The independent entry is an opt-in experimental feature. Its switch is persisted
 - OCR success is retained if translation fails.
 - Vision promises plain text and reading order only. GLM structure is normalized into Markdown, but pixel-identical page reconstruction is not promised.
 - Multi-display scale and coordinates are correct.
+- Automatic placement prefers the selected region's right side, never overlaps it when a non-overlapping visible candidate exists, and remains inside one display's visible workspace at screen edges.
 
 ### TASK-043 ordinary screenshot degradation contract
 

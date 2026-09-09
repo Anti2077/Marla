@@ -1,4 +1,11 @@
 import AppKit
+import MarlaCore
+
+enum ResultPanelHorizontalAnchor: Equatable {
+    case leading
+    case center
+    case trailing
+}
 
 @MainActor
 enum ResultPanelWindowSizing {
@@ -29,15 +36,24 @@ enum ResultPanelWidthPresetFrameCalculator {
         current: NSRect,
         width: CGFloat,
         height: CGFloat,
-        preservesLeadingEdge: Bool,
+        horizontalAnchor: ResultPanelHorizontalAnchor,
         visibleFrame: NSRect
     ) -> NSRect {
         var frame = current
         let stableTop = frame.maxY
+        let stableLeading = frame.minX
         let stableCenter = frame.midX
+        let stableTrailing = frame.maxX
         frame.size.width = width
         frame.size.height = height
-        frame.origin.x = preservesLeadingEdge ? frame.minX : stableCenter - width / 2
+        switch horizontalAnchor {
+        case .leading:
+            frame.origin.x = stableLeading
+        case .center:
+            frame.origin.x = stableCenter - width / 2
+        case .trailing:
+            frame.origin.x = stableTrailing - width
+        }
         frame.origin.x = min(
             max(frame.origin.x, visibleFrame.minX + 8),
             visibleFrame.maxX - width - 8
@@ -47,6 +63,84 @@ enum ResultPanelWidthPresetFrameCalculator {
             visibleFrame.maxY - height - 8
         )
         return frame
+    }
+}
+
+struct ResultPanelWidthChangeResult {
+    let frame: NSRect
+    let maximumHeight: CGFloat
+    let automaticSide: AutomaticPanelPlacementSide?
+}
+
+struct AutomaticPanelPlacementContext {
+    let source: NSRect
+    let surface: TranslationSurface
+    var side: AutomaticPanelPlacementSide
+}
+
+@MainActor
+enum ResultPanelWidthChangeCalculator {
+    static func target(
+        currentFrame: NSRect,
+        width: CGFloat,
+        visibleFrame: NSRect,
+        placement: TranslationWindowPlacement,
+        horizontalAnchor: ResultPanelHorizontalAnchor,
+        currentMaximumHeight: CGFloat,
+        automaticContext: AutomaticPanelPlacementContext?,
+        session: CardSession?,
+        layout: ResultPanelLayoutModel
+    ) -> ResultPanelWidthChangeResult {
+        let preferredHeight: (CGFloat) -> CGFloat = { maximumHeight in
+            guard let session else { return currentFrame.height }
+            return ResultCardLayout.preferredPanelHeight(
+                session: session,
+                cardWidth: width,
+                maximumPanelHeight: maximumHeight,
+                markdownProjection: layout.markdownProjection,
+                sourceMarkdownProjection: layout.sourceMarkdownProjection
+            )
+        }
+        guard placement == .automatic,
+              let automaticContext else {
+            return ResultPanelWidthChangeResult(
+                frame: ResultPanelWidthPresetFrameCalculator.targetFrame(
+                    current: currentFrame,
+                    width: width,
+                    height: preferredHeight(currentMaximumHeight),
+                    horizontalAnchor: placement == .rememberLastPosition ? .leading : horizontalAnchor,
+                    visibleFrame: visibleFrame
+                ),
+                maximumHeight: currentMaximumHeight,
+                automaticSide: nil
+            )
+        }
+
+        let sidePlacement = AutomaticPanelPlacementCalculator.placementAfterWidthChange(
+            visibleFrame: visibleFrame,
+            panelSize: NSSize(width: width, height: ResultCardLayout.defaultPanelHeight),
+            source: automaticContext.source,
+            surface: automaticContext.surface,
+            currentSide: automaticContext.side
+        )
+        let maximumHeight = AutomaticPanelPlacementCalculator.maximumPanelHeight(
+            baseMaximum: ResultCardLayout.maximumPanelHeight(visibleHeight: visibleFrame.height),
+            side: sidePlacement.automaticSide,
+            visibleFrame: visibleFrame,
+            source: automaticContext.source
+        )
+        let placement = AutomaticPanelPlacementCalculator.placement(
+            visibleFrame: visibleFrame,
+            panelSize: NSSize(width: width, height: preferredHeight(maximumHeight)),
+            source: automaticContext.source,
+            surface: automaticContext.surface,
+            preferredSide: sidePlacement.automaticSide
+        )
+        return ResultPanelWidthChangeResult(
+            frame: placement.frame,
+            maximumHeight: maximumHeight,
+            automaticSide: placement.automaticSide
+        )
     }
 }
 

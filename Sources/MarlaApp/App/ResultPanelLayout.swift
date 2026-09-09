@@ -15,7 +15,7 @@ extension TranslationSessionState {
     }
 }
 
-enum ResultPanelGrowthAnchor {
+enum ResultPanelGrowthAnchor: Equatable {
     case bottom
     case top
     case center

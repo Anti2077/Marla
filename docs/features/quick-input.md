@@ -11,7 +11,7 @@ Provide translation near the pointer when no text is already selectable, without
 ## Flow
 
 1. User invokes the quick-translation shortcut with no selection.
-2. A compact input surface appears according to the shared translation-window placement setting (near the pointer by default, centered, fixed-X/vertically centered, or at the last remembered position). Its width uses the shared persistent narrow, medium, or wide preset; after translation, the result card exposes the same hover width control.
+2. A compact input surface appears according to the shared translation-window placement setting (automatic/near-pointer by default, explicitly near the pointer, centered, fixed-X/vertically centered, or at the last remembered position). Automatic mode uses the pointer because Quick Input has no source rectangle to avoid. Its width uses the shared persistent narrow, medium, or wide preset; after translation, the result card exposes the same hover width control.
 3. User types or pastes text.
 4. Translation streams into the same stable surface.
 

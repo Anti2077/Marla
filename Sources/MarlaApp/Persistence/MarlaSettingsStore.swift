@@ -101,7 +101,7 @@ final class MarlaSettingsStore: ObservableObject {
         isInPlaceTranslationEnabled = defaults.object(forKey: Keys.inPlaceTranslationEnabled) as? Bool ?? false
         translationWindowPlacement = TranslationWindowPlacement(
             rawValue: defaults.string(forKey: Keys.translationWindowPlacement) ?? ""
-        ) ?? .followMouse
+        ) ?? .automatic
         let fixedX = defaults.object(forKey: Keys.translationWindowFixedX) as? Double
         translationWindowFixedX = CGFloat(
             fixedX.flatMap { $0.isFinite ? $0 : nil }

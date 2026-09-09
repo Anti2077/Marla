@@ -128,3 +128,11 @@ When the shared translation-window setting is automatic, the result card first a
 - selection-text overlays, live-page tracking, browser DOM rewriting, video/game translation or automatic source-change monitoring;
 - export of a translated screenshot or persistent screenshot/layout history;
 - document or multi-page input.
+
+## TASK-045 local Ollama table extension
+
+Ordinary screenshot translation may select external local Ollama GLM-OCR without a cloud GLM credential. Rust validates the returned text and table structure before translation. Simple HTML tables become GFM; merged cells, row headers and supported inline-rich cells retain a bounded canonical HTML table subset. The existing native selectable TextKit surface preserves row/column spans, blank cells, code/emphasis and line breaks. Table captions and surrounding text remain part of the canonical content. Code examples are not interpreted as tables.
+
+The parser rejects malformed/truncated/unsafe table markup, invalid span geometry and ambiguous GFM column counts through the existing visible Vision fallback. It cannot restore OCR-omitted titles or determine whether repeated identical tables were present in the image. No automatic retry, deduplication, arbitrary HTML execution or WebView is introduced. Independent in-place translation still uses cloud GLM coordinates and does not receive local HTML/span geometry.
+
+Canonical Markdown copy can include the retained HTML table fragment; derived plain-text copy uses TSV and preserves merged-cell text once. Generic translation instructions request unchanged structural tags/spans, but actual Provider structural fidelity and complete App copy/interaction acceptance remain tracked by TASK-045/RV-007. Synthetic evaluation evidence is documented in `docs/development/OCR_TABLE_EVALUATION_2026-09-08.md`.

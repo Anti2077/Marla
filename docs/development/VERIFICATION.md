@@ -8,6 +8,7 @@
 | --- | --- | --- | --- |
 | RV-005 | 原位表格背景修复后的实机验收 | In Progress | 所有者已确认迁移窗口可正常显示译文表格；授权的 3 次真实请求也都返回有效表格，故障已定位为原位背景误判。内部采样修复、本地原图扰动复测、234 项 Swift 和固定 App 构建通过，仍待修复后真实点击/外观验收。实验性开关与实验室页面的自动化门控已通过，但不替代真实 GLM/系统玻璃验收。 |
 | RV-006 | 普通截图翻译在 GLM-OCR 识别中的主动降级至 Vision | Pending owner acceptance | TASK-043 的实现、回归测试、固定 Release 构建和浅色/深色/Reduce Motion 离线状态证据已完成；仍需所有者用真实 GLM 配置确认按钮点击会取消当前请求并复用同一 `CapturedScreenshot`，且在原位翻译和后续阶段不出现。 |
+| RV-007 | 本机 Ollama GLM-OCR 普通截图与 HTML 表格 | In Progress | 七类合成图实测完成；52 Rust、249 Swift、固定 Release 与完整宿主检查通过。真实本机翻译、结构保真和窗口体验仍待所有者验收。详见表格评测报告与 TASK-045。 |
 
 ### RV-005：GLM-OCR 真实凭据成功路径
 
@@ -25,6 +26,15 @@
 - 分别检查 GLM 已完成、GLM 已失败并自动回退、Vision 已开始、翻译已开始、完成/失败/取消、关闭、新截图和会话替换后的按钮隐藏或无效行为；确认旧 GLM/Vision 回调不能更新新会话，重复点击不产生重复工作。
 - 固定 Release fixture 已覆盖等待态和用户主动降级态的浅色、深色与 Reduce Motion：`/private/tmp/marla-task043-glm-awaiting-light-final2.png`、`/private/tmp/marla-task043-glm-awaiting-dark-final2.png`、`/private/tmp/marla-task043-glm-awaiting-dark-reduce-final2.png`、`/private/tmp/marla-task043-glm-manual-fallback-light-final2.png`、`/private/tmp/marla-task043-glm-manual-fallback-dark-final2.png`、`/private/tmp/marla-task043-glm-manual-fallback-dark-reduce-final2.png`。首轮等待态的底部操作行裁切已修复；最终按钮、说明、分隔线与操作行无重叠或裁切，主动降级使用中性状态而非错误警告。五维复审为 8/8/8/9/7。
 - 这项手动验收尚未执行。待验证证据应只记录状态、是否复用同一截图以及是否发生重复请求等脱敏结果，不记录 API Key、Authorization Header、完整截图、OCR 正文或 Provider 账号。
+
+### RV-007：本机 Ollama GLM-OCR 普通截图路径
+
+- 七类合成表格、请求参数、原始格式、文字与结构缺陷以及本轮校验见 [`OCR_TABLE_EVALUATION_2026-09-08.md`](OCR_TABLE_EVALUATION_2026-09-08.md)。一次采样不能代表稳定准确率或冷启动性能。
+- Rust 解析普通 HTML 表为 GFM，合并格/富文本表保留规范 HTML；Swift 原生 TextKit 保留跨度和内联格式。7 个模型样本中 6 个可转换/保留，API 样本的多余 pipe 被拒绝并走既有可见回退；重复表和漏标题尚未解决。
+- 52 Rust、249 Swift 和 8 项新增 Swift 表格回归通过。2026-09-09 宿主环境完整检查成功，窗口与剪贴板测试均通过；此前沙箱内 `FloatingPanel.swift:342` / `NSScreen` 失败未复现。
+- 固定 Release 已重建并验证 Bundle/arm64/稳定签名；组件合成图覆盖财务、排期、账单 380/760pt 浅/深色，尚不是固定 App 的系统窗口或实际翻译证据。
+- 现场验收：选择本机 Ollama，普通截图无需 GLM Key；确认译文保留合并格、表后段落、代码和换行，截图取消/回退、原生选择和 canonical/纯文本复制正常。原位翻译保持云端坐标合同。
+- 通用翻译提示词要求保留标签与跨度，但并未实现逐单元格 ID 翻译或译前/译后结构一致性保证，真实 Provider 返回仍须复验。只记录脱敏状态/计时，不记录凭据或真实截图/OCR 正文。
 
 ### TASK-041 Qwen-MT 与 Markdown 原位投影证据
 

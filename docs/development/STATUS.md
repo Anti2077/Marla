@@ -1,6 +1,6 @@
 # Project Status
 
-Last updated: 2026-09-07
+Last updated: 2026-09-09
 
 Development stage: Incubation / Unreleased
 
@@ -8,19 +8,21 @@ Release target: None. A version is assigned only when the project owner explicit
 
 Overall state: In Progress — unversioned product incubation; no active release contract
 
-Active task (current branch): None. [`TASK-043`](../tasks/TASK-043-glm-ocr-fast-vision-degradation.md) 已完成并合入本地 `main`；TASK-041 保留在独立分支等待所有者真实体验验收。
+Active task (current branch): [`TASK-045`](../tasks/TASK-045-local-ollama-glm-ocr.md) — 本机 Ollama GLM-OCR 适配。当前分支为 `Anti2077/task-045-local-ollama-glm-ocr`，基线为 `main@4598dda`；TASK-044 已由 `90db067` 与 `4598dda` 进入本地 `main`，本机 OCR 尚未进入 `main` 或远端；TASK-041 保留在独立分支等待所有者真实体验验收。
 
-当前工作树为 `main`；TASK-043 的实现提交为 `6be2c00`，已由 `58cc129` 合入本地 `main`，当前 `main` 尚未推送到 `origin/main`。TASK-043 的代码、回归测试和功能文档已完成，最终授权检查通过 31 项 Rust 与 240 项 Swift，固定 Release App 已重建。离线 fixture 覆盖 GLM 等待态与用户主动 Vision 降级态的浅色、深色、380pt 窄宽和 Reduce Motion；首轮发现的 224pt 底部操作行裁切已通过状态专用高度测量修复，五维复审为 8/8/8/9/7。真实 GLM 请求取消、按钮点击、同一截图复用和无重复上传仍由所有者按 RV-006 现场验收。
+当前工作树为 `Anti2077/task-045-local-ollama-glm-ocr`；TASK-043 的实现提交为 `6be2c00`，已由 `58cc129` 合入本地 `main`，当前 `main` 尚未推送到 `origin/main`。TASK-043 的代码、回归测试和功能文档已完成，最终授权检查通过 31 项 Rust 与 240 项 Swift，固定 Release App 已重建。离线 fixture 覆盖 GLM 等待态与用户主动 Vision 降级态的浅色、深色、380pt 窄宽和 Reduce Motion；首轮发现的 224pt 底部操作行裁切已通过状态专用高度测量修复，五维复审为 8/8/8/9/7。真实 GLM 请求取消、按钮点击、同一截图复用和无重复上传仍由所有者按 RV-006 现场验收。TASK-044 的四协议适配、自动化回归、完整宿主检查和固定 Release 构建已完成，并已由 `90db067` 与 `4598dda` 进入本地 `main`；真实四类 Provider 账号验收与独立 UI 五维截图复审仍待所有者完成。
+
+TASK-045 的实现与自动化验证已完成，Task 仍为 Active：七类常见应用表格的合成本机实测与针对性解析/原生显示适配记录在 [`表格评测`](OCR_TABLE_EVALUATION_2026-09-08.md)。7 次请求耗时 6.452–16.499 秒，5 次 HTML、2 次 GFM 风格；发现标题遗漏、重复表格、未转义 pipe 和缺失 row start。Rust 对普通表转 GFM，对合并格和格内富文本保留受限规范 HTML，TextKit 原生保留行列跨度；原位路径仍强制云端坐标合同。52 项 Rust、249 项 Swift（含 8 项新增表格回归）、结构/plist/diff 检查和固定签名 Release 重建通过；2026-09-09 完整宿主 `./scripts/check.sh` 通过，窗口与剪贴板测试未复现早期受限环境失败。固定 App 的真实本机 OCR→翻译→原生表格显示、取消/回退、复制和深浅色窗口验收仍待所有者完成。实现提交为 `ee8d526`，文档修复随后单独提交；本机 OCR 不进入 `main` 或远端。
 
 TASK-043 已完成并关闭：普通截图翻译在 GLM-OCR 识别期间提供“快速降级至 Vision”入口，取消当前 GLM 请求后复用同一份内存截图进入 Vision；按钮可见性、状态迁移、请求/会话隔离、重复点击保护、生命周期清理和布局回归均已覆盖。真实 GLM 配置下的取消、同一截图复用和无重复上传仍保持为 `RV-006 Pending owner acceptance`，不以离线 fixture 代替。
 
-Active task (current branch): None
+历史记录：此前没有 Active task
 
 TASK-040 已在独立分支 `Anti2077/task-040-provider-thinking-policy` 完成实现与验证；项目所有者于 2026-09-04 授权提交全部现有改动并推送全部本地分支。TASK-036 官网首页原型继续保留在其专用分支和既有记录中，本 Task 未修改官网文件或范围。
 
 TASK-040 已由项目所有者于 2026-09-02 直接选择并完成：标准 `/models` 响应没有跨厂商统一的思考能力元数据，因此 Marla 不用额外生成请求试探能力。Rust 现在同时匹配官方主机与有边界的模型系列：已确认的 Provider/模型组合显式关闭思考，Qwen-MT 等翻译专用合同、强制思考模型和未知 OpenAI-compatible Provider 不添加厂商私有字段。请求 JSON 回归、26 项 Rust、全部 Swift Package 测试、Xcode Debug、严格 Clippy、结构门禁与差异检查均通过；没有使用真实凭据或付费请求。
 
-Active task (this worktree): [`TASK-042`](../tasks/TASK-042-automatic-window-placement.md) — 按划词与截图来源位置自动避让翻译窗口
+历史记录：此前工作树任务为 [`TASK-042`](../tasks/TASK-042-automatic-window-placement.md) — 按划词与截图来源位置自动避让翻译窗口
 
 TASK-042 已由项目所有者于 2026-09-02 从本地 `main@0b15e4d` 直接立项，专用分支为 `Anti2077/task-042-automatic-window-placement`。本轮已实现持久化“自动”窗口位置并将其作为无既有偏好时的新默认值：截图结果优先位于框选区右侧且不相交，空间不足时按左、下、上确定性回退；划词结果优先位于选区下方、其次上方并以左右兜底，缺少可靠几何时回退鼠标附近；Quick Input 保持鼠标附近。流式增长保持初始避让方向，用户主动切换宽度时仅在当前方向无法继续保留 12pt 间距后重新选边。现有四种手动位置、受保护 Copy、Accessibility 非内容定位边界、ScreenCaptureKit/OCR/Provider 合同和结果卡视觉结构均未改变。定向测试、完整检查、固定签名 Release App 重建以及设置页浅色/深色五维复审已经通过；Computer Use 无法枚举无主窗口的 LSUIElement App，真实单行/底边/多行划词及中央/右边缘/近全屏截图相对位置仍需项目所有者在固定 App 中现场验收。
 
@@ -66,7 +68,7 @@ Blocked tasks: None.
 
 ## Current objective
 
-请项目所有者使用当前目录 `artifacts/Marla_dev.app` 检查细玻璃边框、靠近显露“移到翻译窗口”、完成态迁移后全文/Markdown/复制，并复测真实 GLM 表格。静态 fixture 与自动化不代替该实机验收；TASK-041 保持 Active，暂不合并 main。
+完成 TASK-045 的固定 App owner acceptance，重点检查普通截图的原生 HTML 合并表格、内联格式、复制和可见回退。模型标题遗漏、重复输出与含糊错列作为已知 OCR 质量缺口继续评估；TASK-041 的独立分支验收仍由其原记录跟踪。
 
 TASK-023 已完成整体代码审查、自动化验证与固定 Release 测试 App 交付：Rust 翻译与模型列表取消从 10ms 轮询改为事件驱动唤醒，SSE 单个未完成帧增加 1 MiB 内存上限，严格 Clippy 与 shell 语法检查纳入统一验证，5 个公开 unsafe FFI 函数补齐安全合同；`artifacts/Marla_dev.app` 已重建并通过稳定签名验证。
 

@@ -36,7 +36,7 @@ Screen Capture + globalRect + canonical OCRDocument
 
 Platform acquisition and presentation nodes run in Swift/AppKit. Provider orchestration, normalized processing, context classification, caching, and translation-session logic move through the Rust core. Swift-facing models remain at the bridge boundary until their Rust equivalents and ABI contracts are implemented.
 
-In the current implemented baseline, contextual window collection and persistent caches are disabled. Rust owns translation prompt construction, the four supported translation protocol adapters, the GLM-OCR cloud adapter and structure normalization, timeout, cancellation, and provider-independent events.
+In the current implemented baseline, contextual window collection and persistent caches are disabled. Rust owns translation prompt construction, the four supported translation protocol adapters, the GLM-OCR cloud adapter and structure normalization, the optional external Ollama GLM-OCR adapter, timeout, cancellation, and provider-independent events.
 
 ## Runtime boundary
 
@@ -47,7 +47,7 @@ SwiftUI / AppKit
   -> embedded Rust static library
 ```
 
-The bridge is in-process. Marla does not start a localhost backend or a separate always-running Rust service. The first working bridge exposes its API version and classifies an application's surface from its Bundle ID; that classification is technical groundwork and is not sent as translation context in the current baseline.
+The bridge is in-process. Marla does not start a localhost backend or a separate always-running Rust service. TASK-045 permits connecting to a user-installed Ollama process already listening on loopback; Marla does not launch, supervise or bundle that service. The first working bridge exposes its API version and classifies an application's surface from its Bundle ID; that classification is technical groundwork and is not sent as translation context in the current baseline.
 
 ## Core boundaries
 
@@ -69,7 +69,7 @@ Quick Input invokes this boundary from its native Paste command and inserts the 
 
 ### Screenshot capture
 
-Uses ScreenCaptureKit to capture every active display before presenting selection windows. The AppKit selection layer, loupe, and final crop all use those session-only frozen frames; confirmation composites the cross-display crop without a second live capture. Full-display frames are released when selection finishes. Ordinary screenshot translation enters Vision locally by default and may use the explicitly configured GLM-OCR Provider while retaining nearby-card presentation. The independent in-place entry always uses GLM-OCR. Swift encodes only an explicitly triggered GLM crop in memory as PNG or bounded JPEG (9.5 MB safety cap below the Provider's 10 MB limit), transfers only request bytes across the in-process FFI, and releases crop/encoding/response references when OCR completes, is cancelled, or is replaced. Marla does not persist screenshots or active layout blocks.
+Uses ScreenCaptureKit to capture every active display before presenting selection windows. The AppKit selection layer, loupe, and final crop all use those session-only frozen frames; confirmation composites the cross-display crop without a second live capture. Full-display frames are released when selection finishes. Ordinary screenshot translation enters Vision locally by default and may use explicitly configured cloud GLM-OCR or user-managed local Ollama GLM-OCR while retaining nearby-card presentation. The independent in-place entry always uses cloud GLM-OCR. Swift encodes only an explicitly triggered crop in memory as PNG or bounded JPEG, transfers only request bytes across the in-process FFI, and releases crop/encoding/response references when OCR completes, is cancelled, or is replaced. Marla does not persist screenshots or active layout blocks.
 
 The independent in-place entry uses a narrower implemented lifetime: Swift creates the overlay from the selected crop and its `globalRect` immediately after capture, then adds the normalized `OCRDocument` and translated blocks to that same activity-scoped context as results arrive. Encoded upload bytes and raw Provider response do not survive OCR normalization. Ordinary screenshot translation, Vision and GLM-to-Vision fallback never create an in-place context. The screenshot, geometry, restored composite, render plan and translated blocks remain memory-only and are released together at the terminal session boundary.
 
@@ -80,6 +80,8 @@ OCR Settings persists a Provider choice with Vision as the default. Vision enabl
 The owner-authorized TASK-033 adds cloud GLM-OCR through the fixed official `layout_parsing` endpoint and `glm-ocr` model. Swift owns the explicit upload disclosure, Keychain credential, image encoding and lifecycle. Rust owns HTTP, timeout/cancellation, response parsing, block-label mapping, coordinate normalization, safe literal-table conversion and deterministic `semanticMarkdown` reconstruction. `layout_details` is canonical; Provider `md_results` is not accepted as lossless source because it may alter URLs, code, commands, variables and placeholders. A missing saved GLM Key stops before upload. Network, timeout, rate-limit, authorization, encoding, Provider and invalid-response failures in ordinary screenshot translation visibly fall back to Vision; user cancellation never does. The independent in-place intent keeps those failures in its already-present overlay and never starts Vision.
 
 Only a GLM result produced by the independent in-place entry with at least one canonical block having usable, in-range normalized bounds is eligible for translated overlay drawing. A successful GLM result from ordinary screenshot translation still uses the nearby card. Absent confidence remains unknown and cannot be presented as measured certainty. Vision remains the default local plain-text path for ordinary screenshots. GLM request/contract failures and layouts with no reliable block in the independent intent retain the frozen crop and a compact failure status in the same overlay.
+
+TASK-045 adds an optional ordinary-screenshot Provider that calls the fixed user-managed Ollama endpoint `http://127.0.0.1:11434/api/generate` with the fixed `glm-ocr` model. Rust validates non-empty generated content and OCR table structure before exposing semantic Markdown without fabricated bounds or confidence. Ordinary HTML tables become GFM; merged/header-rich tables retain a bounded canonical HTML subset rendered by native TextKit with row/column spans. Malformed or ambiguous grids fail visibly; this does not recover model-omitted titles or delete repeated tables. The path requires no API Key, can visibly fall back to Vision, and never enters the independent in-place overlay. Marla does not install, start, supervise or update Ollama or its model.
 
 ### Context engine
 

@@ -4,6 +4,7 @@ import MarlaCore
 struct TranslationAPIProfile: Identifiable, Codable, Equatable, Sendable {
     let id: UUID
     var name: String
+    var providerProtocol: TranslationProviderProtocol
     var baseURL: String
     var urlMode: TranslationEndpointURLMode
     var modelName: String
@@ -12,6 +13,7 @@ struct TranslationAPIProfile: Identifiable, Codable, Equatable, Sendable {
     init(
         id: UUID = UUID(),
         name: String = "新配置",
+        providerProtocol: TranslationProviderProtocol = .openAICompatible,
         baseURL: String = "",
         urlMode: TranslationEndpointURLMode = .baseURL,
         modelName: String = "",
@@ -19,6 +21,7 @@ struct TranslationAPIProfile: Identifiable, Codable, Equatable, Sendable {
     ) {
         self.id = id
         self.name = name
+        self.providerProtocol = providerProtocol
         self.baseURL = baseURL
         self.urlMode = urlMode
         self.modelName = modelName
@@ -43,6 +46,7 @@ struct TranslationAPIProfile: Identifiable, Codable, Equatable, Sendable {
     private enum CodingKeys: String, CodingKey {
         case id
         case name
+        case providerProtocol
         case baseURL
         case urlMode
         case modelName
@@ -53,6 +57,7 @@ struct TranslationAPIProfile: Identifiable, Codable, Equatable, Sendable {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         id = try container.decode(UUID.self, forKey: .id)
         name = try container.decode(String.self, forKey: .name)
+        providerProtocol = try container.decodeIfPresent(TranslationProviderProtocol.self, forKey: .providerProtocol) ?? .openAICompatible
         baseURL = try container.decode(String.self, forKey: .baseURL)
         urlMode = try container.decodeIfPresent(TranslationEndpointURLMode.self, forKey: .urlMode) ?? .baseURL
         modelName = try container.decode(String.self, forKey: .modelName)
@@ -66,4 +71,3 @@ enum APIKeyDraftResolver {
         return trimmedDraft.isEmpty ? fallback() : trimmedDraft
     }
 }
-

@@ -175,6 +175,7 @@ final class MarlaCoreTests: XCTestCase {
             sourceLanguage: .english,
             target: .japanese,
             endpoint: TranslationEndpointConfiguration(
+                providerProtocol: .anthropicMessages,
                 baseURL: "https://example.com/v1",
                 urlMode: .completeURL,
                 model: "demo",
@@ -196,6 +197,7 @@ final class MarlaCoreTests: XCTestCase {
         XCTAssertEqual(object["sourceLanguage"] as? String, "en")
         let endpoint = try XCTUnwrap(object["endpoint"] as? [String: Any])
         XCTAssertEqual(endpoint["baseURL"] as? String, "https://example.com/v1")
+        XCTAssertEqual(endpoint["providerProtocol"] as? String, "anthropicMessages")
         XCTAssertEqual(endpoint["urlMode"] as? String, "completeURL")
         XCTAssertNil(endpoint["baseUrl"])
         XCTAssertEqual(endpoint["apiKey"] as? String, "secret")

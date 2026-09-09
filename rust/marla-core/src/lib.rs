@@ -169,6 +169,8 @@ struct Target {
 #[derive(Clone, Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 struct Endpoint {
+    #[serde(default)]
+    provider_protocol: EndpointProtocol,
     #[serde(rename = "baseURL")]
     base_url: String,
     #[serde(default)]
@@ -176,6 +178,19 @@ struct Endpoint {
     model: String,
     #[serde(default)]
     api_key: Option<String>,
+}
+
+#[derive(Clone, Copy, Debug, Default, Deserialize, Eq, PartialEq)]
+enum EndpointProtocol {
+    #[default]
+    #[serde(rename = "openAICompatible")]
+    OpenAICompatible,
+    #[serde(rename = "openAIResponses")]
+    OpenAIResponses,
+    #[serde(rename = "anthropicMessages")]
+    AnthropicMessages,
+    #[serde(rename = "googleGemini")]
+    GoogleGemini,
 }
 
 #[derive(Clone, Debug, Deserialize)]
@@ -189,12 +204,18 @@ struct ModelListRequest {
 
 #[derive(Debug, Deserialize)]
 struct ModelListResponse {
-    data: Vec<ModelListItem>,
+    data: Option<Vec<ModelListItem>>,
+    models: Option<Vec<GeminiModelListItem>>,
 }
 
 #[derive(Debug, Deserialize)]
 struct ModelListItem {
     id: String,
+}
+
+#[derive(Debug, Deserialize)]
+struct GeminiModelListItem {
+    name: String,
 }
 
 #[derive(Clone, Copy, Debug, Default, Deserialize, Eq, PartialEq)]
@@ -337,8 +358,32 @@ fn endpoint_url(endpoint: &Endpoint) -> Option<String> {
     if endpoint.url_mode == EndpointURLMode::CompleteURL {
         return Some(trimmed.to_owned());
     }
-    let path = format!("{}/chat/completions", url.path().trim_end_matches('/'));
+    let path = match endpoint.provider_protocol {
+        EndpointProtocol::OpenAICompatible => {
+            format!("{}/chat/completions", url.path().trim_end_matches('/'))
+        }
+        EndpointProtocol::OpenAIResponses => {
+            format!("{}/responses", url.path().trim_end_matches('/'))
+        }
+        EndpointProtocol::AnthropicMessages => {
+            format!("{}/messages", versioned_base_path(url.path(), "/v1"))
+        }
+        EndpointProtocol::GoogleGemini => {
+            let model = endpoint.model.trim();
+            if model.is_empty() {
+                return None;
+            }
+            format!(
+                "{}/models/{}:streamGenerateContent",
+                versioned_base_path(url.path(), "/v1beta"),
+                model
+            )
+        }
+    };
     url.set_path(&path);
+    if endpoint.provider_protocol == EndpointProtocol::GoogleGemini {
+        url.set_query(Some("alt=sse"));
+    }
     Some(url.into())
 }
 
@@ -354,11 +399,78 @@ fn model_list_url(endpoint: &Endpoint) -> Option<String> {
     }
     let path = url.path().trim_end_matches('/');
     let base_path = match endpoint.url_mode {
-        EndpointURLMode::BaseURL => path,
-        EndpointURLMode::CompleteURL => path.strip_suffix("/chat/completions")?,
+        EndpointURLMode::BaseURL => path.to_owned(),
+        EndpointURLMode::CompleteURL => match endpoint.provider_protocol {
+            EndpointProtocol::OpenAICompatible | EndpointProtocol::OpenAIResponses => path
+                .strip_suffix(match endpoint.provider_protocol {
+                    EndpointProtocol::OpenAICompatible => "/chat/completions",
+                    EndpointProtocol::OpenAIResponses => "/responses",
+                    _ => unreachable!(),
+                })?
+                .to_owned(),
+            EndpointProtocol::AnthropicMessages => path.strip_suffix("/messages")?.to_owned(),
+            EndpointProtocol::GoogleGemini => {
+                let marker = "/models/";
+                path.split_once(marker)?.0.to_owned()
+            }
+        },
     };
-    url.set_path(&format!("{}/models", base_path.trim_end_matches('/')));
+    let model_path = match (endpoint.provider_protocol, endpoint.url_mode) {
+        (EndpointProtocol::OpenAICompatible | EndpointProtocol::OpenAIResponses, _) => {
+            format!("{}/models", base_path.trim_end_matches('/'))
+        }
+        (EndpointProtocol::AnthropicMessages, EndpointURLMode::BaseURL) => {
+            format!("{}/models", versioned_base_path(&base_path, "/v1"))
+        }
+        (EndpointProtocol::AnthropicMessages, EndpointURLMode::CompleteURL) => {
+            format!("{}/models", base_path.trim_end_matches('/'))
+        }
+        (EndpointProtocol::GoogleGemini, EndpointURLMode::BaseURL) => {
+            format!("{}/models", versioned_base_path(&base_path, "/v1beta"))
+        }
+        (EndpointProtocol::GoogleGemini, EndpointURLMode::CompleteURL) => {
+            format!("{}/models", base_path.trim_end_matches('/'))
+        }
+    };
+    url.set_path(&model_path);
+    url.set_query(None);
     Some(url.into())
+}
+
+fn versioned_base_path(path: &str, version: &str) -> String {
+    let trimmed = path.trim_end_matches('/');
+    if trimmed.ends_with(version) {
+        trimmed.to_owned()
+    } else {
+        format!("{trimmed}{version}")
+    }
+}
+
+fn parse_model_ids(
+    protocol: EndpointProtocol,
+    response: ModelListResponse,
+) -> Result<Vec<String>, ()> {
+    let mut models = match protocol {
+        EndpointProtocol::OpenAICompatible
+        | EndpointProtocol::OpenAIResponses
+        | EndpointProtocol::AnthropicMessages => response
+            .data
+            .ok_or(())?
+            .into_iter()
+            .map(|item| item.id.trim().to_owned())
+            .filter(|id| !id.is_empty())
+            .collect::<Vec<_>>(),
+        EndpointProtocol::GoogleGemini => response
+            .models
+            .ok_or(())?
+            .into_iter()
+            .map(|item| item.name.trim().trim_start_matches("models/").to_owned())
+            .filter(|id| !id.is_empty())
+            .collect::<Vec<_>>(),
+    };
+    models.sort_unstable();
+    models.dedup();
+    Ok(models)
 }
 
 fn emit_model_list(
@@ -405,11 +517,17 @@ enum SseEvent {
 struct SseDecoder {
     buffered_bytes: Vec<u8>,
     data_lines: Vec<String>,
+    event_name: Option<String>,
     frame_bytes: usize,
 }
 
 impl SseDecoder {
+    #[allow(dead_code)]
     fn push(&mut self, bytes: &[u8]) -> Result<Vec<SseEvent>, ()> {
+        self.push_for(EndpointProtocol::OpenAICompatible, bytes)
+    }
+
+    fn push_for(&mut self, protocol: EndpointProtocol, bytes: &[u8]) -> Result<Vec<SseEvent>, ()> {
         self.buffered_bytes.extend_from_slice(bytes);
         let mut events = Vec::new();
 
@@ -426,13 +544,18 @@ impl SseDecoder {
             }
 
             if line.is_empty() {
-                if let Some(event) = self.finish_frame()? {
+                if let Some(event) = self.finish_frame(protocol)? {
                     events.push(event);
                 }
                 self.frame_bytes = 0;
                 continue;
             }
             if line.starts_with(b":") {
+                continue;
+            }
+            if let Some(event_name) = line.strip_prefix(b"event:") {
+                let event_name = event_name.strip_prefix(b" ").unwrap_or(event_name);
+                self.event_name = Some(std::str::from_utf8(event_name).map_err(|_| ())?.to_owned());
                 continue;
             }
             let Some(payload) = line.strip_prefix(b"data:") else {
@@ -450,28 +573,104 @@ impl SseDecoder {
         Ok(events)
     }
 
-    fn finish_frame(&mut self) -> Result<Option<SseEvent>, ()> {
+    fn finish_frame(&mut self, protocol: EndpointProtocol) -> Result<Option<SseEvent>, ()> {
         if self.data_lines.is_empty() {
+            self.event_name = None;
             return Ok(None);
         }
         let payload = self.data_lines.join("\n");
         self.data_lines.clear();
+        let event_name = self.event_name.take();
         if payload.trim() == "[DONE]" {
             return Ok(Some(SseEvent::Done));
         }
 
+        if let Some(event_name) = event_name.as_deref() {
+            let known_event = match protocol {
+                EndpointProtocol::OpenAIResponses => matches!(
+                    event_name,
+                    "response.output_text.delta"
+                        | "response.completed"
+                        | "response.failed"
+                        | "response.incomplete"
+                        | "error"
+                ),
+                EndpointProtocol::AnthropicMessages => matches!(
+                    event_name,
+                    "content_block_delta" | "message_delta" | "message_stop" | "error"
+                ),
+                EndpointProtocol::OpenAICompatible | EndpointProtocol::GoogleGemini => true,
+            };
+            if !known_event {
+                return Ok(None);
+            }
+        }
+
         let value = serde_json::from_str::<serde_json::Value>(&payload).map_err(|_| ())?;
-        if value.get("error").is_some() {
+        if value.get("error").is_some()
+            || value.get("type").and_then(|value| value.as_str()) == Some("error")
+        {
             return Ok(Some(SseEvent::ProviderError));
         }
 
-        let content = value
-            .pointer("/choices/0/delta/content")
-            .and_then(|value| value.as_str())
-            .unwrap_or("");
-        let finished = value
-            .pointer("/choices/0/finish_reason")
-            .is_some_and(|value| !value.is_null());
+        let (content, finished, done) = match protocol {
+            EndpointProtocol::OpenAICompatible => (
+                value
+                    .pointer("/choices/0/delta/content")
+                    .and_then(|value| value.as_str())
+                    .unwrap_or("")
+                    .to_owned(),
+                value
+                    .pointer("/choices/0/finish_reason")
+                    .is_some_and(|value| !value.is_null()),
+                false,
+            ),
+            EndpointProtocol::OpenAIResponses => {
+                let event_type = event_name
+                    .as_deref()
+                    .or_else(|| value.get("type").and_then(|value| value.as_str()));
+                if matches!(event_type, Some("response.failed" | "response.incomplete")) {
+                    return Ok(Some(SseEvent::ProviderError));
+                }
+                (
+                    value
+                        .get("delta")
+                        .and_then(|value| value.as_str())
+                        .unwrap_or("")
+                        .to_owned(),
+                    false,
+                    event_type == Some("response.completed"),
+                )
+            }
+            EndpointProtocol::AnthropicMessages => {
+                let event_type = event_name
+                    .as_deref()
+                    .or_else(|| value.get("type").and_then(|value| value.as_str()));
+                (
+                    value
+                        .pointer("/delta/text")
+                        .and_then(|value| value.as_str())
+                        .unwrap_or("")
+                        .to_owned(),
+                    false,
+                    event_type == Some("message_stop"),
+                )
+            }
+            EndpointProtocol::GoogleGemini => (
+                value
+                    .pointer("/candidates/0/content/parts/0/text")
+                    .and_then(|value| value.as_str())
+                    .unwrap_or("")
+                    .to_owned(),
+                value
+                    .pointer("/candidates/0/finishReason")
+                    .is_some_and(|value| !value.is_null()),
+                false,
+            ),
+        };
+        if done {
+            return Ok(Some(SseEvent::Done));
+        }
         if content.is_empty() && !finished {
             Ok(None)
         } else {
@@ -489,16 +688,13 @@ enum StreamContentMode {
     Cumulative,
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-enum ProviderMessageMode {
-    SystemAndUser,
-    UserOnly,
-}
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-enum ProviderLanguageMode {
-    SystemPrompt,
-    TranslationOptions,
+fn is_qwen_translation_model(endpoint: &Endpoint) -> bool {
+    endpoint.provider_protocol == EndpointProtocol::OpenAICompatible
+        && endpoint
+            .model
+            .trim()
+            .to_ascii_lowercase()
+            .starts_with("qwen-mt-")
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -506,54 +702,6 @@ enum ProviderThinkingMode {
     Omit,
     ThinkingDisabled,
     EnableThinkingFalse,
-}
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-struct ProviderCapabilities {
-    message_mode: ProviderMessageMode,
-    language_mode: ProviderLanguageMode,
-    stream_content_mode: StreamContentMode,
-    thinking_mode: ProviderThinkingMode,
-}
-
-fn provider_capabilities(endpoint: &Endpoint) -> ProviderCapabilities {
-    let model = endpoint.model.trim().to_ascii_lowercase();
-    if model.starts_with("qwen-mt-") {
-        ProviderCapabilities {
-            message_mode: ProviderMessageMode::UserOnly,
-            language_mode: ProviderLanguageMode::TranslationOptions,
-            stream_content_mode: StreamContentMode::Cumulative,
-            thinking_mode: ProviderThinkingMode::Omit,
-        }
-    } else {
-        ProviderCapabilities {
-            message_mode: ProviderMessageMode::SystemAndUser,
-            language_mode: ProviderLanguageMode::SystemPrompt,
-            stream_content_mode: StreamContentMode::Delta,
-            thinking_mode: provider_thinking_mode(endpoint, &model),
-        }
-    }
-}
-
-fn provider_thinking_mode(endpoint: &Endpoint, model: &str) -> ProviderThinkingMode {
-    let Some(host) = reqwest::Url::parse(endpoint.base_url.trim())
-        .ok()
-        .and_then(|url| url.host_str().map(str::to_owned))
-    else {
-        return ProviderThinkingMode::Omit;
-    };
-
-    let supports_thinking_disabled = (host == "api.deepseek.com"
-        && model_family_matches(model, "deepseek-v4"))
-        || (host == "open.bigmodel.cn" && model_family_matches(model, "glm-4.7"))
-        || (host == "ark.cn-beijing.volces.com" && ark_supports_disabled_thinking(model));
-    if supports_thinking_disabled {
-        ProviderThinkingMode::ThinkingDisabled
-    } else if dashscope_host(&host) && dashscope_supports_disabled_thinking(model) {
-        ProviderThinkingMode::EnableThinkingFalse
-    } else {
-        ProviderThinkingMode::Omit
-    }
 }
 
 fn model_family_matches(model: &str, family: &str) -> bool {
@@ -581,6 +729,29 @@ fn dashscope_supports_disabled_thinking(model: &str) -> bool {
         || model_family_matches(model, "qwen-plus")
         || model_family_matches(model, "qwen-flash")
         || model_family_matches(model, "qwen-turbo")
+}
+
+fn provider_thinking_mode(endpoint: &Endpoint) -> ProviderThinkingMode {
+    let model = endpoint.model.trim().to_ascii_lowercase();
+    if is_qwen_translation_model(endpoint) {
+        return ProviderThinkingMode::Omit;
+    }
+    let Some(host) = reqwest::Url::parse(endpoint.base_url.trim())
+        .ok()
+        .and_then(|url| url.host_str().map(str::to_owned))
+    else {
+        return ProviderThinkingMode::Omit;
+    };
+    if (host == "api.deepseek.com" && model_family_matches(&model, "deepseek-v4"))
+        || (host == "open.bigmodel.cn" && model_family_matches(&model, "glm-4.7"))
+        || (host == "ark.cn-beijing.volces.com" && ark_supports_disabled_thinking(&model))
+    {
+        ProviderThinkingMode::ThinkingDisabled
+    } else if dashscope_host(&host) && dashscope_supports_disabled_thinking(&model) {
+        ProviderThinkingMode::EnableThinkingFalse
+    } else {
+        ProviderThinkingMode::Omit
+    }
 }
 
 fn normalized_stream_delta(
@@ -740,64 +911,144 @@ fn validate_request(request: &TranslationRequest) -> Result<String, (&'static st
 }
 
 fn request_json(request: &TranslationRequest) -> serde_json::Value {
-    let capabilities = provider_capabilities(&request.endpoint);
     let source_text = request
         .in_place_blocks
         .as_deref()
         .map(in_place_source_json)
         .unwrap_or_else(|| request.source_content.text.clone());
-    let mut payload = match (capabilities.message_mode, capabilities.language_mode) {
-        (ProviderMessageMode::UserOnly, ProviderLanguageMode::TranslationOptions) => {
-            let user_content = if let Some(blocks) = request.in_place_blocks.as_deref() {
-                qwen_in_place_source(blocks, &request.request_id)
-            } else {
-                source_text
-            };
-            serde_json::json!({
-                "model": request.endpoint.model,
-                "stream": true,
-                "messages": [{"role": "user", "content": user_content}],
-                "translation_options": {
-                    "source_lang": qwen_mt_source_language(request),
-                    "target_lang": qwen_mt_target_language(request)
-                }
-            })
+    if is_qwen_translation_model(&request.endpoint) {
+        let user_content = if let Some(blocks) = request.in_place_blocks.as_deref() {
+            qwen_in_place_source(blocks, &request.request_id)
+        } else {
+            source_text.clone()
+        };
+        return serde_json::json!({
+            "model": request.endpoint.model,
+            "stream": true,
+            "messages": [
+                {"role": "user", "content": user_content}
+            ],
+            "translation_options": {
+                "source_lang": qwen_mt_source_language(request),
+                "target_lang": qwen_mt_target_language(request)
+            }
+        });
+    }
+
+    let prompt = system_prompt(request);
+    let mut payload = match request.endpoint.provider_protocol {
+        EndpointProtocol::OpenAICompatible => serde_json::json!({
+            "model": request.endpoint.model,
+            "stream": true,
+            "messages": [
+                {"role": "system", "content": prompt},
+                {"role": "user", "content": format!(
+                    "<source format=\"{}\">\n{}\n</source>",
+                    match request.source_content.format {
+                        TranslationContentFormat::PlainText => "plainText",
+                        TranslationContentFormat::SemanticMarkdown => "semanticMarkdown",
+                    },
+                    source_text
+                )}
+            ]
+        }),
+        EndpointProtocol::OpenAIResponses => serde_json::json!({
+            "model": request.endpoint.model,
+            "stream": true,
+            "input": [
+                {"role": "system", "content": [{"type": "input_text", "text": prompt}]},
+                {"role": "user", "content": [{"type": "input_text", "text": format!(
+                    "<source format=\"{}\">\n{}\n</source>",
+                    match request.source_content.format {
+                        TranslationContentFormat::PlainText => "plainText",
+                        TranslationContentFormat::SemanticMarkdown => "semanticMarkdown",
+                    },
+                    source_text
+                )}]}
+            ]
+        }),
+        EndpointProtocol::AnthropicMessages => serde_json::json!({
+            "model": request.endpoint.model,
+            "max_tokens": 4096,
+            "stream": true,
+            "system": prompt,
+            "messages": [
+                {"role": "user", "content": format!(
+                    "<source format=\"{}\">\n{}\n</source>",
+                    match request.source_content.format {
+                        TranslationContentFormat::PlainText => "plainText",
+                        TranslationContentFormat::SemanticMarkdown => "semanticMarkdown",
+                    },
+                    source_text
+                )}
+            ]
+        }),
+        EndpointProtocol::GoogleGemini => {
+            let mut payload = serde_json::json!({
+                "systemInstruction": {"parts": [{"text": prompt}]},
+                "contents": [{"role": "user", "parts": [{"text": format!(
+                    "<source format=\"{}\">\n{}\n</source>",
+                    match request.source_content.format {
+                        TranslationContentFormat::PlainText => "plainText",
+                        TranslationContentFormat::SemanticMarkdown => "semanticMarkdown",
+                    },
+                    source_text
+                )}]}]
+            });
+            if request.in_place_blocks.is_some() {
+                payload["generationConfig"] =
+                    serde_json::json!({"responseMimeType": "application/json"});
+            }
+            payload
         }
-        (ProviderMessageMode::SystemAndUser, ProviderLanguageMode::SystemPrompt) => {
-            serde_json::json!({
-                "model": request.endpoint.model,
-                "stream": true,
-                "messages": [
-                    {"role": "system", "content": system_prompt(request)},
-                    {"role": "user", "content": format!(
-                        "<source format=\"{}\">\n{}\n</source>",
-                        match request.source_content.format {
-                            TranslationContentFormat::PlainText => "plainText",
-                            TranslationContentFormat::SemanticMarkdown => "semanticMarkdown",
-                        },
-                        source_text
-                    )}
-                ]
-            })
-        }
-        _ => unreachable!("provider capabilities must describe a supported request strategy"),
     };
-    let object = payload
-        .as_object_mut()
-        .expect("translation request payload must be an object");
-    match capabilities.thinking_mode {
+    match provider_thinking_mode(&request.endpoint) {
         ProviderThinkingMode::Omit => {}
         ProviderThinkingMode::ThinkingDisabled => {
-            object.insert(
-                "thinking".to_string(),
-                serde_json::json!({"type": "disabled"}),
-            );
+            payload["thinking"] = serde_json::json!({"type": "disabled"});
         }
         ProviderThinkingMode::EnableThinkingFalse => {
-            object.insert("enable_thinking".to_string(), serde_json::json!(false));
+            payload["enable_thinking"] = serde_json::json!(false);
         }
     }
     payload
+}
+
+fn apply_auth(
+    mut builder: reqwest::RequestBuilder,
+    endpoint: &Endpoint,
+) -> reqwest::RequestBuilder {
+    match endpoint.provider_protocol {
+        EndpointProtocol::OpenAICompatible | EndpointProtocol::OpenAIResponses => {
+            if let Some(key) = endpoint
+                .api_key
+                .as_deref()
+                .filter(|key| !key.trim().is_empty())
+            {
+                builder = builder.header(AUTHORIZATION, format!("Bearer {key}"));
+            }
+        }
+        EndpointProtocol::AnthropicMessages => {
+            builder = builder.header("anthropic-version", "2023-06-01");
+            if let Some(key) = endpoint
+                .api_key
+                .as_deref()
+                .filter(|key| !key.trim().is_empty())
+            {
+                builder = builder.header("x-api-key", key);
+            }
+        }
+        EndpointProtocol::GoogleGemini => {
+            if let Some(key) = endpoint
+                .api_key
+                .as_deref()
+                .filter(|key| !key.trim().is_empty())
+            {
+                builder = builder.header("x-goog-api-key", key);
+            }
+        }
+    }
+    builder
 }
 
 fn in_place_source_json(blocks: &[InPlaceSourceBlock]) -> String {
@@ -1097,15 +1348,10 @@ async fn run_translation(
         );
         return;
     };
-    let mut builder = client.post(url).header(CONTENT_TYPE, "application/json");
-    if let Some(key) = request
-        .endpoint
-        .api_key
-        .as_deref()
-        .filter(|key| !key.trim().is_empty())
-    {
-        builder = builder.header(AUTHORIZATION, format!("Bearer {key}"));
-    }
+    let builder = apply_auth(
+        client.post(url).header(CONTENT_TYPE, "application/json"),
+        &request.endpoint,
+    );
     let started_at = Instant::now();
     let connect_deadline = started_at + Duration::from_secs(timeouts.connect_seconds.max(1));
     let first_token_deadline =
@@ -1176,8 +1422,11 @@ async fn run_translation(
     let mut translated = String::new();
     let mut received_first_token = false;
     let mut received_done = false;
-    let capabilities = provider_capabilities(&request.endpoint);
-    let content_mode = capabilities.stream_content_mode;
+    let content_mode = if is_qwen_translation_model(&request.endpoint) {
+        StreamContentMode::Cumulative
+    } else {
+        StreamContentMode::Delta
+    };
 
     while !received_done {
         let event_deadline = if received_first_token {
@@ -1212,7 +1461,7 @@ async fn run_translation(
             }
         };
 
-        let events = match decoder.push(&chunk) {
+        let events = match decoder.push_for(request.endpoint.provider_protocol, &chunk) {
             Ok(events) => events,
             Err(()) => {
                 emit_failed(
@@ -1293,7 +1542,7 @@ async fn run_translation(
         return;
     }
     let completed_text = if let Some(blocks) = request.in_place_blocks.as_deref() {
-        let validation = if capabilities.message_mode == ProviderMessageMode::UserOnly {
+        let validation = if is_qwen_translation_model(&request.endpoint) {
             validate_qwen_in_place_translation(&translated, blocks, &request.request_id)
         } else {
             validate_in_place_translation(&translated, blocks)
@@ -1301,7 +1550,7 @@ async fn run_translation(
         match validation {
             Ok(canonical) => canonical,
             Err(()) => {
-                let message = if capabilities.message_mode == ProviderMessageMode::UserOnly {
+                let message = if is_qwen_translation_model(&request.endpoint) {
                     "Qwen-MT 没有保留原位翻译的块边界，请重试或改用支持结构化输出的翻译模型。"
                 } else {
                     "翻译服务没有返回可安全定位的块级译文。"
@@ -1372,15 +1621,7 @@ async fn run_model_list(
         );
         return;
     };
-    let mut builder = client.get(url);
-    if let Some(key) = request
-        .endpoint
-        .api_key
-        .as_deref()
-        .filter(|key| !key.trim().is_empty())
-    {
-        builder = builder.header(AUTHORIZATION, format!("Bearer {key}"));
-    }
+    let builder = apply_auth(client.get(url), &request.endpoint);
     let response = tokio::select! {
         _ = cancellation.wait() => {
             emit_model_list(
@@ -1483,14 +1724,19 @@ async fn run_model_list(
             }
         }
     };
-    let mut models = decoded
-        .data
-        .into_iter()
-        .map(|item| item.id.trim().to_owned())
-        .filter(|id| !id.is_empty())
-        .collect::<Vec<_>>();
-    models.sort_unstable();
-    models.dedup();
+    let models = match parse_model_ids(request.endpoint.provider_protocol, decoded) {
+        Ok(models) => models,
+        Err(()) => {
+            emit_model_list_failed(
+                callback,
+                context(),
+                &request_id,
+                "invalid_response",
+                "模型列表响应格式无效。",
+            );
+            return;
+        }
+    };
     emit_model_list(
         callback,
         context(),
@@ -1712,13 +1958,14 @@ pub unsafe extern "C" fn marla_translation_release(handle: *mut MarlaTranslation
 #[cfg(test)]
 mod tests {
     use super::{
-        CancellationSignal, Endpoint, EndpointURLMode, InPlaceSourceBlock, MAX_SSE_FRAME_BYTES,
-        MarlaTranslationEventCallback, SseDecoder, SseEvent, StreamContentMode, Surface, Target,
-        Timeouts, TranslationContent, TranslationContentFormat, TranslationEvent,
-        TranslationRequest, classify_surface, endpoint_url, language_name, marla_model_list_start,
+        CancellationSignal, Endpoint, EndpointProtocol, EndpointURLMode, InPlaceSourceBlock,
+        MAX_SSE_FRAME_BYTES, MarlaTranslationEventCallback, ModelListResponse, SseDecoder,
+        SseEvent, StreamContentMode, Surface, Target, Timeouts, TranslationContent,
+        TranslationContentFormat, TranslationEvent, TranslationRequest, apply_auth,
+        classify_surface, endpoint_url, language_name, marla_model_list_start,
         marla_translation_cancel, marla_translation_release, marla_translation_start,
-        model_list_url, normalized_stream_delta, qwen_in_place_source, qwen_language_name,
-        request_json, system_prompt, validate_in_place_translation,
+        model_list_url, normalized_stream_delta, parse_model_ids, qwen_in_place_source,
+        qwen_language_name, request_json, system_prompt, validate_in_place_translation,
         validate_qwen_in_place_translation, validate_request,
     };
     use std::io::{Read, Write};
@@ -1750,6 +1997,7 @@ mod tests {
     #[test]
     fn normalizes_translation_endpoint_and_delimits_source_prompt() {
         let mut endpoint = Endpoint {
+            provider_protocol: EndpointProtocol::OpenAICompatible,
             base_url: "https://example.com/v1/".to_string(),
             url_mode: EndpointURLMode::BaseURL,
             model: "test".to_string(),
@@ -1773,7 +2021,24 @@ mod tests {
             model_list_url(&endpoint),
             Some("https://example.com/v1/models".to_string())
         );
+        endpoint.base_url = "https://example.com".to_string();
+        assert_eq!(
+            endpoint_url(&endpoint),
+            Some("https://example.com/chat/completions".to_string())
+        );
+        endpoint.provider_protocol = EndpointProtocol::GoogleGemini;
+        endpoint.model = "gemini-2.5-flash".to_string();
+        endpoint.base_url = "https://example.com/api/v1beta/".to_string();
+        assert_eq!(
+            endpoint_url(&endpoint),
+            Some("https://example.com/api/v1beta/models/gemini-2.5-flash:streamGenerateContent?alt=sse".to_string())
+        );
+        assert_eq!(
+            model_list_url(&endpoint),
+            Some("https://example.com/api/v1beta/models".to_string())
+        );
         endpoint.base_url = "https://example.com/v1/chat/completions".to_string();
+        endpoint.provider_protocol = EndpointProtocol::OpenAICompatible;
         endpoint.url_mode = EndpointURLMode::CompleteURL;
         assert_eq!(
             model_list_url(&endpoint),
@@ -1806,6 +2071,210 @@ mod tests {
         assert_eq!(
             payload["messages"][1]["content"],
             "<source format=\"semanticMarkdown\">\n# Release Notes\n\n- Keep `TOKEN` unchanged.\n</source>"
+        );
+    }
+
+    #[test]
+    fn builds_generic_protocol_request_shapes_and_urls() {
+        let mut request = valid_request();
+
+        request.endpoint.provider_protocol = EndpointProtocol::OpenAIResponses;
+        assert_eq!(
+            endpoint_url(&request.endpoint),
+            Some("https://example.com/v1/responses".to_string())
+        );
+        let responses = request_json(&request);
+        assert_eq!(responses["stream"], true);
+        assert!(responses["input"][0]["content"][0]["type"] == "input_text");
+        assert!(responses.get("messages").is_none());
+
+        request.endpoint.provider_protocol = EndpointProtocol::AnthropicMessages;
+        request.endpoint.base_url = "https://api.anthropic.com".to_string();
+        assert_eq!(
+            endpoint_url(&request.endpoint),
+            Some("https://api.anthropic.com/v1/messages".to_string())
+        );
+        let anthropic = request_json(&request);
+        assert_eq!(anthropic["max_tokens"], 4096);
+        assert!(
+            anthropic["system"]
+                .as_str()
+                .unwrap()
+                .contains("Output only")
+        );
+        assert_eq!(anthropic["messages"][0]["role"], "user");
+
+        request.endpoint.provider_protocol = EndpointProtocol::GoogleGemini;
+        request.endpoint.base_url = "https://generativelanguage.googleapis.com".to_string();
+        request.endpoint.model = "gemini-2.5-flash".to_string();
+        assert_eq!(
+            endpoint_url(&request.endpoint),
+            Some("https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:streamGenerateContent?alt=sse".to_string())
+        );
+        assert_eq!(
+            model_list_url(&request.endpoint),
+            Some("https://generativelanguage.googleapis.com/v1beta/models".to_string())
+        );
+        let gemini = request_json(&request);
+        assert!(
+            gemini["systemInstruction"]["parts"][0]["text"]
+                .as_str()
+                .unwrap()
+                .contains("Output only")
+        );
+        assert_eq!(gemini["contents"][0]["role"], "user");
+
+        request.in_place_blocks = Some(vec![InPlaceSourceBlock {
+            id: "heading".to_string(),
+            kind: "heading".to_string(),
+            source_text: "Hello".to_string(),
+        }]);
+        assert_eq!(
+            request_json(&request)["generationConfig"]["responseMimeType"],
+            "application/json"
+        );
+
+        request.endpoint.provider_protocol = EndpointProtocol::AnthropicMessages;
+        request.endpoint.base_url = "https://api.anthropic.com/v1/messages".to_string();
+        request.endpoint.url_mode = EndpointURLMode::CompleteURL;
+        assert_eq!(
+            model_list_url(&request.endpoint),
+            Some("https://api.anthropic.com/v1/models".to_string())
+        );
+    }
+
+    #[test]
+    fn adapts_protocol_auth_headers_without_logging_key_values() {
+        let mut endpoint = valid_request().endpoint;
+        endpoint.api_key = Some("test-secret".to_string());
+        let client = reqwest::Client::new();
+
+        endpoint.provider_protocol = EndpointProtocol::OpenAICompatible;
+        let request = apply_auth(client.post("https://example.com"), &endpoint)
+            .build()
+            .unwrap();
+        assert_eq!(request.headers()["authorization"], "Bearer test-secret");
+
+        endpoint.provider_protocol = EndpointProtocol::AnthropicMessages;
+        let request = apply_auth(client.post("https://example.com"), &endpoint)
+            .build()
+            .unwrap();
+        assert_eq!(request.headers()["x-api-key"], "test-secret");
+        assert_eq!(request.headers()["anthropic-version"], "2023-06-01");
+
+        endpoint.api_key = None;
+        let request = apply_auth(client.post("https://example.com"), &endpoint)
+            .build()
+            .unwrap();
+        assert_eq!(request.headers()["anthropic-version"], "2023-06-01");
+        assert!(request.headers().get("x-api-key").is_none());
+
+        endpoint.provider_protocol = EndpointProtocol::GoogleGemini;
+        endpoint.api_key = Some("test-secret".to_string());
+        let request = apply_auth(client.post("https://example.com"), &endpoint)
+            .build()
+            .unwrap();
+        assert_eq!(request.headers()["x-goog-api-key"], "test-secret");
+    }
+
+    #[test]
+    fn decodes_responses_anthropic_and_gemini_stream_events() {
+        let mut decoder = SseDecoder::default();
+        assert_eq!(
+            decoder
+                .push_for(
+                    EndpointProtocol::OpenAIResponses,
+                    b"event: response.output_text.delta\ndata: {\"type\":\"response.output_text.delta\",\"delta\":\"Hi\"}\n\n"
+                )
+                .unwrap(),
+            vec![SseEvent::Chunk {
+                content: "Hi".to_string(),
+                finished: false
+            }]
+        );
+        assert_eq!(
+            decoder
+                .push_for(
+                    EndpointProtocol::OpenAIResponses,
+                    b"event: response.completed\ndata: {\"type\":\"response.completed\"}\n\n"
+                )
+                .unwrap(),
+            vec![SseEvent::Done]
+        );
+        let mut decoder = SseDecoder::default();
+        assert_eq!(
+            decoder
+                .push_for(
+                    EndpointProtocol::OpenAIResponses,
+                    b"event: response.output_text.done\ndata: {\"type\":\"response.output_text.done\",\"text\":\"Hi\"}\n\n"
+                )
+                .unwrap(),
+            Vec::<SseEvent>::new()
+        );
+        assert_eq!(
+            decoder
+                .push_for(
+                    EndpointProtocol::OpenAIResponses,
+                    b"event: response.created\ndata: provider-specific-not-json\n\n"
+                )
+                .unwrap(),
+            Vec::<SseEvent>::new()
+        );
+        assert_eq!(
+            decoder
+                .push_for(
+                    EndpointProtocol::OpenAIResponses,
+                    b"event: response.failed\ndata: {\"type\":\"response.failed\",\"response\":{\"status\":\"failed\"}}\n\n"
+                )
+                .unwrap(),
+            vec![SseEvent::ProviderError]
+        );
+
+        let mut decoder = SseDecoder::default();
+        assert_eq!(
+            decoder
+                .push_for(
+                    EndpointProtocol::AnthropicMessages,
+                    "event: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"delta\":{\"type\":\"text_delta\",\"text\":\"你\"}}\n\n".as_bytes()
+                )
+                .unwrap(),
+            vec![SseEvent::Chunk {
+                content: "你".to_string(),
+                finished: false
+            }]
+        );
+        assert_eq!(
+            decoder
+                .push_for(
+                    EndpointProtocol::AnthropicMessages,
+                    b"event: message_delta\ndata: {\"type\":\"message_delta\",\"delta\":{\"stop_reason\":\"end_turn\"}}\n\n"
+                )
+                .unwrap(),
+            Vec::<SseEvent>::new()
+        );
+        assert_eq!(
+            decoder
+                .push_for(
+                    EndpointProtocol::AnthropicMessages,
+                    b"event: message_stop\ndata: {\"type\":\"message_stop\"}\n\n"
+                )
+                .unwrap(),
+            vec![SseEvent::Done]
+        );
+
+        let mut decoder = SseDecoder::default();
+        assert_eq!(
+            decoder
+                .push_for(
+                    EndpointProtocol::GoogleGemini,
+                    "data: {\"candidates\":[{\"content\":{\"parts\":[{\"text\":\"好\"}]}}]}\n\n"
+                        .as_bytes()
+                )
+                .unwrap(),
+            vec![SseEvent::Chunk {
+                content: "好".to_string(),
+                finished: false
+            }]
         );
     }
 
@@ -2174,8 +2643,6 @@ mod tests {
         assert_eq!(payload["messages"].as_array().unwrap().len(), 1);
         assert_eq!(payload["translation_options"]["source_lang"], "auto");
         assert_eq!(payload["translation_options"]["target_lang"], "Chinese");
-        assert!(payload.get("thinking").is_none());
-        assert!(payload.get("enable_thinking").is_none());
 
         request.source_language = Some("ja".to_string());
         request.target = Target {
@@ -2195,55 +2662,6 @@ mod tests {
             Ok(String::new())
         );
         assert!(normalized_stream_delta("玛拉", "不同", StreamContentMode::Cumulative).is_err());
-    }
-
-    #[test]
-    fn builds_provider_specific_disabled_thinking_requests() {
-        let mut request = valid_request();
-
-        request.endpoint.base_url = "https://api.deepseek.com/v1".to_string();
-        request.endpoint.model = "deepseek-v4-flash".to_string();
-        assert_eq!(request_json(&request)["thinking"]["type"], "disabled");
-
-        request.endpoint.base_url = "https://open.bigmodel.cn/api/paas/v4".to_string();
-        request.endpoint.model = "glm-4.7-flash".to_string();
-        assert_eq!(request_json(&request)["thinking"]["type"], "disabled");
-
-        request.endpoint.base_url = "https://ark.cn-beijing.volces.com/api/v3".to_string();
-        request.endpoint.model = "doubao-seed-1-8-251228".to_string();
-        assert_eq!(request_json(&request)["thinking"]["type"], "disabled");
-
-        request.endpoint.base_url = "https://dashscope.aliyuncs.com/compatible-mode/v1".to_string();
-        request.endpoint.model = "qwen-plus".to_string();
-        let payload = request_json(&request);
-        assert_eq!(payload["enable_thinking"], false);
-        assert!(payload.get("thinking").is_none());
-    }
-
-    #[test]
-    fn omits_private_thinking_fields_when_the_contract_is_unknown_or_forced() {
-        let mut request = valid_request();
-        let assert_omitted = |request: &TranslationRequest| {
-            let payload = request_json(request);
-            assert!(payload.get("thinking").is_none());
-            assert!(payload.get("enable_thinking").is_none());
-            assert_eq!(payload.as_object().unwrap().len(), 3);
-        };
-
-        request.endpoint.model = "deepseek-v4-flash".to_string();
-        assert_omitted(&request);
-
-        request.endpoint.base_url = "https://open.bigmodel.cn/api/paas/v4".to_string();
-        request.endpoint.model = "glm-5.3-flash".to_string();
-        assert_omitted(&request);
-
-        request.endpoint.base_url = "https://ark.cn-beijing.volces.com/api/v3".to_string();
-        request.endpoint.model = "doubao-seed-translation-250915".to_string();
-        assert_omitted(&request);
-
-        request.endpoint.base_url = "https://dashscope.aliyuncs.com/compatible-mode/v1".to_string();
-        request.endpoint.model = "qwen3.5-flash".to_string();
-        assert_omitted(&request);
     }
 
     #[test]
@@ -2336,7 +2754,7 @@ mod tests {
             "data: {\"choices\":[{\"delta\":{\"content\":\"好\"}}]}\n\n",
             "data: [DONE]\n\n"
         );
-        let (base_url, captured_request) = spawn_http_server("200 OK", body);
+        let (base_url, captured_request) = spawn_http_server_at_path("200 OK", body, "");
         let events = run_ffi_request(&base_url, 3);
         let request = captured_request
             .recv_timeout(Duration::from_secs(2))
@@ -2363,7 +2781,7 @@ mod tests {
     fn model_list_request_uses_derived_url_and_returns_sorted_unique_ids() {
         let body = r#"{"data":[{"id":"gpt-z"},{"id":"gpt-a"},{"id":"gpt-z"}]}"#;
         let (base_url, captured_request) = spawn_http_server("200 OK", body);
-        let events = run_model_list_ffi(&base_url);
+        let events = run_model_list_ffi(&base_url, EndpointProtocol::OpenAICompatible);
         let request = captured_request
             .recv_timeout(Duration::from_secs(2))
             .unwrap();
@@ -2378,6 +2796,55 @@ mod tests {
         assert_eq!(
             events.last().unwrap()["models"],
             serde_json::json!(["gpt-a", "gpt-z"])
+        );
+    }
+
+    #[test]
+    fn model_list_protocols_parse_only_their_standard_response_shape() {
+        let gemini = serde_json::from_str::<ModelListResponse>(
+            r#"{"models":[{"name":"models/gemini-2.5-flash"},{"name":"gemini-2.0-flash"},{"name":"models/gemini-2.5-flash"}]}"#,
+        )
+        .unwrap();
+        assert_eq!(
+            parse_model_ids(EndpointProtocol::GoogleGemini, gemini),
+            Ok(vec![
+                "gemini-2.0-flash".to_string(),
+                "gemini-2.5-flash".to_string()
+            ])
+        );
+
+        let anthropic =
+            serde_json::from_str::<ModelListResponse>(r#"{"data":[{"id":"claude-3-5-sonnet"}]}"#)
+                .unwrap();
+        assert_eq!(
+            parse_model_ids(EndpointProtocol::AnthropicMessages, anthropic),
+            Ok(vec!["claude-3-5-sonnet".to_string()])
+        );
+
+        let wrong_shape =
+            serde_json::from_str::<ModelListResponse>(r#"{"data":[{"id":"not-gemini"}]}"#).unwrap();
+        assert!(parse_model_ids(EndpointProtocol::GoogleGemini, wrong_shape).is_err());
+    }
+
+    #[test]
+    fn gemini_model_list_ffi_returns_normalized_model_names() {
+        let body = r#"{"models":[{"name":"models/gemini-2.5-flash"},{"name":"models/gemini-2.0-flash"},{"name":"models/gemini-2.5-flash"}]}"#;
+        let (base_url, captured_request) = spawn_http_server_at_path("200 OK", body, "");
+        let events = run_model_list_ffi(&base_url, EndpointProtocol::GoogleGemini);
+        let request = captured_request
+            .recv_timeout(Duration::from_secs(2))
+            .unwrap();
+
+        assert!(request.starts_with("GET /v1beta/models HTTP/1.1"));
+        assert!(
+            request
+                .to_ascii_lowercase()
+                .contains("x-goog-api-key: test-secret")
+        );
+        assert_eq!(events.last().unwrap()["type"], "completed");
+        assert_eq!(
+            events.last().unwrap()["models"],
+            serde_json::json!(["gemini-2.0-flash", "gemini-2.5-flash"])
         );
     }
 
@@ -2618,11 +3085,20 @@ mod tests {
         events
     }
 
-    fn run_model_list_ffi(base_url: &str) -> Vec<serde_json::Value> {
+    fn run_model_list_ffi(
+        base_url: &str,
+        provider_protocol: EndpointProtocol,
+    ) -> Vec<serde_json::Value> {
         let request = serde_json::to_vec(&serde_json::json!({
             "schemaVersion": 1,
             "requestID": "00000000-0000-0000-0000-000000000030",
             "endpoint": {
+                "providerProtocol": match provider_protocol {
+                    EndpointProtocol::OpenAICompatible => "openAICompatible",
+                    EndpointProtocol::OpenAIResponses => "openAIResponses",
+                    EndpointProtocol::AnthropicMessages => "anthropicMessages",
+                    EndpointProtocol::GoogleGemini => "googleGemini",
+                },
                 "baseURL": base_url,
                 "urlMode": "baseURL",
                 "model": "",
@@ -2652,6 +3128,14 @@ mod tests {
     }
 
     fn spawn_http_server(status: &'static str, body: &str) -> (String, mpsc::Receiver<String>) {
+        spawn_http_server_at_path(status, body, "/v1")
+    }
+
+    fn spawn_http_server_at_path(
+        status: &'static str,
+        body: &str,
+        path: &'static str,
+    ) -> (String, mpsc::Receiver<String>) {
         let listener = TcpListener::bind("127.0.0.1:0").unwrap();
         let address = listener.local_addr().unwrap();
         let (sender, receiver) = mpsc::channel();
@@ -2696,7 +3180,7 @@ mod tests {
             let _ = stream.write_all(response.as_bytes());
             let _ = stream.flush();
         });
-        (format!("http://{address}/v1"), receiver)
+        (format!("http://{address}{path}"), receiver)
     }
 
     fn spawn_delayed_stream_server(initial_frame: Option<&'static str>, delay: Duration) -> String {
@@ -2746,6 +3230,7 @@ mod tests {
                 language: Some("zh-Hans".to_string()),
             },
             endpoint: Endpoint {
+                provider_protocol: EndpointProtocol::OpenAICompatible,
                 base_url: "https://example.com/v1".to_string(),
                 url_mode: EndpointURLMode::BaseURL,
                 model: "test".to_string(),

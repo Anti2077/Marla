@@ -14,6 +14,7 @@ struct APIProfileEditorView: View {
     let onCancel: () -> Void
     let onClose: () -> Void
     @State private var name: String
+    @State private var providerProtocol: TranslationProviderProtocol
     @State private var baseURL: String
     @State private var urlMode: TranslationEndpointURLMode
     @State private var modelName: String
@@ -45,6 +46,7 @@ struct APIProfileEditorView: View {
         let usesCompleteURLFixture = ProcessInfo.processInfo.environment["MARLA_UI_TEST_API_COMPLETE_URL"] == "1"
         let usesModelListFixture = ProcessInfo.processInfo.environment["MARLA_UI_TEST_API_MODELS"] == "1"
         _name = State(initialValue: profile.name)
+        _providerProtocol = State(initialValue: profile.providerProtocol)
         _baseURL = State(
             initialValue: usesCompleteURLFixture
                 ? "https://api.example.com/v1/chat/completions"
@@ -69,6 +71,7 @@ struct APIProfileEditorView: View {
                 VStack(alignment: .leading, spacing: DesignTokens.spaceM) {
                     fixedField("配置名称", placeholder: "例如：Qwen 快速", text: $name)
                         .focused($focusedField, equals: .profileName)
+                    protocolField
                     urlField
                     HStack(alignment: .firstTextBaseline, spacing: DesignTokens.spaceM) {
                         Text("请求地址")
@@ -190,6 +193,7 @@ struct APIProfileEditorView: View {
             isModelListExpanded = !models.isEmpty
         }
         .onChange(of: baseURL) { _, _ in resetEndpointResults(resetModels: true) }
+        .onChange(of: providerProtocol) { _, _ in resetEndpointResults(resetModels: true) }
         .onChange(of: urlMode) { _, _ in resetEndpointResults(resetModels: true) }
         .onChange(of: modelName) { _, _ in resetEndpointResults(resetModels: false) }
         .onChange(of: apiKeyDraft) { _, _ in resetEndpointResults(resetModels: true) }
@@ -216,6 +220,25 @@ struct APIProfileEditorView: View {
             TextField(placeholder, text: text)
                 .textFieldStyle(.roundedBorder)
                 .frame(width: 360)
+        }
+    }
+
+    private var protocolField: some View {
+        HStack(alignment: .center, spacing: DesignTokens.spaceM) {
+            Text("接口协议")
+                .font(AppFont.caption)
+                .foregroundStyle(DesignTokens.secondaryText)
+                .frame(width: 120, alignment: .trailing)
+            Picker("接口协议", selection: $providerProtocol) {
+                ForEach(TranslationProviderProtocol.allCases) { value in
+                    Text(value.displayName).tag(value)
+                }
+            }
+            .pickerStyle(.menu)
+            .frame(width: 360, alignment: .leading)
+            .help(providerProtocol.helpText)
+            .accessibilityLabel("接口协议")
+            .accessibilityValue(providerProtocol.displayName)
         }
     }
 
@@ -362,14 +385,19 @@ struct APIProfileEditorView: View {
 
     private var urlPlaceholder: String {
         switch urlMode {
-        case .baseURL: "https://api.example.com/v1"
-        case .completeURL: "https://api.example.com/v1/chat/completions"
+        case .baseURL:
+            switch providerProtocol {
+            case .openAICompatible, .openAIResponses: "https://api.example.com/v1"
+            case .anthropicMessages: "https://api.anthropic.com"
+            case .googleGemini: "https://generativelanguage.googleapis.com"
+            }
+        case .completeURL: "填写完整请求地址"
         }
     }
 
     private var urlModeHelp: String {
         switch urlMode {
-        case .baseURL: "自动在地址后追加 /chat/completions"
+        case .baseURL: "按所选接口协议生成请求地址"
         case .completeURL: "严格使用填写的完整请求地址"
         }
     }
@@ -379,10 +407,46 @@ struct APIProfileEditorView: View {
         guard !value.isEmpty else { return "—" }
         switch urlMode {
         case .baseURL:
-            return value.trimmingCharacters(in: CharacterSet(charactersIn: "/")) + "/chat/completions"
+            guard var components = URLComponents(string: value), components.host != nil else {
+                return value
+            }
+            components.query = nil
+            components.fragment = nil
+            switch providerProtocol {
+            case .openAICompatible:
+                components.path = appendingPath("/chat/completions", to: components.path)
+            case .openAIResponses:
+                components.path = appendingPath("/responses", to: components.path)
+            case .anthropicMessages:
+                components.path = appendingVersionedPath("/v1", suffix: "/messages", to: components.path)
+            case .googleGemini:
+                let model = modelName.trimmingCharacters(in: .whitespacesAndNewlines)
+                components.path = appendingVersionedPath(
+                    "/v1beta",
+                    suffix: "/models/\(model.isEmpty ? "{model}" : model):streamGenerateContent",
+                    to: components.path
+                )
+                components.query = "alt=sse"
+            }
+            return components.string ?? value
         case .completeURL:
             return value
         }
+    }
+
+    private func appendingPath(_ suffix: String, to path: String) -> String {
+        let base = path == "/" ? "" : path.trimmingCharacters(in: CharacterSet(charactersIn: "/"))
+        return "/" + [base, suffix.trimmingCharacters(in: CharacterSet(charactersIn: "/"))]
+            .filter { !$0.isEmpty }
+            .joined(separator: "/")
+    }
+
+    private func appendingVersionedPath(_ version: String, suffix: String, to path: String) -> String {
+        let normalized = path.isEmpty || path == "/"
+            ? ""
+            : "/" + path.trimmingCharacters(in: CharacterSet(charactersIn: "/"))
+        let versionedBase = normalized.hasSuffix(version) ? normalized : normalized + version
+        return versionedBase + suffix
     }
 
     private func saveAndClose() {
@@ -390,6 +454,7 @@ struct APIProfileEditorView: View {
         settings.updateProfile(
             id: profile.id,
             name: name,
+            providerProtocol: providerProtocol,
             baseURL: baseURL,
             urlMode: urlMode,
             modelName: modelName
@@ -418,6 +483,7 @@ struct APIProfileEditorView: View {
                 settings: settings,
                 profileID: profile.id,
                 name: name,
+                providerProtocol: providerProtocol,
                 baseURL: baseURL,
                 urlMode: urlMode,
                 modelName: modelName,
@@ -433,6 +499,7 @@ struct APIProfileEditorView: View {
         saveErrorMessage = nil
         isModelListExpanded = false
         modelListFetcher.fetch(endpoint: TranslationEndpointConfiguration(
+            providerProtocol: providerProtocol,
             baseURL: baseURL,
             urlMode: urlMode,
             model: modelName,
@@ -458,6 +525,7 @@ enum APIProfileEditorPersistence {
         settings: MarlaSettingsStore,
         profileID: UUID,
         name: String,
+        providerProtocol: TranslationProviderProtocol,
         baseURL: String,
         urlMode: TranslationEndpointURLMode,
         modelName: String,
@@ -466,6 +534,7 @@ enum APIProfileEditorPersistence {
         settings.updateProfile(
             id: profileID,
             name: name,
+            providerProtocol: providerProtocol,
             baseURL: baseURL,
             urlMode: urlMode,
             modelName: modelName
@@ -475,6 +544,7 @@ enum APIProfileEditorPersistence {
         }
         let savedProfile = settings.profile(id: profileID)
         return TranslationEndpointConfiguration(
+            providerProtocol: savedProfile?.providerProtocol ?? .openAICompatible,
             baseURL: savedProfile?.baseURL ?? "",
             urlMode: savedProfile?.urlMode ?? .baseURL,
             model: savedProfile?.modelName ?? "",

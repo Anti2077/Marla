@@ -215,6 +215,7 @@ final class MarlaSettingsStore: ObservableObject {
     func endpoint(for profileID: UUID?) -> TranslationEndpointConfiguration? {
         guard let profile = profile(id: profileID), profile.isEnabled, profile.isConfigured else { return nil }
         return TranslationEndpointConfiguration(
+            providerProtocol: profile.providerProtocol,
             baseURL: profile.baseURL,
             urlMode: profile.urlMode,
             model: profile.modelName,
@@ -233,6 +234,7 @@ final class MarlaSettingsStore: ObservableObject {
     func updateProfile(
         id: UUID?,
         name: String? = nil,
+        providerProtocol: TranslationProviderProtocol? = nil,
         baseURL: String? = nil,
         urlMode: TranslationEndpointURLMode? = nil,
         modelName: String? = nil
@@ -240,6 +242,7 @@ final class MarlaSettingsStore: ObservableObject {
         let targetID = id ?? defaultProfileID ?? profiles.first?.id ?? addProfile()
         guard let index = profiles.firstIndex(where: { $0.id == targetID }) else { return }
         if let name { profiles[index].name = name }
+        if let providerProtocol { profiles[index].providerProtocol = providerProtocol }
         if let baseURL { profiles[index].baseURL = baseURL }
         if let urlMode { profiles[index].urlMode = urlMode }
         if let modelName { profiles[index].modelName = modelName }

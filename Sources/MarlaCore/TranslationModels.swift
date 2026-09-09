@@ -304,18 +304,48 @@ public enum TranslationEndpointURLMode: String, Codable, CaseIterable, Sendable 
     case completeURL
 }
 
+public enum TranslationProviderProtocol: String, Codable, CaseIterable, Identifiable, Sendable {
+    case openAICompatible
+    case openAIResponses
+    case anthropicMessages
+    case googleGemini
+
+    public var id: String { rawValue }
+
+    public var displayName: String {
+        switch self {
+        case .openAICompatible: "OpenAI Compatible"
+        case .openAIResponses: "OpenAI Responses"
+        case .anthropicMessages: "Anthropic Messages"
+        case .googleGemini: "Google Gemini"
+        }
+    }
+
+    public var helpText: String {
+        switch self {
+        case .openAICompatible: "适用于兼容 /chat/completions 的服务和本地代理。"
+        case .openAIResponses: "使用 OpenAI Responses API 的 /responses 接口。"
+        case .anthropicMessages: "使用 Anthropic Messages API 的 /v1/messages 接口。"
+        case .googleGemini: "使用 Gemini generateContent 的流式接口。"
+        }
+    }
+}
+
 public struct TranslationEndpointConfiguration: Codable, Equatable, Sendable {
+    public var providerProtocol: TranslationProviderProtocol
     public var baseURL: String
     public var urlMode: TranslationEndpointURLMode
     public var model: String
     public var apiKey: String?
 
     public init(
+        providerProtocol: TranslationProviderProtocol = .openAICompatible,
         baseURL: String = "",
         urlMode: TranslationEndpointURLMode = .baseURL,
         model: String = "",
         apiKey: String? = nil
     ) {
+        self.providerProtocol = providerProtocol
         self.baseURL = baseURL
         self.urlMode = urlMode
         self.model = model

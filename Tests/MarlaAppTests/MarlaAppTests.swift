@@ -801,6 +801,7 @@ final class MarlaAppTests: XCTestCase {
         XCTAssertEqual(settings.defaultProfile?.name, "默认配置")
         XCTAssertEqual(settings.baseURL, "https://legacy.example/v1")
         XCTAssertEqual(settings.defaultProfile?.urlMode, .baseURL)
+        XCTAssertEqual(settings.defaultProfile?.providerProtocol, .openAICompatible)
         XCTAssertEqual(settings.modelName, "legacy-model")
         XCTAssertNotNil(defaults.data(forKey: "translationAPIProfiles.v1"))
     }
@@ -823,6 +824,7 @@ final class MarlaAppTests: XCTestCase {
 
         XCTAssertEqual(settings.defaultProfile?.id, profileID)
         XCTAssertEqual(settings.defaultProfile?.urlMode, .baseURL)
+        XCTAssertEqual(settings.defaultProfile?.providerProtocol, .openAICompatible)
         XCTAssertEqual(settings.defaultProfile?.baseURL, "https://legacy.example/v1")
         XCTAssertEqual(settings.defaultProfile?.isEnabled, true)
     }
@@ -865,6 +867,7 @@ final class MarlaAppTests: XCTestCase {
             settings: settings,
             profileID: profileID,
             name: "Qwen MT",
+            providerProtocol: .openAICompatible,
             baseURL: "https://dashscope.example/v1",
             urlMode: .completeURL,
             modelName: "qwen-mt-turbo",
@@ -1292,6 +1295,26 @@ final class MarlaAppTests: XCTestCase {
         let summary = try! XCTUnwrap(settings.profile(id: profileID))
         XCTAssertEqual(summary.name, "新名称")
         XCTAssertEqual(summary.modelName, "new-model")
+    }
+
+    @MainActor
+    func testAPIProfilePersistsSelectedProviderProtocolIntoEndpoint() throws {
+        let suite = "com.marla.tests.provider-protocol.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suite)!
+        defaults.removePersistentDomain(forName: suite)
+        let keychain = KeychainCredentialStore(service: suite, account: UUID().uuidString)
+        let settings = MarlaSettingsStore(defaults: defaults, keychain: keychain)
+        let profileID = settings.addProfile()
+
+        settings.updateProfile(
+            id: profileID,
+            providerProtocol: .anthropicMessages,
+            baseURL: "https://api.anthropic.com",
+            modelName: "claude-sonnet"
+        )
+
+        XCTAssertEqual(settings.profile(id: profileID)?.providerProtocol, .anthropicMessages)
+        XCTAssertEqual(settings.endpoint(for: profileID)?.providerProtocol, .anthropicMessages)
     }
 
     @MainActor

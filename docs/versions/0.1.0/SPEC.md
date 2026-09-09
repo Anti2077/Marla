@@ -208,10 +208,11 @@ The prompt must clearly delimit source text as data rather than instructions and
 
 ### 中文
 
-0.1.0 支持多个命名的 OpenAI-compatible Chat Completions 流式配置，不绑定默认厂商。每个配置包括：
+0.1.0 支持多个命名的泛用大模型协议流式配置，不绑定默认厂商。当前协议包括 OpenAI-compatible Chat Completions、OpenAI Responses、Anthropic Messages 和 Google Gemini Generate Content。每个配置包括：
 
+- 显式接口协议；
 - URL 模式：Base URL 或完整 URL；
-- 对应地址，例如 Base URL `https://example.com/v1`，或完整 URL `https://example.com/v1/chat/completions`；
+- 对应地址，例如 OpenAI Base URL `https://example.com/v1`、Anthropic Base URL `https://api.anthropic.com`，或完整请求 URL；
 - 模型名，可手工填写或从当前配置获取可用模型；
 - 可选 API Key；
 - 是否启用；
@@ -221,7 +222,7 @@ The prompt must clearly delimit source text as data rather than instructions and
 
 设置侧栏另有“翻译语言”页面；母语和第二语言属于全局非敏感偏好，不归属于单个 API profile。
 
-Base URL 模式会在规范化地址后追加 `/chat/completions`；完整 URL 模式严格使用填写地址，不追加或删除路径。两种模式都要求 HTTP(S) host，且拒绝 query 和 fragment。连接测试使用“保存并测试”语义：先持久化当前 profile 的非敏感字段和非空 Key 草稿，再从同一份已保存 profile 与进程内凭据缓存构造测试 endpoint；真实翻译使用相同解析结果。获取模型时，编辑器中的非空 Key 草稿优先于已保存值，草稿为空时才回退。Base URL 追加 `/models`；完整 URL 只在尾部为 `/chat/completions` 时替换为 `/models`，不能安全推导则显示错误。模型列表网络请求由 Rust 核心执行，不创建新的凭据副本。如果 API Key 非空，则使用 `Authorization: Bearer <key>`；空 Key 允许兼容不要求认证的本地或代理端点。全部配置的 Key 只保存在一个版本化 macOS Keychain vault item 中，每个 profile UUID 在 vault 内对应独立逻辑条目；URL、模式、模型名、启用状态、顺序和其它非敏感偏好保存在应用偏好。应用完成启动后、首次翻译前只授权并读取这个 vault；当前进程内的 profile 读取使用内存缓存，翻译或切换配置不得再访问逐 profile Keychain item。旧版独立 item 只在启动迁移阶段读取，迁移使用同一个认证上下文，完整 vault 写入成功后才删除。
+Base URL 模式按显式协议推导请求地址：OpenAI-compatible 追加 `/chat/completions`，OpenAI Responses 追加 `/responses`，Anthropic 追加 `/v1/messages`，Gemini 追加 `/v1beta/models/{model}:streamGenerateContent?alt=sse`；已有 `/v1` 或 `/v1beta` 版本段不会重复追加。完整 URL 模式严格使用填写地址，不追加或删除路径。两种模式都要求 HTTP(S) host，且拒绝 query 和 fragment（Gemini 的 Base URL 生成的 `alt=sse` 除外）。连接测试使用“保存并测试”语义：先持久化当前 profile 的非敏感字段和非空 Key 草稿，再从同一份已保存 profile 与进程内凭据缓存构造测试 endpoint；真实翻译使用相同解析结果。获取模型时，编辑器中的非空 Key 草稿优先于已保存值，草稿为空时才回退。OpenAI-compatible、OpenAI Responses 和 Anthropic 从对应 `/models` 地址读取 `data[].id`；Gemini 从 `/v1beta/models` 读取 `models[].name` 并移除 `models/` 前缀。完整 URL 只有在能安全移除当前协议请求后缀时才推导模型列表，否则显示错误；不兼容的响应形状返回明确错误，不伪造空模型列表。模型列表网络请求由 Rust 核心执行，不创建新的凭据副本。OpenAI 协议使用 `Authorization: Bearer <key>`，Anthropic 使用 `x-api-key` 与 `anthropic-version: 2023-06-01`，Gemini 使用 `x-goog-api-key`；空 Key 允许兼容不要求认证的本地或代理端点。全部配置的 Key 只保存在一个版本化 macOS Keychain vault item 中，每个 profile UUID 在 vault 内对应独立逻辑条目；URL、协议、模式、模型名、启用状态、顺序和其它非敏感偏好保存在应用偏好。应用完成启动后、首次翻译前只授权并读取这个 vault；当前进程内的 profile 读取使用内存缓存，翻译或切换配置不得再访问逐 profile Keychain item。旧版独立 item 只在启动迁移阶段读取，迁移使用同一个认证上下文，完整 vault 写入成功后才删除。
 
 只有启用的配置才出现在结果卡片配置选择器中并可发起请求。默认配置必须属于启用集合：禁用当前默认时选择顺序中的下一个启用配置，没有任何启用配置时默认值为空；在默认值为空时启用配置会使其成为默认；对禁用配置执行“设为默认”会同时启用它。完整性状态与启用状态相互独立。0.1.0 不支持自动 fallback、自定义 Header、厂商专属请求参数、账号系统或 Marla 代理服务。
 
@@ -229,10 +230,11 @@ Base URL 模式会在规范化地址后追加 `/chat/completions`；完整 URL �
 
 ### English
 
-0.1.0 supports multiple named OpenAI-compatible streaming Chat Completions profiles and binds to no default vendor. Each profile includes:
+0.1.0 supports multiple named streaming profiles for general-purpose model protocols and binds to no default vendor. Current protocols are OpenAI-compatible Chat Completions, OpenAI Responses, Anthropic Messages, and Google Gemini Generate Content. Each profile includes:
 
+- an explicit interface protocol;
 - URL mode: Base URL or Complete URL;
-- its corresponding address, for example Base URL `https://example.com/v1` or Complete URL `https://example.com/v1/chat/completions`;
+- its corresponding address, such as the OpenAI Base URL `https://example.com/v1`, the Anthropic Base URL `https://api.anthropic.com`, or a complete request URL;
 - model name, entered manually or selected from models fetched for the current profile;
 - optional API Key;
 - enabled state;
@@ -242,7 +244,7 @@ Base URL 模式会在规范化地址后追加 `/chat/completions`；完整 URL �
 
 The Settings sidebar also includes Translation Languages. Native and secondary language are global non-sensitive preferences, not fields of an API profile.
 
-Base URL mode normalizes the address and appends `/chat/completions`; Complete URL mode uses the entered address exactly without adding or removing path components. Both modes require an HTTP(S) host and reject query or fragment components. Connection Test uses “Save and Test”: it first persists the current profile's non-sensitive fields and non-empty key draft, then constructs the test endpoint from that same saved profile and the in-process credential cache; real translation uses the same resolution result. For model discovery, a non-empty editor key draft takes precedence over the saved value, with an empty draft falling back. Base URL appends `/models`; Complete URL replaces a trailing `/chat/completions` with `/models` and reports an error when the address cannot be derived safely. Rust performs the model-list request without creating a second credential copy. A non-empty API Key produces `Authorization: Bearer <key>`; an empty key supports local or proxy endpoints that require no authentication. All profile keys live in one versioned macOS Keychain vault item, with each profile UUID represented by an independent logical entry inside the vault. URL, mode, model, enabled state, order, and other non-sensitive preferences use application preferences. After the application finishes launching and before first translation, Marla authorizes and reads only this vault. Profile reads use an in-memory cache for the current process, and translation or profile switching may not access legacy per-profile Keychain items. Legacy independent items are read only during startup migration, reuse one authentication context, and are deleted only after the complete vault is written successfully.
+Base URL mode derives the request URL from the explicit protocol: OpenAI-compatible appends `/chat/completions`, OpenAI Responses appends `/responses`, Anthropic appends `/v1/messages`, and Gemini appends `/v1beta/models/{model}:streamGenerateContent?alt=sse`; an existing `/v1` or `/v1beta` version segment is not duplicated. Complete URL mode uses the entered address exactly without adding or removing path components. Both modes require an HTTP(S) host and reject query or fragment components (the `alt=sse` query is generated for Gemini Base URL mode). Connection Test uses “Save and Test”: it first persists the current profile's non-sensitive fields and non-empty key draft, then constructs the test endpoint from that same saved profile and the in-process credential cache; real translation uses the same resolution result. For model discovery, a non-empty editor key draft takes precedence over the saved value, with an empty draft falling back. OpenAI-compatible, OpenAI Responses, and Anthropic read `data[].id` from their derived `/models` endpoint; Gemini reads `models[].name` from `/v1beta/models` and removes the `models/` prefix. Complete URL mode derives a model-list URL only when the current protocol request suffix can be removed safely; otherwise it reports an error. An incompatible response shape is an explicit error rather than a fabricated empty list. Rust performs the model-list request without creating a second credential copy. OpenAI protocols use `Authorization: Bearer <key>`, Anthropic uses `x-api-key` plus `anthropic-version: 2023-06-01`, and Gemini uses `x-goog-api-key`; an empty key supports local or proxy endpoints that require no authentication. All profile keys live in one versioned macOS Keychain vault item, with each profile UUID represented by an independent logical entry inside the vault. URL, protocol, mode, model, enabled state, order, and other non-sensitive preferences use application preferences. After the application finishes launching and before first translation, Marla authorizes and reads only this vault. Profile reads use an in-memory cache for the current process, and translation or profile switching may not access legacy per-profile Keychain items. Legacy independent items are read only during startup migration, reuse one authentication context, and are deleted only after the complete vault is written successfully.
 
 Only enabled profiles appear in the result-card profile picker and may start requests. The default must belong to the enabled set: disabling the current default chooses the next enabled profile in order, no enabled profiles means no default, enabling a profile while no default exists makes it the default, and setting a disabled profile as default also enables it. Completeness and enabled state remain independent. Automatic fallback, custom headers, vendor-specific request options, accounts, and a Marla proxy service are not supported in 0.1.0.
 

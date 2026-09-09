@@ -2,7 +2,7 @@
 
 ## Status
 
-Implemented under TASK-019 and expanded under TASK-022; current expanded-language artifact verification is in progress.
+Implemented under TASK-019 and expanded under TASK-022; the protocol-aware translation boundary is expanded under TASK-044. Automated verification is complete for the current implementation; real provider-account acceptance remains pending.
 
 ## Goal
 
@@ -28,7 +28,7 @@ For screenshot input, Vision first enables automatic language detection and inte
 
 ## Provider boundary
 
-Swift resolves every request to an optional supported source plus one explicit supported target. Translation JSON schema v4 carries both values together with formatted `sourceContent` and an optional GLM screenshot `inPlaceBlocks` collection to Rust; ordinary language-routing requests omit that collection and retain the prior semantics. Provider capabilities select the language and message strategy: generic OpenAI-compatible models receive source/target and optional Markdown instructions in the System Message, while Qwen-MT receives matching `translation_options.source_lang` and `target_lang`, uses `auto` only when Swift has no supported source, and receives source content through its sole User Message.
+Swift resolves every request to an optional supported source plus one explicit supported target. Translation JSON schema v4 carries both values together with formatted `sourceContent` and an optional GLM screenshot `inPlaceBlocks` collection to Rust; ordinary language-routing requests omit that collection and retain the prior semantics. The explicit endpoint protocol selects the native message strategy: OpenAI-compatible Chat Completions uses System plus User messages, OpenAI Responses uses role-bearing `input` items, Anthropic Messages uses a top-level `system` prompt plus user content, and Google Gemini uses `systemInstruction` plus `contents`. Qwen-MT receives matching `translation_options.source_lang` and `target_lang`, uses `auto` only when Swift has no supported source, and receives source content through its sole User Message only on the explicit OpenAI-compatible protocol. No protocol is inferred from a model name. All four protocol adapters normalize their streaming events to the same Marla lifecycle, while model discovery accepts only each protocol's standard response shape.
 
 ## UI
 

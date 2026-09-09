@@ -1,0 +1,79 @@
+<table border="1">
+  <thead>
+    <tr>
+      <th>Property</th>
+      <th>Value</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>Hostname</td>
+      <td>demo.local</td>
+    </tr>
+    <tr>
+      <td>IPv6</td>
+      <td>2001:db8::10</td>
+    </tr>
+    <tr>
+      <td>Command</td>
+      <td>iperf3 -s --port 5201</td>
+    </tr>
+    <tr>
+      <td>Note</td>
+      <td></td>
+    </tr>
+  </tbody>
+</table>
+Synthetic test host. No live credentials.
+<table border="1">
+  <thead>
+    <tr>
+      <th>Property</th>
+      <th>Value</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>Hostname</td>
+      <td>demo.local</td>
+    </tr>
+    <tr>
+      <td>IPv6</td>
+      <td>2001:db8::10</td>
+    </tr>
+    <tr>
+      <td>Command</td>
+      <td>iperf3 -s --port 5201</td>
+    </tr>
+    <tr>
+      <td>Note</td>
+      <td></td>
+    </tr>
+  </tbody>
+</table>
+<table border="1">
+  <thead>
+    <tr>
+      <th>Property</th>
+      <th>Value</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>Hostname</td>
+      <td>demo.local</td>
+    </tr>
+    <tr>
+      <td>IPv6</td>
+      <td>2001:db8::10</td>
+    </tr>
+    <tr>
+      <td>Command</td>
+      <td>iperf3 -s --port 5201</td>
+    </tr>
+    <tr>
+      <td>Note</td>
+      <td></td>
+    </tr>
+  </tbody>
+</table>

@@ -29,6 +29,7 @@ enum CardRecoveryAction: Equatable {
 enum OCRActivity: Equatable {
     case vision
     case glmOCR
+    case ollamaGLMOCR
     case visionFallback
     case inPlaceTranslation
 }
@@ -102,6 +103,7 @@ struct CardSession: Identifiable, Equatable {
         case .recognizing:
             switch ocrActivity {
             case .glmOCR: "正在解析结构"
+            case .ollamaGLMOCR: "正在使用本机 Ollama"
             case .visionFallback: "正在改用 Vision"
             case .inPlaceTranslation: "正在生成原位译文"
             case .vision, nil: "正在识别"
@@ -206,6 +208,13 @@ final class TranslationSessionStore: ObservableObject {
     ) -> UUID {
         cancelCurrentRequest()
         let id = UUID()
+        let ocrActivity: OCRActivity = {
+            switch provider {
+            case .glmOCR: .glmOCR
+            case .ollamaGLMOCR: .ollamaGLMOCR
+            case .vision: .vision
+            }
+        }()
         session = CardSession(
             id: id,
             surface: .screenshot,
@@ -220,7 +229,7 @@ final class TranslationSessionStore: ObservableObject {
             anchor: anchor,
             pointer: pointer,
             isActivating: false,
-            ocrActivity: provider == .glmOCR ? .glmOCR : .vision
+            ocrActivity: ocrActivity
         )
         return id
     }

@@ -59,6 +59,7 @@ enum InPlaceMarkdownProjection {
         guard let document = MarkdownResultDocument.parse(markdown),
               document.blocks.count == 1,
               case let .table(table) = document.blocks[0].kind,
+              table.positionedCells == nil,
               let columnCount = table.rows.first?.count,
               !table.rows.isEmpty,
               table.rows.count <= maximumRows,

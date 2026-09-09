@@ -3,6 +3,7 @@ import Foundation
 public enum OCRProviderKind: String, Codable, CaseIterable, Identifiable, Sendable {
     case vision
     case glmOCR
+    case ollamaGLMOCR
 
     public var id: String { rawValue }
 
@@ -10,6 +11,7 @@ public enum OCRProviderKind: String, Codable, CaseIterable, Identifiable, Sendab
         switch self {
         case .vision: "本机 Vision"
         case .glmOCR: "云端 GLM-OCR"
+        case .ollamaGLMOCR: "本机 Ollama GLM-OCR"
         }
     }
 }
@@ -44,6 +46,7 @@ public struct OCRFFIRequest: Codable, Equatable, Sendable {
     public let imageBase64: String
     public let mimeType: String
     public let apiKey: String
+    public let provider: OCRProviderKind
     public let timeouts: OCRTimeouts
 
     public init(
@@ -51,6 +54,7 @@ public struct OCRFFIRequest: Codable, Equatable, Sendable {
         imageData: Data,
         mimeType: String,
         apiKey: String,
+        provider: OCRProviderKind = .glmOCR,
         timeouts: OCRTimeouts = .default
     ) {
         schemaVersion = 1
@@ -58,6 +62,7 @@ public struct OCRFFIRequest: Codable, Equatable, Sendable {
         imageBase64 = imageData.base64EncodedString()
         self.mimeType = mimeType
         self.apiKey = apiKey
+        self.provider = provider
         self.timeouts = timeouts
     }
 }

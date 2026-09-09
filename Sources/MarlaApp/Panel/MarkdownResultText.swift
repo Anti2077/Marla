@@ -25,8 +25,27 @@ struct MarkdownResultDocument {
             case trailing
         }
 
+        struct PositionedCell: Equatable {
+            let row: Int
+            let column: Int
+            let rowSpan: Int
+            let columnSpan: Int
+            let header: Bool
+            let content: AttributedString
+        }
+
         let alignments: [Alignment]
         let rows: [[AttributedString]]
+        var positionedCells: [PositionedCell]? = nil
+
+        var renderCells: [PositionedCell] {
+            positionedCells ?? rows.enumerated().flatMap { r, row in
+                row.enumerated().map { c, text in
+                    PositionedCell(row: r, column: c, rowSpan: 1, columnSpan: 1,
+                                   header: r == 0, content: text)
+                }
+            }
+        }
     }
 
     let blocks: [Block]
@@ -37,6 +56,7 @@ struct MarkdownResultDocument {
         var blocks: [Block] = []
         var ordinaryLines: [String] = []
         var lineIndex = 0
+        var fence: (marker: Character, length: Int)?
 
         func flushOrdinaryLines() -> Bool {
             defer { ordinaryLines.removeAll(keepingCapacity: true) }
@@ -51,7 +71,27 @@ struct MarkdownResultDocument {
         }
 
         while lineIndex < lines.count {
-            if let candidate = tableCandidate(in: lines, startingAt: lineIndex) {
+            let trimmed = lines[lineIndex].trimmingCharacters(in: .whitespaces)
+            if let marker = trimmed.first, marker == "`" || marker == "~" {
+                let length = trimmed.prefix(while: { $0 == marker }).count
+                if length >= 3 {
+                    if let open = fence {
+                        if open.marker == marker, length >= open.length,
+                           trimmed.dropFirst(length).trimmingCharacters(in: .whitespaces).isEmpty { fence = nil }
+                    } else { fence = (marker, length) }
+                    ordinaryLines.append(lines[lineIndex]); lineIndex += 1; continue
+                }
+            }
+            if fence != nil || lines[lineIndex].hasPrefix("    ") {
+                ordinaryLines.append(lines[lineIndex]); lineIndex += 1; continue
+            }
+            if trimmed.lowercased().hasPrefix("<table"),
+               let end = (lineIndex..<lines.count).first(where: { lines[$0].lowercased().contains("</table>") }),
+               let table = HTMLTableProjection.parse(lines[lineIndex...end].joined(separator: "\n")) {
+                guard flushOrdinaryLines() else { return nil }
+                blocks.append(Block(kind: .table(table), content: AttributedString()))
+                lineIndex = end + 1
+            } else if let candidate = tableCandidate(in: lines, startingAt: lineIndex) {
                 guard flushOrdinaryLines() else { return nil }
                 blocks.append(Block(kind: .table(candidate.table), content: AttributedString()))
                 lineIndex += candidate.lineCount

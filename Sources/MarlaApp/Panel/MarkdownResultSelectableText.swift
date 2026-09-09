@@ -618,56 +618,49 @@ enum MarkdownResultAttributedDocument {
         textTable.setContentWidth(100, type: .percentageValueType)
         let columnPercentages = tableColumnPercentages(markdownTable)
 
-        for (rowIndex, row) in markdownTable.rows.enumerated() {
-            let rowStart = result.length
-            for (columnIndex, content) in row.enumerated() {
-                let cell = NSTextTableBlock(
-                    table: textTable,
-                    startingRow: rowIndex,
-                    rowSpan: 1,
-                    startingColumn: columnIndex,
-                    columnSpan: 1
-                )
-                cell.setWidth(0, type: .absoluteValueType, for: .border)
-                if rowIndex > 0 {
-                    cell.setWidth(0.5, type: .absoluteValueType, for: .border, edge: .minY)
-                    cell.setBorderColor(dividerColor, for: .minY)
-                }
-                if columnIndex > 0 {
-                    cell.setWidth(0.5, type: .absoluteValueType, for: .border, edge: .minX)
-                    cell.setBorderColor(dividerColor, for: .minX)
-                }
-                cell.setWidth(8, type: .absoluteValueType, for: .padding)
-                cell.setContentWidth(columnPercentages[columnIndex], type: .percentageValueType)
-                cell.verticalAlignment = .middleAlignment
-
-                let paragraph = NSMutableParagraphStyle()
-                paragraph.textBlocks = [cell]
-                paragraph.alignment = .center
-                paragraph.lineBreakMode = .byWordWrapping
-                paragraph.lineSpacing = 1
-                let rendered = NSMutableAttributedString(attributedString: inline(
-                    content,
-                    baseFont: rowIndex == 0
-                        ? NSFont.systemFont(ofSize: 14, weight: .semibold)
-                        : NSFont.systemFont(ofSize: 14),
-                    forceBold: rowIndex == 0
-                ))
-                if rendered.length == 0 { rendered.append(NSAttributedString(string: " ")) }
-                rendered.addAttribute(
-                    .paragraphStyle,
-                    value: paragraph,
-                    range: NSRange(location: 0, length: rendered.length)
-                )
-                rendered.append(NSAttributedString(string: "\n"))
-                result.append(rendered)
+        for positioned in markdownTable.renderCells {
+            let rowIndex = positioned.row
+            let columnIndex = positioned.column
+            let cellStart = result.length
+            let cell = NSTextTableBlock(
+                table: textTable,
+                startingRow: rowIndex,
+                rowSpan: positioned.rowSpan,
+                startingColumn: columnIndex,
+                columnSpan: positioned.columnSpan
+            )
+            cell.setWidth(0, type: .absoluteValueType, for: .border)
+            if rowIndex > 0 {
+                cell.setWidth(0.5, type: .absoluteValueType, for: .border, edge: .minY)
+                cell.setBorderColor(dividerColor, for: .minY)
             }
-            if rowIndex == 0 {
-                result.addAttribute(
-                    .marlaTableHeaderBackground,
-                    value: tableHeaderBackground,
-                    range: NSRange(location: rowStart, length: result.length - rowStart)
-                )
+            if columnIndex > 0 {
+                cell.setWidth(0.5, type: .absoluteValueType, for: .border, edge: .minX)
+                cell.setBorderColor(dividerColor, for: .minX)
+            }
+            cell.setWidth(8, type: .absoluteValueType, for: .padding)
+            let percentage = columnPercentages[columnIndex..<(columnIndex + positioned.columnSpan)].reduce(0, +)
+            cell.setContentWidth(percentage, type: .percentageValueType)
+            cell.verticalAlignment = .middleAlignment
+
+            let paragraph = NSMutableParagraphStyle()
+            paragraph.textBlocks = [cell]
+            paragraph.alignment = .center
+            paragraph.lineBreakMode = .byWordWrapping
+            paragraph.lineSpacing = 1
+            let rendered = NSMutableAttributedString(attributedString: inline(
+                positioned.content,
+                baseFont: NSFont.systemFont(ofSize: 14, weight: positioned.header ? .semibold : .regular),
+                forceBold: positioned.header
+            ))
+            if rendered.length == 0 { rendered.append(NSAttributedString(string: " ")) }
+            rendered.addAttribute(.paragraphStyle, value: paragraph, range: NSRange(location: 0, length: rendered.length))
+            // The final newline must also belong to the cell, including empty cells.
+            rendered.append(NSAttributedString(string: "\n", attributes: [.paragraphStyle: paragraph]))
+            result.append(rendered)
+            if positioned.header {
+                result.addAttribute(.marlaTableHeaderBackground, value: tableHeaderBackground,
+                                    range: NSRange(location: cellStart, length: result.length - cellStart))
             }
         }
         result.addAttributes(

@@ -3,12 +3,10 @@ import Combine
 import Foundation
 import MarlaCore
 import SwiftUI
-
 final class MarlaPanel: NSPanel {
     override var canBecomeKey: Bool { true }
     override var canBecomeMain: Bool { true }
 }
-
 @MainActor
 final class ResultPanelHorizontalResizeHandleView: NSView {
     let edge: ResultPanelHorizontalResizeEdge
@@ -17,12 +15,10 @@ final class ResultPanelHorizontalResizeHandleView: NSView {
     private var isPointerInside = false
     private var sourceApplicationBeforeHover: NSRunningApplication?
     private var madePanelKeyForHover = false
-
     init(edge: ResultPanelHorizontalResizeEdge) {
         self.edge = edge
         super.init(frame: .zero)
     }
-
     @available(*, unavailable)
     required init?(coder: NSCoder) {
         fatalError("init(coder:) has not been implemented")

@@ -6,6 +6,7 @@ use std::sync::Arc;
 use std::time::Duration;
 
 const GLM_OCR_URL: &str = "https://open.bigmodel.cn/api/paas/v4/layout_parsing";
+const OLLAMA_GLM_OCR_URL: &str = "http://127.0.0.1:11434/api/generate";
 
 #[derive(Clone, Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -16,8 +17,14 @@ pub(crate) struct OCRRequest {
     pub(crate) image_base64: String,
     pub(crate) mime_type: String,
     pub(crate) api_key: String,
+    #[serde(default = "default_provider")]
+    pub(crate) provider: String,
     #[serde(default)]
     pub(crate) timeouts: OCRTimeouts,
+}
+
+fn default_provider() -> String {
+    "glmOCR".to_owned()
 }
 
 #[derive(Clone, Debug, Deserialize)]
@@ -117,7 +124,21 @@ pub(crate) async fn run(
     callback: MarlaTranslationEventCallback,
     context_value: usize,
 ) {
-    run_at_url(request, cancellation, callback, context_value, GLM_OCR_URL).await;
+    let is_ollama = request.provider == "ollamaGLMOCR";
+    let endpoint = if is_ollama {
+        OLLAMA_GLM_OCR_URL
+    } else {
+        GLM_OCR_URL
+    };
+    run_at_url(
+        request,
+        cancellation,
+        callback,
+        context_value,
+        endpoint,
+        is_ollama,
+    )
+    .await;
 }
 
 async fn run_at_url(
@@ -126,13 +147,14 @@ async fn run_at_url(
     callback: MarlaTranslationEventCallback,
     context_value: usize,
     endpoint_url: &str,
+    is_ollama: bool,
 ) {
     let context = || context_value as *mut std::ffi::c_void;
     let request_id = request.request_id.clone();
     if request.schema_version != 1
         || request_id.is_empty()
         || request.image_base64.is_empty()
-        || request.api_key.trim().is_empty()
+        || (!is_ollama && request.api_key.trim().is_empty())
         || !matches!(request.mime_type.as_str(), "image/png" | "image/jpeg")
     {
         emit_failed(
@@ -140,7 +162,11 @@ async fn run_at_url(
             context(),
             &request_id,
             "invalid_configuration",
-            "GLM-OCR 请求配置无效。",
+            if is_ollama {
+                "本机 Ollama GLM-OCR 请求配置无效。"
+            } else {
+                "GLM-OCR 请求配置无效。"
+            },
             false,
         );
         return;
@@ -177,18 +203,30 @@ async fn run_at_url(
             return;
         }
     };
-    let body = json!({
-        "model": "glm-ocr",
-        "file": format!("data:{};base64,{}", request.mime_type, request.image_base64),
-        "return_crop_images": false,
-        "need_layout_visualization": false,
-        "request_id": request_id,
-    });
-    let builder = client
+    let body = if is_ollama {
+        json!({
+            "model": "glm-ocr",
+            "prompt": "Read all visible text in reading order. Return only GitHub-Flavored Markdown. Use pipe tables for every table. Use headings, lists, and fenced code blocks when visible. Do not add commentary or HTML tags.",
+            "images": [request.image_base64],
+            "stream": false,
+            "options": {"temperature": 0}
+        })
+    } else {
+        json!({
+            "model": "glm-ocr",
+            "file": format!("data:{};base64,{}", request.mime_type, request.image_base64),
+            "return_crop_images": false,
+            "need_layout_visualization": false,
+            "request_id": request_id,
+        })
+    };
+    let mut builder = client
         .post(endpoint_url)
-        .header(AUTHORIZATION, request.api_key.trim())
         .header(CONTENT_TYPE, "application/json")
         .json(&body);
+    if !is_ollama {
+        builder = builder.header(AUTHORIZATION, request.api_key.trim());
+    }
     let response = tokio::select! {
         _ = cancellation.wait() => {
             emit_cancelled(callback, context(), &request_id);
@@ -200,11 +238,25 @@ async fn run_at_url(
         ) => match result {
             Ok(Ok(response)) => response,
             Ok(Err(_)) => {
-                emit_failed(callback, context(), &request_id, "network", "无法连接 GLM-OCR。", true);
+                emit_failed(
+                    callback,
+                    context(),
+                    &request_id,
+                    "network",
+                    if is_ollama { "无法连接本机 Ollama GLM-OCR。" } else { "无法连接 GLM-OCR。" },
+                    true,
+                );
                 return;
             }
             Err(_) => {
-                emit_failed(callback, context(), &request_id, "timeout", "GLM-OCR 结构识别超时。", true);
+                emit_failed(
+                    callback,
+                    context(),
+                    &request_id,
+                    "timeout",
+                    if is_ollama { "本机 Ollama GLM-OCR 识别超时。" } else { "GLM-OCR 结构识别超时。" },
+                    true,
+                );
                 return;
             }
         }
@@ -215,7 +267,9 @@ async fn run_at_url(
         return;
     }
     let status = response.status();
-    if status == reqwest::StatusCode::UNAUTHORIZED || status == reqwest::StatusCode::FORBIDDEN {
+    if !is_ollama
+        && (status == reqwest::StatusCode::UNAUTHORIZED || status == reqwest::StatusCode::FORBIDDEN)
+    {
         emit_failed(
             callback,
             context(),
@@ -226,7 +280,7 @@ async fn run_at_url(
         );
         return;
     }
-    if status == reqwest::StatusCode::TOO_MANY_REQUESTS {
+    if !is_ollama && status == reqwest::StatusCode::TOO_MANY_REQUESTS {
         emit_failed(
             callback,
             context(),
@@ -243,7 +297,11 @@ async fn run_at_url(
             context(),
             &request_id,
             "provider",
-            "GLM-OCR 返回了错误。",
+            if is_ollama {
+                "本机 Ollama GLM-OCR 返回了错误。"
+            } else {
+                "GLM-OCR 返回了错误。"
+            },
             true,
         );
         return;
@@ -260,22 +318,40 @@ async fn run_at_url(
         ) => match result {
             Ok(Ok(value)) => value,
             Ok(Err(_)) => {
-                emit_failed(callback, context(), &request_id, "invalid_response", "GLM-OCR 响应格式无效。", true);
+                emit_failed(
+                    callback,
+                    context(),
+                    &request_id,
+                    "invalid_response",
+                    if is_ollama { "本机 Ollama GLM-OCR 响应格式无效。" } else { "GLM-OCR 响应格式无效。" },
+                    true,
+                );
                 return;
             }
             Err(_) => {
-                emit_failed(callback, context(), &request_id, "timeout", "读取 GLM-OCR 响应超时。", true);
+                emit_failed(
+                    callback,
+                    context(),
+                    &request_id,
+                    "timeout",
+                    if is_ollama { "读取本机 Ollama GLM-OCR 响应超时。" } else { "读取 GLM-OCR 响应超时。" },
+                    true,
+                );
                 return;
             }
         }
     };
-    let Some(result) = normalize_response(&decoded) else {
+    let Some(result) = normalize_response(&decoded, is_ollama) else {
         emit_failed(
             callback,
             context(),
             &request_id,
             "invalid_response",
-            "GLM-OCR 没有返回可安全使用的结构化文字。",
+            if is_ollama {
+                "本机 Ollama GLM-OCR 没有返回可安全解析的文字或表格。"
+            } else {
+                "GLM-OCR 没有返回可安全使用的结构化文字。"
+            },
             true,
         );
         return;
@@ -295,7 +371,32 @@ async fn run_at_url(
     );
 }
 
-fn normalize_response(value: &Value) -> Option<OCRResult> {
+fn normalize_response(value: &Value, is_ollama: bool) -> Option<OCRResult> {
+    if is_ollama {
+        let text = find_key(value, "response")?.as_str()?.trim();
+        if text.is_empty() {
+            return None;
+        }
+        let normalized_text = crate::ocr_table::normalize_document(text)?;
+        return Some(OCRResult {
+            provider: "ollamaGLMOCR",
+            document: OCRDocument {
+                blocks: vec![ContentBlock {
+                    id: "page-0001-block-0000".to_owned(),
+                    kind: "paragraph",
+                    source_text: normalized_text.clone(),
+                    bounds: None,
+                    reading_order: 0,
+                    confidence: None,
+                }],
+                detected_language: None,
+            },
+            content: TranslationContent {
+                format: "semanticMarkdown",
+                text: normalized_text,
+            },
+        });
+    }
     let layout = find_key(value, "layout_details")?;
     let mut blocks = Vec::new();
     collect_blocks(layout, None, &mut blocks);
@@ -496,72 +597,9 @@ fn collapse_inline_whitespace(text: &str) -> String {
 }
 
 fn html_table_to_gfm(html: &str) -> Option<String> {
-    if !html.trim_start().to_ascii_lowercase().starts_with("<table") {
-        return None;
-    }
-    let rows = extract_tag_contents(html, "tr")
-        .into_iter()
-        .map(|row| {
-            let mut cells = extract_tag_contents(row, "th");
-            if cells.is_empty() {
-                cells = extract_tag_contents(row, "td");
-            }
-            cells
-                .into_iter()
-                .map(|cell| escape_gfm_cell(&strip_tags(cell)))
-                .collect::<Vec<_>>()
-        })
-        .filter(|row| !row.is_empty())
-        .collect::<Vec<_>>();
-    let width = rows.first()?.len();
-    if width == 0 || rows.iter().any(|row| row.len() != width) {
-        return None;
-    }
-    let mut output = vec![format!("| {} |", rows[0].join(" | "))];
-    output.push(format!("| {} |", vec!["---"; width].join(" | ")));
-    for row in rows.iter().skip(1) {
-        output.push(format!("| {} |", row.join(" | ")));
-    }
-    Some(output.join("\n"))
-}
-
-fn extract_tag_contents<'a>(html: &'a str, tag: &str) -> Vec<&'a str> {
-    let lowercase = html.to_ascii_lowercase();
-    let mut result = Vec::new();
-    let mut cursor = 0;
-    let closing = format!("</{tag}>");
-    while let Some(relative_start) = lowercase[cursor..].find(&format!("<{tag}")) {
-        let start = cursor + relative_start;
-        let Some(open_end) = lowercase[start..].find('>') else {
-            break;
-        };
-        let content_start = start + open_end + 1;
-        let Some(relative_end) = lowercase[content_start..].find(&closing) else {
-            break;
-        };
-        let end = content_start + relative_end;
-        result.push(&html[content_start..end]);
-        cursor = end + closing.len();
-    }
-    result
-}
-
-fn strip_tags(value: &str) -> String {
-    let mut output = String::new();
-    let mut inside_tag = false;
-    for character in value.chars() {
-        match character {
-            '<' => inside_tag = true,
-            '>' => inside_tag = false,
-            _ if !inside_tag => output.push(character),
-            _ => {}
-        }
-    }
-    collapse_inline_whitespace(&output)
-}
-
-fn escape_gfm_cell(value: &str) -> String {
-    value.replace('|', "\\|")
+    let normalized = crate::ocr_table::normalize_table(html)?;
+    // Cloud layout's table consumers still require a rectangular GFM projection.
+    (!normalized.contains("<table>")).then_some(normalized)
 }
 
 fn emit(
@@ -643,7 +681,7 @@ mod tests {
                 }]
             }
         });
-        let result = normalize_response(&response).expect("normalized response");
+        let result = normalize_response(&response, false).expect("normalized response");
         assert_eq!(result.document.blocks[0].kind, "title");
         assert_eq!(result.document.blocks[1].bounds.expect("bounds").width, 0.8);
         assert_eq!(result.content.text, "# Title\n\nBody");
@@ -663,7 +701,7 @@ mod tests {
                 }]
             }
         });
-        let result = normalize_response(&response).expect("normalized response");
+        let result = normalize_response(&response, false).expect("normalized response");
         assert!(
             result
                 .document
@@ -686,7 +724,37 @@ mod tests {
 
     #[test]
     fn rejects_a_response_without_canonical_layout_text() {
-        assert!(normalize_response(&json!({"md_results": "# untrusted"})).is_none());
+        assert!(normalize_response(&json!({"md_results": "# untrusted"}), false).is_none());
+    }
+
+    #[test]
+    fn normalizes_ollama_html_table_inside_surrounding_text() {
+        let result = normalize_response(
+            &json!({
+                "response": "Intro\n<table class=\"table table-bordered\"><thead><tr><th>Path</th><th>Boundary</th></tr></thead><tbody><tr><td>Vision OCR</td><td>Local</td></tr></tbody></table>\nOutro"
+            }),
+            true,
+        )
+        .expect("normalized Ollama response");
+        assert_eq!(
+            result.content.text,
+            "Intro\n\n| Path | Boundary |\n| --- | --- |\n| Vision OCR | Local |\n\n\nOutro"
+        );
+        assert_eq!(result.document.blocks[0].source_text, result.content.text);
+    }
+
+    #[test]
+    fn normalizes_ollama_response_without_inventing_layout_bounds() {
+        let result = normalize_response(
+            &json!({"model": "glm-ocr", "response": "# Hello\n\n| A | B |"}),
+            true,
+        )
+        .expect("normalized Ollama response");
+        assert_eq!(result.provider, "ollamaGLMOCR");
+        assert_eq!(result.content.format, "semanticMarkdown");
+        assert_eq!(result.document.blocks.len(), 1);
+        assert!(result.document.blocks[0].bounds.is_none());
+        assert_eq!(result.content.text, "# Hello\n\n| A | B |");
     }
 
     #[tokio::test]
@@ -749,12 +817,14 @@ mod tests {
                 image_base64: "aW1hZ2U=".to_owned(),
                 mime_type: "image/png".to_owned(),
                 api_key: "raw-secret".to_owned(),
+                provider: "glmOCR".to_owned(),
                 timeouts: OCRTimeouts::default(),
             },
             Arc::new(CancellationSignal::default()),
             collect_event,
             context as usize,
             &format!("http://{address}/layout_parsing"),
+            false,
         )
         .await;
         server.join().expect("server completed");

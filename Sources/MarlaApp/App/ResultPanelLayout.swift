@@ -92,7 +92,7 @@ enum ResultCardLayout {
     ) -> CGFloat {
         if session.translation.isEmpty,
            session.state == .recognizing,
-           session.ocrActivity == .glmOCR {
+           (session.ocrActivity == .glmOCR || session.ocrActivity == .ollamaGLMOCR) {
             return glmOCRRecognitionContentHeight
         }
         guard let markdownProjection, markdownProjection.matches(session) else {

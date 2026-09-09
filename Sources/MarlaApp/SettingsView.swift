@@ -493,7 +493,7 @@ struct SettingsView: View {
             subtitle: "截图文字识别的当前状态"
         ) {
             OCRSettingsSection(settings: settings)
-            Text("GLM-OCR 的接口与模型由 Marla 固定管理；这里不需要填写 URL 或额外质量参数。")
+            Text("云端 GLM-OCR 与本机 Ollama GLM-OCR 均由 Marla 固定管理接口；本机模式不需要 API Key。")
                 .font(AppFont.caption)
                 .foregroundStyle(DesignTokens.secondaryText)
         }

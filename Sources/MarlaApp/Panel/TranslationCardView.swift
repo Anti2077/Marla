@@ -14,7 +14,7 @@ enum TranslationCardActionVisibility {
         hasAction
             && session.surface == .screenshot
             && session.state == .recognizing
-            && session.ocrActivity == .glmOCR
+            && (session.ocrActivity == .glmOCR || session.ocrActivity == .ollamaGLMOCR)
     }
 }
 
@@ -276,6 +276,29 @@ struct TranslationCardView: View {
                                 .buttonStyle(.bordered)
                                 .controlSize(.small)
                                 .help("停止等待 GLM-OCR，使用本机 Vision 识别这次截图")
+                                .accessibilityLabel("快速降级至 Vision")
+                                .accessibilityHint("复用当前截图并改用本机 Vision 识别")
+                            }
+                        }
+                    case .ollamaGLMOCR:
+                        VStack(alignment: .leading, spacing: DesignTokens.spaceXS) {
+                            StateLine(symbol: "desktopcomputer", title: "正在使用本机 Ollama", tint: DesignTokens.accent)
+                            Text("GLM-OCR 正在本机识别文字与 Markdown 结构…")
+                                .font(AppFont.caption)
+                                .foregroundStyle(DesignTokens.secondaryText)
+                            if let onVisionFallback,
+                               TranslationCardActionVisibility.showsVisionFallback(
+                                   for: session,
+                                   hasAction: true
+                               ) {
+                                Button {
+                                    onVisionFallback(session.id)
+                                } label: {
+                                    Label("快速降级至 Vision", systemImage: "arrow.triangle.2.circlepath")
+                                }
+                                .buttonStyle(.bordered)
+                                .controlSize(.small)
+                                .help("停止等待本机 Ollama，使用本机 Vision 识别这次截图")
                                 .accessibilityLabel("快速降级至 Vision")
                                 .accessibilityHint("复用当前截图并改用本机 Vision 识别")
                             }

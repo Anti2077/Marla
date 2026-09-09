@@ -14,6 +14,7 @@ use tokio::task::JoinHandle;
 use tokio::time::Instant;
 
 mod glm_ocr;
+mod ocr_table;
 
 pub const API_VERSION: u32 = 4;
 
@@ -817,7 +818,7 @@ fn system_prompt(request: &TranslationRequest) -> String {
     } else {
         match request.source_content.format {
         TranslationContentFormat::PlainText => String::new(),
-        TranslationContentFormat::SemanticMarkdown => " The source is semantic Markdown. Output only the translated Markdown without a preamble or an extra enclosing code fence. Preserve heading hierarchy, lists, blockquotes, tables, fenced code blocks, link destinations, code identifiers, terminal arguments, variables, and template placeholders whenever practical. Natural target-language word order may move emphasis, links, sentences, or paragraph boundaries; do not force source nodes into one-to-one positions.".to_string(),
+        TranslationContentFormat::SemanticMarkdown => " The source is semantic Markdown. Output only the translated Markdown without a preamble or an extra enclosing code fence. Preserve heading hierarchy, lists, blockquotes, tables, fenced code blocks, link destinations, code identifiers, terminal arguments, variables, and template placeholders whenever practical. For embedded HTML tables, translate visible text only; preserve tag names, row and cell order, and rowspan/colspan attribute values. Natural target-language word order may move emphasis, links, sentences, or paragraph boundaries; do not force source nodes into one-to-one positions.".to_string(),
         }
     };
     format!(

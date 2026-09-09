@@ -62,7 +62,7 @@ extension MarlaApplicationModel {
             pointer: pointer,
             provider: provider
         )
-        if provider == .glmOCR, intent == .nearby {
+        if provider != .vision, intent == .nearby {
             activeScreenshotVisionFallback = (capture: capture, requestID: requestID)
         }
         if intent.usesInPlaceOverlay {
@@ -102,9 +102,14 @@ extension MarlaApplicationModel {
 
         let task = Task { @MainActor [weak self] in
             guard let self else { return }
-            if provider == .glmOCR, let apiKey = settings.glmOCRAPIKey {
+            if provider == .glmOCR || provider == .ollamaGLMOCR {
                 do {
-                    let result = try await glmOCR.recognize(capture.image, apiKey: apiKey, requestID: requestID)
+                    let result = try await glmOCR.recognize(
+                        capture.image,
+                        apiKey: provider == .glmOCR ? (settings.glmOCRAPIKey ?? "") : "",
+                        provider: provider,
+                        requestID: requestID
+                    )
                     try Task.checkCancellation()
                     guard intent.usesInPlaceOverlay else {
                         activeScreenshotVisionFallback = nil
@@ -176,7 +181,7 @@ extension MarlaApplicationModel {
             await recognizeScreenshotWithVision(
                 capture: capture,
                 requestID: requestID,
-                glmFailureMessage: provider == .glmOCR
+                glmFailureMessage: provider != .vision
             )
         }
         sessionStore.attachOCRTask(task, for: requestID)
@@ -220,7 +225,7 @@ extension MarlaApplicationModel {
               session.id == requestID,
               session.surface == .screenshot,
               session.state == .recognizing,
-              session.ocrActivity == .glmOCR
+              (session.ocrActivity == .glmOCR || session.ocrActivity == .ollamaGLMOCR)
         else { return }
 
         activeScreenshotVisionFallback = nil

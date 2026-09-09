@@ -1,0 +1,2 @@
+<table class="table table-bordered"><thead><tr><th>Feature</th><th>Starter</th><th>Team</th><th>Enterprise</th></tr></thead><tbody><tr><td>Users</td><td>1</td><td>10</td><td>Unlimited</td></tr><tr><td>Export CSV</td><td>Yes</td><td>Yes</td><td>Yes</td></tr><tr><td>Audit log</td><td>No</td><td>30 days</td><td>365 days</td></tr><tr><td>Support</td><td>Email</td><td>Chat Email</td><td>Dedicated</td></tr></tbody></table>
+Prices exclude tax. Trial: 14 days.

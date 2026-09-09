@@ -17,7 +17,12 @@ final class GLMOCRService {
     private var handle: RustOCRClient.Handle?
     private var continuation: CheckedContinuation<OCRResult, any Error>?
 
-    func recognize(_ image: CGImage, apiKey: String, requestID: UUID) async throws -> OCRResult {
+    func recognize(
+        _ image: CGImage,
+        apiKey: String = "",
+        provider: OCRProviderKind = .glmOCR,
+        requestID: UUID
+    ) async throws -> OCRResult {
         cancelActiveRequest()
         try Task.checkCancellation()
         let encoded = try CloudOCRImageEncoder.encode(image)
@@ -33,7 +38,8 @@ final class GLMOCRService {
                             requestID: requestID,
                             imageData: encoded.data,
                             mimeType: encoded.mimeType,
-                            apiKey: apiKey
+                            apiKey: apiKey,
+                            provider: provider
                         )
                     ) { [weak self] event in
                         Task { @MainActor [weak self] in

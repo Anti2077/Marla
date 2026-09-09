@@ -42,6 +42,10 @@ struct OCRSettingsSection: View {
             SettingsSection(title: "云端 GLM-OCR", systemImage: "doc.richtext") {
                 glmDetails
             }
+
+            SettingsSection(title: "本机 Ollama GLM-OCR", systemImage: "desktopcomputer") {
+                ollamaDetails
+            }
         }
         .animation(
             MarlaMotion.animation(
@@ -172,6 +176,29 @@ struct OCRSettingsSection: View {
             saveMessage = "已保存"
         } catch {
             saveMessage = "保存失败"
+        }
+    }
+
+    private var ollamaDetails: some View {
+        Group {
+            StatusLine(
+                icon: displayedProvider == .ollamaGLMOCR ? "checkmark.circle.fill" : "circle",
+                tint: displayedProvider == .ollamaGLMOCR ? DesignTokens.success : DesignTokens.secondaryText,
+                title: displayedProvider == .ollamaGLMOCR ? "当前使用本机 Ollama" : "可选本机服务",
+                detail: "通过本机 Ollama 调用已安装的 glm-ocr 模型；Marla 不上传截图到云端。"
+            )
+            StatusLine(
+                icon: "network",
+                tint: DesignTokens.accent,
+                title: "固定本机地址",
+                detail: "使用 http://127.0.0.1:11434/api/generate 和 glm-ocr 模型，无需 API Key。"
+            )
+            StatusLine(
+                icon: "text.alignleft",
+                tint: DesignTokens.secondaryText,
+                title: "普通截图翻译",
+                detail: "本机响应作为语义 Markdown 进入附近结果卡；原位翻译仍使用云端 GLM-OCR 的坐标能力。"
+            )
         }
     }
 }

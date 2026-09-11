@@ -8,7 +8,7 @@ Release target: None. A version is assigned only when the project owner explicit
 
 Overall state: In Progress — unversioned product incubation; no active release contract
 
-Active task (current branch): [`TASK-045`](../tasks/TASK-045-local-ollama-glm-ocr.md) — 本机 Ollama GLM-OCR 适配。当前工作树与分支为 `main`，TASK-045 基于 `main@4598dda` 的实现和文档已由 `ee8d526`、`7955f2d` 进入本地 `main`；`origin/main` 未改变；TASK-041 保留在独立分支等待所有者真实体验验收。
+Active task (current branch): [`TASK-046`](../tasks/TASK-046-release-homepage-links.md) — 发布前官网入口与 GitHub README。当前工作树位于 `Anti2077/task-046-release-homepage-links`，基于本地 `main@8c835ef`；首页入口、README 内容和当前支持的 7 种语言版本正在完善，但 README 指向已部署介绍主页的实际 URL 尚未提供，因此暂不收束。TASK-045 的本机 Ollama GLM-OCR owner acceptance 保留在其专用分支和既有记录中。
 
 当前工作树为 `main`；TASK-043 的实现提交为 `6be2c00`，已由 `58cc129` 合入本地 `main`，当前 `main` 尚未推送到 `origin/main`。TASK-043 的代码、回归测试和功能文档已完成，最终授权检查通过 31 项 Rust 与 240 项 Swift，固定 Release App 已重建。离线 fixture 覆盖 GLM 等待态与用户主动 Vision 降级态的浅色、深色、380pt 窄宽和 Reduce Motion；首轮发现的 224pt 底部操作行裁切已通过状态专用高度测量修复，五维复审为 8/8/8/9/7。真实 GLM 请求取消、按钮点击、同一截图复用和无重复上传仍由所有者按 RV-006 现场验收。TASK-044 的四协议适配、自动化回归、完整宿主检查和固定 Release 构建已完成，并已由 `90db067` 与 `4598dda` 进入本地 `main`；真实四类 Provider 账号验收与独立 UI 五维截图复审仍待所有者完成。
 

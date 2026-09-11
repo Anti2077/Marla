@@ -117,11 +117,35 @@ a:focus-visible {
   transform-origin: left;
 }
 
+.nav-actions {
+  display: flex;
+  align-items: center;
+  justify-self: end;
+  gap: 6px;
+}
+
+.nav-icon-link {
+  display: inline-flex;
+  width: 44px;
+  height: 44px;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid transparent;
+  border-radius: 50%;
+  color: var(--indigo);
+  transition: background-color 180ms ease, border-color 180ms ease, transform 180ms ease;
+}
+
+.nav-icon-link:hover {
+  border-color: rgba(57, 53, 84, 0.12);
+  background: rgba(57, 53, 84, 0.08);
+  transform: translateY(-1px);
+}
+
 .nav-cta {
   display: inline-flex;
   min-height: 44px;
   align-items: center;
-  justify-self: end;
   gap: 8px;
   border: 0;
   background: transparent;
@@ -1048,10 +1072,6 @@ a:focus-visible {
   }
 
   .nav-cta {
-    font-size: 13px;
-  }
-
-  .nav-cta svg {
     display: none;
   }
 

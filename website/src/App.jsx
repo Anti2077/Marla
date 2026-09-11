@@ -7,6 +7,8 @@ import {
   ArrowLeft,
   ArrowRight,
   Command,
+  Download,
+  Github,
   Languages,
   Pause,
   Play,
@@ -18,6 +20,10 @@ import {
 import logoUrl from "../../Resources/Brand/PaperLantern/logo.svg";
 
 gsap.registerPlugin(useGSAP, ScrollTrigger);
+
+const GITHUB_PROFILE_URL = "https://github.com/Anti2077";
+const REPOSITORY_URL = `${GITHUB_PROFILE_URL}/Marla`;
+const RELEASES_URL = `${REPOSITORY_URL}/releases/latest`;
 
 const capabilities = [
   "划词翻译",
@@ -428,10 +434,32 @@ function App() {
           <a href="#principles">原则</a>
           <a href="#privacy">隐私</a>
         </nav>
-        <button className="nav-cta" type="button" onClick={() => scrollToId("experience")}>
-          看它如何工作
-          <ArrowDown aria-hidden="true" size={17} />
-        </button>
+        <div className="nav-actions">
+          <a
+            className="nav-icon-link"
+            href={RELEASES_URL}
+            target="_blank"
+            rel="noreferrer"
+            aria-label="下载 Marla（GitHub Releases）"
+            title="下载 Marla"
+          >
+            <Download aria-hidden="true" size={19} />
+          </a>
+          <a
+            className="nav-icon-link"
+            href={GITHUB_PROFILE_URL}
+            target="_blank"
+            rel="noreferrer"
+            aria-label="打开 Anti2077 的 GitHub 主页"
+            title="打开 GitHub 主页"
+          >
+            <Github aria-hidden="true" size={19} />
+          </a>
+          <button className="nav-cta" type="button" onClick={() => scrollToId("experience")}>
+            看它如何工作
+            <ArrowDown aria-hidden="true" size={17} />
+          </button>
+        </div>
       </header>
 
       <section className="hero" id="top">

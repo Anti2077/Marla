@@ -6,10 +6,26 @@
   <p>在原文旁点亮翻译，读完即走，不把你带离当前工作。</p>
 
   <p>
+    <a href="README.md">简体中文</a> ·
+    <a href="README.en.md">English</a> ·
+    <a href="README.ja.md">日本語</a> ·
+    <a href="README.fr.md">Français</a> ·
+    <a href="README.es.md">Español</a> ·
+    <a href="README.de.md">Deutsch</a> ·
+    <a href="README.ko.md">한국어</a>
+  </p>
+
+  <p>
     <img src="https://img.shields.io/badge/status-incubation-C86652?style=flat-square" alt="Status: incubation">
     <img src="https://img.shields.io/badge/platform-macOS%2014%2B-393554?style=flat-square&amp;logo=apple&amp;logoColor=white" alt="Platform: macOS 14 or later">
     <img src="https://img.shields.io/badge/Swift-6.2-C86652?style=flat-square&amp;logo=swift&amp;logoColor=white" alt="Swift 6.2">
     <img src="https://img.shields.io/badge/Rust-1.85-E6B86A?style=flat-square&amp;logo=rust&amp;logoColor=393554" alt="Rust 1.85">
+  </p>
+
+  <p>
+    <a href="website/">Marla 介绍主页</a> ·
+    <a href="https://github.com/Anti2077/Marla/releases/latest">下载（GitHub Releases）</a> ·
+    <a href="https://github.com/Anti2077/Marla">GitHub</a>
   </p>
 
   <p>
@@ -26,6 +42,10 @@
 </p>
 
 <p align="center"><sub>Real native macOS app capture. GitHub opens the MP4 in its media viewer.</sub></p>
+
+## Start here
+
+Marla 的介绍主页在 [`website/`](website/)；准备下载时前往 [GitHub Releases](https://github.com/Anti2077/Marla/releases/latest)，源代码和开发记录在 [GitHub 仓库](https://github.com/Anti2077/Marla)。当前仓库仍处于发布前准备阶段，Release 页面可能尚未有可下载资产。
 
 ## Why Marla
 
@@ -69,15 +89,32 @@ Marla is a Swift 6 macOS app with SwiftUI for durable surfaces and AppKit for me
 
 Marla does not claim to be fully offline. The exact provider, OCR, and data boundaries are intentionally visible rather than collapsed into a single privacy slogan.
 
+## Supported languages
+
+Marla's current product language set contains seven options:
+
+| Language | Code |
+| --- | --- |
+| 简体中文 / Simplified Chinese | `zh-Hans` |
+| English | `en` |
+| 日本語 / Japanese | `ja` |
+| Français / French | `fr` |
+| Español / Spanish | `es` |
+| Deutsch / German | `de` |
+| 한국어 / Korean | `ko` |
+
+Traditional Chinese is normalized to the Simplified Chinese product option and is not a separate preference. Provider documentation may list more languages; Marla does not claim those languages as product-supported until detection, routing, UI, and provider mapping are verified together.
+
 ## Project status
 
-Marla is in **Incubation / Unreleased**. The native application and its core workflows are implemented, but public release preparation has not started: there is no public download, assigned product version, notarized package, updater, or selected public license yet.
+Marla remains in **Incubation / Unreleased** while its public entry points are being prepared. The native application and its core workflows are implemented, but no public Release, assigned product version, notarized package, updater, or selected public license has been declared yet.
 
 - [Verified development status](docs/development/STATUS.md)
 - [Product definition](docs/product/PRODUCT.md)
 - [Architecture](docs/architecture/ARCHITECTURE.md)
 - [Paper Lantern brand](docs/product/BRAND.md)
-- [Website prototype](website/README.md)
+- [Marla introduction homepage](website/)
+- [Website implementation notes](website/README.md)
 
 ## Development
 

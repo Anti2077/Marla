@@ -99,6 +99,28 @@ private final class FakeKeychainItems {
 }
 
 final class MarlaAppTests: XCTestCase {
+    func testScreenshotTopHintPreservesDefaultOffsetWithoutDisplayCutout() {
+        XCTAssertEqual(
+            ScreenshotSelectionLayout.topHintOriginY(
+                bounds: CGRect(x: 0, y: 0, width: 1_440, height: 900),
+                hintHeight: 44,
+                safeAreaTopInset: 0
+            ),
+            828
+        )
+    }
+
+    func testScreenshotTopHintClearsDisplaySafeArea() {
+        XCTAssertEqual(
+            ScreenshotSelectionLayout.topHintOriginY(
+                bounds: CGRect(x: 0, y: 0, width: 1_512, height: 982),
+                hintHeight: 44,
+                safeAreaTopInset: 37
+            ),
+            889
+        )
+    }
+
     func testScreenshotTranslationIntentsKeepNearbyAndInPlacePathsIndependent() {
         XCTAssertEqual(
             ScreenshotTranslationIntent.nearby.ocrProvider(configuredProvider: .glmOCR),
@@ -2709,6 +2731,209 @@ final class MarlaAppTests: XCTestCase {
 
         XCTAssertEqual(finishCount, 1)
         XCTAssertTrue(wasCancelled)
+    }
+
+    @MainActor
+    func testScreenshotOCRShortcutMappingUsesExplicitOrder() throws {
+        XCTAssertEqual(ScreenshotOCRProviderOption.provider(forKey: "1"), .vision)
+        XCTAssertEqual(ScreenshotOCRProviderOption.provider(forKey: "2"), .ollamaGLMOCR)
+        XCTAssertEqual(ScreenshotOCRProviderOption.provider(forKey: "3"), .glmOCR)
+        XCTAssertNil(ScreenshotOCRProviderOption.provider(forKey: "4"))
+
+        let session = ScreenshotSelectionSession(
+            initialOCRProvider: .vision,
+            onSelectionFinish: { _ in }
+        )
+        let event = try XCTUnwrap(NSEvent.keyEvent(
+            with: .keyDown,
+            location: .zero,
+            modifierFlags: [],
+            timestamp: 0,
+            windowNumber: 0,
+            context: nil,
+            characters: "2",
+            charactersIgnoringModifiers: "2",
+            isARepeat: true,
+            keyCode: 19
+        ))
+        XCTAssertTrue(session.handleKeyDown(event))
+        XCTAssertEqual(session.selectedOCRProvider, .ollamaGLMOCR)
+    }
+
+    @MainActor
+    func testScreenshotSpaceTogglesWindowModeOnlyWithoutSelection() throws {
+        let target = ScreenshotWindowTarget(id: 10, frame: CGRect(x: 20, y: 30, width: 200, height: 120))
+        let session = ScreenshotSelectionSession(windowTargets: [target]) { _, _ in }
+        let spaceDown = try XCTUnwrap(NSEvent.keyEvent(
+            with: .keyDown,
+            location: .zero,
+            modifierFlags: [],
+            timestamp: 0,
+            windowNumber: 0,
+            context: nil,
+            characters: " ",
+            charactersIgnoringModifiers: " ",
+            isARepeat: false,
+            keyCode: 49
+        ))
+
+        XCTAssertTrue(session.handleKeyDown(spaceDown))
+        XCTAssertEqual(session.selectionMode, .window)
+        session.hover(at: CGPoint(x: 40, y: 50))
+        XCTAssertEqual(session.highlightedWindow?.id, target.id)
+        XCTAssertTrue(session.handleKeyDown(spaceDown))
+        XCTAssertEqual(session.selectionMode, .region)
+
+        session.begin(at: CGPoint(x: 10, y: 10))
+        session.move(to: CGPoint(x: 110, y: 70))
+        XCTAssertTrue(session.handleKeyDown(spaceDown))
+        XCTAssertEqual(session.selectionMode, .region)
+    }
+
+    @MainActor
+    func testScreenshotSpacePanningClampsAndContinuesResizeWithoutJump() throws {
+        let image = try makeSolidImage(width: 300, height: 200, color: .white)
+        let source = ScreenshotMagnifierSource(
+            screenFrame: CGRect(x: -100, y: 0, width: 300, height: 200),
+            cgImage: image
+        )
+        let session = ScreenshotSelectionSession(magnifierSources: [source]) { _, _ in }
+        session.begin(at: CGPoint(x: -80, y: 20))
+        session.move(to: CGPoint(x: 20, y: 80))
+
+        let spaceDown = try XCTUnwrap(NSEvent.keyEvent(
+            with: .keyDown, location: .zero, modifierFlags: [], timestamp: 0,
+            windowNumber: 0, context: nil, characters: " ", charactersIgnoringModifiers: " ",
+            isARepeat: false, keyCode: 49
+        ))
+        let spaceUp = try XCTUnwrap(NSEvent.keyEvent(
+            with: .keyUp, location: .zero, modifierFlags: [], timestamp: 0,
+            windowNumber: 0, context: nil, characters: " ", charactersIgnoringModifiers: " ",
+            isARepeat: false, keyCode: 49
+        ))
+        XCTAssertTrue(session.handleKeyDown(spaceDown))
+        session.move(to: CGPoint(x: 500, y: 500))
+        XCTAssertEqual(session.selectionRect, CGRect(x: 100, y: 140, width: 100, height: 60))
+        XCTAssertTrue(session.handleKeyUp(spaceUp))
+        session.move(to: CGPoint(x: 500, y: 500))
+        XCTAssertEqual(session.selectionRect, CGRect(x: 100, y: 140, width: 100, height: 60))
+        session.move(to: CGPoint(x: 490, y: 480))
+        XCTAssertEqual(session.selectionRect, CGRect(x: 100, y: 140, width: 90, height: 40))
+    }
+
+    func testScreenshotWindowHitTestingUsesFrontToBackOrder() {
+        let front = ScreenshotWindowTarget(id: 1, frame: CGRect(x: 0, y: 0, width: 100, height: 100))
+        let back = ScreenshotWindowTarget(id: 2, frame: CGRect(x: 20, y: 20, width: 100, height: 100))
+        XCTAssertEqual(
+            ScreenshotWindowTargeting.hitTest(point: CGPoint(x: 50, y: 50), in: [front, back])?.id,
+            front.id
+        )
+        XCTAssertNil(ScreenshotWindowTargeting.hitTest(point: CGPoint(x: 500, y: 500), in: [front, back]))
+    }
+
+    func testScreenshotWindowFrameConvertsFromTopLeftToAppKitCoordinates() {
+        XCTAssertEqual(
+            ScreenshotWindowTargeting.appKitFrame(
+                screenCaptureFrame: CGRect(x: 52, y: 39, width: 1658, height: 1073),
+                primaryScreenMaxY: 1112
+            ),
+            CGRect(x: 52, y: 0, width: 1658, height: 1073)
+        )
+        XCTAssertEqual(
+            ScreenshotWindowTargeting.appKitFrame(
+                screenCaptureFrame: CGRect(x: -900, y: -400, width: 800, height: 300),
+                primaryScreenMaxY: 1112
+            ),
+            CGRect(x: -900, y: 1212, width: 800, height: 300)
+        )
+    }
+
+    func testScreenshotWindowEligibilityFiltersInvalidAndOwnWindows() {
+        XCTAssertTrue(ScreenshotWindowTargeting.isEligible(
+            windowID: 8,
+            frame: CGRect(x: 10, y: 20, width: 300, height: 200),
+            isOnScreen: true,
+            windowLayer: 0,
+            ownerProcessID: 222,
+            excludingProcessID: 111
+        ))
+        XCTAssertFalse(ScreenshotWindowTargeting.isEligible(
+            windowID: 8,
+            frame: CGRect(x: 10, y: 20, width: 300, height: 200),
+            isOnScreen: true,
+            windowLayer: 0,
+            ownerProcessID: 111,
+            excludingProcessID: 111
+        ))
+        XCTAssertFalse(ScreenshotWindowTargeting.isEligible(
+            windowID: 8,
+            frame: .zero,
+            isOnScreen: true,
+            windowLayer: 0,
+            ownerProcessID: 222,
+            excludingProcessID: 111
+        ))
+        XCTAssertFalse(ScreenshotWindowTargeting.isEligible(
+            windowID: 8,
+            frame: CGRect(x: 10, y: 20, width: 300, height: 200),
+            isOnScreen: false,
+            windowLayer: 0,
+            ownerProcessID: 222,
+            excludingProcessID: 111
+        ))
+        XCTAssertFalse(ScreenshotWindowTargeting.isEligible(
+            windowID: 8,
+            frame: CGRect(x: 10, y: 20, width: 300, height: 200),
+            isOnScreen: true,
+            windowLayer: 25,
+            ownerProcessID: 222,
+            excludingProcessID: 111
+        ))
+    }
+
+    @MainActor
+    func testInPlaceScreenshotSessionIgnoresTemporaryProviderAndWindowShortcuts() throws {
+        let session = ScreenshotSelectionSession(
+            initialOCRProvider: .glmOCR,
+            allowsWindowSelection: false,
+            showsOCRProviderPicker: false,
+            onSelectionFinish: { _ in }
+        )
+        let one = try XCTUnwrap(NSEvent.keyEvent(
+            with: .keyDown, location: .zero, modifierFlags: [], timestamp: 0,
+            windowNumber: 0, context: nil, characters: "1", charactersIgnoringModifiers: "1",
+            isARepeat: false, keyCode: 18
+        ))
+        let space = try XCTUnwrap(NSEvent.keyEvent(
+            with: .keyDown, location: .zero, modifierFlags: [], timestamp: 0,
+            windowNumber: 0, context: nil, characters: " ", charactersIgnoringModifiers: " ",
+            isARepeat: false, keyCode: 49
+        ))
+        XCTAssertFalse(session.handleKeyDown(one))
+        XCTAssertEqual(session.selectedOCRProvider, .glmOCR)
+        XCTAssertTrue(session.handleKeyDown(space))
+        XCTAssertEqual(session.selectionMode, .region)
+    }
+
+    @MainActor
+    func testTemporaryScreenshotProviderDoesNotPersistDefault() {
+        let suiteName = "ScreenshotTransientProviderTests.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suiteName)!
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+        let settings = MarlaSettingsStore(
+            defaults: defaults,
+            keychain: KeychainCredentialStore(service: "com.marla.tests", account: UUID().uuidString)
+        )
+        settings.setOCRProvider(.vision)
+        let session = ScreenshotSelectionSession(
+            initialOCRProvider: settings.ocrProvider,
+            onSelectionFinish: { _ in }
+        )
+        session.setOCRProvider(.glmOCR)
+
+        XCTAssertEqual(session.selectedOCRProvider, .glmOCR)
+        XCTAssertEqual(settings.ocrProvider, .vision)
+        XCTAssertEqual(defaults.string(forKey: "ocrProvider.v1"), OCRProviderKind.vision.rawValue)
     }
 
     @MainActor

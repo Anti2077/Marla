@@ -1,5 +1,6 @@
 import AppKit
 import Foundation
+import MarlaCore
 import ScreenCaptureKit
 
 struct CapturedScreenshot {
@@ -7,21 +8,38 @@ struct CapturedScreenshot {
     let globalRect: CGRect
 }
 
+struct ScreenshotCaptureResult {
+    let capture: CapturedScreenshot
+    let mode: ScreenshotSelectionMode
+    let ocrProvider: OCRProviderKind
+}
+
 @MainActor
 protocol ScreenshotCapturing: AnyObject {
-    func present(completion: @escaping (Result<CapturedScreenshot, Error>) -> Void)
+    func present(
+        initialOCRProvider: OCRProviderKind,
+        allowsWindowSelection: Bool,
+        showsOCRProviderPicker: Bool,
+        completion: @escaping (Result<ScreenshotCaptureResult, Error>) -> Void
+    )
 }
 
 @MainActor
 final class ScreenshotCaptureCoordinator: ScreenshotCapturing {
     private var windows: [NSWindow] = []
-    private var completion: ((Result<CapturedScreenshot, Error>) -> Void)?
+    private var completion: ((Result<ScreenshotCaptureResult, Error>) -> Void)?
     private var selectionSession: ScreenshotSelectionSession?
     private var escapeMonitor: ScreenshotEscapeMonitor?
     private var capturePreparationTask: Task<Void, Never>?
+    private var windowCaptureTask: Task<Void, Never>?
     private var capturePreparationID: UUID?
 
-    func present(completion: @escaping (Result<CapturedScreenshot, Error>) -> Void) {
+    func present(
+        initialOCRProvider: OCRProviderKind = .vision,
+        allowsWindowSelection: Bool = true,
+        showsOCRProviderPicker: Bool = true,
+        completion: @escaping (Result<ScreenshotCaptureResult, Error>) -> Void
+    ) {
         if self.completion != nil {
             finish(.failure(ScreenshotError.cancelled))
         }
@@ -42,11 +60,16 @@ final class ScreenshotCaptureCoordinator: ScreenshotCapturing {
         capturePreparationTask = Task { @MainActor [weak self] in
             guard let self else { return }
             do {
-                let frozenDisplays = try await captureFrozenDisplays()
+                let preparation = try await capturePreparation()
                 try Task.checkCancellation()
                 guard capturePreparationID == preparationID else { return }
                 capturePreparationTask = nil
-                showSelection(using: frozenDisplays)
+                showSelection(
+                    using: preparation,
+                    initialOCRProvider: initialOCRProvider,
+                    allowsWindowSelection: allowsWindowSelection,
+                    showsOCRProviderPicker: showsOCRProviderPicker
+                )
             } catch is CancellationError {
                 return
             } catch {
@@ -56,13 +79,38 @@ final class ScreenshotCaptureCoordinator: ScreenshotCapturing {
         }
     }
 
-    private func showSelection(using frozenDisplays: [ScreenshotMagnifierSource]) {
-        let session = ScreenshotSelectionSession(magnifierSources: frozenDisplays) { [weak self] rect, cancelled in
+    private struct CapturePreparation {
+        let frozenDisplays: [ScreenshotMagnifierSource]
+        let windowTargets: [ScreenshotWindowTarget]
+    }
+
+    private func showSelection(
+        using preparation: CapturePreparation,
+        initialOCRProvider: OCRProviderKind,
+        allowsWindowSelection: Bool,
+        showsOCRProviderPicker: Bool
+    ) {
+        let frozenDisplays = preparation.frozenDisplays
+        let session = ScreenshotSelectionSession(
+            magnifierSources: frozenDisplays,
+            windowTargets: preparation.windowTargets,
+            initialOCRProvider: initialOCRProvider,
+            allowsWindowSelection: allowsWindowSelection,
+            showsOCRProviderPicker: showsOCRProviderPicker
+        ) { [weak self] selection in
             guard let self else { return }
-            if cancelled {
+            if selection.cancelled {
                 finish(.failure(ScreenshotError.cancelled))
+            } else if selection.mode == .window,
+                      let target = selection.windowTarget {
+                capture(window: target, ocrProvider: selection.ocrProvider)
             } else {
-                capture(global: rect, from: frozenDisplays)
+                capture(
+                    global: selection.globalRect,
+                    from: frozenDisplays,
+                    mode: selection.mode,
+                    ocrProvider: selection.ocrProvider
+                )
             }
         }
         selectionSession = session
@@ -72,7 +120,8 @@ final class ScreenshotCaptureCoordinator: ScreenshotCapturing {
                 styleMask: .borderless,
                 backing: .buffered,
                 defer: false,
-                onCancel: { [weak session] in session?.cancel() }
+                onCancel: { [weak session] in session?.cancel() },
+                onKeyEvent: { [weak session] event in session?.handleKeyEvent(event) ?? false }
             )
             window.isOpaque = false
             window.backgroundColor = .clear
@@ -109,7 +158,12 @@ final class ScreenshotCaptureCoordinator: ScreenshotCapturing {
         }
     }
 
-    private func capture(global: NSRect, from frozenDisplays: [ScreenshotMagnifierSource]) {
+    private func capture(
+        global: NSRect,
+        from frozenDisplays: [ScreenshotMagnifierSource],
+        mode: ScreenshotSelectionMode,
+        ocrProvider: OCRProviderKind
+    ) {
         guard global.width > 4, global.height > 4 else {
             finish(.failure(ScreenshotError.invalidRegion))
             return
@@ -121,10 +175,47 @@ final class ScreenshotCaptureCoordinator: ScreenshotCapturing {
             finish(.failure(ScreenshotError.captureFailed))
             return
         }
-        finish(.success(CapturedScreenshot(image: image, globalRect: global)))
+        finish(.success(ScreenshotCaptureResult(
+            capture: CapturedScreenshot(image: image, globalRect: global),
+            mode: mode,
+            ocrProvider: ocrProvider
+        )))
     }
 
-    private func captureFrozenDisplays() async throws -> [ScreenshotMagnifierSource] {
+    private func capture(window target: ScreenshotWindowTarget, ocrProvider: OCRProviderKind) {
+        guard let window = target.window, let captureID = capturePreparationID else {
+            finish(.failure(ScreenshotError.captureFailed))
+            return
+        }
+        let scale = NSScreen.screens
+            .first(where: { $0.frame.intersects(target.frame) })?
+            .backingScaleFactor ?? 2
+        let configuration = SCStreamConfiguration()
+        configuration.width = max(1, Int((target.frame.width * scale).rounded(.up)))
+        configuration.height = max(1, Int((target.frame.height * scale).rounded(.up)))
+        configuration.showsCursor = false
+        windowCaptureTask = Task { @MainActor [weak self] in
+            do {
+                let image = try await SCScreenshotManager.captureImage(
+                    contentFilter: SCContentFilter(desktopIndependentWindow: window),
+                    configuration: configuration
+                )
+                try Task.checkCancellation()
+                guard let self, capturePreparationID == captureID else { return }
+                finish(.success(ScreenshotCaptureResult(
+                    capture: CapturedScreenshot(image: image, globalRect: target.frame),
+                    mode: .window,
+                    ocrProvider: ocrProvider
+                )))
+            } catch is CancellationError {
+                return
+            } catch {
+                self?.finish(.failure(ScreenshotError.captureFailed))
+            }
+        }
+    }
+
+    private func capturePreparation() async throws -> CapturePreparation {
         let shareableContent = try await SCShareableContent.excludingDesktopWindows(
             false,
             onScreenWindowsOnly: true
@@ -170,12 +261,21 @@ final class ScreenshotCaptureCoordinator: ScreenshotCapturing {
         guard !frozenDisplays.isEmpty, frozenDisplays.count == NSScreen.screens.count else {
             throw ScreenshotError.captureFailed
         }
-        return frozenDisplays
+        return CapturePreparation(
+            frozenDisplays: frozenDisplays,
+            windowTargets: ScreenshotWindowTargeting.targets(
+                from: shareableContent,
+                excludingProcessID: ProcessInfo.processInfo.processIdentifier,
+                primaryScreenMaxY: NSScreen.screens.first?.frame.maxY ?? 0
+            )
+        )
     }
 
-    private func finish(_ result: Result<CapturedScreenshot, Error>) {
+    private func finish(_ result: Result<ScreenshotCaptureResult, Error>) {
         capturePreparationTask?.cancel()
         capturePreparationTask = nil
+        windowCaptureTask?.cancel()
+        windowCaptureTask = nil
         capturePreparationID = nil
         escapeMonitor?.remove()
         escapeMonitor = nil
@@ -320,5 +420,3 @@ private func handleScreenshotEscapeEventTap(
     Task { @MainActor in monitor.handleEventTapEscape() }
     return nil
 }
-
-

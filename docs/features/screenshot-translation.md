@@ -12,6 +12,8 @@ TASK-043 adds a user-controlled degradation action to the ordinary nearby-card p
 
 Provide two explicit screenshot-region workflows. “截图翻译” uses the configured Vision or GLM-OCR service and always presents a nearby result card. The independent “原位翻译” entry always uses GLM-OCR structure recognition and reconstructs the frozen selected region in place with translated text occupying the same reliable layout blocks.
 
+TASK-046 extends only ordinary “截图翻译”. Its selection overlay starts from the persisted OCR default but may temporarily select `1` Vision, `2` local Ollama GLM-OCR or `3` cloud GLM-OCR for that capture without changing settings. With no active region, Space toggles a window mode backed by the same `SCShareableContent` snapshot; hover uses the converted AppKit global frame and a click captures the original `SCWindow` through `SCContentFilter(desktopIndependentWindow:)`. During an active region drag, holding Space moves the whole rectangle inside the union of visible display frames and releasing Space resumes resizing without a geometry jump. “原位翻译” hides and disables these temporary controls and remains fixed to cloud GLM-OCR.
+
 ## Trigger
 
 The configurable global shortcuts default to `⌃⇧S` for ordinary screenshot translation and `⌃⇧I` for independent in-place translation. Settings composes each from independently selected `fn / ⇧ / ⌃ / ⌥ / ⌘` modifiers and one captured primary key; cancellation or failed Carbon registration keeps the previous binding. Fn/Globe is never a standalone trigger and does not add a persistent event tap.

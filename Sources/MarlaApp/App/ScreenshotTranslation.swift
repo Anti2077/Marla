@@ -32,13 +32,22 @@ extension MarlaApplicationModel {
         let originatingApplication = NSWorkspace.shared.frontmostApplication
         let settingsWereVisible = settingsWindowCoordinator.suspendForScreenshotSelection()
         panelCoordinator.hide()
-        screenshotCoordinator.present { [weak self] result in
+        screenshotCoordinator.present(
+            initialOCRProvider: intent.ocrProvider(configuredProvider: settings.ocrProvider),
+            allowsWindowSelection: intent == .nearby,
+            showsOCRProviderPicker: intent == .nearby
+        ) { [weak self] result in
             guard let self else { return }
             settingsWindowCoordinator.restoreAfterScreenshotSelection(wasVisible: settingsWereVisible)
             restoreFrontmostApplication(originatingApplication)
             switch result {
-            case let .success(capture):
-                startScreenshotOCR(capture: capture, pointer: pointer, intent: intent)
+            case let .success(selection):
+                startScreenshotOCR(
+                    capture: selection.capture,
+                    selectedProvider: selection.ocrProvider,
+                    pointer: pointer,
+                    intent: intent
+                )
             case let .failure(error):
                 handleScreenshotSelectionFailure(error, pointer: pointer, intent: intent)
             }
@@ -47,6 +56,7 @@ extension MarlaApplicationModel {
 
     private func startScreenshotOCR(
         capture: CapturedScreenshot,
+        selectedProvider: OCRProviderKind,
         pointer: CGPoint,
         intent: ScreenshotTranslationIntent
     ) {
@@ -56,7 +66,7 @@ extension MarlaApplicationModel {
             width: capture.globalRect.width,
             height: capture.globalRect.height
         )
-        let provider = intent.ocrProvider(configuredProvider: settings.ocrProvider)
+        let provider = intent.ocrProvider(configuredProvider: selectedProvider)
         let requestID = sessionStore.beginRecognizing(
             anchor: anchor,
             pointer: pointer,

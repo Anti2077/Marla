@@ -1,6 +1,6 @@
 # Project Status
 
-Last updated: 2026-09-09
+Last updated: 2026-09-11
 
 Development stage: Incubation / Unreleased
 
@@ -8,9 +8,9 @@ Release target: None. A version is assigned only when the project owner explicit
 
 Overall state: In Progress — unversioned product incubation; no active release contract
 
-Active task (current branch): [`TASK-046`](../tasks/TASK-046-screenshot-selection-efficiency.md) — 普通截图翻译提效。基于本地 `main@8c835ef` 的隔离工作树已实现窗口模式、`1/2/3` 临时 OCR 选择和拖动期间 Space 平移；截图定向测试 33 项通过。由于当前沙箱不能写主仓库 `.git`，`Anti2077/task-046` 只存在于 `/private/tmp/marla-task-046.git/.git` 临时 Git 元数据，不能宣称主仓库分支已创建。TASK-045 的固定 App owner acceptance 缺口与 TASK-041 的独立分支验收继续保留。
+Active task (current main): [`TASK-046`](../tasks/TASK-046-screenshot-selection-efficiency.md) — 普通截图翻译提效。实现提交 `90c37f8` 已由合并提交 `ac35e0c` 合入本地 `main`，并保留在 `Anti2077/task-046` 分支；窗口模式、`1/2/3` 临时 OCR 选择、拖动期间 Space 平移和刘海安全区提示定位已实现。截图定向测试 35 项、完整 `./scripts/check.sh` 和固定 Release App 重建通过；固定 App 的窗口吸附、Space 平移、三种 OCR 及多外观人工验收仍待项目所有者完成。TASK-045 的固定 App owner acceptance 缺口与 TASK-041 的独立分支验收继续保留。
 
-TASK-046 当前实现使用同次 `SCShareableContent` 快照枚举普通可见窗口，排除自身、隐藏、非普通层、无效尺寸和缺失所属进程窗口；将 ScreenCaptureKit 顶部原点窗口 frame 换算成 AppKit 全局坐标用于高亮、命中和结果卡锚点，单击后以 `desktopIndependentWindow` 捕获。普通截图的 OCR 选择只存在于当前会话且不写设置；原位入口在进入截图层前仍固定云端 GLM-OCR并禁用窗口/临时 Provider。截图定向测试 33 项、完整 `./scripts/check.sh` 和固定 Release App 重建已通过；真实窗口/Space/OCR/浅深色窄屏 Reduce Motion 验收仍待项目所有者完成。
+TASK-046 当前实现使用同次 `SCShareableContent` 快照枚举普通可见窗口，排除自身、隐藏、非普通层、无效尺寸和缺失所属进程窗口；将 ScreenCaptureKit 顶部原点窗口 frame 换算成 AppKit 全局坐标用于高亮、命中和结果卡锚点，单击后以 `desktopIndependentWindow` 捕获。普通截图的 OCR 选择只存在于当前会话且不写设置；原位入口在进入截图层前仍固定云端 GLM-OCR并禁用窗口/临时 Provider。截图定向测试 35 项、完整 `./scripts/check.sh` 和固定 Release App 重建已通过；实际刘海屏的安全区提示已以固定 App 截图确认，真实窗口/Space/OCR/浅深色窄屏 Reduce Motion 交互验收仍待项目所有者完成。
 
 当前工作树为 `main`；TASK-043 的实现提交为 `6be2c00`，已由 `58cc129` 合入本地 `main`，当前 `main` 尚未推送到 `origin/main`。TASK-043 的代码、回归测试和功能文档已完成，最终授权检查通过 31 项 Rust 与 240 项 Swift，固定 Release App 已重建。离线 fixture 覆盖 GLM 等待态与用户主动 Vision 降级态的浅色、深色、380pt 窄宽和 Reduce Motion；首轮发现的 224pt 底部操作行裁切已通过状态专用高度测量修复，五维复审为 8/8/8/9/7。真实 GLM 请求取消、按钮点击、同一截图复用和无重复上传仍由所有者按 RV-006 现场验收。TASK-044 的四协议适配、自动化回归、完整宿主检查和固定 Release 构建已完成，并已由 `90db067` 与 `4598dda` 进入本地 `main`；真实四类 Provider 账号验收与独立 UI 五维截图复审仍待所有者完成。
 

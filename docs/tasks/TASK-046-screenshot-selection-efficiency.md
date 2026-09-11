@@ -6,7 +6,7 @@ Owner: Project owner + Agent
 
 Created: 2026-09-09
 
-Updated: 2026-09-09
+Updated: 2026-09-11
 
 Origin: direct request
 
@@ -35,7 +35,7 @@ Conversation: 2026-09-09，优化普通截图翻译的窗口吸附、OCR 临时�
 - 不为原位翻译提供窗口模式或 OCR 临时选择。
 - 不增加常驻全局鼠标监听，不保存截图、窗口标题或 OCR 会话选择。
 - 不关闭 TASK-045 的固定 App owner acceptance 缺口。
-- 本轮不提交或推送远端。
+- 本轮不推送远端。
 
 ## Scope changes during the conversation
 
@@ -43,6 +43,7 @@ Conversation: 2026-09-09，优化普通截图翻译的窗口吸附、OCR 临时�
 | --- | --- | --- | --- | --- |
 | 2026-09-09 | Project owner | 明确 Space 无框选时进入窗口模式，OCR 只影响本次截图 | 增加模式状态与非持久化测试 | Implemented |
 | 2026-09-09 | Necessary support | 隔离工作树无法写主仓库 `.git` | 在 `/private/tmp/marla-task-046.git/.git` 创建 `Anti2077/task-046` 临时 Git 元数据；不宣称主仓库分支已创建 | Recorded |
+| 2026-09-11 | Project owner | 要求合并到 `main` 并提交 | 创建实现提交并以合并提交进入本地 `main`；不推送远端 | Implemented |
 
 ## Current evidence
 
@@ -50,7 +51,7 @@ Conversation: 2026-09-09，优化普通截图翻译的窗口吸附、OCR 临时�
 - `SCWindow.frame` 从 ScreenCaptureKit 顶部原点换算为 AppKit 全局底部原点后用于高亮、命中和 `CapturedScreenshot.globalRect`；原始 `SCWindow` 只用于 `desktopIndependentWindow` 捕获。
 - 窗口目标排除 Marla 自身进程、非屏幕窗口、非普通窗口层、零尺寸和缺失所属进程的项目。
 - 窗口异步捕获绑定当前会话 ID，取消或新会话会终止旧任务。
-- 截图定向测试 33 项通过，覆盖负坐标平移、边界夹紧、释放 Space 连续调整、窗口 frame 换算、前后顺序命中、过滤、临时 Provider 非持久化和原位隔离。
+- 截图定向测试 35 项通过，覆盖负坐标平移、边界夹紧、释放 Space 连续调整、窗口 frame 换算、前后顺序命中、过滤、临时 Provider 非持久化、原位隔离和刘海安全区提示布局。
 
 ## Acceptance criteria
 
@@ -75,7 +76,7 @@ DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer swift test --filter Scr
 git diff --check
 ```
 
-当前定向结果：33 项截图相关测试通过。完整 `./scripts/check.sh` 已在临时 Git 元数据环境通过；固定 Release App 已在 `/private/tmp/marla-xcode-test-app-046/Build/Products/Release/Marla.app` 重建，并通过 Bundle ID、arm64、最低系统版本和 `codesign --verify --deep --strict` 检查。真实窗口、Space、OCR 与多外观交互仍待项目所有者验收。
+当前定向结果：35 项截图相关测试通过。完整 `./scripts/check.sh` 和固定 Release App 重建通过；固定 App 已验证 Bundle ID、arm64、最低系统版本、稳定签名和 designated requirement。实际刘海屏读取到 `safeAreaInsets.top = 38pt`，提示已通过固定 App 截图确认位于刘海安全线下方并保留 `12pt` 间距。真实窗口、Space、OCR 与多外观交互仍待项目所有者验收。
 
 ### Manual
 
@@ -116,4 +117,4 @@ None.
 
 ## Completion record
 
-保持 Active，等待完整检查、固定 Release 构建与项目所有者真实交互验收。当前实现位于隔离工作树，分支名只存在于临时 Git 元数据，未提交、未推送。
+保持 Active，等待项目所有者完成固定 Release App 的真实窗口吸附、Space 平移、三种 OCR 和多外观交互验收。实现提交为 `90c37f8`，已由 `ac35e0c` 合入本地 `main`；本地 `main` 尚未推送远端。

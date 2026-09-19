@@ -45,7 +45,7 @@ UI/UX 工作的 skill 路由和使用示例见 [`development/UI_UX_SKILLS.md`](d
   -> TASK：一次开发对话对应一个持续更新的施工单
        -> Active：功能工作树按路径所有权施工
        -> Ready for integration：功能工作树验证通过
-       -> 主工作树审查、合并并验证 main
+       -> 主工作树运行受保护的 main 整合命令、审查并验证
        -> Done：主线验证和全局文档同步完成
 当前开发基线的实现与验证
   -> VERIFICATION：实机验收、性能和内存测量
@@ -76,8 +76,10 @@ UI/UX 工作的 skill 路由和使用示例见 [`development/UI_UX_SKILLS.md`](d
 ## 维护原则
 
 - `STATUS.md` 不写聊天流水账，也不充当所有并行 Task 的活动注册表；历史由 Git 和 tracked Task 保存。
+- `STATUS.md` 只保留阶段/发布状态、精简的已整合基线、仍开放的验收缺口、当前风险或产品决定以及 Required Reading；完成细节留在 Task、`VERIFICATION.md` 和 Git。
 - Task 以一次开发对话为边界，是可以演进的施工记录；对话中每次追加范围都要同步验收和验证要求。
 - 主工作树独占本地 `main` 并负责 Task-ID 分配、整合、主线验证、全局文档和授权推送；普通功能实现使用独立 Task 分支/工作树。
+- 主工作树使用 `scripts/main-worktree.sh` 验证真实 primary checkout、`main`、Git 操作状态、干净程度、Task 状态、功能工作树状态和分支新鲜度。脚本只执行受保护的 `--no-ff` 合并，不代替合并后的语义文档更新。
 - 功能工作树通过本地验证后标记 `Ready for integration`；只有合入目标分支并完成目标分支验证后才能标记 `Done`。
 - 只有在新增内容明显无关、需要独立授权、存在重大架构风险或必须并行隔离时，才建议由项目所有者拆成后续 Task。
 - 较大的多文件文档工作优先评估由当前工作树的主 Agent 拆成互不重叠的子 Agent 工作并行完成；该 Agent 维护本 Task 和分支内容，主工作树整合负责人维护 `STATUS.md` 并完成全局文档、术语和最终验收核对。

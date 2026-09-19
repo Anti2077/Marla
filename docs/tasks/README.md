@@ -36,6 +36,7 @@ TASK-001-short-name.md
 - 明显无关、需要新权限、破坏性迁移、独立架构决策或并行隔离的新增内容，先说明影响，由项目所有者决定并入当前 Task 还是另开后续 Task。
 - Task 完成后不因新的开发对话而重新打开；新对话创建新 Task，并通过 Related/Origin 链接旧 Task。
 - Task ID 由主工作树的整合负责人分配。创建命名分支/工作树并提交初始 Task 后，该编号才完成仓库内预留；其它工作树不得独立猜测下一个编号。
+- 新功能分支使用 `Anti2077/task-NNN-short-name`，其中三位编号必须与唯一的 `docs/tasks/TASK-NNN-*.md` 一致。主工作树的受保护合并命令会执行这一检查。
 - 新 Task 必须记录 worktree、branch、base commit、integration target、integration owner、owned paths、known overlaps、dependencies 和 expected merge order。
 - 功能工作树只维护自己的 Task、实现、测试和已分配规格；`STATUS.md`、全局 Backlog/Roadmap/索引默认由主工作树在整合阶段串行更新。
 - `.marla/worktree-state.md` 是可选的 ignored 本地指针。永久范围、决定、证据、验收和交接必须进入 tracked Task 或规格。
@@ -66,4 +67,6 @@ A Task may use multiple sub-Agents without creating additional Tasks. The Task r
 - owned paths、known overlaps、dependencies 和 expected merge order；
 - 哪个工作树担任 integration owner。
 
-功能工作树完成后进入 `Ready for integration`。整合负责人检查实时目标分支、处理重叠文件、运行最终验证、同步 `STATUS.md` 和全局索引，再把 Task 标记为 `Done`。关闭一个 Task 不会改变其它工作树的 Task、分支或本地状态。
+功能工作树完成后进入 `Ready for integration`，提交该状态并保持工作树干净。整合负责人在真实主工作树的 `main` 上运行 `./scripts/main-worktree.sh merge <feature-branch>`；成功后再次运行 `check`，再处理最终验证、Task/`STATUS.md` 和全局索引。只有最终文档树验证通过后才提交 `Done` 状态。关闭一个 Task 不会改变其它工作树的 Task、分支或本地状态。
+
+`STATUS.md` 不复制已完成 Task 的长篇实施记录。它只保留阶段/发布状态、精简的已整合基线、开放验收缺口、当前风险或产品决定和 Required Reading；详细证据留在 Task、`VERIFICATION.md` 与 Git。

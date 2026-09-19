@@ -153,13 +153,15 @@ None. The project owner approved this workflow on 2026-09-19.
 
 ## Completion record
 
-- Worktree verified commit: Pending commit
+- Worktree verified commit: `f0a77a1` (`Anti2077/task-048-parallel-worktree-workflow`)
 - Integration commit: Pending
 - Integration verification: Pending
 - Automated evidence: Authorized `MARLA_BUILD_CACHE_ROOT=/private/tmp/marla-task-048-cache-host ./scripts/check.sh` passed on 2026-09-19: Rust 52 tests, Swift Package tests, Xcode Debug build, strict Clippy, structure, shell syntax, local-state invariants, source whitespace, and `git diff --check`. The first restricted run failed at an AppKit window test (signal 5); the authorized host rerun passed the same test suite.
 - Manual evidence: Primary worktree remained on clean `main`; the feature worktree owned TASK-048 and its recorded paths; read-only review findings were reconciled; local merge, target-branch verification, push, and cleanup remain separate states.
 - Documentation updated: Feature-worktree documentation is complete; `STATUS.md` integration wording remains for the primary worktree.
 - Mainline documentation updated by: Pending
-- Remaining work promoted to: Pending
-- Scope changes closed: Pending
-- Parallel contributions integrated: Pending
+- Remaining work promoted to: None; integration and remote publication remain lifecycle steps, not follow-up product work
+- Scope changes closed: Yes in the feature worktree; integration acceptance remains pending
+- Parallel contributions integrated: Read-only workflow consistency review reconciled
+- Remote push state: Not pushed; no push authorization requested or implied
+- Worktree cleanup state: Retained until mainline integration and verification complete

@@ -15,7 +15,7 @@ Conversation: 当前开发对话的标题、日期或可识别说明
 ## Execution context
 
 - Worktree: `/absolute/path/to/worktree`
-- Branch: `Anti2077/task-xxx-short-name`
+- Branch: `Anti2077/task-NNN-short-name`（三位编号与本 Task 一致）
 - Base commit: `40-character commit`
 - Integration target: `main`
 - Integration owner: primary worktree path or named owner
@@ -74,6 +74,7 @@ Conversation: 当前开发对话的标题、日期或可识别说明
 - [ ] 新增代码未使任何源文件超过结构门禁。
 - [ ] 需要的真实 App 验证完成。
 - [ ] 相关规格已同步；未整合时已记录建议的全局文档变化，整合后由主工作树同步 `STATUS.md` 和索引。
+- [ ] 功能分支名、唯一匹配的 `TASK-NNN-*.md`、`Ready for integration` 状态、干净工作树和 current `main` ancestry 满足 `scripts/main-worktree.sh merge` 的门禁。
 
 ## Verification
 
@@ -107,6 +108,7 @@ Conversation: 当前开发对话的标题、日期或可识别说明
 - 需要主工作树写入 `STATUS.md`、Backlog、Roadmap 或索引的内容。
 - 目标分支前进后需要重新核对的代码、规格和测试。
 - 与依赖 Task 的路径重叠、冲突策略和建议合并顺序。
+- 主工作树运行 `./scripts/main-worktree.sh merge <feature-branch>`；合并后先运行 `check`，再完成 Task/`STATUS.md` 语义同步和最终 `./scripts/check.sh`。
 
 ## Risks and rollback
 

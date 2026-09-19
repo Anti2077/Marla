@@ -20,6 +20,8 @@ The primary worktree is `/Users/anti/Documents/ChatGPT/Marla` unless the project
 - pushing only with explicit authorization and verifying the remote ref;
 - removing integrated worktrees or branches only when cleanup is explicitly requested or already authorized.
 
+`scripts/main-worktree.sh` is the primary-only entry point for integration. It identifies the primary checkout by its real `.git` directory, requires symbolic branch `main`, rejects in-progress Git operations, and can require a completely clean tree. Its merge mode also validates the Task branch, matching tracked Task, `Ready for integration` status, linked feature-worktree cleanliness, and ancestry before running `git merge --no-ff`.
+
 The primary worktree is not limited to mechanical merges. It may edit code for conflict resolution, an explicit integration/release Task, or a defect discovered by target-branch verification. Unrelated feature implementation still receives its own Task branch/worktree.
 
 ### Feature worktree
@@ -52,22 +54,23 @@ When the project owner confirms a future product capability should eventually be
 1. Receive an explicit implementation request from the project owner, whether it comes from Backlog or directly from the conversation.
 2. In the primary worktree, inspect live Git, all current worktrees, local branches, and tracked Task files.
 3. Assign the next unique Task ID. Do not let separate worktrees independently guess the next number.
-4. Create a named Task branch and isolated worktree from the intended target-branch commit.
+4. Create a named `Anti2077/task-NNN-short-name` branch and isolated worktree from the intended target-branch commit.
 5. Create the Task from `docs/tasks/TASK_TEMPLATE.md` and record the request, execution context, scope, exclusions, evidence, acceptance, verification, Required Reading, ownership, dependencies, overlaps, and expected merge order.
 6. Commit the initial Task before implementation. That branch plus initial Task commit is the durable Task-ID reservation.
 7. Mark the Task `Ready`; after the project owner approves implementation, mark it `Active` and continue using it for the lifetime of that conversation.
 8. Optionally initialize `.marla/worktree-state.md` from `WORKTREE_STATE_TEMPLATE.md`. This ignored file is only a local identity pointer and never replaces the tracked Task or live Git.
 
-Example worktree creation:
+Example persistent worktree creation:
 
 ```sh
+worktree_root="$HOME/.codex/worktrees/task-XXX/Marla"
 git worktree add \
   -b Anti2077/task-XXX-short-name \
-  /private/tmp/marla-task-XXX-short-name \
+  "$worktree_root" \
   main
 ```
 
-The coordinator may choose another safe local path. Ordinary branches cannot be checked out in two worktrees simultaneously.
+The coordinator may choose another safe persistent local path. Codex-managed worktrees normally live under `~/.codex/worktrees/<id>/Marla`; do not infer that active worktrees are temporary merely because stale, prunable `/private/tmp` metadata exists. Use `/private/tmp` only for a deliberately disposable worktree. Ordinary branches cannot be checked out in two worktrees simultaneously.
 
 ## Evolving Scope During The Conversation
 
@@ -137,7 +140,7 @@ Rules:
 4. Classify every remaining owner-only manual acceptance gap. A blocking criterion prevents `Ready for integration`; a non-blocking evidence item may survive only when the Task says why it does not block integration or the project owner authorizes transfer to `VERIFICATION.md` or a follow-up Task.
 5. Review the entire branch diff and confirm it contains no unrelated work.
 6. Fill the worktree completion record and mark the Task `Ready for integration`.
-7. Commit that state. Do not update target-branch `STATUS.md` or mark the Task `Done`.
+7. Commit that state and leave the linked feature worktree clean. Do not update target-branch `STATUS.md` or mark the Task `Done`.
 
 Use an isolated cache when other worktrees may be validating concurrently:
 
@@ -149,7 +152,13 @@ MARLA_BUILD_CACHE_ROOT=/private/tmp/marla-task-XXX-cache ./scripts/check.sh
 
 The primary integration owner performs integration from a clean primary worktree:
 
-1. Confirm `main`, the working tree, all worktrees, and the feature branch's current tip.
+1. Run the primary preflight and inspect all worktrees plus the feature branch's current tip:
+
+   ```sh
+   ./scripts/main-worktree.sh check --clean
+   git worktree list --porcelain
+   ```
+
 2. Review the commits and cumulative diff:
 
    ```sh
@@ -160,17 +169,19 @@ The primary integration owner performs integration from a clean primary worktree
 
 3. Confirm Task scope, verification evidence, ownership, dependencies, overlaps, and remaining acceptance gaps.
 4. If `main` advanced materially, merge `main` into the feature branch, resolve conflicts in the feature worktree, and rerun feature verification before continuing.
-5. From the clean primary worktree, merge with an explicit Task boundary:
+5. From the clean primary worktree, run the guarded merge:
 
    ```sh
-   git switch main
-   git merge --no-ff Anti2077/task-XXX-short-name
+   ./scripts/main-worktree.sh merge Anti2077/task-XXX-short-name
    ```
 
+   The command requires exactly one matching `docs/tasks/TASK-NNN-*.md` on the branch with `Status: Ready for integration`, rejects a dirty linked feature worktree, and requires the feature branch to contain current `main`. It performs no documentation update, push, cleanup, reset, rebase, or deletion.
+
 6. Resolve conflicts by understanding both Tasks and current code. Do not accept an entire side mechanically when it would discard concurrent work. Use `git merge --abort` when safe resolution is not yet possible.
-7. Run `./scripts/check.sh` on the merged target branch. Build the fixed Release development App when the Task or acceptance requires it.
+7. After a successful merge, run `./scripts/main-worktree.sh check` before editing final target-branch records.
 8. Confirm that no blocking Task acceptance remains. Update the Task to `Done`, record the merge commit and target-branch verification, transfer any authorized non-blocking evidence gap, and synchronize `STATUS.md` plus any authorized global Backlog/Roadmap/index changes.
-9. Run applicable checks against the final documented tree and commit the integration record.
+9. Keep `STATUS.md` concise: stage/release state, integrated baseline, open acceptance gaps, current risks/product decisions, and Required Reading. Completed detail remains in Tasks, `VERIFICATION.md`, and Git.
+10. Run `./scripts/check.sh` against the final documented tree. Build the fixed Release development App when the Task or acceptance requires it, then commit the integration record.
 
 A local merge is not a push. Report the local target branch and remote state separately.
 
@@ -206,6 +217,6 @@ These specification statuses do not replace Task lifecycle states.
 
 ## History
 
-Do not append session transcripts to `STATUS.md`. Use Git commits, tracked Tasks, verification records, and release notes for historical detail. Keep `STATUS.md` limited to the integration target's integrated baseline, current risks, and selectable next work.
+Do not append session transcripts to `STATUS.md`. Use Git commits, tracked Tasks, verification records, and release notes for historical detail. Keep `STATUS.md` limited to stage/release state, the integration target's concise integrated baseline, open acceptance gaps, current risks or product decisions, and Required Reading.
 
 Version documents are release contracts created only by explicit release preparation. Daily notes belong in the Task assigned to the current worktree; completed history belongs in Git and, at actual release time, `docs/releases/`. Withdrawn contracts remain historical and do not freeze incubation scope. Local worktree state is coordination metadata, not project history.

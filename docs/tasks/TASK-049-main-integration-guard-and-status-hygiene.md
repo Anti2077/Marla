@@ -1,6 +1,6 @@
 # TASK-049：加固主工作树整合入口并精简状态文档
 
-Status: Active
+Status: Ready for integration
 
 Owner: Project owner + Agent
 
@@ -19,7 +19,7 @@ Conversation: 2026-09-19 工作树流程优化批注
 - Base commit: `a0f65228185b2861405105dc6f2c9e6980b4e049`
 - Integration target: `main`
 - Integration owner: primary worktree `/Users/anti/Documents/ChatGPT/Marla`
-- Integration status: Unmerged
+- Integration status: Ready for integration
 - Depends on: TASK-048
 - Expected merge order: After TASK-048
 - Owned paths: `AGENTS.md`, `docs/README.md`, `docs/development/WORKFLOW.md`, `docs/development/STATUS.md` during integration only, `docs/tasks/README.md`, `docs/tasks/TASK_TEMPLATE.md`, `scripts/main-worktree.sh`, this Task
@@ -61,9 +61,9 @@ TASK-048 established the ownership model, but its first integration still relied
 
 | Date | Requested by | Change | Acceptance / verification impact | Status |
 | --- | --- | --- | --- | --- |
-| 2026-09-19 | Project owner | Compact `STATUS.md` and make primary-main integration self-checking | Add guarded command, update workflow, compact Status only during main integration | Active |
-| 2026-09-19 | Project owner | Owner handles pushes directly | Preserve explicit authorization boundary; add no reminder or automatic remote behavior | Active |
-| 2026-09-19 | Project owner | Clarify that the other active worktrees are not under `/private/tmp` | Treat persistent Codex worktrees separately from stale temporary metadata | Active |
+| 2026-09-19 | Project owner | Compact `STATUS.md` and make primary-main integration self-checking | Add guarded command, update workflow, compact Status only during main integration | Feature verified; integration pending |
+| 2026-09-19 | Project owner | Owner handles pushes directly | Preserve explicit authorization boundary; add no reminder or automatic remote behavior | Verified |
+| 2026-09-19 | Project owner | Clarify that the other active worktrees are not under `/private/tmp` | Treat persistent Codex worktrees separately from stale temporary metadata | Verified |
 
 ## Current evidence
 
@@ -72,6 +72,10 @@ TASK-048 established the ownership model, but its first integration still relied
 - `scripts/check.sh` validates the local-state ignore boundary but does not identify the primary checkout or require `main` before integration.
 - `WORKFLOW.md` currently documents direct `git switch main` plus `git merge --no-ff` commands.
 - `STATUS.md` is 217 lines and contains extensive completed Task history even though `AGENTS.md` and `WORKFLOW.md` now require current-state-only content.
+- `scripts/main-worktree.sh` now detects the primary checkout by its real `.git` directory, requires symbolic `main`, rejects in-progress Git operations, and implements `check`, `check --clean`, and guarded `merge` modes.
+- Workflow entry documents now require `Anti2077/task-NNN-short-name`, one matching tracked Task at `Ready for integration`, a clean linked feature worktree, current-main ancestry, guarded `--no-ff` integration, and primary-only final documentation.
+- Disposable-repository probes passed primary and linked-worktree identity, dirty primary, wrong branch, merge/cherry-pick/revert/rebase/sequencer sentinels, invalid/missing branches, missing/ambiguous/not-ready Tasks, stale main, dirty feature worktree, valid no-fast-forward merge, post-merge check, and already-integrated rejection.
+- `MARLA_BUILD_CACHE_ROOT=/private/tmp/marla-task-049-cache ./scripts/check.sh` passed 52 Rust tests, 269 Swift tests, Swift Package build/test, Xcode Debug, structure, all shell syntax, source whitespace, and `git diff --check`.
 
 ## Proposed approach
 
@@ -81,15 +85,16 @@ Keep final documentation semantic and manual. The command proves location and br
 
 ## Acceptance criteria
 
-- [ ] `check` succeeds only in the real primary checkout on symbolic branch `main` and rejects a linked feature worktree.
-- [ ] `check --clean` rejects tracked, untracked, staged, or conflicted changes and in-progress merge/rebase/cherry-pick/revert operations.
-- [ ] `merge <branch>` rejects `main`, nonexistent or nonconforming feature branches, dirty linked feature worktrees, Tasks not at `Ready for integration`, ambiguous/missing Task files, and feature branches that do not contain current `main`.
-- [ ] A valid merge uses `--no-ff` and performs no push, branch/worktree deletion, cleanup, reset, rebase, or history rewrite.
-- [ ] Agent/workflow/task documentation requires the primary command before merge and before final target-branch documentation.
+- [x] `check` succeeds only in the real primary checkout on symbolic branch `main` and rejects a linked feature worktree.
+- [x] `check --clean` rejects tracked, untracked, staged, or conflicted changes and in-progress merge/rebase/cherry-pick/revert operations.
+- [x] `merge <branch>` rejects `main`, nonexistent or nonconforming feature branches, dirty linked feature worktrees, Tasks not at `Ready for integration`, ambiguous/missing Task files, and feature branches that do not contain current `main`.
+- [x] A valid merge uses `--no-ff` and performs no push, branch/worktree deletion, cleanup, reset, rebase, or history rewrite.
+- [x] Agent/workflow/task documentation requires the primary command before merge and before final target-branch documentation.
 - [ ] `STATUS.md` retains only current integrated baseline, open acceptance gaps, risks/decisions, and Required Reading; completed detail remains linked in Tasks, `VERIFICATION.md`, and Git.
-- [ ] Existing active worktrees are described from live paths; stale temporary worktree metadata is not generalized to persistent Codex worktrees.
-- [ ] Remote push policy remains explicit-owner authorization with no automatic threshold or reminder added.
-- [ ] Shell syntax, focused command behavior, full `./scripts/check.sh`, static workflow searches, and `git diff --check` pass.
+- [x] Existing active worktrees are described from live paths; stale temporary worktree metadata is not generalized to persistent Codex worktrees.
+- [x] Remote push policy remains explicit-owner authorization with no automatic threshold or reminder added.
+- [x] Shell syntax, focused command behavior, feature-worktree `./scripts/check.sh`, static workflow searches, and `git diff --check` pass.
+- [ ] After integration, the real primary `check` and final mainline `./scripts/check.sh` pass against the compacted documented tree.
 
 ## Verification
 
@@ -109,6 +114,8 @@ Run linked-worktree, dirty-tree, wrong-branch, stale-main, invalid-branch, and T
 - Confirm command errors identify the violated invariant and recovery action.
 - Confirm a successful merge stops before documentation, push, and cleanup.
 - Review the compacted `STATUS.md` against live code, current Tasks, and `VERIFICATION.md` links.
+
+Disposable-repository probes confirmed the first two items. The `STATUS.md` review remains primary-worktree integration work.
 
 ## Required Reading
 
@@ -146,15 +153,15 @@ None. The project owner selected primary-main integration, concise Status, owner
 
 ## Completion record
 
-- Worktree verified commit:
+- Worktree verified commit: `7952a9d` (`Anti2077/task-049-main-integration-guard`)
 - Integration commit:
 - Integration verification:
-- Automated evidence:
-- Manual evidence:
-- Documentation updated:
-- Mainline documentation updated by:
-- Remaining work promoted to:
-- Scope changes closed:
+- Automated evidence: Disposable guard probes passed all recorded success/failure paths. `MARLA_BUILD_CACHE_ROOT=/private/tmp/marla-task-049-cache ./scripts/check.sh` passed 52 Rust tests, 269 Swift tests, Swift Package, Xcode Debug, structure, shell, whitespace, and diff gates.
+- Manual evidence: Error messages named the failed invariant and recovery action; the successful disposable merge produced a two-parent no-fast-forward commit and stopped before documentation or remote/cleanup actions.
+- Documentation updated: `AGENTS.md`, documentation entry, Workflow, Task guide/template, and the new primary-worktree command.
+- Mainline documentation updated by: Pending primary-worktree integration.
+- Remaining work promoted to: None; `STATUS.md` compaction and target-branch verification remain integration steps in this Task.
+- Scope changes closed: Feature-worktree scope closed; integration-only criteria remain open.
 - Parallel contributions integrated: None
 - Remote push state: Not pushed; owner-managed and outside this Task
 - Worktree cleanup state: Retained unless separately authorized

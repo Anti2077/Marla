@@ -1,6 +1,6 @@
 # TASK-048：建立主工作树整合与功能工作树并行流程
 
-Status: Ready for integration
+Status: Done
 
 Owner: Project owner + Agent
 
@@ -19,7 +19,7 @@ Conversation: 2026-09-19 `codex/parallel-worktree-docs` 适用性审查与现行
 - Base commit: `f1377782b8f3dfd0de2f10320809ff26b7a829ca`
 - Integration target: `main`
 - Integration owner: primary worktree `/Users/anti/Documents/ChatGPT/Marla`
-- Integration status: Unmerged
+- Integration status: Integrated
 - Depends on: None
 - Owned paths: `.gitignore`, `AGENTS.md`, `docs/README.md`, `docs/development/STATUS.md` during integration only, `docs/development/UI_UX_SKILLS.md`, `docs/development/WORKFLOW.md`, `docs/development/WORKTREE_STATE_TEMPLATE.md`, `docs/tasks/README.md`, `docs/tasks/TASK_TEMPLATE.md`, `scripts/check.sh`, this Task
 - Known overlaps: the primary worktree owns `main` and final `STATUS.md`; current product Tasks and release/version documents must not be rewritten by the feature worktree
@@ -61,7 +61,7 @@ The old branch contains a sound coordination model but is 80 commits behind curr
 
 | Date | Requested by | Change | Acceptance / verification impact | Status |
 | --- | --- | --- | --- | --- |
-| 2026-09-19 | Project owner | Adopt the primary-main-worktree plus feature-worktree integration model | Create TASK-048 worktree, port current-safe rules, verify feature branch and mainline integration | Active |
+| 2026-09-19 | Project owner | Adopt the primary-main-worktree plus feature-worktree integration model | Create TASK-048 worktree, port current-safe rules, verify feature branch and mainline integration | Complete |
 
 ## Current evidence
 
@@ -87,7 +87,7 @@ Port the old branch's durable ideas onto the live files. Use the tracked Task as
 - [x] Incubation/versioning, structure, Serena, UI review, release packaging, website ignore, and source-of-truth rules remain intact.
 - [x] Static searches find no current rule that requires every parallel feature worktree to overwrite a single global Active Task slot outside the historical current-main status text pending integration cleanup.
 - [x] Feature-worktree checks and `git diff --check` pass.
-- [ ] After merge, full `./scripts/check.sh` passes on `main`; Task and `STATUS.md` record the integration truth separately from remote push state.
+- [x] After merge, full `./scripts/check.sh` passes on `main`; Task and `STATUS.md` record the integration truth separately from remote push state.
 
 ## Verification
 
@@ -136,8 +136,8 @@ Walk through two hypothetical feature worktrees with unique Task IDs and disjoin
 ## Parallel worktree coordination
 
 - TASK-048 was reserved by the primary integration owner on 2026-09-19 before documentation edits.
-- The feature worktree owns the paths listed in Execution context except `STATUS.md`, which remains primary-worktree-only until integration.
-- The primary worktree remains on `main`; it will review and merge the feature branch, run mainline verification, then update `STATUS.md` and this Task's integration record.
+- The feature worktree owned the paths listed in Execution context except `STATUS.md`, which remained primary-worktree-only until integration.
+- The primary worktree remained on `main`, merged the feature branch as `51c131a`, ran mainline verification, and updated `STATUS.md` plus this Task's integration record.
 - No other current feature worktree is authorized to modify TASK-048 files.
 
 ## Risks and rollback
@@ -153,15 +153,15 @@ None. The project owner approved this workflow on 2026-09-19.
 
 ## Completion record
 
-- Worktree verified commit: `f0a77a1` (`Anti2077/task-048-parallel-worktree-workflow`)
-- Integration commit: Pending
-- Integration verification: Pending
-- Automated evidence: Authorized `MARLA_BUILD_CACHE_ROOT=/private/tmp/marla-task-048-cache-host ./scripts/check.sh` passed on 2026-09-19: Rust 52 tests, Swift Package tests, Xcode Debug build, strict Clippy, structure, shell syntax, local-state invariants, source whitespace, and `git diff --check`. The first restricted run failed at an AppKit window test (signal 5); the authorized host rerun passed the same test suite.
-- Manual evidence: Primary worktree remained on clean `main`; the feature worktree owned TASK-048 and its recorded paths; read-only review findings were reconciled; local merge, target-branch verification, push, and cleanup remain separate states.
-- Documentation updated: Feature-worktree documentation is complete; `STATUS.md` integration wording remains for the primary worktree.
-- Mainline documentation updated by: Pending
-- Remaining work promoted to: None; integration and remote publication remain lifecycle steps, not follow-up product work
-- Scope changes closed: Yes in the feature worktree; integration acceptance remains pending
+- Worktree verified commit: `822c98f` (`Anti2077/task-048-parallel-worktree-workflow`)
+- Integration commit: `51c131a6307b25dc4d2076b15988f07048808ab2`
+- Integration verification: Authorized `MARLA_BUILD_CACHE_ROOT=/private/tmp/marla-task-048-main-cache ./scripts/check.sh` passed on local `main` on 2026-09-19.
+- Automated evidence: The feature-worktree and mainline checks each passed Rust 52 tests, Swift Package tests, Xcode Debug build, strict Clippy, structure, shell syntax, local-state invariants, source whitespace, and `git diff --check`. The first restricted feature-worktree run failed at an AppKit window test (signal 5); the authorized host rerun passed the same test suite.
+- Manual evidence: The primary worktree remained on `main`; the feature worktree owned TASK-048 and its recorded paths; read-only review findings were reconciled; the primary worktree performed the no-fast-forward merge; local merge, target-branch verification, remote push, and cleanup remain separate states.
+- Documentation updated: Workflow, Task guidance/template, optional local-state template, entry documentation, UI/UX guidance, `AGENTS.md`, `scripts/check.sh`, `STATUS.md`, and this Task now describe the integrated workflow.
+- Mainline documentation updated by: Primary integration worktree `/Users/anti/Documents/ChatGPT/Marla`
+- Remaining work promoted to: None; remote publication and cleanup remain separately authorized lifecycle operations, not follow-up product work
+- Scope changes closed: Yes after target-branch integration and verification
 - Parallel contributions integrated: Read-only workflow consistency review reconciled
 - Remote push state: Not pushed; no push authorization requested or implied
-- Worktree cleanup state: Retained until mainline integration and verification complete
+- Worktree cleanup state: Retained; no cleanup authorization was requested or implied

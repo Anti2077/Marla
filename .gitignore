@@ -9,3 +9,4 @@ artifacts/
 *.xcuserstate
 xcuserdata/
 .DS_Store
+/.marla/worktree-state.md

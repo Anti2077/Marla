@@ -12,6 +12,19 @@ Origin: BL-XXX / direct request / defect
 
 Conversation: 当前开发对话的标题、日期或可识别说明
 
+## Execution context
+
+- Worktree: `/absolute/path/to/worktree`
+- Branch: `Anti2077/task-xxx-short-name`
+- Base commit: `40-character commit`
+- Integration target: `main`
+- Integration owner: primary worktree path or named owner
+- Integration status: Not started / Unmerged / Ready for integration / Integrated
+- Depends on: None / TASK-XXX
+- Expected merge order: Independent / before or after TASK-XXX
+- Owned paths: 明确的文件或目录
+- Known overlaps: None / 与其它 Task 重叠的路径和协调方式
+
 ## Initial request
 
 记录项目所有者开启本次开发对话时的原始目标。后续追加内容不改写这里，而是进入 Scope changes。
@@ -60,7 +73,7 @@ Conversation: 当前开发对话的标题、日期或可识别说明
 - [ ] 相关自动化测试通过。
 - [ ] 新增代码未使任何源文件超过结构门禁。
 - [ ] 需要的真实 App 验证完成。
-- [ ] 相关规格和 `STATUS.md` 已同步。
+- [ ] 相关规格已同步；未整合时已记录建议的全局文档变化，整合后由主工作树同步 `STATUS.md` 和索引。
 
 ## Verification
 
@@ -89,6 +102,12 @@ Conversation: 当前开发对话的标题、日期或可识别说明
 | --- | --- | --- | --- | --- | --- |
 | Agent name | 独立目标 | 文件列表 | 文件或章节 | Read-only / Edit | 交付结果 |
 
+## Integration notes
+
+- 需要主工作树写入 `STATUS.md`、Backlog、Roadmap 或索引的内容。
+- 目标分支前进后需要重新核对的代码、规格和测试。
+- 与依赖 Task 的路径重叠、冲突策略和建议合并顺序。
+
 ## Risks and rollback
 
 - 可能破坏的现有行为。
@@ -101,12 +120,17 @@ Conversation: 当前开发对话的标题、日期或可识别说明
 
 ## Completion record
 
-任务完成时填写：
+功能工作树验证完成时先标记 `Ready for integration`；进入目标分支并完成目标分支验证后才标记 `Done`。
 
-- Verified commit:
+- Worktree verified commit:
+- Integration commit:
+- Integration verification:
 - Automated evidence:
 - Manual evidence:
 - Documentation updated:
+- Mainline documentation updated by:
 - Remaining work promoted to:
 - Scope changes closed:
 - Parallel contributions integrated:
+- Remote push state:
+- Worktree cleanup state:

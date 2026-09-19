@@ -1,6 +1,6 @@
 # Marla UI/UX Skill 使用指南
 
-Last updated: 2026-08-14
+Last updated: 2026-09-19
 
 这份指南只描述 Agent 如何使用 UI/UX 相关 skill，不改变 Marla 的产品行为、架构或验收标准。
 
@@ -9,12 +9,12 @@ Last updated: 2026-08-14
 UI/UX 建议按以下顺序解释和落地：
 
 1. 当前实时代码、自动化测试和真实 App 验收证据；
-2. 活跃 Task 的范围、排除项和验收条件；
+2. 当前工作树被明确分配的 Task 范围、排除项和验收条件；
 3. `docs/product/UX_PRINCIPLES.md`、版本 UI 规格和相关 ADR；
 4. 本指南规定的 skill 路由；
 5. skill 自带的通用建议。
 
-skill 是辅助工具，不得覆盖项目规范，也不能授权新增产品范围。没有 Active Task 时，UI skill 只能用于评估、审查或规划；要改产品行为，必须先由项目所有者确认一个 Task。
+skill 是辅助工具，不得覆盖项目规范，也不能授权新增产品范围。当前工作树没有明确分配的 tracked Task 时，UI skill 只能用于评估、审查或规划；要改产品行为，必须先由项目所有者确认 Task，并由主工作树分配编号和功能工作树。
 
 ## 当前视觉基线
 
@@ -113,7 +113,7 @@ App Store accessibility 声明只有在完成真实常见任务证据矩阵后�
 
 ## Marla UI/UX 审查流程
 
-1. 读取 `STATUS.md`、当前 Task、Required Reading 和相关 UI/架构文档。
+1. 核对实时 Git 工作树/分支，读取 `STATUS.md` 的目标分支基线、当前工作树 Task、Required Reading 和相关 UI/架构文档。
 2. 判断请求是否真的改变 UI、交互、可访问性或视觉质量；纯 Rust/API/Keychain 工作不调用 UI skill。
 3. 新视觉方向先使用 `swiftui-design-skill`，不要先生成 Web landing page 或独立设计系统。
 4. macOS 承载和交互使用 `axiom-macos`；辅助技术和适配使用 `ios-accessibility`。
@@ -121,7 +121,7 @@ App Store accessibility 声明只有在完成真实常见任务证据矩阵后�
 6. 实现后检查浅色、深色、Reduce Motion、键盘焦点、无障碍标签、错误/加载/流式/完成/空状态。
 7. 运行 `./scripts/check.sh`；需要稳定 Release 证据时运行 `./scripts/build-test-app.sh`。
 8. 使用真实固定 App 截图完成五维审查，每一维至少 7/10；截图默认只保存在临时目录，不提交到仓库。
-9. 将已验证事实同步到当前 Task、相关规格和 `STATUS.md`；不要把 skill 建议写成已验证事实。
+9. 将已验证事实同步到当前 Task 和相关规格；功能工作树把建议的主线状态变化写入 integration notes，由主工作树在合入并验证后同步 `STATUS.md`。不要把 skill 建议写成已验证事实。
 
 ## 不应直接采用的建议
 

@@ -12,6 +12,8 @@ Active task (current main): [`TASK-046`](../tasks/TASK-046-screenshot-selection-
 
 TASK-046 当前实现使用同次 `SCShareableContent` 快照枚举普通可见窗口，排除自身、隐藏、非普通层、无效尺寸和缺失所属进程窗口；将 ScreenCaptureKit 顶部原点窗口 frame 换算成 AppKit 全局坐标用于高亮、命中和结果卡锚点，单击后以 `desktopIndependentWindow` 捕获。普通截图的 OCR 选择只存在于当前会话且不写设置；原位入口在进入截图层前仍固定云端 GLM-OCR并禁用窗口/临时 Provider。截图定向测试 35 项、完整 `./scripts/check.sh` 和固定 Release App 重建已通过；实际刘海屏的安全区提示已以固定 App 截图确认，真实窗口/Space/OCR/浅深色窄屏 Reduce Motion 交互验收仍待项目所有者完成。
 
+TASK-047 发布前官网入口与 GitHub README 已于 2026-09-19 从 `Anti2077/task-046-release-homepage-links` 合入本地 `main`。官网导航的 GitHub Releases 与个人主页入口、根 README 和 6 个附加语言版本均已集成；实际部署官网 URL、首个公共 Release 和独立窄屏现场截图仍是后续发布输入或验证项，不改写为已完成事实。任务记录见 [`TASK-047`](../tasks/TASK-047-release-homepage-links.md)。
+
 当前工作树为 `main`；TASK-043 的实现提交为 `6be2c00`，已由 `58cc129` 合入本地 `main`，当前 `main` 尚未推送到 `origin/main`。TASK-043 的代码、回归测试和功能文档已完成，最终授权检查通过 31 项 Rust 与 240 项 Swift，固定 Release App 已重建。离线 fixture 覆盖 GLM 等待态与用户主动 Vision 降级态的浅色、深色、380pt 窄宽和 Reduce Motion；首轮发现的 224pt 底部操作行裁切已通过状态专用高度测量修复，五维复审为 8/8/8/9/7。真实 GLM 请求取消、按钮点击、同一截图复用和无重复上传仍由所有者按 RV-006 现场验收。TASK-044 的四协议适配、自动化回归、完整宿主检查和固定 Release 构建已完成，并已由 `90db067` 与 `4598dda` 进入本地 `main`；真实四类 Provider 账号验收与独立 UI 五维截图复审仍待所有者完成。
 
 TASK-045 的实现与自动化验证已完成，Task 仍为 Active：七类常见应用表格的合成本机实测与针对性解析/原生显示适配记录在 [`表格评测`](OCR_TABLE_EVALUATION_2026-09-08.md)。7 次请求耗时 6.452–16.499 秒，5 次 HTML、2 次 GFM 风格；发现标题遗漏、重复表格、未转义 pipe 和缺失 row start。Rust 对普通表转 GFM，对合并格和格内富文本保留受限规范 HTML，TextKit 原生保留行列跨度；原位路径仍强制云端坐标合同。52 项 Rust、249 项 Swift（含 8 项新增表格回归）、结构/plist/diff 检查和固定签名 Release 重建通过；2026-09-09 完整宿主 `./scripts/check.sh` 通过，窗口与剪贴板测试未复现早期受限环境失败。固定 App 的真实本机 OCR→翻译→原生表格显示、取消/回退、复制和深浅色窗口验收仍待所有者完成。实现提交为 `ee8d526`，文档修复为 `7955f2d`；两项已进入本地 `main`，未推送远端。

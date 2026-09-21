@@ -1,6 +1,6 @@
 # TASK-050：最近翻译快速复制
 
-Status: Ready for integration
+Status: Done
 
 Owner: Project owner + Agent
 
@@ -19,7 +19,7 @@ Conversation: 2026-09-21，菜单最近翻译右侧快速复制译文和原文
 - Base commit: `ccc2b3e928623cfef921ad5853386af02d3e79e7`
 - Integration target: `main`
 - Integration owner: `/Users/anti/Documents/ChatGPT/Marla`
-- Integration status: Ready for integration
+- Integration status: Integrated
 - Depends on: None
 - Expected merge order: Independent
 - Owned paths: `Sources/MarlaApp/MarlaApp.swift`, new history views under `Sources/MarlaApp/App/`, history copy extension under `Sources/MarlaApp/Sessions/`, `Tests/MarlaAppTests/RecentTranslationCopyTests.swift`, `Marla.xcodeproj/project.pbxproj`, `docs/features/recent-translations.md`, this Task; existing UI automation only as needed for offline real-App verification.
@@ -126,7 +126,7 @@ None. 紧密耦合的小型 UI/规格修改，由本 Agent 维护。
 
 ## Integration notes
 
-主工作树整合后更新 STATUS/文档索引；用 `./scripts/main-worktree.sh merge Anti2077/task-050-history-quick-copy`，之后 `check` 和最终 `./scripts/check.sh`。当前不授权整合、推送或清理。
+主工作树已用 `./scripts/main-worktree.sh merge Anti2077/task-050-history-quick-copy` 完成受保护的 no-fast-forward 整合，并在最终文档树运行 `check` 和 `./scripts/check.sh`。本次未授权推送或清理。
 
 ## Risks and rollback
 
@@ -139,10 +139,13 @@ None.
 ## Completion record
 
 - Worktree verified commit: 本 Task 最终实现提交（见 Git）
-- Integration commit: None
+- Integration commit: `438a44d36079d9fe0413f4c7cb683360addfcbb6`
+- Integration verification: Real-primary `./scripts/main-worktree.sh check` passed immediately after merge. `MARLA_BUILD_CACHE_ROOT=/private/tmp/marla-task-050-main-cache ./scripts/check.sh` passed against the final documented local `main`.
+- Integration fix: Target-branch compilation exposed a Swift 6 isolation warning on the native menu selector; the primary owner explicitly marked that selector `@MainActor` before the final full check.
 - Automated evidence: 52 Rust / 272 Swift tests and Xcode Debug passed
 - Manual evidence: Initial light/dark review, final idle screenshot/AX and real clipboard checks; latest hover/split-control revision accepted by owner. Expanded light/dark capture and independent keyboard traversal not obtained.
-- Documentation updated: This Task and `docs/features/recent-translations.md`; `STATUS.md` unchanged
-- Scope changes closed: All owner-requested behavior implemented and owner accepted; no mainline integration or push authorized.
-- Remote push state: Not pushed
-- Worktree cleanup state: Retained
+- Documentation updated: This Task, `docs/features/recent-translations.md`, `docs/README.md`, and `docs/development/STATUS.md`.
+- Mainline documentation updated by: Primary worktree `/Users/anti/Documents/ChatGPT/Marla`.
+- Scope changes closed: All owner-requested behavior implemented, owner accepted, integrated, and verified on local `main`.
+- Remote push state: Not pushed; local `main` is ahead of `origin/main` by this Task's three commits plus the merge commit.
+- Worktree cleanup state: Retained; cleanup was not authorized.

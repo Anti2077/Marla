@@ -54,7 +54,7 @@ struct RecentTranslationCopyMenu: NSViewRepresentable {
         init(_ parent: RecentTranslationCopyMenu) { self.parent = parent }
         func menuWillOpen(_ menu: NSMenu) { parent.onTrackingChange(true) }
         func menuDidClose(_ menu: NSMenu) { parent.onTrackingChange(false) }
-        @objc func copySource() { parent.onCopySource() }
+        @MainActor @objc func copySource() { parent.onCopySource() }
     }
 
     final class FocusReportingPopUpButton: NSPopUpButton {

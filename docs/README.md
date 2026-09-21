@@ -17,6 +17,8 @@
 
 UI/UX 工作的 skill 路由和使用示例见 [`development/UI_UX_SKILLS.md`](development/UI_UX_SKILLS.md)。
 
+最近翻译的内存边界、恢复行为和快速复制合同见 [`features/recent-translations.md`](features/recent-translations.md)。
+
 ## 文档分层
 
 | 目录或文件 | 回答的问题 | 何时更新 |

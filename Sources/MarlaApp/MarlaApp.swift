@@ -363,38 +363,11 @@ struct RecentTranslationsSection: View {
                 .clipShape(RoundedRectangle(cornerRadius: DesignTokens.radiusS))
             } else {
                 ForEach(store.recentTranslations) { recent in
-                    Button {
+                    RecentTranslationRow(recent: recent) {
                         onSelect(recent.id)
-                    } label: {
-                        HStack(spacing: DesignTokens.spaceS) {
-                            Image(systemName: recent.surface.symbolName)
-                                .font(.system(size: 13, weight: .medium))
-                                .foregroundStyle(DesignTokens.accent)
-                                .frame(width: 18)
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text(recent.displayTranslation)
-                                    .font(AppFont.caption)
-                                    .foregroundStyle(DesignTokens.primaryText)
-                                    .lineLimit(1)
-                                Text(recent.displaySourceText)
-                                    .font(AppFont.micro)
-                                    .foregroundStyle(DesignTokens.secondaryText)
-                                    .lineLimit(1)
-                            }
-                            Spacer(minLength: DesignTokens.spaceS)
-                            Image(systemName: "chevron.right")
-                                .font(.system(size: 9, weight: .semibold))
-                                .foregroundStyle(DesignTokens.tertiaryText)
-                        }
-                        .padding(.horizontal, DesignTokens.spaceM)
-                        .frame(minHeight: 44)
-                        .background(DesignTokens.secondarySurface)
-                        .clipShape(RoundedRectangle(cornerRadius: DesignTokens.radiusS))
-                        .contentShape(Rectangle())
+                    } onCopy: { content in
+                        store.copyRecentTranslation(id: recent.id, content: content)
                     }
-                    .buttonStyle(.plain)
-                    .help("重新打开这条译文")
-                    .accessibilityLabel("最近翻译：\(recent.displayTranslation)")
                 }
             }
         }

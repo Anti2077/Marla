@@ -43,6 +43,7 @@ Conversation: 2026-09-21，菜单最近翻译右侧快速复制译文和原文
 - 保留文字区域的结果恢复入口；复制不恢复或取消当前会话，不启动请求。
 - 使用完整规范内容，遵循现有复制的末尾换行策略，提供明确 tooltip、无障碍名称和短暂成功反馈。
 - 回归测试、真实 App 截图审查和对应功能规格。
+- 整行悬停或键盘焦点进入时从右侧展开复制控件，离开后收起；窄箭头与主复制按钮共用细边框，菜单跟踪期间保持展开，Reduce Motion 关闭位移动画。
 
 ## Out of Scope
 
@@ -55,15 +56,17 @@ Conversation: 2026-09-21，菜单最近翻译右侧快速复制译文和原文
 | --- | --- | --- | --- | --- |
 | 2026-09-21 | Project owner | 初始范围 | 行内译文复制、菜单原文复制、保留恢复 | Implemented; automated and screenshot verified |
 
+| 2026-09-21 | Project owner | 仅整行悬停/焦点时右侧展开，复制与窄箭头合并为细框按钮组 | 增加显隐、菜单跟踪、键盘/Reduce Motion 与新截图验证 | Implemented; owner accepted |
+
 ## Current evidence
 
-- `RecentTranslationsSection` 使用覆盖整行的 Button，只调用 `onSelect`；摘要为只读纯文本投影。
+- 初始基线的 `RecentTranslationsSection` 使用覆盖整行的 Button，只调用 `onSelect`；当前已拆为独立恢复、复制和原文菜单控件，摘要仍为只读纯文本投影。
 - `RecentTranslation` 保存完整 sourceContent 和 translation；现有结果卡复制规范 Markdown 并移除末尾换行。
 - main 新工作流要求功能分支完成后止于 `Ready for integration`，主线状态留待整合负责人更新。
 
 ## Proposed approach
 
-提取最近翻译行到 App 层独立文件。恢复按钮与复制 Button/Menu 为兄弟控件，避免嵌套按钮事件冲突；Session 层按历史 ID 查找并直接写入剪贴板，返回是否成功，UI 独立管理短暂反馈。沿用现有颜色、字体、间距和系统图标。
+提取最近翻译行到 App 层独立文件。恢复按钮与复制 Button/原生 NSPopUpButton 为兄弟控件，避免嵌套按钮事件冲突；Session 层按历史 ID 查找并直接写入剪贴板，返回是否成功，UI 独立管理短暂反馈。沿用现有颜色、字体、间距和系统图标。整行 hover、SwiftUI focus 和原生菜单焦点决定显隐；NSMenuDelegate 追踪菜单展开/关闭，避免指针移入弹出菜单时错误收起。
 
 ## Acceptance criteria
 
@@ -75,6 +78,8 @@ Conversation: 2026-09-21，菜单最近翻译右侧快速复制译文和原文
 - [x] 真实 App 浅色/深色截图完成五维审查，各维至少 7/10；未验证交互明确记录。
 - [x] 工作树干净、当前 main ancestry、唯一 Task 和分支符合整合门禁。
 
+- [x] 新增悬停显隐、相邻细框按钮组和菜单跟踪完成；新版 Release 构建通过，2026-09-21 项目所有者明确“我验收过了 没问题”。
+
 ## Verification
 
 ### Automated
@@ -85,7 +90,9 @@ Conversation: 2026-09-21，菜单最近翻译右侧快速复制译文和原文
 - 沙箱初跑在既有 AppKit 测试中因 NSScreen 不可用崩溃；完整桌面会话重跑通过。
 - 日志：`/private/tmp/marla-task-050-check-full.log`。
 
-### Manual
+### Manual — first revision
+
+以下截图对应常显控件的首版；新增悬停/细框布局需要下方新的截图证据。
 
 - `./scripts/build-test-app.sh` 通过；本工作树 `artifacts/Marla_dev.app` 为稳定身份 `API Usage Monitor Dev` 签名，Bundle ID `com.marla.app`、版本 `0.0.0`、arm64、最低 macOS 14 和 designated requirement 已验证。
 - 使用现有 `menu-recents` 离线合成样本，未访问 Provider，未修改生产历史。浅色：`/private/tmp/marla-task-050-light.png`；深色 + Reduce Motion：`/private/tmp/marla-task-050-dark.png`。
@@ -93,7 +100,16 @@ Conversation: 2026-09-21，菜单最近翻译右侧快速复制译文和原文
 - 真实 App AX 树读出各行独立恢复按钮、复制译文按钮、更多复制选项菜单及“复制原文”项。之后 Computer Use 多次返回 `timeoutReached`，未取得实际点击、成功对勾、菜单展开/选择及键盘遍历的端到端证据。未将尝试记为成功。
 - 进程采样显示本轮离线 App 主线程正常等待事件；不足以证明工具超时的根因。主线 App 另有运行实例，未关闭或修改。
 - 五维截图审查（浅色/深色）：哲学一致性 8、视觉层级 8、工艺质量 8、功能性 7、原创性 8。功能分因完整鼠标/键盘验收缺失保守记 7；本评分仅是截图设计审查，不代替交互验收。
-- Owner follow-up：在本分支 App 完成任意翻译后，点历史行复制并粘贴核对译文；打开相邻菜单复制原文并粘贴核对；点文字恢复结果；用键盘遍历动作。此项为尚未完成的人工交互证据，整合审查时保留。
+- Owner follow-up：在本分支 App 完成任意翻译后，点历史行复制并粘贴核对译文；打开相邻菜单复制原文并粘贴核对；点文字恢复结果；用键盘遍历动作。这是首版记录的验收缺口；本次最新版本的 owner acceptance 见下方。
+
+### Hover revision verification
+
+- `./scripts/check.sh` passed after hover/split-control implementation: 52 Rust / 272 Swift tests and Xcode Debug; `/private/tmp/marla-task-050-hover-check.log`.
+- Signed Release rebuild passed; `/private/tmp/marla-task-050-hover-release.log`. Stable identity, Bundle ID/version, architecture and designated requirement passed.
+- New idle-state fixed-App screenshot: `/private/tmp/marla-task-050-hover-idle-light.png`; hidden controls are absent from the AX tree and named copy accessibility actions remain on the summary. The Agent did not obtain a final expanded light/dark screenshot pair; do not reuse the first-revision screenshots as proof of the new outline/reveal state.
+- Computer Use successfully invoked the first row's native accessibility “复制原文” and “复制译文” actions. Direct Pasteboard reads matched the complete synthetic source and translation; the menu surface remained visible without opening a result card.
+- 2026-09-21 owner acceptance: “我验收过了 没问题”. This closes owner-facing acceptance of the latest hover/split-control revision. No further UI simulation is required for this Task.
+- Agent-only limitation: the current Computer Use interface has no dedicated move/hover action; pointer-hover and keyboard traversal were not independently reproduced by the Agent. Owner acceptance is recorded separately from automated evidence.
 
 ## Required Reading
 
@@ -125,7 +141,8 @@ None.
 - Worktree verified commit: 本 Task 最终实现提交（见 Git）
 - Integration commit: None
 - Automated evidence: 52 Rust / 272 Swift tests and Xcode Debug passed
-- Manual evidence: Signed Release light/dark screenshots and AX labels verified; pointer/keyboard end-to-end pending due to Computer Use timeout
+- Manual evidence: Initial light/dark review, final idle screenshot/AX and real clipboard checks; latest hover/split-control revision accepted by owner. Expanded light/dark capture and independent keyboard traversal not obtained.
 - Documentation updated: This Task and `docs/features/recent-translations.md`; `STATUS.md` unchanged
+- Scope changes closed: All owner-requested behavior implemented and owner accepted; no mainline integration or push authorized.
 - Remote push state: Not pushed
 - Worktree cleanup state: Retained

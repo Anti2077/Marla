@@ -85,6 +85,7 @@
 		A10000000000000000000061 /* HTMLTableProjection.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000061 /* HTMLTableProjection.swift */; };
 		A10000000000000000000063 /* App/RecentTranslationRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000063 /* App/RecentTranslationRow.swift */; };
 		A10000000000000000000064 /* Sessions/RecentTranslationCopy.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000064 /* Sessions/RecentTranslationCopy.swift */; };
+		A10000000000000000000065 /* App/RecentTranslationCopyMenu.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000065 /* App/RecentTranslationCopyMenu.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -180,6 +181,7 @@
 		A20000000000000000000061 /* HTMLTableProjection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HTMLTableProjection.swift; sourceTree = "<group>"; };
 		A20000000000000000000063 /* App/RecentTranslationRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecentTranslationRow.swift; sourceTree = "<group>"; };
 		A20000000000000000000064 /* Sessions/RecentTranslationCopy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecentTranslationCopy.swift; sourceTree = "<group>"; };
+		A20000000000000000000065 /* App/RecentTranslationCopyMenu.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecentTranslationCopyMenu.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -243,7 +245,7 @@
 			path = MarlaApp;
 			sourceTree = "<group>";
 		};
-		A70000000000000000000008 /* App */ = {isa = PBXGroup; children = (A20000000000000000000063 /* RecentTranslationRow.swift */, A20000000000000000000015 /* MarlaApplicationModel.swift */, A20000000000000000000034 /* ScreenshotTranslation.swift */, A2000000000000000000004B /* InPlaceOverlayUIAutomation.swift */, A20000000000000000000022 /* ResultPanelLayout.swift */, A2000000000000000000002B /* MarkdownResultUIAutomation.swift */, A20000000000000000000031 /* AcceptancePerformanceRecorder.swift */); path = App; sourceTree = "<group>"; };
+		A70000000000000000000008 /* App */ = {isa = PBXGroup; children = (A20000000000000000000065 /* RecentTranslationCopyMenu.swift */, A20000000000000000000063 /* RecentTranslationRow.swift */, A20000000000000000000015 /* MarlaApplicationModel.swift */, A20000000000000000000034 /* ScreenshotTranslation.swift */, A2000000000000000000004B /* InPlaceOverlayUIAutomation.swift */, A20000000000000000000022 /* ResultPanelLayout.swift */, A2000000000000000000002B /* MarkdownResultUIAutomation.swift */, A20000000000000000000031 /* AcceptancePerformanceRecorder.swift */); path = App; sourceTree = "<group>"; };
 		A70000000000000000000009 /* Models */ = {isa = PBXGroup; children = (A20000000000000000000016 /* TranslationAPIProfile.swift */); path = Models; sourceTree = "<group>"; };
 		A7000000000000000000000A /* Persistence */ = {isa = PBXGroup; children = (A20000000000000000000017 /* KeychainCredentialStore.swift */, A20000000000000000000018 /* MarlaSettingsStore.swift */, A20000000000000000000035 /* OCRSettings.swift */); path = Persistence; sourceTree = "<group>"; };
 		A7000000000000000000000B /* Settings */ = {isa = PBXGroup; children = (A20000000000000000000019 /* SettingsWindow.swift */, A20000000000000000000026 /* SettingsShared.swift */, A20000000000000000000046 /* APIProfileReorder.swift */, A20000000000000000000027 /* SettingsEditor.swift */, A20000000000000000000028 /* SettingsSupport.swift */, A20000000000000000000043 /* ShortcutEditor.swift */, A20000000000000000000038 /* OCRSettingsSection.swift */, A20000000000000000000039 /* TranslationWindowPlacement.swift */, A20000000000000000000040 /* TranslationWindowWidthPreset.swift */, A20000000000000000000053 /* ExperimentalSettingsSection.swift */); path = Settings; sourceTree = "<group>"; };
@@ -413,6 +415,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				A10000000000000000000065 /* App/RecentTranslationCopyMenu.swift in Sources */,
 				A10000000000000000000064 /* Sessions/RecentTranslationCopy.swift in Sources */,
 				A10000000000000000000063 /* App/RecentTranslationRow.swift in Sources */,
 				A10000000000000000000015 /* App/MarlaApplicationModel.swift in Sources */,

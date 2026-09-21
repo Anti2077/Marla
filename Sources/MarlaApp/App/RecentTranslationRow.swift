@@ -4,8 +4,23 @@ struct RecentTranslationRow: View {
     let recent: RecentTranslation
     let onSelect: () -> Void
     let onCopy: (RecentTranslationCopyContent) -> Bool
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.marlaReduceMotionOverride) private var reduceMotionOverride
+    @Environment(\.colorSchemeContrast) private var contrast
+    @FocusState private var focusedControl: Control?
+    @State private var isHovered = false
+    @State private var isMenuTracking = false
+    @State private var isMenuFocused = false
     @State private var confirmation: RecentTranslationCopyContent?
     @State private var confirmationToken: UUID?
+
+    private enum Control: Hashable { case open, copy }
+
+    private var showsControls: Bool {
+        isHovered || focusedControl != nil || isMenuTracking || isMenuFocused
+    }
+
+    private var reducesMotion: Bool { reduceMotion || reduceMotionOverride }
 
     var body: some View {
         HStack(spacing: 0) {
@@ -36,46 +51,70 @@ struct RecentTranslationRow: View {
                 .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
+            .focused($focusedControl, equals: .open)
             .help("重新打开这条译文")
             .accessibilityLabel("最近翻译：\(recent.displayTranslation)")
+            .accessibilityAction(named: "复制译文") { copy(.translation) }
+            .accessibilityAction(named: "复制原文") { copy(.source) }
 
-            Button { copy(.translation) } label: {
-                Image(systemName: confirmation == .translation ? "checkmark" : "doc.on.doc")
-                    .font(.system(size: 12, weight: .medium))
-                    .foregroundStyle(DesignTokens.secondaryText)
-                    .frame(width: 28, height: 32)
-                    .contentShape(Rectangle())
-            }
-            .buttonStyle(.plain)
-            .disabled(RecentTranslationCopyContent.translation.text(in: recent).isEmpty)
-            .help(confirmation == .translation ? "已复制译文" : "复制译文")
-            .accessibilityLabel(confirmation == .translation ? "已复制译文" : "复制译文")
-            .accessibilityIdentifier("recent-copy-translation-\(recent.id)")
-
-            Menu {
-                Button("复制原文", systemImage: "doc.on.doc") { copy(.source) }
-                    .disabled(RecentTranslationCopyContent.source.text(in: recent).isEmpty)
-            } label: {
-                Image(systemName: confirmation == .source ? "checkmark" : "chevron.down")
-                    .font(.system(size: 9, weight: .semibold))
-                    .foregroundStyle(DesignTokens.secondaryText)
-                    .frame(width: 24, height: 32)
-                    .contentShape(Rectangle())
-            }
-            .menuStyle(.borderlessButton)
-            .menuIndicator(.hidden)
-            .fixedSize()
-            .help(confirmation == .source ? "已复制原文" : "更多复制选项")
-            .accessibilityLabel(confirmation == .source ? "已复制原文，更多复制选项" : "更多复制选项")
-            .accessibilityIdentifier("recent-copy-menu-\(recent.id)")
+            copyControls
+                .frame(width: 49, height: 28)
+                .offset(x: showsControls || reducesMotion ? 0 : 12)
+                .opacity(showsControls ? 1 : 0)
+                .frame(width: showsControls ? 49 : 0, alignment: .trailing)
+                .clipped()
+                .allowsHitTesting(showsControls)
+                .accessibilityHidden(!showsControls)
         }
         .padding(.trailing, DesignTokens.spaceS)
         .background(DesignTokens.secondarySurface)
         .clipShape(RoundedRectangle(cornerRadius: DesignTokens.radiusS))
+        .contentShape(Rectangle())
+        .onHover { isHovered = $0 }
+        .animation(reducesMotion ? nil : MarlaMotion.content, value: showsControls)
         .task(id: confirmationToken) {
             guard confirmationToken != nil else { return }
             do { try await Task.sleep(for: .milliseconds(900)) } catch { return }
             confirmation = nil
+        }
+    }
+
+    private var copyControls: some View {
+        HStack(spacing: 0) {
+            Button { copy(.translation) } label: {
+                Image(systemName: confirmation == .translation ? "checkmark" : "doc.on.doc")
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundStyle(DesignTokens.secondaryText)
+                    .frame(width: 28, height: 28)
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .focused($focusedControl, equals: .copy)
+            .disabled(!showsControls || RecentTranslationCopyContent.translation.text(in: recent).isEmpty)
+            .help(confirmation == .translation ? "已复制译文" : "复制译文")
+            .accessibilityLabel(confirmation == .translation ? "已复制译文" : "复制译文")
+            .accessibilityIdentifier("recent-copy-translation-\(recent.id)")
+
+            Rectangle()
+                .fill(DesignTokens.secondaryText.opacity(contrast == .increased ? 0.8 : 0.3))
+                .frame(width: 1)
+                .accessibilityHidden(true)
+            RecentTranslationCopyMenu(
+                isEnabled: showsControls && !RecentTranslationCopyContent.source.text(in: recent).isEmpty,
+                isConfirmed: confirmation == .source,
+                identifier: "recent-copy-menu-\(recent.id)",
+                onCopySource: { copy(.source) },
+                onTrackingChange: { isMenuTracking = $0 },
+                onFocusChange: { isMenuFocused = $0 }
+            )
+            .frame(width: 20, height: 28)
+        }
+        .background(DesignTokens.surface.opacity(0.55))
+        .clipShape(RoundedRectangle(cornerRadius: 6))
+        .overlay {
+            RoundedRectangle(cornerRadius: 6)
+                .strokeBorder(DesignTokens.secondaryText.opacity(contrast == .increased ? 0.8 : 0.3), lineWidth: 1)
+                .allowsHitTesting(false)
         }
     }
 

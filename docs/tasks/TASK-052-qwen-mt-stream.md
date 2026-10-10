@@ -1,6 +1,6 @@
 # TASK-052：修复 Qwen-MT Flash 增量流翻译
 
-Status: Ready for integration
+Status: Done
 
 Owner: Project owner + Agent
 
@@ -19,7 +19,7 @@ Conversation: 2026-10-10，切换 Qwen-MT Flash 后翻译报不连续流式内�
 - Base commit: `ceda7cb0442876d6bdb440234db1d40f3a673909`
 - Integration target: `main`
 - Integration owner: `/Users/anti/Documents/ChatGPT/Marla`
-- Integration status: Unmerged
+- Integration status: Integrated
 - Depends on: None
 - Expected merge order: Independent of TASK-051
 - Owned paths: `rust/marla-core/src/lib.rs`, `rust/marla-core/src/qwen_mt_stream_tests.rs`, this Task, `docs/features/language-routing.md` (Qwen stream contract), `docs/architecture/ARCHITECTURE.md` (Qwen stream paragraphs), `docs/architecture/decisions/ADR-0009-semantic-markdown-translation-contract.md` (provider stream capability correction)
@@ -119,13 +119,13 @@ None for local fix and verification. Integration, remote push and worktree clean
 ## Completion record
 
 - Worktree verified commit: `15a07d4` (`fix: support Qwen MT incremental streams`)
-- Integration commit: Not integrated
-- Integration verification: Not run
+- Integration commit: `4a928fd` (merge commit)
+- Integration verification: `MARLA_BUILD_CACHE_ROOT=/private/tmp/marla-task-052-main-cache ./scripts/check.sh` passed on merged `main`.
 - Automated evidence: `./scripts/check.sh` passed with Rust 58 tests, Swift/XCTest 272 tests, Xcode Debug build, structure, shell syntax, whitespace and diff checks; focused Qwen suite 6/6 passed. `build-test-app.sh` and `verify-app.sh` passed for signed `artifacts/Marla_dev.app` (Bundle ID `com.marla.app`, version `0.0.0`, macOS 14.0, arm64, `API Usage Monitor Dev`).
 - Manual evidence: Owner screenshot demonstrates the pre-fix failure; post-fix live-provider acceptance pending
 - Documentation updated: `docs/features/language-routing.md`, `docs/architecture/ARCHITECTURE.md`, and accepted ADR-0009 synchronized.
-- Mainline documentation updated by: Not integrated
-- Scope changes closed: Pending
+- Mainline documentation updated by: Primary integration owner
+- Scope changes closed: Verified
 - Parallel contributions integrated: None
 - Remote push state: Not pushed
-- Worktree cleanup state: Retained
+- Worktree cleanup state: Retained pending owner cleanup authorization

@@ -122,7 +122,7 @@ None for local fix and verification. Integration, remote push and worktree clean
 - Integration commit: `4a928fd` (merge commit)
 - Integration verification: `MARLA_BUILD_CACHE_ROOT=/private/tmp/marla-task-052-main-cache ./scripts/check.sh` passed on merged `main`.
 - Automated evidence: `./scripts/check.sh` passed with Rust 58 tests, Swift/XCTest 272 tests, Xcode Debug build, structure, shell syntax, whitespace and diff checks; focused Qwen suite 6/6 passed. `build-test-app.sh` and `verify-app.sh` passed for signed `artifacts/Marla_dev.app` (Bundle ID `com.marla.app`, version `0.0.0`, macOS 14.0, arm64, `API Usage Monitor Dev`).
-- Manual evidence: Owner screenshot demonstrates the pre-fix failure; post-fix live-provider acceptance pending
+- Manual evidence: Project owner opened `/Users/anti/Documents/ChatGPT/Marla/artifacts/Marla_dev.app`, retried the original `Qwen-MT-flash` translation, and confirmed the complete result displayed normally without “不连续的流式内容”。
 - Documentation updated: `docs/features/language-routing.md`, `docs/architecture/ARCHITECTURE.md`, and accepted ADR-0009 synchronized.
 - Mainline documentation updated by: Primary integration owner
 - Scope changes closed: Verified

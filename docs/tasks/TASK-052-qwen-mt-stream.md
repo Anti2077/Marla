@@ -1,12 +1,12 @@
 # TASK-052：修复 Qwen-MT Flash 增量流翻译
 
-Status: Active
+Status: Ready for integration
 
 Owner: Project owner + Agent
 
 Created: 2026-10-10
 
-Updated: 2026-10-10
+Updated: 2026-10-11
 
 Origin: direct request / defect
 
@@ -54,8 +54,8 @@ The current Rust adapter recognizes all `qwen-mt-*` as cumulative streams. The o
 
 | Date | Requested by | Change | Acceptance / verification impact | Status |
 | --- | --- | --- | --- | --- |
-| 2026-10-10 | Project owner | Repair Flash translation failure | Complete incremental stream without false error | Pending |
-| 2026-10-10 | Necessary support | Include Lite's same documented stream behavior and correct existing ADR's family-wide cumulative claim | Bounded model capability tests; preserve Turbo/Plus and other protocols | Pending |
+| 2026-10-10 | Project owner | Repair Flash translation failure | Complete incremental stream without false error | Verified |
+| 2026-10-10 | Necessary support | Include Lite's same documented stream behavior and correct existing ADR's family-wide cumulative claim | Bounded model capability tests; preserve Turbo/Plus and other protocols | Verified |
 
 ## Current evidence
 
@@ -70,14 +70,14 @@ Select stream mode from explicit endpoint protocol and bounded model family befo
 
 ## Acceptance criteria
 
-- [ ] Flash/Lite ordinary translation emits all incremental content exactly once, including repeated text and Unicode, and completes on standard stop / DONE termination.
-- [ ] Turbo/Plus cumulative streams still normalize prefix snapshots, duplicates and empty terminal chunks; genuinely discontinuous cumulative output still fails.
-- [ ] Qwen-MT mode specialization does not affect other explicit protocols or falsely match similarly named models.
-- [ ] In-place Flash output reconstructs canonical IDs only after complete strict boundary/payload validation, with no partial layout deltas.
-- [ ] `./scripts/check.sh` passes, structure and whitespace gates included.
-- [ ] Fixed `artifacts/Marla_dev.app` builds with the existing stable signature and passes `scripts/verify-app.sh`; owner-only live-provider acceptance is clearly distinguished from mocks.
-- [ ] Feature specification, architecture and ADR facts agree; integration suggestions are recorded without editing target STATUS from this feature worktree.
-- [ ] Clean committed feature satisfies Task branch, current-main ancestry and Ready for integration gates. Integration and push remain separate authorization steps.
+- [x] Flash/Lite ordinary translation emits all incremental content exactly once, including repeated text and Unicode, and completes on standard stop / DONE termination.
+- [x] Turbo/Plus cumulative streams still normalize prefix snapshots, duplicates and empty terminal chunks; genuinely discontinuous cumulative output still fails.
+- [x] Qwen-MT mode specialization does not affect other explicit protocols or falsely match similarly named models.
+- [x] In-place Flash output reconstructs canonical IDs only after complete strict boundary/payload validation, with no partial layout deltas.
+- [x] `./scripts/check.sh` passes, structure and whitespace gates included.
+- [x] Fixed `artifacts/Marla_dev.app` builds with the existing stable signature and passes `scripts/verify-app.sh`; owner-only live-provider acceptance is clearly distinguished from mocks.
+- [x] Feature specification, architecture and ADR facts agree; integration suggestions are recorded without editing target STATUS from this feature worktree.
+- [x] Clean committed feature satisfies Task branch, current-main ancestry and Ready for integration gates. Integration and push remain separate authorization steps.
 
 ## Verification
 
@@ -118,12 +118,12 @@ None for local fix and verification. Integration, remote push and worktree clean
 
 ## Completion record
 
-- Worktree verified commit: Pending
+- Worktree verified commit: `15a07d4` (`fix: support Qwen MT incremental streams`)
 - Integration commit: Not integrated
 - Integration verification: Not run
-- Automated evidence: Pending
+- Automated evidence: `./scripts/check.sh` passed with Rust 58 tests, Swift/XCTest 272 tests, Xcode Debug build, structure, shell syntax, whitespace and diff checks; focused Qwen suite 6/6 passed. `build-test-app.sh` and `verify-app.sh` passed for signed `artifacts/Marla_dev.app` (Bundle ID `com.marla.app`, version `0.0.0`, macOS 14.0, arm64, `API Usage Monitor Dev`).
 - Manual evidence: Owner screenshot demonstrates the pre-fix failure; post-fix live-provider acceptance pending
-- Documentation updated: Pending
+- Documentation updated: `docs/features/language-routing.md`, `docs/architecture/ARCHITECTURE.md`, and accepted ADR-0009 synchronized.
 - Mainline documentation updated by: Not integrated
 - Scope changes closed: Pending
 - Parallel contributions integrated: None

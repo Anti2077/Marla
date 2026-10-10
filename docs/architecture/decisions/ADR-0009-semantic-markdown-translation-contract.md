@@ -4,7 +4,7 @@ Status: Accepted
 
 Date: 2026-08-16
 
-Amended: 2026-08-17 (streaming native projection and unified TextKit measurement); 2026-08-21 (current planning status clarified)
+Amended: 2026-08-17 (streaming native projection and unified TextKit measurement); 2026-08-21 (current planning status clarified); 2026-10-10 (TASK-052 corrects Qwen-MT Flash/Lite stream capabilities)
 
 ## Context
 
@@ -12,7 +12,7 @@ Marla's acquisition paths can encounter plain text, Markdown source, HTML, RTF, 
 
 Translation cannot safely preserve structure by translating isolated inline spans and writing them back to the same positions. Languages reorder, merge, split, emphasize, and omit content differently. Strict source/target AST isomorphism would damage natural translation and still fail to protect payloads such as code, URLs, commands, variables, and template placeholders.
 
-Generic chat models can receive format rules in a System Message. Qwen-MT is different: it accepts only a User Message plus `translation_options`, and its stream contains cumulative rather than incremental content. A real `qwen-mt-turbo` sample preserved a heading, list, emphasis, link destination, fenced code, command, variable, and placeholder across 19 cumulative updates, but one sample is evidence for a candidate, not a universal guarantee.
+Generic chat models can receive format rules in a System Message. Qwen-MT is different: it accepts only a User Message plus `translation_options`. Its legacy Turbo/Plus stream contains cumulative content; the current OpenAI-compatible Flash/Lite contract emits incremental deltas, as documented in the [official Qwen-MT guide](https://help.aliyun.com/zh/model-studio/machine-translation) checked for TASK-052 on 2026-10-10. A real `qwen-mt-turbo` sample preserved a heading, list, emphasis, link destination, fenced code, command, variable, and placeholder across 19 cumulative updates, but one sample is evidence for a candidate, not a universal guarantee.
 
 ## Decision
 
@@ -21,7 +21,7 @@ Generic chat models can receive format rules in a System Message. Qwen-MT is dif
 - Do not require source and target Markdown ASTs, blocks, inline spans, or character positions to be one-to-one. Stable IDs remain valid for acquisition evidence and geometry that actually exists; they are not a reconstruction mandate for generated target text.
 - Treat code, link destinations, variables, commands, template placeholders, and explicitly non-translatable identifiers as protected payloads. Other Markdown structure is prompted and quality-checked softly rather than mechanically restored.
 - Swift/AppKit owns native representations, user-triggered acquisition, sanitization, and HTML/RTF/attributed-text normalization. Rust owns the versioned formatted-content request, Provider capabilities, prompts, HTTP/SSE behavior, and provider-independent streaming events.
-- Represent Provider differences as capabilities covering message roles, language instructions, and stream content mode. Generic models use System plus User Messages and format-specific prompting. Qwen-MT uses User-only messages, `translation_options`, and cumulative-stream normalization.
+- Represent Provider differences as capabilities covering message roles, language instructions, and stream content mode. Generic models use System plus User Messages and format-specific prompting. Qwen-MT uses User-only messages and `translation_options`, with model-specific stream normalization: bounded Flash/Lite families append incremental deltas; Turbo/Plus and other existing Qwen-MT names retain strict cumulative normalization. Choose this capability only inside the explicitly selected OpenAI-compatible protocol and never infer it from repeated or prefix-like generated text.
 - Explicit Markdown source passes through unchanged. Quick Input's native Paste command chooses among Markdown, HTML, RTF/RTFD, and plain text, then inserts cleaned semantic Markdown source into the draft when reliable rich structure exists. Plain typed or pasted text remains a valid Markdown subset.
 - Production selection content comes only from the protected Copy transaction defined by ADR-0006. It reads the new Markdown, HTML, RTF/RTFD, and plain representations before restoring the original Pasteboard, and emits `semanticMarkdown` only when that evidence survives normalization. Accessibility content values are not input or fallback. Vision OCR remains `plainText`.
 - Require every rich representation to agree with its visible plain text. Conflict, unsafe content, or parse failure degrades to `plainText`. Parse HTML structurally in-process and remove scripts, styles, explicitly hidden nodes, image resources, and unsafe links; never execute acquired content or load its remote resources.

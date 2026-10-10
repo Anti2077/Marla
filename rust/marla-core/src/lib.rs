@@ -698,6 +698,20 @@ fn is_qwen_translation_model(endpoint: &Endpoint) -> bool {
             .starts_with("qwen-mt-")
 }
 
+fn translation_stream_content_mode(endpoint: &Endpoint) -> StreamContentMode {
+    if is_qwen_translation_model(endpoint) {
+        let model = endpoint.model.trim().to_ascii_lowercase();
+        // The OpenAI-compatible Flash/Lite contract returns incremental deltas.
+        // Keep the legacy cumulative contract for other Qwen-MT models.
+        if !model_family_matches(&model, "qwen-mt-flash")
+            && !model_family_matches(&model, "qwen-mt-lite")
+        {
+            return StreamContentMode::Cumulative;
+        }
+    }
+    StreamContentMode::Delta
+}
+
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 enum ProviderThinkingMode {
     Omit,
@@ -1423,11 +1437,7 @@ async fn run_translation(
     let mut translated = String::new();
     let mut received_first_token = false;
     let mut received_done = false;
-    let content_mode = if is_qwen_translation_model(&request.endpoint) {
-        StreamContentMode::Cumulative
-    } else {
-        StreamContentMode::Delta
-    };
+    let content_mode = translation_stream_content_mode(&request.endpoint);
 
     while !received_done {
         let event_deadline = if received_first_token {
@@ -1955,6 +1965,9 @@ pub unsafe extern "C" fn marla_translation_release(handle: *mut MarlaTranslation
         }
     }));
 }
+
+#[cfg(test)]
+mod qwen_mt_stream_tests;
 
 #[cfg(test)]
 mod tests {
@@ -2995,7 +3008,7 @@ mod tests {
         run_ffi_request_with_model(base_url, timeout_seconds, "test-model")
     }
 
-    fn run_ffi_request_with_model(
+    pub(super) fn run_ffi_request_with_model(
         base_url: &str,
         timeout_seconds: u64,
         model: &str,
@@ -3020,7 +3033,7 @@ mod tests {
         run_ffi_request_json(request, timeout_seconds)
     }
 
-    fn run_ffi_in_place_request(
+    pub(super) fn run_ffi_in_place_request(
         base_url: &str,
         timeout_seconds: u64,
         model: &str,
@@ -3128,7 +3141,10 @@ mod tests {
         vec![event]
     }
 
-    fn spawn_http_server(status: &'static str, body: &str) -> (String, mpsc::Receiver<String>) {
+    pub(super) fn spawn_http_server(
+        status: &'static str,
+        body: &str,
+    ) -> (String, mpsc::Receiver<String>) {
         spawn_http_server_at_path(status, body, "/v1")
     }
 
@@ -3217,7 +3233,7 @@ mod tests {
         format!("http://{address}/v1")
     }
 
-    fn valid_request() -> TranslationRequest {
+    pub(super) fn valid_request() -> TranslationRequest {
         TranslationRequest {
             schema_version: 4,
             request_id: "00000000-0000-0000-0000-000000000001".to_string(),

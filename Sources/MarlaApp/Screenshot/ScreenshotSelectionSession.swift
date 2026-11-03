@@ -15,7 +15,6 @@ final class ScreenshotSelectionSession: NSObject {
     private var transition = ScreenshotSelectionTransition()
     private var transitionTimer: Timer?
     private var pressedPoint: CGPoint?
-    private var hoverSettlement: Task<Void, Never>?
     private var resolvedPointer: CGPoint?
     private let primaryScreenMaxY: CGFloat
     private let providerAccessibility = ScreenshotProviderAccessibility()
@@ -143,8 +142,6 @@ final class ScreenshotSelectionSession: NSObject {
     func begin(at point: NSPoint) {
         guard !hasFinished, !isConfirming else { return }
         selectionMode = .region
-        hoverSettlement?.cancel()
-        hoverSettlement = nil
         elementQueries.invalidate()
         elementChoice.reset()
         transitionTimer?.invalidate()
@@ -198,25 +195,12 @@ final class ScreenshotSelectionSession: NSObject {
         pointerPoint = point
         guard selectionMode == .window else { redraw(); return }
         guard previousPoint != point else { return }
-        hoverSettlement?.cancel()
         elementQueries.invalidate()
-        // The first visible hit is immediate. Subsequent targets wait for a stable pointer,
-        // so traversing dense text does not animate through every intermediate element.
-        if elementChoice.path == nil {
-            settleHover(at: point)
-        } else {
-            hoverSettlement = Task { [weak self] in
-                try? await Task.sleep(for: .seconds(MarlaMotion.screenshotHoverDwellDuration))
-                guard !Task.isCancelled, let self, pointerPoint == point else { return }
-                settleHover(at: point)
-            }
-        }
+        resolveHover(at: point)
     }
 
-    func settleHover(at point: CGPoint) {
+    private func resolveHover(at point: CGPoint) {
         guard !hasFinished, !isConfirming, pressedPoint == nil, selectionMode == .window else { return }
-        hoverSettlement?.cancel()
-        hoverSettlement = nil
         pointerPoint = point
         let target = ScreenshotWindowTargeting.hitTest(point: point, in: windowTargets)
         if resolvedPointer != point || highlightedWindow?.id != target?.id {
@@ -267,7 +251,7 @@ final class ScreenshotSelectionSession: NSObject {
     func pointerDown(at point: CGPoint) {
         guard !hasFinished, !isConfirming else { return }
         if selectionMode == .region { begin(at: point); return }
-        settleHover(at: point)
+        resolveHover(at: point)
         pressedPoint = point
         elementChoice.lock()
         elementQueries.invalidate()
@@ -357,8 +341,6 @@ final class ScreenshotSelectionSession: NSObject {
                 beginPanning()
             } else if allowsWindowSelection, !event.isARepeat {
                 selectionMode = selectionMode == .window ? .region : .window
-                hoverSettlement?.cancel()
-                hoverSettlement = nil
                 resolvedPointer = nil
                 elementQueries.invalidate()
                 elementChoice.reset()
@@ -459,8 +441,6 @@ final class ScreenshotSelectionSession: NSObject {
     }
 
     func tearDown() {
-        hoverSettlement?.cancel()
-        hoverSettlement = nil
         elementQueries.stop()
         let provider = providerAccessibility
         Task.detached(priority: .utility) { provider.stop() }
@@ -475,8 +455,6 @@ final class ScreenshotSelectionSession: NSObject {
         guard !hasFinished else { return }
         let confirmedRect = selectionRect
         hasFinished = true
-        hoverSettlement?.cancel()
-        hoverSettlement = nil
         elementQueries.stop()
         let provider = providerAccessibility
         Task.detached(priority: .utility) { provider.stop() }

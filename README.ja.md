@@ -120,7 +120,7 @@ Marla の現在の製品言語セットには、次の 7 つの選択肢があ�
 
 オープンソースプロジェクト [Snow Shot](https://github.com/mg-chao/snow-apps) に感謝します。Marla のスクリーンショット要素選択は、要素へのスナップ、ホイールによる親子階層の切り替え、バックグラウンドのクエリ制御、中断可能な選択枠の遷移を参考にしています。その滑らかな操作感は、本機能の重要な手本となりました。
 
-[固定した Snow Shot のソースリビジョン](https://github.com/mg-chao/snow-apps/tree/01753292547704fd0f11c45317d2dd08cdbf03df)を調査し、Swift/AppKit で独自に実装しました。ソースコードや依存関係は取り込んでいません。ポインター停止後の切り替え、トラックパッドの1ジェスチャーにつき1階層の移動、アニメーションの時間は、Marla の実機フィードバックに基づいて調整しています。実装と検証の記録は [TASK-054](docs/tasks/TASK-054-element-selection-motion.md) を参照してください。
+[固定した Snow Shot のソースリビジョン](https://github.com/mg-chao/snow-apps/tree/01753292547704fd0f11c45317d2dd08cdbf03df)を調査し、Swift/AppKit で独自に実装しました。ソースコードや依存関係は取り込んでいません。ポインター移動時の即時再選択、トラックパッドの1ジェスチャーにつき1階層の移動、アニメーションの時間は、Marla の実機フィードバックに基づいて調整しています。実装と検証の記録は [TASK-054](docs/tasks/TASK-054-element-selection-motion.md) を参照してください。
 
 ## ライセンス
 

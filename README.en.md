@@ -120,7 +120,7 @@ Marla remains in **Incubation / Unreleased** while its public entry points are b
 
 Thanks to the open-source project [Snow Shot](https://github.com/mg-chao/snow-apps). Its element snapping, wheel navigation through parent and child levels, background query scheduling, and interruptible selection transitions informed Marla’s screenshot element selection. Its fluid interaction was an important reference for this feature.
 
-We studied a [fixed Snow Shot source revision](https://github.com/mg-chao/snow-apps/tree/01753292547704fd0f11c45317d2dd08cdbf03df) and implemented the feature independently in Swift/AppKit, without importing its source code or dependencies. Marla’s pointer dwell, one-level-per-trackpad-gesture behavior, and animation timing were adjusted through hands-on feedback. See [TASK-054](docs/tasks/TASK-054-element-selection-motion.md) for implementation and verification records.
+We studied a [fixed Snow Shot source revision](https://github.com/mg-chao/snow-apps/tree/01753292547704fd0f11c45317d2dd08cdbf03df) and implemented the feature independently in Swift/AppKit, without importing its source code or dependencies. Marla’s immediate retargeting on pointer movement, one-level-per-trackpad-gesture behavior, and animation timing were adjusted through hands-on feedback. See [TASK-054](docs/tasks/TASK-054-element-selection-motion.md) for implementation and verification records.
 
 ## License
 

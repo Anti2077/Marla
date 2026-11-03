@@ -139,7 +139,6 @@ final class ScreenshotElementSelectionTests: XCTestCase {
         session.applyElementResult(result(refined: true, candidates: [leaf, parent]))
         XCTAssertEqual(session.selectionRect, parent.frame)
         session.hover(at: CGPoint(x: point.x + 1, y: point.y))
-        session.settleHover(at: CGPoint(x: point.x + 1, y: point.y))
         XCTAssertFalse(session.elementChoice.isExplicit)
         // The next async result for the new location starts at its leaf.
         let nextRequest = ScreenshotElementQueryRequest(generation: 2, windowID: 7, processID: 0,
@@ -168,7 +167,7 @@ final class ScreenshotElementSelectionTests: XCTestCase {
     }
 
     @MainActor
-    func testScreenshotPointerMustSettleBeforeReplacingHighlight() async {
+    func testScreenshotPointerMovementImmediatelyReplacesHighlight() {
         let target = ScreenshotWindowTarget(id: 7, frame: window)
         let session = ScreenshotSelectionSession(windowTargets: [target], reducesMotion: true,
             elementQuery: { request, _ in
@@ -180,13 +179,16 @@ final class ScreenshotElementSelectionTests: XCTestCase {
         session.applyElementResult(result(refined: false, candidates: [leaf, parent]))
         let outside = CGPoint(x: 100, y: 300)
         session.hover(at: outside)
-        XCTAssertEqual(session.selectionRect, leaf.frame)
-        try? await Task.sleep(for: .milliseconds(25))
-        session.hover(at: CGPoint(x: outside.x + 10, y: outside.y))
-        try? await Task.sleep(for: .milliseconds(25))
-        XCTAssertEqual(session.selectionRect, leaf.frame)
-        try? await Task.sleep(for: .milliseconds(70))
         XCTAssertEqual(session.selectionRect, window)
+        session.hover(at: point)
+        session.applyElementResult(result(refined: false, candidates: [leaf, parent]))
+        XCTAssertEqual(session.selectionRect, leaf.frame)
+        session.scrollLevel(delta: 1, precise: false, timestamp: 1)
+        XCTAssertEqual(session.selectionRect, parent.frame)
+        session.hover(at: CGPoint(x: point.x + 1, y: point.y))
+        // No timer or async yield is needed to reset a parent choice to the cached leaf.
+        XCTAssertEqual(session.selectionRect, leaf.frame)
+        XCTAssertFalse(session.elementChoice.isExplicit)
         session.cancel()
     }
 

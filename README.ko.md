@@ -120,7 +120,7 @@ Marla는 완전한 오프라인 작동을 주장하지 않습니다. Provider, O
 
 오픈 소스 프로젝트 [Snow Shot](https://github.com/mg-chao/snow-apps)에 감사드립니다. Marla의 스크린샷 요소 선택은 요소 스냅, 휠을 통한 부모·자식 계층 전환, 백그라운드 쿼리 스케줄링, 중단 가능한 선택 영역 전환 설계를 참고했습니다. 매끄러운 상호작용은 이 기능을 만드는 데 중요한 참고가 되었습니다.
 
-[Snow Shot의 특정 소스 리비전](https://github.com/mg-chao/snow-apps/tree/01753292547704fd0f11c45317d2dd08cdbf03df)을 연구한 뒤 Swift/AppKit으로 독립 구현했으며, 소스 코드나 의존성을 가져오지 않았습니다. 포인터가 멈춘 뒤 전환하는 대기 시간, 트랙패드 제스처당 한 계층 이동, 애니메이션 시간은 Marla의 실기기 사용 피드백에 맞춰 조정했습니다. 구현 및 검증 기록은 [TASK-054](docs/tasks/TASK-054-element-selection-motion.md)를 참고하세요.
+[Snow Shot의 특정 소스 리비전](https://github.com/mg-chao/snow-apps/tree/01753292547704fd0f11c45317d2dd08cdbf03df)을 연구한 뒤 Swift/AppKit으로 독립 구현했으며, 소스 코드나 의존성을 가져오지 않았습니다. 포인터 이동 시 즉시 다시 선택하는 동작, 트랙패드 제스처당 한 계층 이동, 애니메이션 시간은 Marla의 실기기 사용 피드백에 맞춰 조정했습니다. 구현 및 검증 기록은 [TASK-054](docs/tasks/TASK-054-element-selection-motion.md)를 참고하세요.
 
 ## 라이선스
 

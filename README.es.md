@@ -120,7 +120,7 @@ Marla continúa en **Incubación / Sin publicar** mientras se preparan sus punto
 
 Gracias al proyecto de código abierto [Snow Shot](https://github.com/mg-chao/snow-apps). Su ajuste a elementos, la navegación entre niveles padre e hijo con la rueda, la planificación de consultas en segundo plano y las transiciones de selección interrumpibles sirvieron de referencia para la selección de elementos en las capturas de Marla. La fluidez de su interacción fue una referencia importante para esta función.
 
-Estudiamos una [revisión concreta del código de Snow Shot](https://github.com/mg-chao/snow-apps/tree/01753292547704fd0f11c45317d2dd08cdbf03df) e implementamos la función de forma independiente en Swift/AppKit, sin importar su código ni sus dependencias. La espera tras detener el puntero, el cambio de un solo nivel por gesto del trackpad y los tiempos de animación se ajustaron a partir de pruebas de uso de Marla. Véase [TASK-054](docs/tasks/TASK-054-element-selection-motion.md) para los registros de implementación y verificación.
+Estudiamos una [revisión concreta del código de Snow Shot](https://github.com/mg-chao/snow-apps/tree/01753292547704fd0f11c45317d2dd08cdbf03df) e implementamos la función de forma independiente en Swift/AppKit, sin importar su código ni sus dependencias. La selección inmediata al mover el puntero, el cambio de un solo nivel por gesto del trackpad y los tiempos de animación se ajustaron a partir de pruebas de uso de Marla. Véase [TASK-054](docs/tasks/TASK-054-element-selection-motion.md) para los registros de implementación y verificación.
 
 ## Licencia
 

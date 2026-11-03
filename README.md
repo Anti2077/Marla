@@ -3,11 +3,11 @@
   <h1>Marla</h1>
   <p><strong>Translation that stays beside what you are reading.</strong></p>
   <p>A native macOS translation layer that appears on intent, stays close to the source, and gets out of the way.</p>
-  <p>在原文旁点亮翻译，读完即走，不把你带离当前工作。</p>
+  <p>Light up a translation beside the source, read it, and continue without leaving your work.</p>
 
   <p>
-    <a href="README.md">简体中文</a> ·
-    <a href="README.en.md">English</a> ·
+    <a href="README.zh-CN.md">简体中文</a> ·
+    <a href="README.md">English</a> ·
     <a href="README.ja.md">日本語</a> ·
     <a href="README.fr.md">Français</a> ·
     <a href="README.es.md">Español</a> ·
@@ -23,8 +23,8 @@
   </p>
 
   <p>
-    <a href="website/">Marla 介绍主页</a> ·
-    <a href="https://github.com/Anti2077/Marla/releases/latest">下载（GitHub Releases）</a> ·
+    <a href="website/">Marla introduction homepage</a> ·
+    <a href="https://github.com/Anti2077/Marla/releases/latest">Download (GitHub Releases)</a> ·
     <a href="https://github.com/Anti2077/Marla">GitHub</a>
   </p>
 
@@ -45,7 +45,7 @@
 
 ## Start here
 
-Marla 的介绍主页在 [`website/`](website/)；准备下载时前往 [GitHub Releases](https://github.com/Anti2077/Marla/releases/latest)，源代码和开发记录在 [GitHub 仓库](https://github.com/Anti2077/Marla)。当前仓库仍处于发布前准备阶段，Release 页面可能尚未有可下载资产。
+Marla's introduction homepage is in [`website/`](website/). When you are ready to download, go to [GitHub Releases](https://github.com/Anti2077/Marla/releases/latest); the source code and development records are in the [GitHub repository](https://github.com/Anti2077/Marla). The repository is still being prepared for release, so the Releases page may not yet contain downloadable assets.
 
 ## Why Marla
 
@@ -54,15 +54,17 @@ Most translation tools become another destination. Marla keeps the user's curren
 - **Stays in place.** Selection and screenshot results appear in a nearby native card instead of a main translation window.
 - **Shows intent immediately.** The stable result surface appears before the network response and grows with streamed content.
 - **Preserves structure.** Quick Input and supported rich selections keep semantic Markdown through translation and native rendering.
-- **Keeps providers replaceable.** Named OpenAI-compatible profiles make the text-translation endpoint and model an explicit user choice.
+- **Keeps providers replaceable.** Named profiles support OpenAI-compatible Chat Completions, OpenAI Responses, Anthropic Messages, and Google Gemini Generate Content, with an explicit endpoint and model choice.
 
 ## Three ways in
 
 | Entry | Default shortcut | What happens |
 | --- | --- | --- |
 | **Selected text** | `⌃⇧D` | Marla safely acquires the current selection and streams a result beside the source. |
-| **Screen region** | `⌃⇧S` | A frozen multi-display frame supports region selection, local Vision OCR, and an explicitly selected GLM-OCR option. |
+| **Screen region** | `⌃⇧S` | Frozen frames across displays support region, element, and window selection. Vision OCR is the default; cloud GLM-OCR or local Ollama `glm-ocr` can be selected explicitly. |
 | **Quick Input** | `⌃⇧Space` | A compact editor translates typed or pasted content, including supported Markdown structure. |
+
+**Optional experiment:** Independent in-place screenshot translation is disabled by default and can be enabled in the experimental settings. Its configurable default shortcut is `⌃⇧I`. It uses cloud GLM-OCR to reconstruct reliable text blocks over only the selected frozen crop, stays in memory, and can be dismissed immediately. Ordinary screenshot translation keeps using the nearby card.
 
 The shortcuts are configurable. Completed results support comparison, copy, retry, system speech, pinning, language changes, and provider switching without turning Marla into a document workspace.
 
@@ -84,8 +86,9 @@ Marla is a Swift 6 macOS app with SwiftUI for durable surfaces and AppKit for me
 | --- | --- |
 | **Selection translation** | Only an explicitly triggered, protected Copy transaction may provide content. Accessibility is used for permission and positioning, not as a hidden text source. |
 | **Vision screenshot OCR** | The selected screenshot crop remains local for OCR. Text translation may still use the configured cloud provider. |
-| **GLM-OCR** | Screenshot pixels are uploaded only when the user explicitly selects GLM-OCR under the disclosure in Settings. |
-| **Storage** | Screenshots and recent translations are session-only. Persistent translation history and contextual window-text collection are not implemented. |
+| **Cloud GLM-OCR** | Only the selected crop is uploaded after explicit selection under the Settings disclosure, or when the user invokes the enabled in-place experiment. |
+| **Local Ollama GLM-OCR** | The selected crop goes only to the user-managed local Ollama `glm-ocr` service. Marla does not bundle, install, or start Ollama or its model; text translation may still use a cloud provider. |
+| **Storage** | Screenshots and recent translations stay in memory only; credentials are stored in Keychain. Persistent translation history and contextual window-text collection are not implemented. |
 
 Marla does not claim to be fully offline. The exact provider, OCR, and data boundaries are intentionally visible rather than collapsed into a single privacy slogan.
 
@@ -95,13 +98,13 @@ Marla's current product language set contains seven options:
 
 | Language | Code |
 | --- | --- |
-| 简体中文 / Simplified Chinese | `zh-Hans` |
+| Simplified Chinese | `zh-Hans` |
 | English | `en` |
-| 日本語 / Japanese | `ja` |
-| Français / French | `fr` |
-| Español / Spanish | `es` |
-| Deutsch / German | `de` |
-| 한국어 / Korean | `ko` |
+| Japanese | `ja` |
+| French | `fr` |
+| Spanish | `es` |
+| German | `de` |
+| Korean | `ko` |
 
 Traditional Chinese is normalized to the Simplified Chinese product option and is not a separate preference. Provider documentation may list more languages; Marla does not claim those languages as product-supported until detection, routing, UI, and provider mapping are verified together.
 
@@ -116,15 +119,17 @@ Marla remains in **Incubation / Unreleased** while its public entry points are b
 - [Marla introduction homepage](website/)
 - [Website implementation notes](website/README.md)
 
-## 致谢与借鉴
+<a id="致谢与借鉴"></a>
 
-感谢开源项目 [Snow Shot](https://github.com/mg-chao/snow-apps)。Marla 的截图元素选择参考了它的元素吸附、滚轮切换父子层级、后台查询调度与可中断选框过渡设计，其流畅的交互体验为本功能提供了重要参考。
+## Acknowledgments and inspiration
 
-我们研究了 [Snow Shot 的固定源码版本](https://github.com/mg-chao/snow-apps/tree/01753292547704fd0f11c45317d2dd08cdbf03df)，并使用 Swift/AppKit 独立实现，未引入其源码或依赖。Marla 的移动后即时重新吸附、触控板单手势单层切换及动效时序结合本项目的实机反馈调整。实现与验证记录见 [TASK-054](docs/tasks/TASK-054-element-selection-motion.md)。
+Thanks to the open-source project [Snow Shot](https://github.com/mg-chao/snow-apps). Its element snapping, wheel navigation through parent and child levels, background query scheduling, and interruptible selection transitions informed Marla’s screenshot element selection. Its fluid interaction was an important reference for this feature.
 
-## License / 许可证
+We studied a [fixed Snow Shot source revision](https://github.com/mg-chao/snow-apps/tree/01753292547704fd0f11c45317d2dd08cdbf03df) and implemented the feature independently in Swift/AppKit, without importing its source code or dependencies. Marla’s immediate retargeting on pointer movement, one-level-per-trackpad-gesture behavior, and animation timing were adjusted through hands-on feedback. See [TASK-054](docs/tasks/TASK-054-element-selection-motion.md) for implementation and verification records.
 
-Marla 的原创代码、构建脚本、文档及原创项目资产，在所有者有权授权的范围内采用 **GNU GPL 第 3 版，仅此版本（`GPL-3.0-only`）**。允许按 GPL 条件修改、再分发和商用，没有禁止商用限制。第三方内容保留原许可；官网 GSAP 依赖存在未解决的 GPL 兼容性冲突，不能将组合官网构建宣称为完全 GPL 兼容。详见下列许可证、版权、双语分发指南与第三方通知。
+<a id="license--许可证"></a>
+
+## License
 
 Marla’s original code, build scripts, documentation and original project assets are licensed under **GNU GPL v3 only (`GPL-3.0-only`)**, to the extent of the owner’s rights. See [LICENSE](LICENSE), [COPYRIGHT](COPYRIGHT), the bilingual [licensing and source-distribution guide](docs/development/LICENSING.md), and [third-party notices](THIRD_PARTY_NOTICES.md). Modification, redistribution and commercial use are permitted under the GPL; there is no noncommercial restriction. Third-party material retains its original terms. The website’s GSAP dependencies have an unresolved GPL compatibility conflict; this grant does not relicense them or claim the combined website build is GPL compatible.
 
@@ -143,7 +148,7 @@ Run the complete repository check:
 ./scripts/check.sh
 ```
 
-The script formats, builds, and tests the Rust core and Swift layer, builds the native Debug app against the Cargo debug library, validates the project structure, and checks the diff. It selects the full Xcode installation only for its own commands and does not change the machine-wide `xcode-select` setting.
+The script checks Rust formatting, builds and tests the Rust core and Swift layer, builds the native Debug app against the Cargo debug library, validates the project structure, and checks the diff. It selects the full Xcode installation only for its own commands and does not change the machine-wide `xcode-select` setting.
 
 Build the fixed-path, stable-signed Release development app:
 
@@ -179,7 +184,7 @@ Later no-argument builds recover the certificate hash from the existing fixed ap
 | `docs/` | Product truth, architecture, Tasks, status, and verification evidence |
 | `scripts/` | Repository checks, packaging, and artifact verification |
 
-Start with the [documentation map](docs/README.md), then read the [current status](docs/development/STATUS.md) and its active Task before making changes. The repository keeps product ideas, confirmed backlog, active implementation, and verified evidence deliberately separate.
+Start with the [documentation map](docs/README.md), then read the [current status](docs/development/STATUS.md) and the Task explicitly assigned to your conversation/worktree before making changes. The repository keeps product ideas, confirmed backlog, active implementation, and verified evidence deliberately separate.
 
 ---
 

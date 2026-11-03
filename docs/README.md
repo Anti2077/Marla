@@ -15,6 +15,8 @@
 
 `STATUS.md` 不登记每个并行功能工作树。没有明确分配的 tracked Task 时，不得从想法池、Backlog 或 Roadmap 自行选择并开始实现。
 
+项目原创内容采用 GPL-3.0-only；许可范围、第三方依赖兼容性（含官网 GSAP 的未解决冲突）及分发时对应源码要求见 [`development/LICENSING.md`](development/LICENSING.md)、根目录 [`LICENSE`](../LICENSE) 和 [`THIRD_PARTY_NOTICES.md`](../THIRD_PARTY_NOTICES.md)。
+
 UI/UX 工作的 skill 路由和使用示例见 [`development/UI_UX_SKILLS.md`](development/UI_UX_SKILLS.md)。
 
 最近翻译的内存边界、恢复行为和快速复制合同见 [`features/recent-translations.md`](features/recent-translations.md)。

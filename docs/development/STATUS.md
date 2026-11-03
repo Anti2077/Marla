@@ -1,6 +1,6 @@
 # Project Status
 
-Last updated: 2026-10-11
+Last updated: 2026-11-03
 
 Development stage: Incubation / Unreleased
 
@@ -21,6 +21,7 @@ Scope: This document records the locally integrated and verified baseline of tar
 - Translation profiles support OpenAI-compatible Chat Completions, OpenAI Responses, Anthropic Messages, and Google Gemini Generate Content. Qwen-MT and Provider-specific thinking behavior remain bounded adapters rather than inferred protocols; the documented OpenAI-compatible `qwen-mt-flash`/`qwen-mt-lite` families now use incremental stream deltas, while legacy `qwen-mt-turbo`/`qwen-mt-plus` and other Qwen-MT names retain cumulative normalization.
 - Global native/secondary language routing supports Simplified Chinese, English, Japanese, French, Spanish, German, and Korean. Credentials stay in a versioned Keychain vault; screenshots, OCR geometry, overlay render plans, and translations are not persisted as screenshot artifacts.
 - Swift 6, SwiftUI/AppKit, the embedded Rust core, C ABI v4, request schema v4, strict cancellation/timeouts, structure gates, and the project verification wrapper remain the implementation boundary.
+- Original Marla work is licensed under GPL-3.0-only, within the owner’s rights. Third-party materials retain their original licenses; corresponding-source and notice obligations are documented in [`LICENSING.md`](LICENSING.md) and the root third-party notice index.
 - Development Apps use the non-public `0.0.0` Marketing Version sentinel. Fixed-path Release packaging is locally stable-signed and verified; no Developer ID, notarized, updater, or public distribution artifact exists.
 - The primary worktree `/Users/anti/Documents/ChatGPT/Marla` exclusively owns local `main`, integration, target-branch verification, `STATUS.md`, final global documentation, and separately authorized push/cleanup. Feature worktrees use one bounded Task and finish at `Ready for integration`.
 - Primary integration is guarded by `scripts/main-worktree.sh`: it verifies the real primary checkout and symbolic `main`, rejects in-progress or dirty state, validates the Task branch and linked feature worktree, requires current-main ancestry, and performs only a no-fast-forward merge.
@@ -45,6 +46,7 @@ Scope: This document records the locally integrated and verified baseline of tar
 
 ## Current risks and product decisions
 
+- The website’s locked GSAP / @gsap/react Standard License has a GPL compatibility conflict; the combined website build is not cleared for wholly GPL-compatible distribution. This is separate from the native App dependency graph, whose reviewed license declarations showed no GPLv3 conflict. Demo recordings retain third-party content rights; no publication or legal audit is implied. See [`LICENSING.md`](LICENSING.md).
 - Marla remains locally signed and unreleased. Public version, Developer ID signing, notarization, distribution, update delivery, and rollback policy are unselected.
 - Independent in-place translation is intentionally experimental and default-off. It covers only an explicitly captured frozen region and must remain reversible and memory-only.
 - Cross-application selection reliability depends on the protected Copy transaction. Browser extensions, Services, PopClip integration, and Accessibility text fallback are not current plans.
@@ -57,6 +59,8 @@ Scope: This document records the locally integrated and verified baseline of tar
 There is no single global Active-Task slot. The project owner may complete an existing owner-only acceptance item or select one bounded feature/fix/documentation Task. The primary integration owner assigns its unique Task ID, branch, worktree, ownership, dependencies, and merge order before implementation.
 
 ## Latest verification
+
+- On 2026-11-03 after local TASK-053 license integration, the primary guard, official GPL text comparison, locked dependency/metadata inventories, documentation links, and `git diff --check` passed. `MARLA_BUILD_CACHE_ROOT=/private/tmp/marla-task-053-main-cache ./scripts/check.sh` passed: 58 Rust tests, 272 Swift tests, strict Clippy, Swift/Xcode Debug builds and repository gates. Existing Swift/AppKit actor warnings remain; no fixed Release App, publication or release compliance acceptance was produced.
 
 - On the real primary worktree after the TASK-050 merge, `./scripts/main-worktree.sh check` verified `/Users/anti/Documents/ChatGPT/Marla` on symbolic `main` before final documentation updates.
 - `MARLA_BUILD_CACHE_ROOT=/private/tmp/marla-task-050-main-cache ./scripts/check.sh` passed on the final documented `main`: 52 Rust tests, 272 Swift tests, Swift Package build/test, Xcode Debug, structure, all shell syntax, source whitespace, and `git diff --check`. Existing Swift 6/AppKit actor warnings remain baseline warnings.

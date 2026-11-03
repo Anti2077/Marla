@@ -1,6 +1,6 @@
 # TASK-053：落实 GPL-3.0-only 项目许可
 
-Status: Ready for integration
+Status: Done
 
 Owner: Project owner + Agent
 
@@ -19,7 +19,7 @@ Conversation: 2026-11-03 项目所有者授权 GPLv3 许可落地（来源对话
 - Base commit: `e59142ffdf77a184f57f2fa59e7f8d7a86db3f2c`
 - Integration target: `main`
 - Integration owner: primary worktree `/Users/anti/Documents/ChatGPT/Marla`
-- Integration status: Ready for integration
+- Integration status: Integrated
 - Depends on: None
 - Expected merge order: Independent; recheck current main and license/dependency changes before merge
 - Owned paths: `LICENSE`, `COPYRIGHT`, `THIRD_PARTY_NOTICES.md`, `docs/legal/dependencies/`, `docs/development/LICENSING.md`, `README*.md`, `rust/marla-core/Cargo.toml`, `website/package.json`, `website/package-lock.json`, this Task; `docs/README.md`, `docs/tasks/README.md`, `docs/development/STATUS.md` only during primary integration
@@ -43,7 +43,7 @@ Conversation: 2026-11-03 项目所有者授权 GPLv3 许可落地（来源对话
 ## Out of Scope
 
 - Snow Shot 或元素吸附实现、新依赖、功能/UI/打包机制修改。
-- App 构建/发布、发行版、版本变更、远端推送、其他工作树清理。
+- 固定 Release App 重建/发布、发行版、版本变更、远端推送、其他工作树清理；仓库流程要求的 Debug 验证不属于发布。
 - 重许可第三方内容、杜撰权利转让或法律审查结论。
 
 ## Scope changes during the conversation
@@ -57,7 +57,7 @@ Conversation: 2026-11-03 项目所有者授权 GPLv3 许可落地（来源对话
 
 - Primary checkout clean at base commit; no existing root LICENSE/NOTICE found.
 - Reachable main author identity: Anti2077; Git identity alone does not prove ownership of third-party material.
-- README variants still say no public license selected; this Task deliberately updates that statement.
+- At the initial baseline README variants said no public license selected; this Task replaced that obsolete statement.
 - Swift Package has only local targets. Inventory review covers 162 external Rust crates and 321 npm lock entries; 119 Rust packages occur in the filtered macOS graph including build dependencies.
 - No incompatible native dependency license declaration identified. GSAP Standard License restrictions in `gsap 3.15.0` / `@gsap/react 2.1.2` prevent a wholly GPL-compatible combined website claim. This does not prevent licensing owner-authored sources and is not silently resolved by an exception list.
 - Project design/recording provenance is documented in TASK-027/TASK-036; captured third-party content is excluded from the owner grant. No legal audit, copyright assignment or complete third-party media clearance is claimed.
@@ -79,7 +79,7 @@ Conversation: 2026-11-03 项目所有者授权 GPLv3 许可落地（来源对话
 
 ## Verification
 
-Documentation/license-only work: official-text byte comparison, dependency lock/manifest inventory, notice/license-source review, relative-link and multilingual consistency checks, manifest parsing, scoped diff review and `git diff --check`. No runtime behavior changes are planned; full build is not a substitute for license checks. Feature checks passed 2026-11-03: official GNU text fetched twice and compared byte-for-byte (SHA-256 `3972dc9744f6499f0f9b2dbf76696f2ae7ad8af9b23dde66d6af86c9dfb36986`); Cargo metadata confirms GPL-3.0-only; JSON/TOML semantic comparisons confirm only license metadata changed; Cargo.lock unchanged; inventory set equality covers all 162/321 entries and 119 filtered nodes; 102 Markdown relative links resolve; seven README variants contain matching license/GSAP boundaries; whitespace checks pass. `npm ci --ignore-scripts --no-audit --no-fund` installed only locked packages for license inspection in ignored node_modules, with a task-specific temporary cache. No build, script execution, dependency upgrade or publication was involved.
+Documentation/license-only work: official-text byte comparison, dependency lock/manifest inventory, notice/license-source review, relative-link and multilingual consistency checks, manifest parsing, scoped diff review and `git diff --check`. No runtime behavior changes are planned; full build is not a substitute for license checks. Feature checks passed 2026-11-03: official GNU text fetched twice and compared byte-for-byte (SHA-256 `3972dc9744f6499f0f9b2dbf76696f2ae7ad8af9b23dde66d6af86c9dfb36986`); Cargo metadata confirms GPL-3.0-only; JSON/TOML semantic comparisons confirm only license metadata changed; Cargo.lock unchanged; inventory set equality covers all 162/321 entries and 119 filtered nodes; 102 Markdown relative links resolve; seven README variants contain matching license/GSAP boundaries; whitespace checks pass. `npm ci --ignore-scripts --no-audit --no-fund` installed only locked packages for license inspection in ignored node_modules, with a task-specific temporary cache. No build or lifecycle script execution, dependency upgrade or publication was involved in that dependency-inspection step.
 
 No runtime tests/build were required for the feature documentation/metadata diff. Final target verification follows repository workflow; no new runtime test was added.
 
@@ -110,15 +110,15 @@ None for licensing the owner-authored work as GPL-3.0-only. Before a future GPL-
 
 ## Completion record
 
-- Worktree verified commit: feature completion commit follows the initial reservation `68e1a5b`; exact tip recorded at integration
-- Integration commit: Pending
-- Integration verification: Pending
-- Automated evidence: targeted checks above passed; staged diff whitespace checked before commit
+- Worktree verified commit: `9051dbc` (initial reservation `68e1a5b`)
+- Integration commit: `8bbfed8769dacabd536657ea8d936a719f327015` (guarded no-fast-forward merge)
+- Integration verification: post-merge primary guard and targeted license/metadata/inventory/link checks passed. `MARLA_BUILD_CACHE_ROOT=/private/tmp/marla-task-053-main-cache ./scripts/check.sh` exited 0 on integrated main: 58 Rust tests, 272 Swift tests, strict Clippy, builds, structure/shell/whitespace gates and Xcode Debug passed. Existing Swift/AppKit actor warnings remain. Final evidence-only documentation edits passed relative-link/whitespace and whole-diff review.
+- Automated evidence: targeted checks above and full target wrapper passed; official-text/metadata/inventory checks repeated on main, including 102 license-document links; integrated docs index/STATUS relative links checked separately; final staged `git diff --check` passed
 - Manual evidence: original project/rightsholder scope, GPL version choice, third-party composite declarations, website GSAP conflict, and Chinese/English obligations reconciled; no legal audit claimed
 - Documentation updated: root LICENSE/COPYRIGHT/THIRD_PARTY_NOTICES, seven README variants, bilingual LICENSING guide, two TSV inventories, Cargo/npm license metadata and this Task
-- Mainline documentation updated by: Pending primary integration
+- Mainline documentation updated by: primary integration owner in this conversation; STATUS current baseline/risk and docs entry synchronized
 - Remaining work promoted to: None
 - Scope changes closed: initial license adoption and supporting dependency inventories verified; future website compatibility and media rights remain explicitly distribution-specific limitations, not claims of cleared release compliance
 - Parallel contributions integrated: None
 - Remote push state: Not authorized; not performed
-- Worktree cleanup state: Not authorized; retained
+- Worktree cleanup state: Not authorized; retained, clean on feature tip (historical Ready for integration state); target Task is Done

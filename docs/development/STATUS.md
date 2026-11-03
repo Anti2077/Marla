@@ -14,7 +14,7 @@ Scope: This document records the locally integrated and verified baseline of tar
 
 - Marla is a native SwiftUI/AppKit menu-bar translation layer with four explicit entry points: selected text, ordinary screenshot translation, experimental in-place screenshot translation, and Quick Input.
 - Selection content uses one protected simulated-Copy transaction with complete Pasteboard backup/restore and source-application verification. Accessibility supplies permission and optional non-content geometry only; it is not a text-content fallback.
-- Screenshot selection uses same-session frozen ScreenCaptureKit frames across displays. Ordinary screenshot translation supports visible-window targeting, drag-time Space panning, notch-safe guidance, and session-only `1/2/3` OCR choice without changing the saved default.
+- Screenshot selection uses same-session frozen ScreenCaptureKit frames across displays for regions, elements and windows. Ordinary screenshots default to geometry-only Accessibility element snapping, immediate retargeting on pointer movement, wheel hierarchy selection and one level per trackpad gesture, with an interruptible 85ms transition. Window/manual fallback, Space mode switching and drag-time panning, notch-safe guidance, and session-only `1/2/3` OCR choices remain available.
 - Vision remains the default local OCR path. Ordinary screenshots may explicitly use cloud GLM-OCR or a user-managed local Ollama `glm-ocr` Provider and still present a nearby result card. The independent in-place path is default-off, cloud-GLM-only, memory-only, and never estimates layout with Vision.
 - The nearby result card supports streaming, semantic Markdown, native GFM and bounded HTML tables, comparison, copy, retry, speech, pinning, cancellation, target/profile switching, deterministic automatic placement, and 380–760pt responsive width.
 - The three in-memory recent translations support independent result restoration plus hover/focus-revealed actions for copying the full canonical translation or source without changing the active session or history order.
@@ -28,6 +28,7 @@ Scope: This document records the locally integrated and verified baseline of tar
 
 ## Recent integrated changes
 
+- [`TASK-054`](../tasks/TASK-054-element-selection-motion.md) integrated bounded screenshot element selection, hierarchy navigation, frozen-frame cropping and snap transitions; the seven README variants acknowledge Snow Shot’s design reference.
 - [`TASK-046`](../tasks/TASK-046-screenshot-selection-efficiency.md) added ordinary screenshot window targeting, drag-time Space panning, per-session OCR switching, and notch-safe guidance.
 - [`TASK-047`](../tasks/TASK-047-release-homepage-links.md) integrated GitHub Releases and author links across the website and multilingual repository README without claiming a public release.
 - [`TASK-048`](../tasks/TASK-048-parallel-worktree-workflow.md) established primary-main ownership, isolated feature Tasks, `Ready for integration`, and separate merge/verification/push/cleanup states.
@@ -36,6 +37,8 @@ Scope: This document records the locally integrated and verified baseline of tar
 - [`TASK-052`](../tasks/TASK-052-qwen-mt-stream.md) corrected Qwen-MT Flash/Lite incremental stream handling while preserving strict cumulative normalization for legacy Qwen-MT families.
 
 ## Open acceptance gaps
+
+- TASK-054’s non-blocking field evidence remains in [`VERIFICATION.md`](VERIFICATION.md#task-054元素吸附选择与动效): physical mixed-scale displays, live permission revocation, hung/abnormally exiting providers, cancellation-rate sampling, and the full system-preference/keyboard matrix. Owner feedback covers text granularity, single-step trackpad behavior and the final immediate-retargeting choice; it does not close the full matrix.
 
 - [`RV-005`](VERIFICATION.md#rv-005glm-ocr-真实凭据成功路径) still requires latest fixed-App real GLM/Qwen completion and current Markdown/GFM in-place rendering confirmation. The implementation and synthetic evidence remain recorded in [`TASK-041`](../tasks/TASK-041-in-place-screenshot-translation.md).
 - [`RV-006`](VERIFICATION.md#rv-006普通截图翻译-glm-ocr-识别中的主动降级) still requires owner confirmation that manual GLM-to-Vision fallback cancels the current request, reuses the same captured screenshot, and performs no duplicate upload.
@@ -59,6 +62,8 @@ Scope: This document records the locally integrated and verified baseline of tar
 There is no single global Active-Task slot. The project owner may complete an existing owner-only acceptance item or select one bounded feature/fix/documentation Task. The primary integration owner assigns its unique Task ID, branch, worktree, ownership, dependencies, and merge order before implementation.
 
 ## Latest verification
+
+- TASK-054 merged locally through the primary guard as `5ce20f1`, followed by the required primary identity check. On 2026-11-03, target-branch `./scripts/check.sh` passed 58 Rust tests, 288 Swift tests, strict Clippy, Swift/Xcode Debug builds and repository gates. The fixed Release App was rebuilt and verified with its existing stable signature and designated requirement. Remaining non-blocking field evidence is recorded separately; no push or public release was performed.
 
 - On 2026-11-03 after local TASK-053 license integration, the primary guard, official GPL text comparison, locked dependency/metadata inventories, documentation links, and `git diff --check` passed. `MARLA_BUILD_CACHE_ROOT=/private/tmp/marla-task-053-main-cache ./scripts/check.sh` passed: 58 Rust tests, 272 Swift tests, strict Clippy, Swift/Xcode Debug builds and repository gates. Existing Swift/AppKit actor warnings remain; no fixed Release App, publication or release compliance acceptance was produced.
 

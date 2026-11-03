@@ -9,6 +9,7 @@
 | RV-005 | 原位表格背景修复后的实机验收 | In Progress | 所有者已确认迁移窗口可正常显示译文表格；授权的 3 次真实请求也都返回有效表格，故障已定位为原位背景误判。内部采样修复、本地原图扰动复测、234 项 Swift 和固定 App 构建通过，仍待修复后真实点击/外观验收。实验性开关与实验室页面的自动化门控已通过，但不替代真实 GLM/系统玻璃验收。 |
 | RV-006 | 普通截图翻译在 GLM-OCR 识别中的主动降级至 Vision | Pending owner acceptance | TASK-043 的实现、回归测试、固定 Release 构建和浅色/深色/Reduce Motion 离线状态证据已完成；仍需所有者用真实 GLM 配置确认按钮点击会取消当前请求并复用同一 `CapturedScreenshot`，且在原位翻译和后续阶段不出现。 |
 | RV-007 | 本机 Ollama GLM-OCR 普通截图与 HTML 表格 | In Progress | 七类合成图实测完成；52 Rust、249 Swift、固定 Release 与完整宿主检查通过。真实本机翻译、结构保真和窗口体验仍待所有者验收。详见表格评测报告与 TASK-045。 |
+| TASK-054 | 元素吸附剩余实机矩阵 | Non-blocking field evidence | 所有者在确认核心交互并选择恢复即时吸附后授权合并；混合缩放副屏、实时权限撤销、异常提供者、取消率及完整偏好/键盘矩阵仍待补证据，详见下方 TASK-054 节。 |
 
 ### RV-005：GLM-OCR 真实凭据成功路径
 
@@ -103,12 +104,12 @@ RV-001～004 均已关闭，不属于当前工作队列。保留这些编号和�
 3. 新产品能力先进入 `backlog/IDEAS.md`，经项目所有者确认后进入 `backlog/BACKLOG.md`。
 
 
-## TASK-054：元素吸附选择与动效（功能分支证据）
+## TASK-054：元素吸附选择与动效
 
-本节属于 `Anti2077/task-054-element-selection-motion` 的本地证据，未声明已经主线整合。最终全局状态由 primary 在 guard 合并与目标分支验证后同步。
+本节记录 TASK-054 的实现及集成证据。所有者明确授权合并后，primary 通过 guard 将功能分支以 `5ce20f1` 合入本地 main，并通过合并后身份检查。未完成的人工矩阵按 Task 分类为非阻塞证据项，保持开放。目标分支完整检查通过 58 Rust、288 Swift、Clippy、Swift Package、Xcode Debug、结构/脚本/空白/diff 门禁。主线固定路径 `artifacts/Marla_dev.app` 已稳定签名重建，Bundle ID `com.marla.app`、`0.0.0`、macOS 14、arm64 和既有 designated requirement 验证通过。没有推送、公开发布或工作树清理。
 
 - 2026-11-03：先前 50ms 停稳/85ms 几何过渡试验版完整检查通过 58 Rust、288 Swift、Swift Package、Xcode Debug、结构、脚本、空白和 diff 门禁。截图定向 51 项通过，其中 16 个新增测试覆盖候选归一化、显式层级保留、滚轮/单次触控板手势与惯性、按下锁定、拖动转手动、动画中途确认、反向轨迹、移动重置和可取消停稳计时、旧查询/关闭、窗口顺序及提供者标志回滚。
-- 稳定签名 Release 输出位于本任务 `artifacts/Marla_dev.app`，Bundle ID、`0.0.0`、最低系统、arm64、Release Rust 路径与既有稳定 designated requirement 已验证。没有发布、推送或主线 App 替换。功能分支随后以 `b0ffa72` 同步许可集成后的 `main@17d5195`，再次完整检查通过相同 58 Rust/288 Swift 与 Xcode Debug。
+- 稳定签名 Release 输出位于本任务 `artifacts/Marla_dev.app`，Bundle ID、`0.0.0`、最低系统、arm64、Release Rust 路径与既有稳定 designated requirement 已验证。当时未发布、推送或替换主线 App；本轮主线重建见本节开头。功能分支随后以 `b0ffa72` 同步许可集成后的 `main@17d5195`，再次完整检查通过相同 58 Rust/288 Swift 与 Xcode Debug。
 - 所有者实机确认触控板单层、移动重新吸附与文字粒度正常；随后要求加停稳门槛并从 120ms 调为 50ms，之后明确要求删除停稳等待、恢复即时吸附；当前已恢复，完整检查再次通过 58 Rust、288 Swift、Swift/Xcode Debug 与仓库门禁；立即重新吸附测试无需计时等待，稳定签名 Release 构建及 designated requirement 验证通过，最新 live fixture 已重新打开。原位入口、OCR/Space/取消、冻结裁切与 Reduce Motion 自动化回归保持通过，不用这些测试代替全部实机矩阵。
 - 真实查询采样覆盖 Codex/Electron、Zen 与原生 Music。调参前首轮 1,388 次 P50/P95/max 6/11/29ms，细化 40 次 8/23/23ms，最多 78 节点、7 候选；120ms 版小样本首轮/细化 16/9 次，分别 5/26/26ms 与 4/10/10ms。数字仅是接受结果的查询时延，不是端到端延迟、取消率或跨应用覆盖率。
 - 纯合成固定 App 浅色、深色及可访问性 HUD 图在 `/private/tmp/marla-task-054-review-{light,dark,accessibility}.png`；不含真实桌面，未提交截图。五维 8/8/8/8/7；可访问性图未包含选区，不将其解释为增强对比度选框或动效时序证据。

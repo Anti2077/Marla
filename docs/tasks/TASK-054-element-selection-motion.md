@@ -1,6 +1,6 @@
 # TASK-054：截图元素层级选择与吸附动效
 
-Status: Ready for integration
+Status: Done
 
 Owner: Project owner + Agent
 
@@ -19,7 +19,7 @@ Conversation: 2026-11-03，研究 Snow Shot 后实现 Marla 普通截图的元�
 - Base commit: `e59142ffdf77a184f57f2fa59e7f8d7a86db3f2c`
 - Integration target: `main`
 - Integration owner: primary worktree `/Users/anti/Documents/ChatGPT/Marla`
-- Integration status: Unmerged
+- Integration status: Integrated and verified locally on main as `5ce20f1`; final global documentation synchronized
 - Depends on: None for independent implementation; TASK-046's integrated selection behavior is the starting baseline.
 - Expected merge order: Independent of TASK-053's license work and TASK-051's Markdown work; reconcile against current `main` before integration. No GPL code import depends on TASK-053 in this Task.
 - Owned paths: this Task; `README.md`, `README.en.md`, `README.ja.md`, `README.fr.md`, `README.es.md`, `README.de.md`, `README.ko.md` only for the owner-requested Snow Shot acknowledgment; `Sources/MarlaApp/Screenshot/ScreenshotSelection.swift`, `ScreenshotSelectionSupport.swift`, `ScreenshotCapture.swift`, new element-query/selection/transition files under `Sources/MarlaApp/Screenshot/`; `Sources/MarlaApp/App/ScreenshotTranslation.swift` only for capture-result wiring or synthetic acceptance fixtures; `Sources/MarlaApp/MarlaMotion.swift` only for selection motion tokens; related tests and new test files under `Tests/MarlaAppTests/`; `Marla.xcodeproj/project.pbxproj` and `Package.swift` only for source/test registration; `docs/features/screenshot-translation.md`; `docs/development/VERIFICATION.md` only for TASK-054 acceptance evidence, with final current-state reconciliation by the integration owner.
@@ -82,7 +82,7 @@ Conversation: 2026-11-03，研究 Snow Shot 后实现 Marla 普通截图的元�
 
 | 2026-11-03 | Project owner | 50ms 仍不如最初即时切换，明确恢复移动即吸附 | 删除停稳计时及配置；保留 85ms 过渡、单手势单层和文字粒度；同步七个 README，完整检查与稳定签名构建通过，已重新打开 live fixture | Implemented |
 
-| 2026-11-03 | Project owner | 明确要求合并 main | 集成前分类非阻塞人工证据，标记 Ready for integration；使用 primary guard 合并并做主线验证和全局文档同步 | Authorized |
+| 2026-11-03 | Project owner | 明确要求合并 main | 集成前分类非阻塞人工证据，标记 Ready for integration；primary guard 合并、主线完整检查/签名构建与全局文档同步通过 | Integrated |
 
 ## Current evidence
 
@@ -134,7 +134,7 @@ Swift 平台层按窗口/显示器快照确定查询目标，在有界后台执�
 - [ ] 浅色、深色、Reduce Motion、Reduce Transparency 和 Increase Contrast 真实 App 检查；真实 App 脱敏截图五维复审每维至少 7/10。
 - [x] `./scripts/check.sh`、稳定签名 Release 构建、源结构门禁和 `git diff --check` 通过；新增测试验证行为/失败边界而非复写实现。
 - [x] 七个 README 版本记录 Snow Shot 借鉴与致谢，固定参考链接和实现边界一致，保留原许可内容。
-- [x] 功能规格与实现一致，Task 记录真实证据与未完成项；本地验证完成，提交后达到 `Ready for integration`。`Done` 仅在主线整合、主线验证和全局文档同步后记录。
+- [x] 功能规格与实现一致，Task 记录真实证据与未完成项；功能分支已提交 `Ready for integration`，primary guard 合并及主线验证/全局文档同步完成，现记录 `Done`；非阻塞实机证据保持未勾选。
 
 ## Integration acceptance classification
 
@@ -159,7 +159,7 @@ git diff --check
 
 ### Manual
 
-2026-11-03 实施验收结果及边界见 Current evidence。停稳试验版曾打开供所有者只悬停/触控板体验，所有者现已要求恢复即时切换；该 live fixture 的确认回调不启动 OCR 或网络，以免误点击触发请求。它验证真实冻结/AX/输入/绘制路径，但不是 OCR/翻译调用的成功证据。项目所有者在恢复即时吸附后明确要求合并 main；本地实现、回归与稳定签名构建均通过，Task 进入 Ready for integration。下列剩余矩阵作为非阻塞验收证据保留到 VERIFICATION.md，不因合并而勾选未实测条件。
+2026-11-03 实施验收结果及边界见 Current evidence。停稳试验版曾打开供所有者只悬停/触控板体验，所有者现已要求恢复即时切换；该 live fixture 的确认回调不启动 OCR 或网络，以免误点击触发请求。它验证真实冻结/AX/输入/绘制路径，但不是 OCR/翻译调用的成功证据。项目所有者在恢复即时吸附后明确要求合并 main；本地实现、回归与稳定签名构建均通过，Task 经 Ready for integration 后完成 primary 整合及主线验证，现为 Done。下列剩余矩阵作为非阻塞验收证据保留到 VERIFICATION.md，不因合并而勾选未实测条件。
 
 使用真实固定 Release App 覆盖 Finder/系统原生控件、Safari/Chrome 页面、Codex/Electron 内容与工具栏。连续滚轮、触控板、快速移入/移出、反向切换、按下后晚到结果、立即确认和拖动转手动均有现场验证。覆盖多屏/缩放可用配置；设备不具备的条件明确保留缺口，不用单屏结果代替。
 
@@ -179,16 +179,16 @@ git diff --check
 
 ## Parallel contributors
 
-None. 本任务由主 Agent 单独实施和维护。文档同步与实现紧密耦合，没有人为拆分并行写入；未改其它工作树。
+None. 本任务由主 Agent 单独实施和维护。文档同步与实现紧密耦合，没有人为拆分并行写入；实施阶段未改其它功能工作树；本轮授权整合由主 Agent 串行在 primary 完成。
 
 ## Integration notes
 
-- 主线已前进到 `17d5195`（TASK-053 许可集成）；已由 `b0ffa72` 吸收该 main，未发生冲突，原始实现提交为 `5e74446`。吸收后完整检查再次通过 58 Rust/288 Swift 和 Xcode Debug；整合 owner 仍需按 guard 复查。
+- 集成前主线为 `17d5195`（TASK-053 许可集成）；已由 `b0ffa72` 吸收该 main，未发生冲突，原始实现提交为 `5e74446`。吸收后完整检查再次通过 58 Rust/288 Swift 和 Xcode Debug；本轮 primary guard 与主线复验已完成。
 - 初始 Task 提交完成编号预留，不在 `main` 新增未集成功能声明。主工作树整合时更新 `STATUS.md`、必要索引和当前验收状态，不关闭其它 Task 的现场缺口。
 - TASK-053 的许可落地独立推进；若其先合并，在本功能分支吸收 current `main`，保留许可结果，不借机导入外部代码。
 - TASK-051 可能涉及 Xcode 工程、共享测试文件。合并前逐项保留其注册和测试，不能整文件选择一边。
 - 实施工作树达到 `Ready for integration` 后，primary 使用 `./scripts/main-worktree.sh merge Anti2077/task-054-element-selection-motion`；合并后先运行 `check`，再同步目标分支文档和最终验证。
-- 推送远端、发布和工作树清理未授权。创建记录不能被报告为功能完成或主线整合。
+- 2026-11-03 所有者明确授权合并 main；primary guard 合并提交 `5ce20f1`，无冲突，合并后身份检查通过。主线完整检查通过 58 Rust / 288 Swift、Swift/Xcode Debug 和仓库门禁；固定 Release 已沿用既有稳定签名重建并验证；推送远端、发布和工作树清理未授权。
 
 ## Risks and rollback
 
@@ -201,14 +201,14 @@ None for the agreed scope. 普通截图默认吸附由项目所有者明确决�
 ## Completion record
 
 - Worktree verified commit: `991e694` final immediate-retargeting implementation; full checks and signed Release passed. Pre-integration review additionally fixes one EOF blank line and clarifies the geometry-only query comment, with no behavioral change.
-- Integration commit: Not integrated
-- Integration verification: Pending primary merge and target-branch checks
+- Integration commit: `5ce20f11557cbfd7dcaaac2f0c1a32dd62e966a9`
+- Integration verification: Primary guarded merge and post-merge identity check passed; main full checks passed (58 Rust / 288 Swift, Clippy, Swift Package, Xcode Debug, structure/shell/whitespace/diff gates). Main fixed Release rebuilt and verified with the existing stable signature and designated requirement.
 - Automated evidence: 58 Rust + 288 Swift, 51 screenshot targeted tests, Swift/Xcode Debug, stable-signed Release, structure/shell/whitespace/diff gates passed on the preceding 50ms implementation; full checks and stable-signed Release also passed after immediate-retargeting restoration
 - Manual evidence: Owner accepted single-step trackpad, pointer reset and text granularity; Owner requested immediate retargeting after rejecting dwell; rebuilt, stable-signed and reopened. Synthetic light/dark/accessibility HUD screenshots reviewed at 8/8/8/8/7; mixed physical displays and remaining failure matrix remain explicitly unverified
-- Documentation updated: This Task, screenshot feature specification, TASK-054-only verification evidence, seven README acknowledgments
-- Mainline documentation updated by: Pending primary integration
+- Documentation updated: This Task, screenshot feature specification, verification evidence, seven README acknowledgments; primary STATUS.md reconciled after guarded merge
+- Mainline documentation updated by: Primary integration owner in this conversation; STATUS.md and VERIFICATION.md reconciled, unrelated gaps preserved
 - Remaining work promoted to: Non-blocking manual evidence remains in `docs/development/VERIFICATION.md`; no new product scope
-- Scope changes closed: Implementation/automated evidence recorded; immediate retargeting restored per owner request; full checks and stable-signed rebuild passed; live fixture reopened
+- Scope changes closed: All requested implementation and README changes integrated; immediate retargeting restored per owner request; feature and main checks/stable-signed rebuild passed. Remaining field evidence explicitly classified as non-blocking and retained in VERIFICATION.md.
 - Parallel contributions integrated: None
 - Remote push state: Not authorized; not performed
 - Worktree cleanup state: Not authorized; retained

@@ -107,7 +107,7 @@ Marla는 완전한 오프라인 작동을 주장하지 않습니다. Provider, O
 
 ## 프로젝트 상태
 
-공개 진입점을 준비하는 동안 Marla는 계속 **인큐베이션 / 미출시** 상태입니다. 네이티브 앱과 핵심 워크플로는 구현되어 있지만, 공개 Release, 지정된 제품 버전, 공증된 패키지, 업데이터 또는 선택된 공개 라이선스는 아직 선언되지 않았습니다.
+공개 진입점을 준비하는 동안 Marla는 계속 **인큐베이션 / 미출시** 상태입니다. 네이티브 앱과 핵심 워크플로는 구현되어 있지만, 공개 Release, 지정된 제품 버전, 공증된 패키지, 업데이터는 아직 선언되지 않았습니다.
 
 - [검증된 개발 상태](docs/development/STATUS.md)
 - [제품 정의](docs/product/PRODUCT.md)
@@ -115,6 +115,10 @@ Marla는 완전한 오프라인 작동을 주장하지 않습니다. Provider, O
 - [Paper Lantern 브랜드](docs/product/BRAND.md)
 - [Marla 소개 홈페이지](website/)
 - [웹사이트 구현 노트](website/README.md)
+
+## 라이선스
+
+소유자가 허가할 권리를 가진 Marla의 원본 코드, 빌드 스크립트, 문서 및 원본 프로젝트 자산은 **GNU GPL 버전 3만(`GPL-3.0-only`)** 적용됩니다. [LICENSE](LICENSE), [COPYRIGHT](COPYRIGHT), 중영 병기 [라이선스 및 대응 소스 배포 안내](docs/development/LICENSING.md), [제3자 고지](THIRD_PARTY_NOTICES.md)를 참조하세요. GPL 조건에 따라 수정·재배포·상업적 이용이 가능하며 비상업적 이용 제한은 없습니다. 제3자 자료에는 원래 조건이 유지됩니다. 웹사이트의 GSAP 의존성에는 해결되지 않은 GPL 호환성 문제가 있습니다. 이 허가는 해당 의존성을 재라이선스하거나 결합된 웹사이트 빌드가 GPL과 호환된다고 선언하지 않습니다.
 
 ## 개발
 

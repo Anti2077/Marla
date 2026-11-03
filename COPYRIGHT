@@ -1,0 +1,24 @@
+Marla — a native macOS instantaneous translation layer
+Copyright (C) 2026 Anti2077
+Project author: https://github.com/Anti2077
+
+SPDX-License-Identifier: GPL-3.0-only
+
+The project owner's original Marla code, build scripts, documentation and
+original project assets are licensed under the GNU General Public License,
+version 3 only. See LICENSE for the unmodified license text. This grant is
+limited to rights the project owner can grant; it does not assert ownership
+of third-party code, fonts, icons, operating-system resources, or content
+visible inside demonstration recordings. Those retain their original rights
+and licenses. See THIRD_PARTY_NOTICES.md and docs/development/LICENSING.md.
+
+Marla is free software: you can redistribute it and/or modify it under the
+terms of the GNU General Public License as published by the Free Software
+Foundation, version 3 of the License.
+
+Marla is distributed in the hope that it will be useful, but WITHOUT ANY
+WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+FOR A PARTICULAR PURPOSE. See the GNU General Public License for details.
+
+You should have received a copy of the GNU General Public License along
+with Marla. If not, see <https://www.gnu.org/licenses/>.

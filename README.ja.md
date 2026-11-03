@@ -116,6 +116,12 @@ Marla の現在の製品言語セットには、次の 7 つの選択肢があ�
 - [Marla 紹介ホームページ](website/)
 - [Web サイトの実装メモ](website/README.md)
 
+## 謝辞と参考にした設計
+
+オープンソースプロジェクト [Snow Shot](https://github.com/mg-chao/snow-apps) に感謝します。Marla のスクリーンショット要素選択は、要素へのスナップ、ホイールによる親子階層の切り替え、バックグラウンドのクエリ制御、中断可能な選択枠の遷移を参考にしています。その滑らかな操作感は、本機能の重要な手本となりました。
+
+[固定した Snow Shot のソースリビジョン](https://github.com/mg-chao/snow-apps/tree/01753292547704fd0f11c45317d2dd08cdbf03df)を調査し、Swift/AppKit で独自に実装しました。ソースコードや依存関係は取り込んでいません。ポインター移動時の即時再選択、トラックパッドの1ジェスチャーにつき1階層の移動、アニメーションの時間は、Marla の実機フィードバックに基づいて調整しています。実装と検証の記録は [TASK-054](docs/tasks/TASK-054-element-selection-motion.md) を参照してください。
+
 ## ライセンス
 
 所有者が許諾できる Marla 独自のコード、ビルドスクリプト、文書および独自アセットは **GNU GPL 第3版のみ（`GPL-3.0-only`）** で提供されます。[LICENSE](LICENSE)、[COPYRIGHT](COPYRIGHT)、中英併記の[ライセンス・対応ソース配布ガイド](docs/development/LICENSING.md)、[第三者の権利表記](THIRD_PARTY_NOTICES.md)を参照してください。GPL の条件に従った改変・再配布・商用利用が認められ、非商用限定ではありません。第三者の素材・依存関係は元の条件を維持します。Web サイトの GSAP 依存関係には未解決の GPL 互換性問題があり、本許諾はそれらを再許諾せず、組み合わせた Web ビルドが GPL 互換であるとも主張しません。

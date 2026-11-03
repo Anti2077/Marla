@@ -116,6 +116,12 @@ Marla remains in **Incubation / Unreleased** while its public entry points are b
 - [Marla introduction homepage](website/)
 - [Website implementation notes](website/README.md)
 
+## Acknowledgments and inspiration
+
+Thanks to the open-source project [Snow Shot](https://github.com/mg-chao/snow-apps). Its element snapping, wheel navigation through parent and child levels, background query scheduling, and interruptible selection transitions informed Marla’s screenshot element selection. Its fluid interaction was an important reference for this feature.
+
+We studied a [fixed Snow Shot source revision](https://github.com/mg-chao/snow-apps/tree/01753292547704fd0f11c45317d2dd08cdbf03df) and implemented the feature independently in Swift/AppKit, without importing its source code or dependencies. Marla’s immediate retargeting on pointer movement, one-level-per-trackpad-gesture behavior, and animation timing were adjusted through hands-on feedback. See [TASK-054](docs/tasks/TASK-054-element-selection-motion.md) for implementation and verification records.
+
 ## License
 
 Marla’s original code, build scripts, documentation and original project assets are licensed under **GNU GPL v3 only (`GPL-3.0-only`)**, to the extent of the owner’s rights. See [LICENSE](LICENSE), [COPYRIGHT](COPYRIGHT), the bilingual [licensing and source-distribution guide](docs/development/LICENSING.md), and [third-party notices](THIRD_PARTY_NOTICES.md). Modification, redistribution and commercial use are permitted under the GPL; there is no noncommercial restriction. Third-party material retains its original terms. The website’s GSAP dependencies have an unresolved GPL compatibility conflict; this grant does not relicense them or claim the combined website build is GPL compatible.

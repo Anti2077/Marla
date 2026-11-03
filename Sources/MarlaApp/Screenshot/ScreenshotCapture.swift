@@ -31,7 +31,6 @@ final class ScreenshotCaptureCoordinator: ScreenshotCapturing {
     private var selectionSession: ScreenshotSelectionSession?
     private var escapeMonitor: ScreenshotEscapeMonitor?
     private var capturePreparationTask: Task<Void, Never>?
-    private var windowCaptureTask: Task<Void, Never>?
     private var capturePreparationID: UUID?
 
     func present(
@@ -88,7 +87,8 @@ final class ScreenshotCaptureCoordinator: ScreenshotCapturing {
         using preparation: CapturePreparation,
         initialOCRProvider: OCRProviderKind,
         allowsWindowSelection: Bool,
-        showsOCRProviderPicker: Bool
+        showsOCRProviderPicker: Bool,
+        elementQuery: ScreenshotElementQueryCoordinator.Query? = nil
     ) {
         let frozenDisplays = preparation.frozenDisplays
         let session = ScreenshotSelectionSession(
@@ -96,14 +96,12 @@ final class ScreenshotCaptureCoordinator: ScreenshotCapturing {
             windowTargets: preparation.windowTargets,
             initialOCRProvider: initialOCRProvider,
             allowsWindowSelection: allowsWindowSelection,
-            showsOCRProviderPicker: showsOCRProviderPicker
+            showsOCRProviderPicker: showsOCRProviderPicker,
+            elementQuery: elementQuery
         ) { [weak self] selection in
             guard let self else { return }
             if selection.cancelled {
                 finish(.failure(ScreenshotError.cancelled))
-            } else if selection.mode == .window,
-                      let target = selection.windowTarget {
-                capture(window: target, ocrProvider: selection.ocrProvider)
             } else {
                 capture(
                     global: selection.globalRect,
@@ -138,10 +136,45 @@ final class ScreenshotCaptureCoordinator: ScreenshotCapturing {
         let keyWindow = windows.first(where: { $0.frame.contains(pointer) }) ?? windows.first
         keyWindow?.makeKey()
         keyWindow?.makeFirstResponder(keyWindow?.contentView)
+        session.hover(at: pointer)
     }
 
     func presentUIAutomationFixture() {
+        let fixtureMode = ProcessInfo.processInfo.environment["MARLA_UI_TEST_ELEMENT_SELECTION"]
+        if fixtureMode == "synthetic", let fixture = ScreenshotElementFixture.make() {
+            completion = { _ in }
+            showSelection(using: CapturePreparation(frozenDisplays: [fixture.source], windowTargets: [fixture.target]),
+                          initialOCRProvider: .vision, allowsWindowSelection: true, showsOCRProviderPicker: true,
+                          elementQuery: fixture.query)
+            selectionSession?.hover(at: fixture.focusPoint)
+            return
+        }
         present { _ in }
+        if fixtureMode == "live" {
+            if ProcessInfo.processInfo.environment["MARLA_UI_TEST_ELEMENT_PROBE"] == "1" {
+                Task { @MainActor [weak self] in
+                    guard let self else { return }
+                    for _ in 0..<200 where selectionSession == nil {
+                        try? await Task.sleep(for: .milliseconds(10))
+                    }
+                    guard let session = selectionSession else { return }
+                    let targets = session.windowTargets.filter {
+                        ["com.apple.finder", "com.apple.TextEdit", "com.openai.codex", "app.zen-browser.zen",
+                         "com.apple.Safari", "com.google.Chrome"].contains($0.bundleIdentifier ?? "")
+                    }
+                    for target in targets.prefix(5) {
+                        for fraction: CGFloat in [0.3, 0.5, 0.7] {
+                            let point = CGPoint(x: target.frame.midX, y: target.frame.minY + target.frame.height * fraction)
+                            guard ScreenshotWindowTargeting.hitTest(point: point, in: session.windowTargets)?.id == target.id else { continue }
+                            print("Element probe: provider=\(target.bundleIdentifier ?? "unknown")")
+                            session.hover(at: point)
+                            try? await Task.sleep(for: .milliseconds(800))
+                        }
+                    }
+                }
+            }
+            return
+        }
         Task { @MainActor [weak self] in
             guard let self else { return }
             for _ in 0..<100 where selectionSession == nil {
@@ -182,39 +215,6 @@ final class ScreenshotCaptureCoordinator: ScreenshotCapturing {
         )))
     }
 
-    private func capture(window target: ScreenshotWindowTarget, ocrProvider: OCRProviderKind) {
-        guard let window = target.window, let captureID = capturePreparationID else {
-            finish(.failure(ScreenshotError.captureFailed))
-            return
-        }
-        let scale = NSScreen.screens
-            .first(where: { $0.frame.intersects(target.frame) })?
-            .backingScaleFactor ?? 2
-        let configuration = SCStreamConfiguration()
-        configuration.width = max(1, Int((target.frame.width * scale).rounded(.up)))
-        configuration.height = max(1, Int((target.frame.height * scale).rounded(.up)))
-        configuration.showsCursor = false
-        windowCaptureTask = Task { @MainActor [weak self] in
-            do {
-                let image = try await SCScreenshotManager.captureImage(
-                    contentFilter: SCContentFilter(desktopIndependentWindow: window),
-                    configuration: configuration
-                )
-                try Task.checkCancellation()
-                guard let self, capturePreparationID == captureID else { return }
-                finish(.success(ScreenshotCaptureResult(
-                    capture: CapturedScreenshot(image: image, globalRect: target.frame),
-                    mode: .window,
-                    ocrProvider: ocrProvider
-                )))
-            } catch is CancellationError {
-                return
-            } catch {
-                self?.finish(.failure(ScreenshotError.captureFailed))
-            }
-        }
-    }
-
     private func capturePreparation() async throws -> CapturePreparation {
         let shareableContent = try await SCShareableContent.excludingDesktopWindows(
             false,
@@ -223,6 +223,8 @@ final class ScreenshotCaptureCoordinator: ScreenshotCapturing {
         let ownApplication = shareableContent.applications.first {
             $0.processID == ProcessInfo.processInfo.processIdentifier
         }
+        let orderedIDs = (CGWindowListCopyWindowInfo(.optionOnScreenOnly, kCGNullWindowID) as? [[String: Any]] ?? [])
+            .compactMap { ($0[kCGWindowNumber as String] as? NSNumber)?.uint32Value }
         var frozenDisplays: [ScreenshotMagnifierSource] = []
         for screen in NSScreen.screens {
             try Task.checkCancellation()
@@ -263,24 +265,23 @@ final class ScreenshotCaptureCoordinator: ScreenshotCapturing {
         }
         return CapturePreparation(
             frozenDisplays: frozenDisplays,
-            windowTargets: ScreenshotWindowTargeting.targets(
+            windowTargets: ScreenshotWindowTargeting.ordered(ScreenshotWindowTargeting.targets(
                 from: shareableContent,
                 excludingProcessID: ProcessInfo.processInfo.processIdentifier,
                 primaryScreenMaxY: NSScreen.screens.first?.frame.maxY ?? 0
-            )
+            ), frontToBackIDs: orderedIDs)
         )
     }
 
     private func finish(_ result: Result<ScreenshotCaptureResult, Error>) {
         capturePreparationTask?.cancel()
         capturePreparationTask = nil
-        windowCaptureTask?.cancel()
-        windowCaptureTask = nil
         capturePreparationID = nil
         escapeMonitor?.remove()
         escapeMonitor = nil
         windows.forEach { $0.orderOut(nil) }
         windows.removeAll()
+        selectionSession?.tearDown()
         selectionSession = nil
         let completion = self.completion
         self.completion = nil

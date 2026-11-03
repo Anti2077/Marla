@@ -168,6 +168,16 @@ enum ScreenshotWindowTargeting {
         )
     }
 
+    static func ordered(_ targets: [ScreenshotWindowTarget], frontToBackIDs: [CGWindowID]) -> [ScreenshotWindowTarget] {
+        var ranks: [CGWindowID: Int] = [:]
+        for (index, id) in frontToBackIDs.enumerated() where ranks[id] == nil { ranks[id] = index }
+        return targets.enumerated().sorted {
+            let lhs = ranks[$0.element.id] ?? Int.max
+            let rhs = ranks[$1.element.id] ?? Int.max
+            return lhs == rhs ? $0.offset < $1.offset : lhs < rhs
+        }.map(\.element)
+    }
+
     static func hitTest(
         point: CGPoint,
         in targets: [ScreenshotWindowTarget]
@@ -279,7 +289,7 @@ struct ScreenshotOCRPicker: View {
             }
         }
         .padding(4)
-        .marlaGlassSurface(cornerRadius: 8)
+        .screenshotSelectionChrome(cornerRadius: 8)
         .fixedSize()
     }
 }

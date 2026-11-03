@@ -116,6 +116,12 @@ Marla는 완전한 오프라인 작동을 주장하지 않습니다. Provider, O
 - [Marla 소개 홈페이지](website/)
 - [웹사이트 구현 노트](website/README.md)
 
+## 감사와 참고한 설계
+
+오픈 소스 프로젝트 [Snow Shot](https://github.com/mg-chao/snow-apps)에 감사드립니다. Marla의 스크린샷 요소 선택은 요소 스냅, 휠을 통한 부모·자식 계층 전환, 백그라운드 쿼리 스케줄링, 중단 가능한 선택 영역 전환 설계를 참고했습니다. 매끄러운 상호작용은 이 기능을 만드는 데 중요한 참고가 되었습니다.
+
+[Snow Shot의 특정 소스 리비전](https://github.com/mg-chao/snow-apps/tree/01753292547704fd0f11c45317d2dd08cdbf03df)을 연구한 뒤 Swift/AppKit으로 독립 구현했으며, 소스 코드나 의존성을 가져오지 않았습니다. 포인터 이동 시 즉시 다시 선택하는 동작, 트랙패드 제스처당 한 계층 이동, 애니메이션 시간은 Marla의 실기기 사용 피드백에 맞춰 조정했습니다. 구현 및 검증 기록은 [TASK-054](docs/tasks/TASK-054-element-selection-motion.md)를 참고하세요.
+
 ## 라이선스
 
 소유자가 허가할 권리를 가진 Marla의 원본 코드, 빌드 스크립트, 문서 및 원본 프로젝트 자산은 **GNU GPL 버전 3만(`GPL-3.0-only`)** 적용됩니다. [LICENSE](LICENSE), [COPYRIGHT](COPYRIGHT), 중영 병기 [라이선스 및 대응 소스 배포 안내](docs/development/LICENSING.md), [제3자 고지](THIRD_PARTY_NOTICES.md)를 참조하세요. GPL 조건에 따라 수정·재배포·상업적 이용이 가능하며 비상업적 이용 제한은 없습니다. 제3자 자료에는 원래 조건이 유지됩니다. 웹사이트의 GSAP 의존성에는 해결되지 않은 GPL 호환성 문제가 있습니다. 이 허가는 해당 의존성을 재라이선스하거나 결합된 웹사이트 빌드가 GPL과 호환된다고 선언하지 않습니다.

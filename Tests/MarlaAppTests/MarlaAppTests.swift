@@ -2777,12 +2777,13 @@ final class MarlaAppTests: XCTestCase {
             keyCode: 49
         ))
 
-        XCTAssertTrue(session.handleKeyDown(spaceDown))
         XCTAssertEqual(session.selectionMode, .window)
         session.hover(at: CGPoint(x: 40, y: 50))
         XCTAssertEqual(session.highlightedWindow?.id, target.id)
         XCTAssertTrue(session.handleKeyDown(spaceDown))
         XCTAssertEqual(session.selectionMode, .region)
+        XCTAssertTrue(session.handleKeyDown(spaceDown))
+        XCTAssertEqual(session.selectionMode, .window)
 
         session.begin(at: CGPoint(x: 10, y: 10))
         session.move(to: CGPoint(x: 110, y: 70))

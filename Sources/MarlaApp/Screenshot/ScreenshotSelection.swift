@@ -174,328 +174,6 @@ struct ScreenshotMagnifierSource {
     }
 }
 
-@MainActor
-final class ScreenshotSelectionSession: NSObject {
-    private(set) var startPoint: NSPoint?
-    private(set) var currentPoint: NSPoint?
-    private(set) var pointerPoint: NSPoint?
-    private(set) var isConfirming = false
-    private(set) var confirmationProgress: CGFloat = 0
-    private(set) var selectionMode: ScreenshotSelectionMode = .region
-    private(set) var highlightedWindow: ScreenshotWindowTarget?
-    private(set) var selectedOCRProvider: OCRProviderKind
-    let magnifierSources: [ScreenshotMagnifierSource]
-    let windowTargets: [ScreenshotWindowTarget]
-    let visibleBounds: CGRect
-    let allowsWindowSelection: Bool
-    private var redrawCallbacks: [() -> Void] = []
-    private var hasFinished = false
-    private let reducesMotion: Bool
-    private let confirmationDuration: TimeInterval
-    private var confirmationStartedAt: TimeInterval?
-    private var confirmationTimer: Timer?
-    private var isPanning = false
-    private var panStartPointer: NSPoint?
-    private var panOriginRect: NSRect?
-    private var panOriginStartPoint: NSPoint?
-    private var panOriginCurrentPoint: NSPoint?
-    private var resizePointerOffset = NSPoint.zero
-    private let onFinish: (NSRect, Bool) -> Void
-    private let onSelectionFinish: ((ScreenshotSelectionResult) -> Void)?
-
-    init(
-        magnifierSources: [ScreenshotMagnifierSource] = [],
-        windowTargets: [ScreenshotWindowTarget] = [],
-        initialOCRProvider: OCRProviderKind = .vision,
-        allowsWindowSelection: Bool = true,
-        reducesMotion: Bool? = nil,
-        confirmationDuration: TimeInterval = MarlaMotion.screenshotConfirmationDuration,
-        onFinish: @escaping (NSRect, Bool) -> Void
-    ) {
-        self.magnifierSources = magnifierSources
-        self.windowTargets = windowTargets
-        visibleBounds = ScreenshotWindowTargeting.visibleBounds(for: magnifierSources)
-        selectedOCRProvider = initialOCRProvider
-        self.allowsWindowSelection = allowsWindowSelection
-        onSelectionFinish = nil
-        showsOCRProviderPicker = false
-        self.reducesMotion = reducesMotion ?? (
-            ProcessInfo.processInfo.environment["MARLA_UI_TEST_REDUCE_MOTION"] == "1"
-                || NSWorkspace.shared.accessibilityDisplayShouldReduceMotion
-        )
-        self.confirmationDuration = max(0, confirmationDuration)
-        self.onFinish = onFinish
-        super.init()
-    }
-
-    init(
-        magnifierSources: [ScreenshotMagnifierSource] = [],
-        windowTargets: [ScreenshotWindowTarget] = [],
-        initialOCRProvider: OCRProviderKind = .vision,
-        allowsWindowSelection: Bool = true,
-        showsOCRProviderPicker: Bool = true,
-        reducesMotion: Bool? = nil,
-        confirmationDuration: TimeInterval = MarlaMotion.screenshotConfirmationDuration,
-        onSelectionFinish: @escaping (ScreenshotSelectionResult) -> Void
-    ) {
-        self.magnifierSources = magnifierSources
-        self.windowTargets = windowTargets
-        visibleBounds = ScreenshotWindowTargeting.visibleBounds(for: magnifierSources)
-        selectedOCRProvider = initialOCRProvider
-        self.allowsWindowSelection = allowsWindowSelection
-        onFinish = { _, _ in }
-        self.onSelectionFinish = onSelectionFinish
-        self.showsOCRProviderPicker = showsOCRProviderPicker
-        self.reducesMotion = reducesMotion ?? (
-            ProcessInfo.processInfo.environment["MARLA_UI_TEST_REDUCE_MOTION"] == "1"
-                || NSWorkspace.shared.accessibilityDisplayShouldReduceMotion
-        )
-        self.confirmationDuration = max(0, confirmationDuration)
-        super.init()
-    }
-
-    let showsOCRProviderPicker: Bool
-
-    var selectionRect: NSRect {
-        guard let startPoint, let currentPoint else { return .zero }
-        return NSRect(
-            x: min(startPoint.x, currentPoint.x),
-            y: min(startPoint.y, currentPoint.y),
-            width: abs(startPoint.x - currentPoint.x),
-            height: abs(startPoint.y - currentPoint.y)
-        )
-    }
-
-    var confirmationCornerInset: CGFloat {
-        reducesMotion ? 0 : 4 * confirmationProgress
-    }
-
-    var confirmationOpacity: CGFloat {
-        reducesMotion ? 1 - (0.45 * confirmationProgress) : 1
-    }
-
-    func attach(_ view: ScreenshotSelectionView) {
-        redrawCallbacks.append { [weak view] in view?.needsDisplay = true }
-    }
-
-    func begin(at point: NSPoint) {
-        guard !hasFinished, !isConfirming, selectionMode == .region else { return }
-        pointerPoint = point
-        startPoint = point
-        currentPoint = point
-        resizePointerOffset = .zero
-        redraw()
-    }
-
-    func move(to point: NSPoint) {
-        guard startPoint != nil, !hasFinished, !isConfirming else { return }
-        pointerPoint = point
-        if isPanning,
-           let panStartPointer,
-           let panOriginRect,
-           let panOriginStartPoint,
-           let panOriginCurrentPoint {
-            let translated = CGRect(
-                x: panOriginRect.minX + point.x - panStartPointer.x,
-                y: panOriginRect.minY + point.y - panStartPointer.y,
-                width: panOriginRect.width,
-                height: panOriginRect.height
-            )
-            let clamped = ScreenshotWindowTargeting.clamped(rect: translated, to: visibleBounds)
-            let delta = NSPoint(
-                x: clamped.minX - panOriginRect.minX,
-                y: clamped.minY - panOriginRect.minY
-            )
-            startPoint = NSPoint(
-                x: panOriginStartPoint.x + delta.x,
-                y: panOriginStartPoint.y + delta.y
-            )
-            currentPoint = NSPoint(
-                x: panOriginCurrentPoint.x + delta.x,
-                y: panOriginCurrentPoint.y + delta.y
-            )
-        } else {
-            currentPoint = NSPoint(
-                x: point.x + resizePointerOffset.x,
-                y: point.y + resizePointerOffset.y
-            )
-        }
-        redraw()
-    }
-
-    func hover(at point: NSPoint) {
-        guard !hasFinished, !isConfirming else { return }
-        pointerPoint = point
-        if selectionMode == .window {
-            highlightedWindow = ScreenshotWindowTargeting.hitTest(point: point, in: windowTargets)
-        }
-        redraw()
-    }
-
-    func setOCRProvider(_ provider: OCRProviderKind) {
-        guard !hasFinished else { return }
-        selectedOCRProvider = provider
-        redraw()
-    }
-
-    func handleKeyEvent(_ event: NSEvent) -> Bool {
-        switch event.type {
-        case .keyDown:
-            return handleKeyDown(event)
-        case .keyUp:
-            return handleKeyUp(event)
-        default:
-            return false
-        }
-    }
-
-    func handleKeyDown(_ event: NSEvent) -> Bool {
-        guard !hasFinished else { return true }
-        if ScreenshotSelectionView.isCancelKeyCode(event.keyCode) {
-            cancel()
-            return true
-        }
-        if event.keyCode == 49 {
-            if startPoint != nil {
-                beginPanning()
-            } else if allowsWindowSelection, !event.isARepeat {
-                selectionMode = selectionMode == .window ? .region : .window
-                highlightedWindow = nil
-                redraw()
-            }
-            return true
-        }
-        if showsOCRProviderPicker,
-           let characters = event.charactersIgnoringModifiers,
-           let provider = ScreenshotOCRProviderOption.provider(forKey: characters) {
-            setOCRProvider(provider)
-            return true
-        }
-        return false
-    }
-
-    func handleKeyUp(_ event: NSEvent) -> Bool {
-        guard event.keyCode == 49 else { return false }
-        endPanning()
-        return true
-    }
-
-    func selectWindow(at point: NSPoint) {
-        guard !hasFinished, !isConfirming, selectionMode == .window,
-              let target = ScreenshotWindowTargeting.hitTest(point: point, in: windowTargets)
-        else { return }
-        pointerPoint = point
-        highlightedWindow = target
-        isConfirming = true
-        confirmationProgress = 1
-        hasFinished = true
-        onSelectionFinish?(ScreenshotSelectionResult(
-            globalRect: target.frame,
-            mode: .window,
-            windowTarget: target,
-            ocrProvider: selectedOCRProvider,
-            cancelled: false
-        ))
-    }
-
-    private func beginPanning() {
-        guard !isPanning, selectionRect.width > 0, selectionRect.height > 0 else { return }
-        isPanning = true
-        panStartPointer = pointerPoint
-        panOriginRect = selectionRect
-        panOriginStartPoint = startPoint
-        panOriginCurrentPoint = currentPoint
-    }
-
-    private func endPanning() {
-        guard isPanning else { return }
-        isPanning = false
-        if let pointerPoint, let currentPoint {
-            resizePointerOffset = NSPoint(
-                x: currentPoint.x - pointerPoint.x,
-                y: currentPoint.y - pointerPoint.y
-            )
-        }
-        panStartPointer = nil
-        panOriginRect = nil
-        panOriginStartPoint = nil
-        panOriginCurrentPoint = nil
-    }
-
-    func confirm(at point: NSPoint) {
-        guard !hasFinished, !isConfirming else { return }
-        move(to: point)
-        guard selectionRect.width > 4, selectionRect.height > 4 else {
-            finish(cancelled: true)
-            return
-        }
-        isConfirming = true
-        confirmationProgress = 0
-        redraw()
-        guard confirmationDuration > 0 else {
-            confirmationProgress = 1
-            redraw()
-            finish(cancelled: false)
-            return
-        }
-        confirmationStartedAt = ProcessInfo.processInfo.systemUptime
-        let timer = Timer(
-            timeInterval: 1 / 60,
-            target: self,
-            selector: #selector(advanceConfirmation),
-            userInfo: nil,
-            repeats: true
-        )
-        confirmationTimer = timer
-        RunLoop.main.add(timer, forMode: .common)
-    }
-
-    func cancel() {
-        finish(cancelled: true)
-    }
-
-    private func redraw() {
-        redrawCallbacks.forEach { $0() }
-    }
-
-    @objc private func advanceConfirmation() {
-        guard isConfirming, let confirmationStartedAt else { return }
-        let elapsed = ProcessInfo.processInfo.systemUptime - confirmationStartedAt
-        let linearProgress = min(max(elapsed / confirmationDuration, 0), 1)
-        confirmationProgress = CGFloat(1 - pow(1 - linearProgress, 3))
-        redraw()
-        if linearProgress >= 1 {
-            finish(cancelled: false)
-        }
-    }
-
-    private func finish(cancelled: Bool) {
-        guard !hasFinished else { return }
-        hasFinished = true
-        endPanning()
-        confirmationTimer?.invalidate()
-        confirmationTimer = nil
-        confirmationStartedAt = nil
-        isConfirming = false
-        if cancelled {
-            confirmationProgress = 0
-        } else {
-            confirmationProgress = 1
-        }
-        if let onSelectionFinish {
-            onSelectionFinish(ScreenshotSelectionResult(
-                globalRect: selectionRect,
-                mode: selectionMode,
-                windowTarget: highlightedWindow,
-                ocrProvider: selectedOCRProvider,
-                cancelled: cancelled
-            ))
-        } else {
-            onFinish(selectionRect, cancelled)
-        }
-    }
-}
-
 final class ScreenshotSelectionView: NSView {
     private let session: ScreenshotSelectionSession
     private let frozenSource: ScreenshotMagnifierSource?
@@ -548,31 +226,26 @@ final class ScreenshotSelectionView: NSView {
     override func mouseDown(with event: NSEvent) {
         guard let window else { return }
         let point = window.convertPoint(toScreen: event.locationInWindow)
-        if session.selectionMode == .region {
-            session.begin(at: point)
-        } else {
-            session.hover(at: point)
-        }
+        session.pointerDown(at: point)
     }
 
     override func mouseDragged(with event: NSEvent) {
         guard let window else { return }
-        let point = window.convertPoint(toScreen: event.locationInWindow)
-        if session.selectionMode == .window {
-            session.hover(at: point)
-        } else {
-            session.move(to: point)
-        }
+        session.pointerDragged(to: window.convertPoint(toScreen: event.locationInWindow))
     }
 
     override func mouseUp(with event: NSEvent) {
         guard let window else { return }
-        let point = window.convertPoint(toScreen: event.locationInWindow)
-        if session.selectionMode == .window {
-            session.selectWindow(at: point)
-        } else {
-            session.confirm(at: point)
-        }
+        session.pointerUp(at: window.convertPoint(toScreen: event.locationInWindow))
+    }
+
+    override func scrollWheel(with event: NSEvent) {
+        // Normalize physical direction independently of the system's natural-scrolling preference.
+        let delta = event.scrollingDeltaY * (event.isDirectionInvertedFromDevice ? -1 : 1)
+        session.scrollLevel(delta: delta, precise: event.hasPreciseScrollingDeltas,
+                            began: event.phase.contains(.began), momentum: !event.momentumPhase.isEmpty,
+                            ended: event.phase.contains(.ended) || event.phase.contains(.cancelled),
+                            timestamp: event.timestamp)
     }
 
     override func rightMouseDown(with event: NSEvent) {
@@ -595,9 +268,7 @@ final class ScreenshotSelectionView: NSView {
 
     override func draw(_ dirtyRect: NSRect) {
         hintView.rootView = ScreenshotGlassLabel(
-            text: session.selectionMode == .window
-                ? "窗口模式 · 移动到窗口后单击 · Space 返回框选 · Esc 取消"
-                : "拖动框选要翻译的区域 · Space 平移 · Esc 取消",
+            text: session.selectionHint,
             usesMonospacedDigits: false
         )
         ocrPickerView.rootView = ScreenshotOCRPicker(
@@ -621,7 +292,7 @@ final class ScreenshotSelectionView: NSView {
         NSColor.black.withAlphaComponent(0.42).setFill()
         bounds.fill()
         guard let window else { return }
-        let rect = window.convertFromScreen(session.selectionRect)
+        let rect = window.convertFromScreen(session.displayedSelectionRect)
         if rect.width <= 0 || rect.height <= 0 {
             hintView.isHidden = false
             sizeView.isHidden = true
@@ -636,19 +307,17 @@ final class ScreenshotSelectionView: NSView {
                 width: size.width,
                 height: size.height
             )
-            if session.selectionMode == .window,
-               let target = session.highlightedWindow {
-                let targetRect = window.convertFromScreen(target.frame)
-                NSColor.systemBlue.withAlphaComponent(0.12).setFill()
-                targetRect.fill()
-                NSColor.systemBlue.withAlphaComponent(0.95).setStroke()
-                let border = NSBezierPath(rect: targetRect)
-                border.lineWidth = 2
-                border.stroke()
-            }
+
         }
         if rect.width > 0, rect.height > 0 {
-            hintView.isHidden = true
+            hintView.isHidden = session.selectionMode == .region
+            if !hintView.isHidden {
+                let size = hintView.fittingSize
+                hintView.frame = NSRect(x: bounds.midX - size.width / 2,
+                    y: ScreenshotSelectionLayout.topHintOriginY(bounds: bounds, hintHeight: size.height,
+                                                               safeAreaTopInset: window.screen?.safeAreaInsets.top ?? 0),
+                    width: size.width, height: size.height)
+            }
             if let frozenSource {
                 NSGraphicsContext.saveGraphicsState()
                 NSBezierPath(rect: rect).addClip()
@@ -664,6 +333,12 @@ final class ScreenshotSelectionView: NSView {
                 rect.fill()
                 NSGraphicsContext.current?.compositingOperation = .sourceOver
             }
+            // A dark outer keyline stays legible over bright source pixels, including Increase Contrast.
+            NSColor.black.withAlphaComponent(0.8).setStroke()
+            let outline = NSBezierPath(rect: rect)
+            outline.lineWidth = (NSWorkspace.shared.accessibilityDisplayShouldIncreaseContrast
+                || ProcessInfo.processInfo.environment["MARLA_UI_TEST_INCREASE_CONTRAST"] == "1") ? 4 : 3
+            outline.stroke()
             NSColor.white.withAlphaComponent(session.confirmationOpacity).setStroke()
             let border = NSBezierPath(rect: rect)
             border.lineWidth = 1
@@ -686,7 +361,7 @@ final class ScreenshotSelectionView: NSView {
                 path.stroke()
             }
             sizeView.rootView = ScreenshotGlassLabel(
-                text: "\(Int(rect.width)) × \(Int(rect.height))",
+                text: "\(Int(session.selectionRect.width)) × \(Int(session.selectionRect.height))",
                 usesMonospacedDigits: true
             )
             let labelSize = sizeView.fittingSize
@@ -790,7 +465,7 @@ private struct ScreenshotGlassLabel: View {
         .foregroundStyle(.white)
         .padding(.horizontal, usesMonospacedDigits ? 8 : 12)
         .padding(.vertical, usesMonospacedDigits ? 5 : 7)
-        .marlaGlassSurface(cornerRadius: usesMonospacedDigits ? 6 : 8)
+        .screenshotSelectionChrome(cornerRadius: usesMonospacedDigits ? 6 : 8)
         .fixedSize()
     }
 }

@@ -107,7 +107,7 @@ Traditional Chinese is normalized to the Simplified Chinese product option and i
 
 ## Project status
 
-Marla remains in **Incubation / Unreleased** while its public entry points are being prepared. The native application and its core workflows are implemented, but no public Release, assigned product version, notarized package, updater, or selected public license has been declared yet.
+Marla remains in **Incubation / Unreleased** while its public entry points are being prepared. The native application and its core workflows are implemented, but no public Release, assigned product version, notarized package, or updater has been declared yet.
 
 - [Verified development status](docs/development/STATUS.md)
 - [Product definition](docs/product/PRODUCT.md)
@@ -115,6 +115,10 @@ Marla remains in **Incubation / Unreleased** while its public entry points are b
 - [Paper Lantern brand](docs/product/BRAND.md)
 - [Marla introduction homepage](website/)
 - [Website implementation notes](website/README.md)
+
+## License
+
+Marla’s original code, build scripts, documentation and original project assets are licensed under **GNU GPL v3 only (`GPL-3.0-only`)**, to the extent of the owner’s rights. See [LICENSE](LICENSE), [COPYRIGHT](COPYRIGHT), the bilingual [licensing and source-distribution guide](docs/development/LICENSING.md), and [third-party notices](THIRD_PARTY_NOTICES.md). Modification, redistribution and commercial use are permitted under the GPL; there is no noncommercial restriction. Third-party material retains its original terms. The website’s GSAP dependencies have an unresolved GPL compatibility conflict; this grant does not relicense them or claim the combined website build is GPL compatible.
 
 ## Development
 

@@ -107,7 +107,7 @@ Marla の現在の製品言語セットには、次の 7 つの選択肢があ�
 
 ## プロジェクトの状態
 
-公開入口の準備中であるため、Marla は引き続き **Incubation / Unreleased** の段階です。ネイティブアプリケーションと主要ワークフローは実装されていますが、公開 Release、割り当て済みの製品バージョン、公証済みパッケージ、アップデーター、選択済みの公開ライセンスはまだ宣言されていません。
+公開入口の準備中であるため、Marla は引き続き **Incubation / Unreleased** の段階です。ネイティブアプリケーションと主要ワークフローは実装されていますが、公開 Release、割り当て済みの製品バージョン、公証済みパッケージ、アップデーターはまだ宣言されていません。
 
 - [検証済みの開発状況](docs/development/STATUS.md)
 - [製品定義](docs/product/PRODUCT.md)
@@ -115,6 +115,10 @@ Marla の現在の製品言語セットには、次の 7 つの選択肢があ�
 - [Paper Lantern ブランド](docs/product/BRAND.md)
 - [Marla 紹介ホームページ](website/)
 - [Web サイトの実装メモ](website/README.md)
+
+## ライセンス
+
+所有者が許諾できる Marla 独自のコード、ビルドスクリプト、文書および独自アセットは **GNU GPL 第3版のみ（`GPL-3.0-only`）** で提供されます。[LICENSE](LICENSE)、[COPYRIGHT](COPYRIGHT)、中英併記の[ライセンス・対応ソース配布ガイド](docs/development/LICENSING.md)、[第三者の権利表記](THIRD_PARTY_NOTICES.md)を参照してください。GPL の条件に従った改変・再配布・商用利用が認められ、非商用限定ではありません。第三者の素材・依存関係は元の条件を維持します。Web サイトの GSAP 依存関係には未解決の GPL 互換性問題があり、本許諾はそれらを再許諾せず、組み合わせた Web ビルドが GPL 互換であるとも主張しません。
 
 ## 開発
 

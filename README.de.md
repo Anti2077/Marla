@@ -107,7 +107,7 @@ Traditionelles Chinesisch wird auf die Produktoption Vereinfachtes Chinesisch no
 
 ## Projektstatus
 
-Marla bleibt in **Inkubation / Unveröffentlicht**, während die öffentlichen Einstiegspunkte vorbereitet werden. Die native Anwendung und ihre Kernabläufe sind implementiert, aber es wurde noch kein öffentliches Release, keine Produktversion, kein notarisiertes Paket, kein Updater und keine öffentliche Lizenz erklärt.
+Marla bleibt in **Inkubation / Unveröffentlicht**, während die öffentlichen Einstiegspunkte vorbereitet werden. Die native Anwendung und ihre Kernabläufe sind implementiert, aber es wurde noch kein öffentliches Release, keine Produktversion, kein notarisiertes Paket und kein Updater erklärt.
 
 - [Verifizierter Entwicklungsstatus](docs/development/STATUS.md)
 - [Produktdefinition](docs/product/PRODUCT.md)
@@ -115,6 +115,10 @@ Marla bleibt in **Inkubation / Unveröffentlicht**, während die öffentlichen E
 - [Paper-Lantern-Marke](docs/product/BRAND.md)
 - [Marla-Präsentationsseite](website/)
 - [Hinweise zur Website-Implementierung](website/README.md)
+
+## Lizenz
+
+Der ursprüngliche Code, die Build-Skripte, Dokumentation und ursprünglichen Projektressourcen von Marla stehen im Rahmen der Rechte des Eigentümers unter **GNU GPL ausschließlich Version 3 (`GPL-3.0-only`)**. Siehe [LICENSE](LICENSE), [COPYRIGHT](COPYRIGHT), den [zweisprachigen Leitfaden zu Lizenz und Quellcodeweitergabe](docs/development/LICENSING.md) sowie [Drittanbieterhinweise](THIRD_PARTY_NOTICES.md). Änderungen, Weitergabe und kommerzielle Nutzung sind unter den GPL-Bedingungen erlaubt; es gibt keine Beschränkung auf nichtkommerzielle Nutzung. Drittmaterial behält seine Bedingungen. Die GSAP-Abhängigkeiten der Website weisen einen ungelösten GPL-Kompatibilitätskonflikt auf; diese Lizenz lizenziert sie nicht um und erklärt den kombinierten Website-Build nicht für GPL-kompatibel.
 
 ## Entwicklung
 

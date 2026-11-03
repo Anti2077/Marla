@@ -13,6 +13,8 @@ enum MarlaMotion {
     static let reorderDuration: TimeInterval = 0.22
     static let apiProfileDropDuration: TimeInterval = 0.14
     static let shortcutMorphDuration: TimeInterval = 0.32
+    static let screenshotHoverDwellDuration: TimeInterval = 0.05
+    static let screenshotSnapDuration: TimeInterval = 0.085
     static let screenshotConfirmationDuration: TimeInterval = 0.12
     static let breathingDuration: TimeInterval = 0.90
 

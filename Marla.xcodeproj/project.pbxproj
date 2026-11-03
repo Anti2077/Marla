@@ -86,6 +86,14 @@
 		A10000000000000000000063 /* App/RecentTranslationRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000063 /* App/RecentTranslationRow.swift */; };
 		A10000000000000000000064 /* Sessions/RecentTranslationCopy.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000064 /* Sessions/RecentTranslationCopy.swift */; };
 		A10000000000000000000065 /* App/RecentTranslationCopyMenu.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000065 /* App/RecentTranslationCopyMenu.swift */; };
+		A10000000000000000000070 /* Screenshot/ScreenshotSelectionSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000070 /* Screenshot/ScreenshotSelectionSession.swift */; };
+		A10000000000000000000071 /* Screenshot/ScreenshotElementSelection.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000071 /* Screenshot/ScreenshotElementSelection.swift */; };
+		A10000000000000000000072 /* Screenshot/ScreenshotSelectionTransition.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000072 /* Screenshot/ScreenshotSelectionTransition.swift */; };
+		A10000000000000000000073 /* Screenshot/ScreenshotElementQuery.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000073 /* Screenshot/ScreenshotElementQuery.swift */; };
+		A10000000000000000000074 /* Screenshot/ScreenshotElementQueryCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000074 /* Screenshot/ScreenshotElementQueryCoordinator.swift */; };
+		A10000000000000000000075 /* Screenshot/ScreenshotElementFixture.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000075 /* Screenshot/ScreenshotElementFixture.swift */; };
+		A10000000000000000000076 /* Screenshot/ScreenshotProviderAccessibility.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000076 /* Screenshot/ScreenshotProviderAccessibility.swift */; };
+		A10000000000000000000077 /* Screenshot/ScreenshotSelectionAppearance.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000077 /* Screenshot/ScreenshotSelectionAppearance.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -182,6 +190,14 @@
 		A20000000000000000000063 /* App/RecentTranslationRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecentTranslationRow.swift; sourceTree = "<group>"; };
 		A20000000000000000000064 /* Sessions/RecentTranslationCopy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecentTranslationCopy.swift; sourceTree = "<group>"; };
 		A20000000000000000000065 /* App/RecentTranslationCopyMenu.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecentTranslationCopyMenu.swift; sourceTree = "<group>"; };
+		A20000000000000000000070 /* Screenshot/ScreenshotSelectionSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreenshotSelectionSession.swift; sourceTree = "<group>"; };
+		A20000000000000000000071 /* Screenshot/ScreenshotElementSelection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreenshotElementSelection.swift; sourceTree = "<group>"; };
+		A20000000000000000000072 /* Screenshot/ScreenshotSelectionTransition.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreenshotSelectionTransition.swift; sourceTree = "<group>"; };
+		A20000000000000000000073 /* Screenshot/ScreenshotElementQuery.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreenshotElementQuery.swift; sourceTree = "<group>"; };
+		A20000000000000000000074 /* Screenshot/ScreenshotElementQueryCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreenshotElementQueryCoordinator.swift; sourceTree = "<group>"; };
+		A20000000000000000000075 /* Screenshot/ScreenshotElementFixture.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreenshotElementFixture.swift; sourceTree = "<group>"; };
+		A20000000000000000000076 /* Screenshot/ScreenshotProviderAccessibility.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreenshotProviderAccessibility.swift; sourceTree = "<group>"; };
+		A20000000000000000000077 /* Screenshot/ScreenshotSelectionAppearance.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreenshotSelectionAppearance.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -252,7 +268,7 @@
 		A7000000000000000000000C /* Sessions */ = {isa = PBXGroup; children = (A20000000000000000000064 /* RecentTranslationCopy.swift */, A2000000000000000000001A /* TranslationSessionStore.swift */, A20000000000000000000024 /* QuickInputView.swift */, A2000000000000000000002D /* QuickInputMarkdownEditor.swift */); path = Sessions; sourceTree = "<group>"; };
 		A7000000000000000000000D /* Panel */ = {isa = PBXGroup; children = (A2000000000000000000001B /* FloatingPanel.swift */, A20000000000000000000060 /* AutomaticPanelPlacement.swift */, A20000000000000000000061 /* HTMLTableProjection.swift */, A20000000000000000000041 /* FloatingPanelEventRouting.swift */, A20000000000000000000045 /* ResultPanelWindowGeometry.swift */, A20000000000000000000023 /* TranslationCardView.swift */, A2000000000000000000002A /* MarkdownResultText.swift */, A2000000000000000000002E /* MarkdownResultSelectableText.swift */, A2000000000000000000002F /* StreamingMarkdownProjection.swift */); path = Panel; sourceTree = "<group>"; };
 		A7000000000000000000000E /* Shortcuts */ = {isa = PBXGroup; children = (A2000000000000000000001C /* GlobalShortcuts.swift */, A20000000000000000000042 /* ShortcutModifier.swift */); path = Shortcuts; sourceTree = "<group>"; };
-		A7000000000000000000000F /* Screenshot */ = {isa = PBXGroup; children = (A2000000000000000000001D /* ScreenshotCapture.swift */, A2000000000000000000001E /* ScreenshotSelection.swift */, A20000000000000000000062 /* ScreenshotSelectionSupport.swift */, A2000000000000000000004C /* ScreenshotTranslationIntent.swift */, A20000000000000000000048 /* InPlaceTranslationService.swift */, A20000000000000000000049 /* InPlaceOverlayLayout.swift */, A2000000000000000000004E /* InPlaceMarkdownProjection.swift */, A2000000000000000000004F /* InPlaceMarkdownAttributedText.swift */, A20000000000000000000050 /* InPlaceTableGrouping.swift */, A20000000000000000000052 /* InPlaceWindowContent.swift */, A20000000000000000000051 /* InPlaceOverlayChrome.swift */, A2000000000000000000004D /* ScreenshotBackgroundRestoration.swift */, A2000000000000000000004A /* ScreenshotTranslationOverlay.swift */); path = Screenshot; sourceTree = "<group>"; };
+		A7000000000000000000000F /* Screenshot */ = {isa = PBXGroup; children = (A20000000000000000000077 /* ScreenshotSelectionAppearance.swift */, A20000000000000000000076 /* ScreenshotProviderAccessibility.swift */, A20000000000000000000075 /* ScreenshotElementFixture.swift */, A20000000000000000000074 /* ScreenshotElementQueryCoordinator.swift */, A20000000000000000000073 /* ScreenshotElementQuery.swift */, A20000000000000000000072 /* ScreenshotSelectionTransition.swift */, A20000000000000000000071 /* ScreenshotElementSelection.swift */, A20000000000000000000070 /* ScreenshotSelectionSession.swift */, A2000000000000000000001D /* ScreenshotCapture.swift */, A2000000000000000000001E /* ScreenshotSelection.swift */, A20000000000000000000062 /* ScreenshotSelectionSupport.swift */, A2000000000000000000004C /* ScreenshotTranslationIntent.swift */, A20000000000000000000048 /* InPlaceTranslationService.swift */, A20000000000000000000049 /* InPlaceOverlayLayout.swift */, A2000000000000000000004E /* InPlaceMarkdownProjection.swift */, A2000000000000000000004F /* InPlaceMarkdownAttributedText.swift */, A20000000000000000000050 /* InPlaceTableGrouping.swift */, A20000000000000000000052 /* InPlaceWindowContent.swift */, A20000000000000000000051 /* InPlaceOverlayChrome.swift */, A2000000000000000000004D /* ScreenshotBackgroundRestoration.swift */, A2000000000000000000004A /* ScreenshotTranslationOverlay.swift */); path = Screenshot; sourceTree = "<group>"; };
 		A70000000000000000000010 /* OCR */ = {isa = PBXGroup; children = (A2000000000000000000001F /* VisionOCR.swift */, A20000000000000000000036 /* CloudOCRImageEncoder.swift */, A20000000000000000000037 /* GLMOCRService.swift */); path = OCR; sourceTree = "<group>"; };
 		A70000000000000000000011 /* Selection */ = {isa = PBXGroup; children = (A20000000000000000000020 /* AccessibilitySelectionReader.swift */, A20000000000000000000021 /* ClipboardSelectionFallback.swift */, A20000000000000000000025 /* AccessibilitySelectionModels.swift */); path = Selection; sourceTree = "<group>"; };
 		A70000000000000000000012 /* Content */ = {isa = PBXGroup; children = (A2000000000000000000002C /* NativeFormattedContent.swift */, A20000000000000000000030 /* LiteralHTMLTableNormalizer.swift */); path = Content; sourceTree = "<group>"; };
@@ -445,6 +461,14 @@
 				A10000000000000000000042 /* Shortcuts/ShortcutModifier.swift in Sources */,
 				A1000000000000000000001D /* Screenshot/ScreenshotCapture.swift in Sources */,
 				A1000000000000000000001E /* Screenshot/ScreenshotSelection.swift in Sources */,
+				A10000000000000000000070 /* Screenshot/ScreenshotSelectionSession.swift in Sources */,
+				A10000000000000000000071 /* Screenshot/ScreenshotElementSelection.swift in Sources */,
+				A10000000000000000000072 /* Screenshot/ScreenshotSelectionTransition.swift in Sources */,
+				A10000000000000000000073 /* Screenshot/ScreenshotElementQuery.swift in Sources */,
+				A10000000000000000000074 /* Screenshot/ScreenshotElementQueryCoordinator.swift in Sources */,
+				A10000000000000000000075 /* Screenshot/ScreenshotElementFixture.swift in Sources */,
+				A10000000000000000000076 /* Screenshot/ScreenshotProviderAccessibility.swift in Sources */,
+				A10000000000000000000077 /* Screenshot/ScreenshotSelectionAppearance.swift in Sources */,
 				A10000000000000000000062 /* Screenshot/ScreenshotSelectionSupport.swift in Sources */,
 				A10000000000000000000048 /* Screenshot/InPlaceTranslationService.swift in Sources */,
 				A10000000000000000000049 /* Screenshot/InPlaceOverlayLayout.swift in Sources */,

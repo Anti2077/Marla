@@ -43,7 +43,7 @@ Conversation: 2026-11-03，研究 Snow Shot 后实现 Marla 普通截图的元�
 - 悬停查询目标应用暴露的 AX 角色、层级和几何，构建由细元素到父容器再到整窗口的候选路径；候选去重、边界裁切、所属进程/窗口校验、隐藏节点过滤、环检测和有界遍历。
 - 排除 Marla 截图覆盖层，正确选择可见目标窗口；无可用元素、缺权限、超时或应用不支持时保留窗口候选。没有窗口时保留手动框选能力，不伪造元素。
 - 鼠标滚轮/触控板按层级向外扩大、向内缩小，到边界停止；处理细小增量、滚动阶段及惯性，避免一次轻滑无控制地跳过多个层级。
-- 相同候选路径保留层级；后台补查不得覆盖用户明确选定的框。鼠标按下锁定待确认目标，点击和拖动通过阈值区分；超过阈值进入手动框选。
+- 指针实际移动后重新命中最细元素；指针静止时相同候选路径保留层级，后台补查不得覆盖用户明确选定的框。鼠标按下锁定待确认目标，点击和拖动通过阈值区分；超过阈值进入手动框选。
 - 保留拖动期间 Space 平移、释放后继续调整、Escape/右键取消、会话内 `1/2/3` OCR 临时切换和原位翻译隔离。
 - AX 查询不阻塞主线程；合并连续鼠标请求、取消失效工作、拒绝旧会话/旧位置结果；先返回可用候选，再在停稳后有界补查。后台工作线程只在本线程创建/使用平台引用，不跨并发域传递 AX 对象。
 - 兼容浏览器、原生应用与 Electron 辅助功能树的延迟就绪。若确有必要临时启用提供者的辅助功能暴露标志，仅限会话拥有的可恢复状态，并记录实现依据、清理和失败回归；不静默更改系统权限。
@@ -68,7 +68,32 @@ Conversation: 2026-11-03，研究 Snow Shot 后实现 Marla 普通截图的元�
 | 2026-11-03 | Project owner | 普通截图直接以吸附模式开始，替代此前讨论的默认手动区域模式 | 启动态、Space 切换、提示和回归测试使用新默认值 | Pending |
 | 2026-11-03 | Project owner | TASK-053 已被另一对话占用且正在实施，指定本任务为 TASK-054 | 核对分支/工作树及路径归属，以本初始 Task 提交预留 054 | Recorded |
 
+| 2026-11-03 | Project owner | 实机反馈：指针重新移动时重置滚轮层级并重新命中最细元素；提升文本/段落粒度 | 静止补查保留显式选择，实际移动重新命中；覆盖重叠容器、多页子节点和公开文本行几何 | In progress |
+
+| 2026-11-03 | Project owner | 再次强调对照 Snow Shot 流畅度；实机触控板轻滑跨两层 | 首轮立即查询、停稳 80ms 后细化、移动时沿用仍包含指针的已知路径；精确滚动一次手势最多一层且忽略惯性 | In progress |
+
+| 2026-11-03 | Project owner | 已确认触控板、移动重置和文字粒度可用；随后反馈连续移动时吸附过密，要求停稳后切换 | 增加 120ms 可取消停稳门槛；首次命中、滚轮与按下/拖动保持即时处理；新增连续移动重置计时回归 | In progress |
+
+| 2026-11-03 | Project owner | 120ms 停稳体感拖沓，明确缩短为 50ms | 最终停稳门槛 50ms，85ms 几何过渡不变；重跑时序测试和签名构建 | In progress |
+
 ## Current evidence
+
+### Implementation and review, 2026-11-03
+
+- 普通截图默认吸附；AppKit 选择会话拆入独立文件，新建几何候选/层级、精确滚动、后台查询、提供者暴露租约、动画和纯合成验收文件。原位入口继续手动框选，OCR 快捷键与 Space 平移回归保持通过。
+- 对照固定 Snow Shot 源码核对首轮立即调度、单工作请求与最新请求合并、80ms 稳定细化、含点分支分页遍历、按下锁定和中断轨迹；只独立实现机制，未引入其代码或依赖。最终按所有者实机反馈加入 **50ms 指针停稳门槛**，替代先前 120ms 试验。后续矩形变化采用 **85ms cubic ease-out**；实际/显示矩形分离。
+- 指针移动清除旧位置的显式滚轮偏好，但等待停稳再切换；静止补查保留显式选择。精确触控板按一次手指手势最多一层，惯性忽略；鼠标滚轮仍逐格。
+- 查询仅使用角色、几何、父子边、进程/窗口身份与公开文本范围/行 bounds，不读正文。初始/细化预算 160/450ms，单次 AX 消息 25ms；512 节点、32 祖先、24 子层和分批 32 子节点。先验证命中祖先窗口，再补查最细含点分支；不合格时保留冻结窗口候选。
+- 启用提供者暴露仅限可读且可写、原值 false 的 `AXManualAccessibility` / `AXEnhancedUserInterface`，不改变系统 TCC。记录 pid+launchDate+标志名，不传递 AX 对象。共享会话租约防止旧会话释放新会话拥有的标志；会话确认、取消、替换清理在后台恢复。测试覆盖原已开启、缺失/只读、写错但实际生效、读回失败回滚和外部重置。
+- 删除了旧窗口确认后的 `SCScreenshotManager` 二次实时捕获。区域、元素和窗口均使用同一组冻结显示器帧合成；窗口层次按 WindowServer 前后序排序并排除自身覆盖层。
+- 所有者已确认触控板单层、移动后重新吸附与文字粒度“已正常”；随后要求停稳以避免密集跳动，并将试验 120ms 明确调至 50ms。50ms 版实机最终体感确认仍待记录。
+- 同一机器真实应用采样（预停稳/120ms 调参期间）覆盖 Codex/Electron、Zen 浏览器和原生 Music：首轮 1,388 次，P50/P95/max 为 6/11/29ms；细化 40 次为 8/23/23ms，最多 78 节点、7 候选。120ms 停稳版另有 16/9 次样本，首轮 5/26/26ms、细化 4/10/10ms。这是收到并接受的查询结果样本，**不包含取消工作总数，不证明全应用命中率、端到端帧率或 50ms 最终版性能分布**。
+- `/private/tmp/marla-task-054-review-light.png`、`review-dark.png`、`review-accessibility.png` 来自固定签名 Release App 中纯合成背景，未保存真实桌面。浅/深色选框、顶部提示与 OCR 控件清楚，无重叠/裁切；降低透明度/增强对比度图证明 HUD 实心边界，该张未有选区，不冒充增强对比度选框证据。五维复审：Philosophy 8、Hierarchy 8、Craft 8、Functionality 8、Originality 7。静态图不作为动效时序证据。
+- 最终 50ms 版 `./scripts/check.sh` 通过 58 Rust、288 Swift（含 16 个本任务新增回归）、Swift Package build/test、Xcode Debug、结构/脚本/空白/diff 门禁；截图定向共 51 项通过。先前沙箱下 AppKit 缺少 NSScreen、Vision 像素缓冲失败，已在可访问 macOS 显示服务的执行环境完整重跑，最终无跳过或失败。
+- `./scripts/build-test-app.sh` 生成本任务 `artifacts/Marla_dev.app`，验证 `com.marla.app` / `0.0.0` / macOS 14 / arm64、Release Rust 路径和既有 `API Usage Monitor Dev` 稳定签名，designated requirement 保持一致。
+- 物理混合缩放副屏、实时撤销 TCC、提供者持续无响应/进程异常退出、系统偏好组合下的完整人工矩阵仍缺现场证据。已有负坐标/2×+1× 冻结合成、过期结果/关闭、点击拖动、惯性/单手势和 Reduce Motion 纯状态回归，不把这些测试扩称为全部实机条件已验证。
+
+### Reservation baseline (historical)
 
 - 任务创建前 primary `main` 在 `e59142f` 干净；`scripts/main-worktree.sh check --clean` 通过。本任务工作树从该提交创建。
 - 已核对 `Anti2077/task-053-gpl3-license` 的 tracked Task：许可落地，明确不做元素吸附。054 没有占用其路径，也不修改其 Task。
@@ -132,10 +157,11 @@ git diff --check
 
 ## Parallel contributors
 
-None at creation. 任务创建是一份紧密耦合的文档，由本 Agent 单独维护；未委派实施或修改其它工作树。
+None. 本任务由主 Agent 单独实施和维护。文档同步与实现紧密耦合，没有人为拆分并行写入；未改其它工作树。
 
 ## Integration notes
 
+- 主线已在本轮前进到 `17d5195`（TASK-053 许可集成）；本功能分支完成本地提交后吸收该 main，不修改许可内容，整合 owner 仍需按 guard 复查。
 - 初始 Task 提交完成编号预留，不在 `main` 新增未集成功能声明。主工作树整合时更新 `STATUS.md`、必要索引和当前验收状态，不关闭其它 Task 的现场缺口。
 - TASK-053 的许可落地独立推进；若其先合并，在本功能分支吸收 current `main`，保留许可结果，不借机导入外部代码。
 - TASK-051 可能涉及 Xcode 工程、共享测试文件。合并前逐项保留其注册和测试，不能整文件选择一边。
@@ -152,15 +178,15 @@ None for the agreed scope. 普通截图默认吸附由项目所有者明确决�
 
 ## Completion record
 
-- Worktree verified commit: Initial reservation only; implementation pending
+- Worktree verified commit: Implementation verified locally; pending final owner feedback and current-main reconciliation
 - Integration commit: Not integrated
 - Integration verification: Pending implementation
-- Automated evidence: Task required sections, local referenced paths, unique ID/branch match, default-mode scope and whitespace checks passed; initial tracked diff whitespace verified before commit
-- Manual evidence: Pending; source research is not real-App acceptance
-- Documentation updated: This Task only at creation
+- Automated evidence: 58 Rust + 288 Swift, 51 screenshot targeted tests, Swift/Xcode Debug, stable-signed Release, structure/shell/whitespace/diff gates passed on the 50ms implementation
+- Manual evidence: Owner accepted single-step trackpad, pointer reset and text granularity; 50ms final dwell feel pending. Synthetic light/dark/accessibility HUD screenshots reviewed at 8/8/8/8/7; mixed physical displays and remaining failure matrix remain explicitly unverified
+- Documentation updated: This Task, screenshot feature specification, TASK-054-only verification evidence
 - Mainline documentation updated by: Pending primary integration
 - Remaining work promoted to: None
-- Scope changes closed: Default-mode and Task-ID decisions recorded; implementation acceptance pending
+- Scope changes closed: Implementation/automated evidence recorded; final 50ms dwell acceptance pending
 - Parallel contributions integrated: None
 - Remote push state: Not authorized; not performed
 - Worktree cleanup state: Not authorized; retained

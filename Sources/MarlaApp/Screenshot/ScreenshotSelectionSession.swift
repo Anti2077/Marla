@@ -484,4 +484,3 @@ final class ScreenshotSelectionSession: NSObject {
         }
     }
 }
-

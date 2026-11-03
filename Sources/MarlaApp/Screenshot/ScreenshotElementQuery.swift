@@ -29,7 +29,8 @@ final class ScreenshotQueryCancellation: @unchecked Sendable {
 }
 
 /// All AX references are created, traversed and destroyed synchronously on this worker invocation.
-/// Nothing asks for AXValue, titles, descriptions, text ranges or document content.
+/// No AXValue attribute, titles, descriptions or text content is read.
+/// Public text ranges are used only to request line geometry.
 enum ScreenshotElementQuery {
     static func run(
         _ request: ScreenshotElementQueryRequest, cancellation: ScreenshotQueryCancellation,

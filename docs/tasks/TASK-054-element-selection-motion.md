@@ -1,6 +1,6 @@
 # TASK-054：截图元素层级选择与吸附动效
 
-Status: Active
+Status: Ready for integration
 
 Owner: Project owner + Agent
 
@@ -66,13 +66,13 @@ Conversation: 2026-11-03，研究 Snow Shot 后实现 Marla 普通截图的元�
 
 | Date | Requested by | Change | Acceptance / verification impact | Status |
 | --- | --- | --- | --- | --- |
-| 2026-11-03 | Project owner | 在识别/层级选择之外明确加入 Snow Shot 风格的流畅吸附动画 | 连续切换、反向中断、首次显示、动画中途确认及 Reduce Motion 均需验收 | Pending |
-| 2026-11-03 | Project owner | 普通截图直接以吸附模式开始，替代此前讨论的默认手动区域模式 | 启动态、Space 切换、提示和回归测试使用新默认值 | Pending |
+| 2026-11-03 | Project owner | 在识别/层级选择之外明确加入 Snow Shot 风格的流畅吸附动画 | 连续切换、反向中断、首次显示、动画中途确认及 Reduce Motion 均需验收 | Implemented; remaining field evidence classified below |
+| 2026-11-03 | Project owner | 普通截图直接以吸附模式开始，替代此前讨论的默认手动区域模式 | 启动态、Space 切换、提示和回归测试使用新默认值 | Implemented |
 | 2026-11-03 | Project owner | TASK-053 已被另一对话占用且正在实施，指定本任务为 TASK-054 | 核对分支/工作树及路径归属，以本初始 Task 提交预留 054 | Recorded |
 
-| 2026-11-03 | Project owner | 实机反馈：指针重新移动时重置滚轮层级并重新命中最细元素；提升文本/段落粒度 | 静止补查保留显式选择，实际移动重新命中；覆盖重叠容器、多页子节点和公开文本行几何 | In progress |
+| 2026-11-03 | Project owner | 实机反馈：指针重新移动时重置滚轮层级并重新命中最细元素；提升文本/段落粒度 | 静止补查保留显式选择，实际移动重新命中；覆盖重叠容器、多页子节点和公开文本行几何 | Owner accepted |
 
-| 2026-11-03 | Project owner | 再次强调对照 Snow Shot 流畅度；实机触控板轻滑跨两层 | 首轮立即查询、停稳 80ms 后细化、移动时沿用仍包含指针的已知路径；精确滚动一次手势最多一层且忽略惯性 | In progress |
+| 2026-11-03 | Project owner | 再次强调对照 Snow Shot 流畅度；实机触控板轻滑跨两层 | 首轮立即查询、停稳 80ms 后细化、移动时沿用仍包含指针的已知路径；精确滚动一次手势最多一层且忽略惯性 | Owner accepted |
 
 | 2026-11-03 | Project owner | 已确认触控板、移动重置和文字粒度可用；随后反馈连续移动时吸附过密，要求停稳后切换 | 增加 120ms 可取消停稳门槛；首次命中、滚轮与按下/拖动保持即时处理；新增连续移动重置计时回归；之后被恢复即时切换替代 | Superseded |
 
@@ -81,6 +81,8 @@ Conversation: 2026-11-03，研究 Snow Shot 后实现 Marla 普通截图的元�
 | 2026-11-03 | Project owner | 完成后在 README 记录对 Snow Shot 的借鉴 | 七个语言版本增加对应致谢、具体参考机制、固定源码链接和 TASK-054 记录链接；不改变许可声明或导入外部代码 | Implemented |
 
 | 2026-11-03 | Project owner | 50ms 仍不如最初即时切换，明确恢复移动即吸附 | 删除停稳计时及配置；保留 85ms 过渡、单手势单层和文字粒度；同步七个 README，完整检查与稳定签名构建通过，已重新打开 live fixture | Implemented |
+
+| 2026-11-03 | Project owner | 明确要求合并 main | 集成前分类非阻塞人工证据，标记 Ready for integration；使用 primary guard 合并并做主线验证和全局文档同步 | Authorized |
 
 ## Current evidence
 
@@ -132,7 +134,14 @@ Swift 平台层按窗口/显示器快照确定查询目标，在有界后台执�
 - [ ] 浅色、深色、Reduce Motion、Reduce Transparency 和 Increase Contrast 真实 App 检查；真实 App 脱敏截图五维复审每维至少 7/10。
 - [x] `./scripts/check.sh`、稳定签名 Release 构建、源结构门禁和 `git diff --check` 通过；新增测试验证行为/失败边界而非复写实现。
 - [x] 七个 README 版本记录 Snow Shot 借鉴与致谢，固定参考链接和实现边界一致，保留原许可内容。
-- [ ] 功能规格与实现一致，Task 记录真实证据与未完成项；工作树提交干净并达到 `Ready for integration`。`Done` 仅在主线整合、主线验证和全局文档同步后记录。
+- [x] 功能规格与实现一致，Task 记录真实证据与未完成项；本地验证完成，提交后达到 `Ready for integration`。`Done` 仅在主线整合、主线验证和全局文档同步后记录。
+
+## Integration acceptance classification
+
+- 项目所有者于 2026-11-03 明确要求“合并到main”。本轮功能范围和最终即时吸附选择已有实机反馈；本地 58 Rust / 288 Swift、签名 Release、规格及 README 同步通过，未发现阻塞集成的可复现缺陷。
+- 尚未勾选的跨应用完整覆盖、物理混合缩放副屏、实时 TCC 撤销、持续无响应/异常退出、取消率统计、系统偏好与键盘完整矩阵属于非阻塞证据项：已有有界后台查询、失效拒绝、窗口/手动降级及对应自动化覆盖，剩余要求补足现场证据而非缺少已知必要实现。继续保留在 `docs/development/VERIFICATION.md`，不宣称全部实机条件已通过。
+- 五维视觉审查和用户手感反馈已有记录；未完成的辅助功能组合截图不扩大为全矩阵验收。若后续复现缺陷，按现行工作流另开有界修复 Task。
+- 集成仅限本地 main；远端推送、公开发布、分支和工作树清理不在本次授权内。
 
 ## Verification
 
@@ -150,7 +159,7 @@ git diff --check
 
 ### Manual
 
-2026-11-03 实施验收结果及边界见 Current evidence。停稳试验版曾打开供所有者只悬停/触控板体验，所有者现已要求恢复即时切换；该 live fixture 的确认回调不启动 OCR 或网络，以免误点击触发请求。它验证真实冻结/AX/输入/绘制路径，但不是 OCR/翻译调用的成功证据。Task 暂保持 Active，保留仍列出的实机矩阵；不因本地自动化通过而自动关闭人工缺口。
+2026-11-03 实施验收结果及边界见 Current evidence。停稳试验版曾打开供所有者只悬停/触控板体验，所有者现已要求恢复即时切换；该 live fixture 的确认回调不启动 OCR 或网络，以免误点击触发请求。它验证真实冻结/AX/输入/绘制路径，但不是 OCR/翻译调用的成功证据。项目所有者在恢复即时吸附后明确要求合并 main；本地实现、回归与稳定签名构建均通过，Task 进入 Ready for integration。下列剩余矩阵作为非阻塞验收证据保留到 VERIFICATION.md，不因合并而勾选未实测条件。
 
 使用真实固定 Release App 覆盖 Finder/系统原生控件、Safari/Chrome 页面、Codex/Electron 内容与工具栏。连续滚轮、触控板、快速移入/移出、反向切换、按下后晚到结果、立即确认和拖动转手动均有现场验证。覆盖多屏/缩放可用配置；设备不具备的条件明确保留缺口，不用单屏结果代替。
 
@@ -191,14 +200,14 @@ None for the agreed scope. 普通截图默认吸附由项目所有者明确决�
 
 ## Completion record
 
-- Worktree verified commit: `5e74446` implementation; `b0ffa72` current-main sync verified; final evidence-only commit follows
+- Worktree verified commit: `991e694` final immediate-retargeting implementation; full checks and signed Release passed. Pre-integration review additionally fixes one EOF blank line and clarifies the geometry-only query comment, with no behavioral change.
 - Integration commit: Not integrated
-- Integration verification: Pending implementation
+- Integration verification: Pending primary merge and target-branch checks
 - Automated evidence: 58 Rust + 288 Swift, 51 screenshot targeted tests, Swift/Xcode Debug, stable-signed Release, structure/shell/whitespace/diff gates passed on the preceding 50ms implementation; full checks and stable-signed Release also passed after immediate-retargeting restoration
 - Manual evidence: Owner accepted single-step trackpad, pointer reset and text granularity; Owner requested immediate retargeting after rejecting dwell; rebuilt, stable-signed and reopened. Synthetic light/dark/accessibility HUD screenshots reviewed at 8/8/8/8/7; mixed physical displays and remaining failure matrix remain explicitly unverified
 - Documentation updated: This Task, screenshot feature specification, TASK-054-only verification evidence, seven README acknowledgments
 - Mainline documentation updated by: Pending primary integration
-- Remaining work promoted to: None
+- Remaining work promoted to: Non-blocking manual evidence remains in `docs/development/VERIFICATION.md`; no new product scope
 - Scope changes closed: Implementation/automated evidence recorded; immediate retargeting restored per owner request; full checks and stable-signed rebuild passed; live fixture reopened
 - Parallel contributions integrated: None
 - Remote push state: Not authorized; not performed

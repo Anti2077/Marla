@@ -1,6 +1,6 @@
 # TASK-055：README 默认英文与多语言切换修复
 
-Status: Active
+Status: Ready for integration
 
 Owner: Project owner + Agent in the new TASK-055 conversation
 
@@ -82,7 +82,7 @@ GitHub 默认展示的 README.md 为完整英文；读者可切换到独立、�
 - [x] 内部路径和锚点可解析，官网/下载/仓库/视频等既有入口有效。
 - [x] GPL 摘要、第三方限制、Snow Shot 致谢与当前事实一致，没有因为翻译改变含义。
 - [x] git diff --check、文档检查及可用的渲染/人工阅读通过，证据记录完整。
-- [ ] 功能工作树提交干净，达到 Ready for integration；未经主线整合与验证不标 Done。
+- [x] 功能工作树提交干净，达到 Ready for integration；未经主线整合与验证不标 Done。
 
 ## Verification
 
@@ -99,7 +99,7 @@ GitHub 默认展示的 README.md 为完整英文；读者可切换到独立、�
 - `Playwright 1.64.1` + 现有 Chromium 153.0.8010.12，在 `github-markdown-css 5.9.0` 的本地 GFM 预览中检查 1280×1000 与 390×1000：8 文件共 16 个视口，无整页横向溢出、无损坏图片；56 次语言切换并返回、所有页内导航及七个完整版本的折叠签名说明通过。西/德/韩最后措辞修正后又针对 6 个视口、21 次语言切换重验通过。
 - `franc-min 6.2.0` 检查 71 段超过 150 字符的正文，全部对应 eng/cmn/jpn/fra/spa/deu/kor；最后西/德/韩的 36 个样本重验通过。此检测只作补充，不替代许可/隐私逐段审读。默认英文去除语言栏与不可见 HTML 标签后，不含中日韩字符段。
 - 未认证 HTTP GET：Marla 仓库、`releases/latest`、Snow Shot 仓库、固定源码 revision 均为 200。`releases/latest` 实际重定向至 Releases 列表，未据此声称有发行资产。`website/` 与真实 MP4 均为现存仓库路径；没有编造已部署官网域名。
-- `git diff --check` 通过；最终 staged diff 再检查。没有修改代码、依赖清单或运行构建/签名/发布。
+- `git diff --check`、最终 staged diff 空白检查、全部九个文件（含新中文页）的尾空白/末尾换行检查均通过，变更路径严格等于八个 README 与本 Task。没有修改代码、依赖清单或运行构建/签名/发布。
 
 临时复核工具与输出位于 `/private/tmp/marla-task-055-review/`：`review.mjs` / `link-report.json`、`browser.mjs` / `browser-report.json` / `browser-final-report.json`、`http-report.json`、本地 `rendered/` 与截图。依赖仅装在该临时目录，npm 缓存使用 `/private/tmp/marla-task-055-npm-cache`；未改变项目或系统配置。临时文件不构成持久交付，以上范围、工具版本、数量、结果和限制保存在本 Task，内容本身由 Git 审查。
 
@@ -131,6 +131,7 @@ None. 已评估：七语版本共享同一事实、路由及兼容策略，逐�
 - primary 使用 ./scripts/main-worktree.sh merge Anti2077/task-055-readme-language-routing；先 check 再做最终文档、验证和 Done。
 - 用户此轮只授权新对话实施修复，没有延续 TASK-054 的 push 授权到本 Task。
 - 只需在整合时按事实记录默认英文/独立中文与兼容策略；不改 TASK-047/053/054 的历史记录或生命周期。STATUS/索引同步由 primary 判断，功能工作树未越权写入。
+- 完成时 local main 仍为 `1d347c0ed6dc05b0060563d9d5f9c7ecd1242ed2`，为本分支祖先。整合前 primary 仍需重新确认 live Git 与分支新鲜度。
 
 ## Risks and rollback
 
@@ -144,7 +145,7 @@ None. 默认英文由用户明确要求。中文采用 `README.zh-CN.md`（文�
 
 ## Completion record
 
-- Worktree verified commit: Implementation complete; commit recorded in the final readiness update (reservation `1b3f9f3`)
+- Worktree verified commit: `774ad03` (implementation and verification; reservation `1b3f9f3`); this final readiness-only commit changes Task evidence/lifecycle only
 - Integration commit: Not integrated
 - Integration verification: Pending
 - Automated evidence: 56 language routes, 223 local links/images, 40 fragments, 12 old English anchors, seven-edition structure/facts, 71 language samples, 16 browser viewports, 4 external HTTP targets and whitespace checks passed; final wording rechecked in 6 viewports / 21 switches
@@ -152,7 +153,7 @@ None. 默认英文由用户明确要求。中文采用 `README.zh-CN.md`（文�
 - Documentation updated: Eight root README files including the new Simplified Chinese edition and English compatibility entry; this Task
 - Mainline documentation updated by: Not applicable before integration
 - Remaining work promoted to: None
-- Scope changes closed: Requested routing/localization and necessary current-fact corrections verified; final clean commit/readiness transition pending
+- Scope changes closed: Requested routing/localization and necessary current-fact corrections verified and committed; no blocking feature-worktree acceptance remains. Task is Ready for integration, not Done.
 - Parallel contributions integrated: None
 - Remote push state: Not authorized; not performed
 - Worktree cleanup state: Not authorized; retained

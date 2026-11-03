@@ -1,13 +1,13 @@
 <div align="center">
   <img src="Resources/Brand/PaperLantern/logo-512.png" width="112" alt="Marla Paper-Lantern-Marke">
   <h1>Marla</h1>
-  <p><strong>Übersetzung, die dort bleibt, was du gerade liest.</strong></p>
+  <p><strong>Übersetzung direkt neben dem, was du gerade liest.</strong></p>
   <p>Eine native Übersetzungsebene für macOS, die bei Bedarf erscheint, nah am Ausgangstext bleibt und sich zurücknimmt, sobald du fertig bist.</p>
   <p>Ein kleines Licht neben der lesenden Person, das Unbekanntes sichtbar macht, ohne dich aus deiner Arbeit zu holen.</p>
 
   <p>
-    <a href="README.md">简体中文</a> ·
-    <a href="README.en.md">English</a> ·
+    <a href="README.zh-CN.md">简体中文</a> ·
+    <a href="README.md">English</a> ·
     <a href="README.ja.md">日本語</a> ·
     <a href="README.fr.md">Français</a> ·
     <a href="README.es.md">Español</a> ·
@@ -16,8 +16,8 @@
   </p>
 
   <p>
-    <img src="https://img.shields.io/badge/status-incubation-C86652?style=flat-square" alt="Status: Inkubation">
-    <img src="https://img.shields.io/badge/platform-macOS%2014%2B-393554?style=flat-square&amp;logo=apple&amp;logoColor=white" alt="Plattform: macOS 14 oder neuer">
+    <img src="https://img.shields.io/badge/Status-Inkubation-C86652?style=flat-square" alt="Status: Inkubation">
+    <img src="https://img.shields.io/badge/Plattform-macOS%2014%2B-393554?style=flat-square&amp;logo=apple&amp;logoColor=white" alt="Plattform: macOS 14 oder neuer">
     <img src="https://img.shields.io/badge/Swift-6.2-C86652?style=flat-square&amp;logo=swift&amp;logoColor=white" alt="Swift 6.2">
     <img src="https://img.shields.io/badge/Rust-1.85-E6B86A?style=flat-square&amp;logo=rust&amp;logoColor=393554" alt="Rust 1.85">
   </p>
@@ -31,7 +31,7 @@
   <p>
     <a href="#warum-marla">Warum Marla</a> ·
     <a href="#drei-wege">Arbeitsabläufe</a> ·
-    <a href="#datenschutz-ohne-ausfluchte">Datenschutz</a> ·
+    <a href="#datenschutz-ohne-ausflüchte">Datenschutz</a> ·
     <a href="#entwicklung">Entwicklung</a> ·
     <a href="docs/README.md">Dokumentation</a>
   </p>
@@ -54,15 +54,17 @@ Die meisten Übersetzungstools werden zu einem weiteren Ziel. Marla hält die ak
 - **Bleibt am Ort.** Ergebnisse aus Auswahl und Screenshot erscheinen in einer nahegelegenen nativen Karte statt in einem zentralen Übersetzungsfenster.
 - **Zeigt die Absicht sofort.** Die stabile Ergebnisoberfläche erscheint, bevor die Netzwerkantwort abgeschlossen ist, und wächst mit den gestreamten Inhalten.
 - **Bewahrt Struktur.** Quick Input und unterstützte Rich-Text-Auswahlen behalten semantisches Markdown während Übersetzung und nativer Darstellung.
-- **Hält Provider austauschbar.** Benannte OpenAI-kompatible Profile machen Übersetzungs-Endpoint und Modell zu einer expliziten Auswahl der nutzenden Person.
+- **Hält Provider austauschbar.** Benannte Profile unterstützen die OpenAI-kompatible API Chat Completions, OpenAI Responses, Anthropic Messages und Google Gemini Generate Content mit ausdrücklicher Wahl von Endpunkt und Modell.
 
 ## Drei Wege
 
 | Einstieg | Standard-Tastenkürzel | Was passiert |
 | --- | --- | --- |
 | **Ausgewählter Text** | `⌃⇧D` | Marla übernimmt die aktuelle Auswahl sicher und streamt ein Ergebnis neben dem Ausgangstext. |
-| **Bildschirmbereich** | `⌃⇧S` | Ein eingefrorenes Bild über mehrere Displays ermöglicht die Bereichsauswahl, lokales Vision-OCR und eine ausdrücklich ausgewählte GLM-OCR-Option. |
+| **Bildschirmbereich** | `⌃⇧S` | Eingefrorene Bilder aller Displays erlauben die Auswahl von Bereichen, Elementen und Fenstern. Vision-OCR ist der Standard; Cloud-GLM-OCR oder lokales Ollama `glm-ocr` können ausdrücklich gewählt werden. |
 | **Quick Input** | `⌃⇧Space` | Ein kompakter Editor übersetzt eingegebenen oder eingefügten Inhalt einschließlich unterstützter Markdown-Struktur. |
+
+**Optionales Experiment:** Die unabhängige Screenshot-Übersetzung an der ursprünglichen Position ist standardmäßig ausgeschaltet und lässt sich in den experimentellen Einstellungen aktivieren. Ihr konfigurierbares Standardkürzel ist `⌃⇧I`. Sie rekonstruiert mit Cloud-GLM-OCR zuverlässige Textblöcke ausschließlich über dem gewählten eingefrorenen Ausschnitt, bleibt im Arbeitsspeicher und lässt sich sofort schließen. Die normale Screenshot-Übersetzung verwendet weiterhin die nahegelegene Karte.
 
 Die Tastenkürzel sind konfigurierbar. Abgeschlossene Ergebnisse unterstützen Vergleich, Kopieren, Wiederholen, Systemvorlesen, Anheften, Sprachwechsel und Provider-Wechsel, ohne Marla in einen Dokumentarbeitsbereich zu verwandeln.
 
@@ -84,8 +86,9 @@ Marla ist eine macOS-App mit Swift 6, SwiftUI für dauerhafte Oberflächen und A
 | --- | --- |
 | **Auswahlübersetzung** | Nur eine ausdrücklich ausgelöste, geschützte Copy-Transaktion darf Inhalte liefern. Accessibility dient Berechtigungen und Positionierung, nicht als versteckte Textquelle. |
 | **Vision-Screenshot-OCR** | Der ausgewählte Screenshot-Ausschnitt bleibt für das OCR lokal. Die Textübersetzung kann weiterhin den konfigurierten Cloud-Provider verwenden. |
-| **GLM-OCR** | Screenshot-Pixel werden nur hochgeladen, wenn die nutzende Person GLM-OCR unter dem Hinweis in den Settings ausdrücklich auswählt. |
-| **Speicherung** | Screenshots und kürzlich verwendete Übersetzungen bestehen nur innerhalb der Sitzung. Ein dauerhaftes Übersetzungsverlaufsarchiv und das Sammeln von Fenstertext als Kontext sind nicht implementiert. |
+| **Cloud-GLM-OCR** | Nur der gewählte Ausschnitt wird hochgeladen, nach ausdrücklicher Auswahl gemäß dem Hinweis in den Einstellungen oder beim Aufruf des aktivierten Experiments an der ursprünglichen Position. |
+| **Lokales Ollama GLM-OCR** | Der gewählte Ausschnitt geht ausschließlich an den vom Nutzer verwalteten lokalen Ollama-`glm-ocr`-Dienst. Marla bündelt, installiert oder startet weder Ollama noch dessen Modell; die Textübersetzung kann weiterhin einen Cloud-Provider verwenden. |
+| **Speicherung** | Screenshots und letzte Übersetzungen bleiben nur im Arbeitsspeicher; Zugangsdaten liegen im Schlüsselbund. Dauerhafter Übersetzungsverlauf und die Erfassung von Fenstertext als Kontext sind nicht implementiert. |
 
 Marla behauptet nicht, vollständig offline zu arbeiten. Die genauen Grenzen von Provider, OCR und Daten werden bewusst sichtbar gemacht, statt sie in einem einzigen Datenschutz-Slogan zusammenzufassen.
 
@@ -95,13 +98,13 @@ Marlas aktuelle Produktspracheinstellung enthält sieben Optionen:
 
 | Sprache | Code |
 | --- | --- |
-| Vereinfachtes Chinesisch / Simplified Chinese | `zh-Hans` |
-| Englisch / English | `en` |
-| Japanisch / Japanese | `ja` |
-| Französisch / French | `fr` |
-| Spanisch / Spanish | `es` |
-| Deutsch / German | `de` |
-| Koreanisch / Korean | `ko` |
+| Vereinfachtes Chinesisch | `zh-Hans` |
+| Englisch | `en` |
+| Japanisch | `ja` |
+| Französisch | `fr` |
+| Spanisch | `es` |
+| Deutsch | `de` |
+| Koreanisch | `ko` |
 
 Traditionelles Chinesisch wird auf die Produktoption Vereinfachtes Chinesisch normalisiert und ist keine eigene Einstellung. Provider-Dokumentation kann weitere Sprachen aufführen; Marla bezeichnet eine Sprache erst dann als vom Produkt unterstützt, wenn Erkennung, Routing, UI und Provider-Zuordnung gemeinsam verifiziert wurden.
 
@@ -141,7 +144,7 @@ Vollständige Prüfung des Repositorys ausführen:
 ./scripts/check.sh
 ```
 
-Das Skript formatiert, baut und testet den Rust-Kern und die Swift-Schicht, baut die native Debug-App gegen die Cargo-Debug-Bibliothek, prüft die Projektstruktur und kontrolliert den Diff. Die vollständige Xcode-Installation wird nur für die eigenen Befehle ausgewählt; die systemweite `xcode-select`-Einstellung bleibt unverändert.
+Das Skript prüft die Rust-Formatierung, baut und testet den Rust-Kern und die Swift-Schicht, baut die native Debug-App gegen die Cargo-Debug-Bibliothek, prüft die Projektstruktur und kontrolliert den Diff. Die vollständige Xcode-Installation wird nur für die eigenen Befehle ausgewählt; die systemweite `xcode-select`-Einstellung bleibt unverändert.
 
 Die festgelegte, stabil signierte Release-Entwicklungs-App bauen:
 
@@ -177,7 +180,7 @@ Spätere Builds ohne Argumente übernehmen den Zertifikats-Hash aus der vorhande
 | `docs/` | Produktwahrheit, Architektur, Tasks, Status und Verifikationsergebnisse |
 | `scripts/` | Repository-Prüfungen, Packaging und Artefaktverifikation |
 
-Beginne mit der [Dokumentationsübersicht](docs/README.md), lies anschließend den [aktuellen Status](docs/development/STATUS.md) und dessen aktiven Task, bevor du Änderungen vornimmst. Das Repository hält Produktideen, bestätigten Backlog, aktive Implementierung und verifizierte Nachweise bewusst getrennt.
+Lies vor Änderungen die [Dokumentationsübersicht](docs/README.md), den [aktuellen Status](docs/development/STATUS.md) und den deiner Unterhaltung bzw. deinem Arbeitsbaum ausdrücklich zugewiesenen Task. Das Repository trennt Produktideen, bestätigte Vorhaben, aktive Implementierung und verifizierte Nachweise.
 
 ---
 

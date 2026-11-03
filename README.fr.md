@@ -6,8 +6,8 @@
   <p>Éclairez la traduction à côté du texte source, lisez-la, puis reprenez votre travail sans changer de contexte.</p>
 
   <p>
-    <a href="README.md">简体中文</a> ·
-    <a href="README.en.md">English</a> ·
+    <a href="README.zh-CN.md">简体中文</a> ·
+    <a href="README.md">English</a> ·
     <a href="README.ja.md">日本語</a> ·
     <a href="README.fr.md">Français</a> ·
     <a href="README.es.md">Español</a> ·
@@ -16,8 +16,8 @@
   </p>
 
   <p>
-    <img src="https://img.shields.io/badge/status-incubation-C86652?style=flat-square" alt="État : incubation">
-    <img src="https://img.shields.io/badge/platform-macOS%2014%2B-393554?style=flat-square&amp;logo=apple&amp;logoColor=white" alt="Plateforme : macOS 14 ou version ultérieure">
+    <img src="https://img.shields.io/badge/%C3%A9tat-incubation-C86652?style=flat-square" alt="État : incubation">
+    <img src="https://img.shields.io/badge/plateforme-macOS%2014%2B-393554?style=flat-square&amp;logo=apple&amp;logoColor=white" alt="Plateforme : macOS 14 ou version ultérieure">
     <img src="https://img.shields.io/badge/Swift-6.2-C86652?style=flat-square&amp;logo=swift&amp;logoColor=white" alt="Swift 6.2">
     <img src="https://img.shields.io/badge/Rust-1.85-E6B86A?style=flat-square&amp;logo=rust&amp;logoColor=393554" alt="Rust 1.85">
   </p>
@@ -54,15 +54,17 @@ La plupart des outils de traduction deviennent une destination supplémentaire. 
 - **Reste sur place.** Les résultats d'une sélection ou d'une capture d'écran apparaissent dans une fiche native à proximité, et non dans une fenêtre de traduction principale.
 - **Montre immédiatement votre intention.** La surface stable du résultat apparaît avant la réponse réseau et grandit avec le contenu reçu en streaming.
 - **Préserve la structure.** Quick Input et les sélections enrichies prises en charge conservent le Markdown sémantique pendant la traduction et le rendu natif.
-- **Permet de remplacer les fournisseurs.** Les profils OpenAI compatibles et nommés font du point de terminaison et du modèle de traduction des choix explicites de l'utilisateur.
+- **Permet de remplacer les fournisseurs.** Les profils nommés prennent en charge Chat Completions compatible avec OpenAI, OpenAI Responses, Anthropic Messages et Google Gemini Generate Content, avec un choix explicite du point de terminaison et du modèle.
 
 ## Trois modes d'entrée
 
 | Entrée | Raccourci par défaut | Fonctionnement |
 | --- | --- | --- |
 | **Texte sélectionné** | `⌃⇧D` | Marla récupère la sélection actuelle de manière protégée et affiche le résultat en streaming à côté du contenu source. |
-| **Zone de l'écran** | `⌃⇧S` | Une image figée couvrant plusieurs écrans permet de sélectionner une zone, d'utiliser Vision OCR localement ou une option GLM-OCR choisie explicitement. |
+| **Zone de l’écran** | `⌃⇧S` | Les images figées de chaque écran permettent de sélectionner une zone, un élément ou une fenêtre. Vision OCR est le choix par défaut ; GLM-OCR dans le cloud ou Ollama `glm-ocr` en local peuvent être sélectionnés explicitement. |
 | **Quick Input** | `⌃⇧Space` | Un éditeur compact traduit le contenu saisi ou collé, y compris les structures Markdown prises en charge. |
+
+**Expérience facultative :** La traduction indépendante sur place d’une capture est désactivée par défaut et peut être activée dans les réglages expérimentaux. Son raccourci par défaut, modifiable, est `⌃⇧I`. Elle utilise GLM-OCR dans le cloud pour reconstruire les blocs de texte fiables uniquement sur la zone figée sélectionnée, reste en mémoire et peut être fermée immédiatement. La traduction ordinaire des captures conserve la fiche à proximité.
 
 Les raccourcis sont configurables. Une fois terminés, les résultats prennent en charge la comparaison, la copie, une nouvelle tentative, la lecture vocale du système, l'épinglage, le changement de langue et le changement de fournisseur, sans transformer Marla en espace de travail documentaire.
 
@@ -84,8 +86,9 @@ Marla est une application macOS écrite en Swift 6. SwiftUI gère les surfaces d
 | --- | --- |
 | **Traduction d'une sélection** | Seule une transaction Copy protégée et déclenchée explicitement peut fournir du contenu. Accessibility sert aux autorisations et au positionnement, jamais de source de texte cachée. |
 | **OCR de capture avec Vision** | La zone de capture sélectionnée reste locale pour l'OCR. La traduction du texte peut toutefois utiliser le fournisseur cloud configuré. |
-| **GLM-OCR** | Les pixels de la capture sont téléversés uniquement lorsque l'utilisateur sélectionne explicitement GLM-OCR après avoir pris connaissance de l'information affichée dans Settings. |
-| **Stockage** | Les captures d'écran et les traductions récentes restent limitées à la session. L'historique de traduction persistant et la collecte du texte contextuel des fenêtres ne sont pas implémentés. |
+| **GLM-OCR dans le cloud** | Seule la zone sélectionnée est téléversée, après un choix explicite suivant l’information des réglages, ou lorsque l’utilisateur invoque l’expérience sur place activée. |
+| **Ollama GLM-OCR en local** | La zone sélectionnée est envoyée uniquement au service local Ollama `glm-ocr` géré par l’utilisateur. Marla ne fournit, n’installe ni ne lance Ollama ou son modèle ; la traduction du texte peut encore utiliser un fournisseur cloud. |
+| **Stockage** | Les captures et les traductions récentes restent uniquement en mémoire ; les identifiants sont stockés dans le trousseau. L’historique persistant et la collecte de texte contextuel des fenêtres ne sont pas implémentés. |
 
 Marla ne prétend pas fonctionner entièrement hors ligne. Les limites précises concernant le fournisseur, l'OCR et les données sont volontairement visibles au lieu d'être regroupées sous un slogan unique sur la confidentialité.
 
@@ -95,19 +98,19 @@ L'ensemble actuel des langues du produit Marla comprend sept options :
 
 | Langue | Code |
 | --- | --- |
-| 简体中文 / Chinois simplifié | `zh-Hans` |
-| English / Anglais | `en` |
-| 日本語 / Japonais | `ja` |
+| Chinois simplifié | `zh-Hans` |
+| Anglais | `en` |
+| Japonais | `ja` |
 | Français | `fr` |
-| Español / Espagnol | `es` |
-| Deutsch / Allemand | `de` |
-| 한국어 / Coréen | `ko` |
+| Espagnol | `es` |
+| Allemand | `de` |
+| Coréen | `ko` |
 
 Le chinois traditionnel est normalisé vers l'option de chinois simplifié et ne constitue pas une préférence distincte. La documentation des fournisseurs peut mentionner davantage de langues ; Marla ne les déclare pas prises en charge par le produit tant que la détection, le routage, l'interface et la correspondance avec les fournisseurs n'ont pas été vérifiés ensemble.
 
 ## État du projet
 
-Marla reste en phase **Incubation / Unreleased** pendant la préparation de ses points d'accès publics. L'application native et ses parcours principaux sont implémentés, mais aucune Release publique, version produit attribuée, archive notariée ou fonction de mise à jour n'a encore été déclarée.
+Marla reste en phase **Incubation / Non publié** pendant la préparation de ses points d'accès publics. L'application native et ses parcours principaux sont implémentés, mais aucune Release publique, version produit attribuée, archive notariée ou fonction de mise à jour n'a encore été déclarée.
 
 - [État de développement vérifié](docs/development/STATUS.md)
 - [Définition du produit](docs/product/PRODUCT.md)
@@ -141,7 +144,7 @@ Exécutez la vérification complète du dépôt :
 ./scripts/check.sh
 ```
 
-Ce script formate, compile et teste le cœur Rust et la couche Swift, compile l'application native Debug avec la bibliothèque de débogage Cargo, valide la structure du projet et vérifie le diff. Il sélectionne l'installation complète de Xcode uniquement pour ses propres commandes et ne modifie pas le réglage `xcode-select` de la machine.
+Ce script vérifie le formatage Rust, compile et teste le cœur Rust et la couche Swift, compile l'application native Debug avec la bibliothèque de débogage Cargo, valide la structure du projet et vérifie le diff. Il sélectionne l'installation complète de Xcode uniquement pour ses propres commandes et ne modifie pas le réglage `xcode-select` de la machine.
 
 Compilez l'application de développement Release, signée de manière stable et écrite à un emplacement fixe :
 
@@ -177,7 +180,7 @@ Les compilations ultérieures sans argument récupèrent l'empreinte du certific
 | `docs/` | Vérité produit, architecture, Tasks, état et preuves de vérification |
 | `scripts/` | Vérifications du dépôt, empaquetage et validation des artefacts |
 
-Commencez par le [plan de la documentation](docs/README.md), puis consultez l'[état actuel](docs/development/STATUS.md) et son Active Task avant toute modification. Le dépôt sépare délibérément les idées produit, le Backlog confirmé, l'implémentation active et les preuves vérifiées.
+Avant toute modification, consultez le [plan de la documentation](docs/README.md), l’[état actuel](docs/development/STATUS.md) et la Task explicitement attribuée à votre conversation ou arbre de travail. Le dépôt sépare les idées produit, les travaux confirmés, l’implémentation active et les preuves vérifiées.
 
 ---
 

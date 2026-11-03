@@ -110,17 +110,19 @@ Swift 平台层按窗口/显示器快照确定查询目标，在有界后台执�
 
 ## Acceptance criteria
 
-- [ ] 普通截图启动即有元素吸附，无需先按空格；无活动框选时 Space 可切回手动模式并再切回吸附。
+以下勾选基于已记录的实现/自动化/所有者证据；未勾选项保持实机边界，不把合成和单屏测试扩称为全矩阵验收。
+
+- [x] 普通截图启动即有元素吸附，无需先按空格；无活动框选时 Space 可切回手动模式并再切回吸附。
 - [ ] 原生 App、浏览器和 Codex/Electron 的代表性控件/容器可识别，路径由细到粗、去重且符合窗口与显示器边界；无法暴露的内容诚实降级。
-- [ ] 滚轮/触控板逐层切换、方向正确、边界停止；重复路径和后台补查保留用户显式选择，按下后不被新结果改写。
-- [ ] 单击确认与拖动转手动框选可靠；Space 平移/释放后调整、取消、OCR 临时选择及原位隔离通过回归。
+- [x] 滚轮/触控板逐层切换、方向正确、边界停止；重复路径和后台补查保留用户显式选择，按下后不被新结果改写。
+- [x] 单击确认与拖动转手动框选可靠；Space 平移/释放后调整、取消、OCR 临时选择及原位隔离通过回归。
 - [ ] 快速移动、旧查询晚到、会话替换、超时、缺/撤销权限和关闭期间没有主线程等待、过期更新或资源泄漏。
-- [ ] 首次命中立即显示，连续/反向切换可中断且不排队、不跳回；实际裁切始终使用准确目标而非动画框，冻结像素来自同一截图会话。
-- [ ] Retina、混合缩放多屏、负坐标和屏幕边缘命中/裁切正确，目标窗口变化和覆盖层排除有测试。
-- [ ] 缺 AX 权限时仍可窗口选择/手动框选，不在悬停中重复弹权限提示；任何临时提供者标志有受控释放和失败清理。
+- [x] 首次命中立即显示，连续/反向切换可中断且不排队、不跳回；实际裁切始终使用准确目标而非动画框，冻结像素来自同一截图会话。
+- [x] Retina、混合缩放多屏、负坐标和屏幕边缘命中/裁切正确，目标窗口变化和覆盖层排除有测试。
+- [x] 缺 AX 权限时仍可窗口选择/手动框选，不在悬停中重复弹权限提示；任何临时提供者标志有受控释放和失败清理。
 - [ ] 代表性查询记录耗时分布、取消/超时和节点预算；真实操作时序覆盖连续滚轮、快速反向和动画中途确认，不以静态截图代替动效证据。
 - [ ] 浅色、深色、Reduce Motion、Reduce Transparency 和 Increase Contrast 真实 App 检查；真实 App 脱敏截图五维复审每维至少 7/10。
-- [ ] `./scripts/check.sh`、稳定签名 Release 构建、源结构门禁和 `git diff --check` 通过；新增测试验证行为/失败边界而非复写实现。
+- [x] `./scripts/check.sh`、稳定签名 Release 构建、源结构门禁和 `git diff --check` 通过；新增测试验证行为/失败边界而非复写实现。
 - [ ] 功能规格与实现一致，Task 记录真实证据与未完成项；工作树提交干净并达到 `Ready for integration`。`Done` 仅在主线整合、主线验证和全局文档同步后记录。
 
 ## Verification
@@ -138,6 +140,8 @@ git diff --check
 ```
 
 ### Manual
+
+2026-11-03 实施验收结果及边界见 Current evidence。50ms 最新版已再次打开供所有者只悬停/触控板体验；该 live fixture 的确认回调不启动 OCR 或网络，以免误点击触发请求。它验证真实冻结/AX/输入/绘制路径，但不是 OCR/翻译调用的成功证据。Task 暂保持 Active，等待最后手感和仍列出的实机矩阵；不因本地自动化通过而自动关闭人工缺口。
 
 使用真实固定 Release App 覆盖 Finder/系统原生控件、Safari/Chrome 页面、Codex/Electron 内容与工具栏。连续滚轮、触控板、快速移入/移出、反向切换、按下后晚到结果、立即确认和拖动转手动均有现场验证。覆盖多屏/缩放可用配置；设备不具备的条件明确保留缺口，不用单屏结果代替。
 
@@ -161,7 +165,7 @@ None. 本任务由主 Agent 单独实施和维护。文档同步与实现紧密�
 
 ## Integration notes
 
-- 主线已在本轮前进到 `17d5195`（TASK-053 许可集成）；本功能分支完成本地提交后吸收该 main，不修改许可内容，整合 owner 仍需按 guard 复查。
+- 主线已前进到 `17d5195`（TASK-053 许可集成）；已由 `b0ffa72` 吸收该 main，未发生冲突，原始实现提交为 `5e74446`。吸收后完整检查再次通过 58 Rust/288 Swift 和 Xcode Debug；整合 owner 仍需按 guard 复查。
 - 初始 Task 提交完成编号预留，不在 `main` 新增未集成功能声明。主工作树整合时更新 `STATUS.md`、必要索引和当前验收状态，不关闭其它 Task 的现场缺口。
 - TASK-053 的许可落地独立推进；若其先合并，在本功能分支吸收 current `main`，保留许可结果，不借机导入外部代码。
 - TASK-051 可能涉及 Xcode 工程、共享测试文件。合并前逐项保留其注册和测试，不能整文件选择一边。
@@ -178,7 +182,7 @@ None for the agreed scope. 普通截图默认吸附由项目所有者明确决�
 
 ## Completion record
 
-- Worktree verified commit: Implementation verified locally; pending final owner feedback and current-main reconciliation
+- Worktree verified commit: `5e74446` implementation; `b0ffa72` current-main sync verified; final evidence-only commit follows
 - Integration commit: Not integrated
 - Integration verification: Pending implementation
 - Automated evidence: 58 Rust + 288 Swift, 51 screenshot targeted tests, Swift/Xcode Debug, stable-signed Release, structure/shell/whitespace/diff gates passed on the 50ms implementation

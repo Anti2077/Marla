@@ -107,7 +107,7 @@ Traditional Chinese is normalized to the Simplified Chinese product option and i
 
 ## Project status
 
-Marla remains in **Incubation / Unreleased** while its public entry points are being prepared. The native application and its core workflows are implemented, but no public Release, assigned product version, notarized package, updater, or selected public license has been declared yet.
+Marla remains in **Incubation / Unreleased** while its public entry points are being prepared. The native application and its core workflows are implemented, but no public Release, assigned product version, notarized package, or updater has been declared yet.
 
 - [Verified development status](docs/development/STATUS.md)
 - [Product definition](docs/product/PRODUCT.md)
@@ -115,6 +115,12 @@ Marla remains in **Incubation / Unreleased** while its public entry points are b
 - [Paper Lantern brand](docs/product/BRAND.md)
 - [Marla introduction homepage](website/)
 - [Website implementation notes](website/README.md)
+
+## License / 许可证
+
+Marla 的原创代码、构建脚本、文档及原创项目资产，在所有者有权授权的范围内采用 **GNU GPL 第 3 版，仅此版本（`GPL-3.0-only`）**。允许按 GPL 条件修改、再分发和商用，没有禁止商用限制。第三方内容保留原许可；官网 GSAP 依赖存在未解决的 GPL 兼容性冲突，不能将组合官网构建宣称为完全 GPL 兼容。详见下列许可证、版权、双语分发指南与第三方通知。
+
+Marla’s original code, build scripts, documentation and original project assets are licensed under **GNU GPL v3 only (`GPL-3.0-only`)**, to the extent of the owner’s rights. See [LICENSE](LICENSE), [COPYRIGHT](COPYRIGHT), the bilingual [licensing and source-distribution guide](docs/development/LICENSING.md), and [third-party notices](THIRD_PARTY_NOTICES.md). Modification, redistribution and commercial use are permitted under the GPL; there is no noncommercial restriction. Third-party material retains its original terms. The website’s GSAP dependencies have an unresolved GPL compatibility conflict; this grant does not relicense them or claim the combined website build is GPL compatible.
 
 ## Development
 

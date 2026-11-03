@@ -1,6 +1,6 @@
 # TASK-053：落实 GPL-3.0-only 项目许可
 
-Status: Active
+Status: Ready for integration
 
 Owner: Project owner + Agent
 
@@ -19,10 +19,10 @@ Conversation: 2026-11-03 项目所有者授权 GPLv3 许可落地（来源对话
 - Base commit: `e59142ffdf77a184f57f2fa59e7f8d7a86db3f2c`
 - Integration target: `main`
 - Integration owner: primary worktree `/Users/anti/Documents/ChatGPT/Marla`
-- Integration status: Unmerged
+- Integration status: Ready for integration
 - Depends on: None
 - Expected merge order: Independent; recheck current main and license/dependency changes before merge
-- Owned paths: `LICENSE`, `COPYRIGHT`, `THIRD_PARTY_NOTICES.md`, `docs/development/LICENSING.md`, `README*.md`, `rust/marla-core/Cargo.toml`, `website/package.json`, `website/package-lock.json`, this Task; `docs/README.md`, `docs/tasks/README.md`, `docs/development/STATUS.md` only during primary integration
+- Owned paths: `LICENSE`, `COPYRIGHT`, `THIRD_PARTY_NOTICES.md`, `docs/legal/dependencies/`, `docs/development/LICENSING.md`, `README*.md`, `rust/marla-core/Cargo.toml`, `website/package.json`, `website/package-lock.json`, this Task; `docs/README.md`, `docs/tasks/README.md`, `docs/development/STATUS.md` only during primary integration
 - Known overlaps: other live worktrees remain untouched; primary owner exclusively owns final global indexes and STATUS
 
 ## Initial request
@@ -50,14 +50,18 @@ Conversation: 2026-11-03 项目所有者授权 GPLv3 许可落地（来源对话
 
 | Date | Requested by | Change | Acceptance / verification impact | Status |
 | --- | --- | --- | --- | --- |
-| 2026-11-03 | Project owner | Initial explicit GPL-3.0-only authorization | License, provenance, dependency and documentation checks | Pending |
+| 2026-11-03 | Project owner | Initial explicit GPL-3.0-only authorization | License, provenance, dependency and documentation checks | Verified |
+| 2026-11-03 | Necessary support | Add locked dependency inventories with license evidence hashes; record GSAP incompatibility without changing dependencies | Reproducible 162-crate / 321-npm-entry coverage and explicit website distribution limitation | Verified |
 
 ## Current evidence
 
 - Primary checkout clean at base commit; no existing root LICENSE/NOTICE found.
 - Reachable main author identity: Anti2077; Git identity alone does not prove ownership of third-party material.
 - README variants still say no public license selected; this Task deliberately updates that statement.
-- Swift Package has only local targets; Rust and website dependencies require separate review.
+- Swift Package has only local targets. Inventory review covers 162 external Rust crates and 321 npm lock entries; 119 Rust packages occur in the filtered macOS graph including build dependencies.
+- No incompatible native dependency license declaration identified. GSAP Standard License restrictions in `gsap 3.15.0` / `@gsap/react 2.1.2` prevent a wholly GPL-compatible combined website claim. This does not prevent licensing owner-authored sources and is not silently resolved by an exception list.
+- Project design/recording provenance is documented in TASK-027/TASK-036; captured third-party content is excluded from the owner grant. No legal audit, copyright assignment or complete third-party media clearance is claimed.
+- STATUS retains unrelated open product acceptance gaps; this license-only Task changes none of those implementation/acceptance records.
 
 ## Proposed approach
 
@@ -65,17 +69,19 @@ Conversation: 2026-11-03 项目所有者授权 GPLv3 许可落地（来源对话
 
 ## Acceptance criteria
 
-- [ ] Root LICENSE matches official unmodified GNU GPLv3 text; only-version selection is explicit outside that text.
-- [ ] Project-owned content, copyright attribution and third-party exclusions are accurate without unsupported ownership claims.
-- [ ] Locked direct/transitive Rust and website dependencies reviewed; conflicts and unknowns explicitly recorded.
-- [ ] Existing multilingual README license claims synchronized; bilingual licensing/distribution guidance complete.
-- [ ] No Snow Shot code, new dependency, noncommercial restriction, version/publication/push introduced.
-- [ ] Applicable manifest/document/link/license checks and `git diff --check` pass.
-- [ ] Feature branch committed clean at Ready for integration; target documentation and verification recorded only after guarded integration.
+- [x] Root LICENSE matches official unmodified GNU GPLv3 text; only-version selection is explicit outside that text.
+- [x] Project-owned content, copyright attribution and third-party exclusions are accurate without unsupported ownership claims.
+- [x] Locked direct/transitive Rust and website dependencies reviewed; conflicts and unknowns explicitly recorded.
+- [x] Existing multilingual README license claims synchronized; bilingual licensing/distribution guidance complete.
+- [x] No Snow Shot code, new dependency, noncommercial restriction, version/publication/push introduced.
+- [x] Applicable manifest/document/link/license checks and `git diff --check` pass.
+- [x] Feature branch committed clean at Ready for integration; target documentation and verification recorded only after guarded integration.
 
 ## Verification
 
-Documentation/license-only work: official-text byte comparison, dependency lock/manifest inventory, notice/license-source review, relative-link and multilingual consistency checks, manifest parsing, scoped diff review and `git diff --check`. No runtime behavior changes are planned; full build is not a substitute for license checks. Integration checks follow repository workflow.
+Documentation/license-only work: official-text byte comparison, dependency lock/manifest inventory, notice/license-source review, relative-link and multilingual consistency checks, manifest parsing, scoped diff review and `git diff --check`. No runtime behavior changes are planned; full build is not a substitute for license checks. Feature checks passed 2026-11-03: official GNU text fetched twice and compared byte-for-byte (SHA-256 `3972dc9744f6499f0f9b2dbf76696f2ae7ad8af9b23dde66d6af86c9dfb36986`); Cargo metadata confirms GPL-3.0-only; JSON/TOML semantic comparisons confirm only license metadata changed; Cargo.lock unchanged; inventory set equality covers all 162/321 entries and 119 filtered nodes; 102 Markdown relative links resolve; seven README variants contain matching license/GSAP boundaries; whitespace checks pass. `npm ci --ignore-scripts --no-audit --no-fund` installed only locked packages for license inspection in ignored node_modules, with a task-specific temporary cache. No build, script execution, dependency upgrade or publication was involved.
+
+No runtime tests/build were required for the feature documentation/metadata diff. Final target verification follows repository workflow; no new runtime test was added.
 
 ## Required Reading
 
@@ -100,19 +106,19 @@ License metadata does not prove ownership or distribution compliance. Preserve a
 
 ## Decisions needed
 
-None for GPL-3.0-only adoption. Specific third-party rights blockers, if found, will be identified separately.
+None for licensing the owner-authored work as GPL-3.0-only. Before a future GPL-compatible combined website distribution, resolve GSAP through explicit compatible rights or separately authorized removal/replacement. No permission to change functionality or contact third parties is inferred. Captured external demo content also needs distribution-specific rights review; this task claims no blanket grant.
 
 ## Completion record
 
-- Worktree verified commit: Pending
+- Worktree verified commit: feature completion commit follows the initial reservation `68e1a5b`; exact tip recorded at integration
 - Integration commit: Pending
 - Integration verification: Pending
-- Automated evidence: Pending
-- Manual evidence: License/provenance review pending; no legal audit claimed
-- Documentation updated: Pending
+- Automated evidence: targeted checks above passed; staged diff whitespace checked before commit
+- Manual evidence: original project/rightsholder scope, GPL version choice, third-party composite declarations, website GSAP conflict, and Chinese/English obligations reconciled; no legal audit claimed
+- Documentation updated: root LICENSE/COPYRIGHT/THIRD_PARTY_NOTICES, seven README variants, bilingual LICENSING guide, two TSV inventories, Cargo/npm license metadata and this Task
 - Mainline documentation updated by: Pending primary integration
 - Remaining work promoted to: None
-- Scope changes closed: Pending
+- Scope changes closed: initial license adoption and supporting dependency inventories verified; future website compatibility and media rights remain explicitly distribution-specific limitations, not claims of cleared release compliance
 - Parallel contributions integrated: None
 - Remote push state: Not authorized; not performed
 - Worktree cleanup state: Not authorized; retained

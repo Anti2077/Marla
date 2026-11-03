@@ -107,7 +107,7 @@ Le chinois traditionnel est normalisé vers l'option de chinois simplifié et ne
 
 ## État du projet
 
-Marla reste en phase **Incubation / Unreleased** pendant la préparation de ses points d'accès publics. L'application native et ses parcours principaux sont implémentés, mais aucune Release publique, version produit attribuée, archive notariée, fonction de mise à jour ou licence publique sélectionnée n'a encore été déclarée.
+Marla reste en phase **Incubation / Unreleased** pendant la préparation de ses points d'accès publics. L'application native et ses parcours principaux sont implémentés, mais aucune Release publique, version produit attribuée, archive notariée ou fonction de mise à jour n'a encore été déclarée.
 
 - [État de développement vérifié](docs/development/STATUS.md)
 - [Définition du produit](docs/product/PRODUCT.md)
@@ -115,6 +115,10 @@ Marla reste en phase **Incubation / Unreleased** pendant la préparation de ses 
 - [Identité Paper Lantern](docs/product/BRAND.md)
 - [Page de présentation de Marla](website/)
 - [Notes d'implémentation du site](website/README.md)
+
+## Licence
+
+Le code original, les scripts de compilation, la documentation et les ressources originales de Marla sont proposés sous **GNU GPL version 3 uniquement (`GPL-3.0-only`)**, dans la limite des droits du propriétaire. Voir [LICENSE](LICENSE), [COPYRIGHT](COPYRIGHT), le [guide bilingue de licence et de distribution des sources](docs/development/LICENSING.md) et les [mentions tierces](THIRD_PARTY_NOTICES.md). Modification, redistribution et utilisation commerciale sont autorisées selon la GPL, sans restriction non commerciale. Les éléments tiers conservent leurs conditions. Les dépendances GSAP du site présentent un conflit de compatibilité GPL non résolu ; cette licence ne les remplace pas et ne déclare pas la compilation combinée du site compatible GPL.
 
 ## Développement
 

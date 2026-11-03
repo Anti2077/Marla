@@ -22,8 +22,8 @@ Conversation: 2026-11-03，研究 Snow Shot 后实现 Marla 普通截图的元�
 - Integration status: Unmerged
 - Depends on: None for independent implementation; TASK-046's integrated selection behavior is the starting baseline.
 - Expected merge order: Independent of TASK-053's license work and TASK-051's Markdown work; reconcile against current `main` before integration. No GPL code import depends on TASK-053 in this Task.
-- Owned paths: this Task; `Sources/MarlaApp/Screenshot/ScreenshotSelection.swift`, `ScreenshotSelectionSupport.swift`, `ScreenshotCapture.swift`, new element-query/selection/transition files under `Sources/MarlaApp/Screenshot/`; `Sources/MarlaApp/App/ScreenshotTranslation.swift` only for capture-result wiring or synthetic acceptance fixtures; `Sources/MarlaApp/MarlaMotion.swift` only for selection motion tokens; related tests and new test files under `Tests/MarlaAppTests/`; `Marla.xcodeproj/project.pbxproj` and `Package.swift` only for source/test registration; `docs/features/screenshot-translation.md`; `docs/development/VERIFICATION.md` only for TASK-054 acceptance evidence, with final current-state reconciliation by the integration owner.
-- Known overlaps: TASK-053 owns license files, README variants, Rust/website license metadata and licensing documentation; none are owned here. TASK-051 edits Markdown display, with possible shared Xcode registration and existing test-file conflicts; preserve both Tasks' entries, prefer new test files, and reconcile after current-main ancestry is restored. `STATUS.md`, global indexes, Backlog and Roadmap remain integration-owner-only. Other worktrees and their local changes are untouched.
+- Owned paths: this Task; `README.md`, `README.en.md`, `README.ja.md`, `README.fr.md`, `README.es.md`, `README.de.md`, `README.ko.md` only for the owner-requested Snow Shot acknowledgment; `Sources/MarlaApp/Screenshot/ScreenshotSelection.swift`, `ScreenshotSelectionSupport.swift`, `ScreenshotCapture.swift`, new element-query/selection/transition files under `Sources/MarlaApp/Screenshot/`; `Sources/MarlaApp/App/ScreenshotTranslation.swift` only for capture-result wiring or synthetic acceptance fixtures; `Sources/MarlaApp/MarlaMotion.swift` only for selection motion tokens; related tests and new test files under `Tests/MarlaAppTests/`; `Marla.xcodeproj/project.pbxproj` and `Package.swift` only for source/test registration; `docs/features/screenshot-translation.md`; `docs/development/VERIFICATION.md` only for TASK-054 acceptance evidence, with final current-state reconciliation by the integration owner.
+- Known overlaps: TASK-053 originally owned license files, README variants, Rust/website license metadata and licensing documentation; its integrated licensing sections remain preserved. The owner subsequently authorized TASK-054 to add a bounded Snow Shot acknowledgment to the seven README variants. TASK-051 edits Markdown display, with possible shared Xcode registration and existing test-file conflicts; preserve both Tasks' entries, prefer new test files, and reconcile after current-main ancestry is restored. `STATUS.md`, global indexes, Backlog and Roadmap remain integration-owner-only. Other worktrees and their local changes are untouched.
 
 ## Initial request
 
@@ -52,6 +52,8 @@ Conversation: 2026-11-03，研究 Snow Shot 后实现 Marla 普通截图的元�
 - 手动框选直接跟手；Reduce Motion 禁用吸附几何过渡，Reduce Transparency/Increase Contrast 和浅深色保留清楚的边界与提示。提示同步默认模式及滚轮说明。
 - 复用原生 Swift/AppKit/SwiftUI 和现有多屏/屏幕缩放合同，新子系统进入独立源文件。同步规格、必要测试、性能与真实 App 验收证据。
 
+- 按所有者追加要求，在七个语言版本的 README 中致谢 Snow Shot，说明具体交互/调度借鉴、固定源码参考与独立实现边界；保留既有许可内容。
+
 ## Out of Scope
 
 - 原位翻译选择模式扩展、OCR 或翻译协议/模型/凭据修改、读取 AX 正文或 AX 文本翻译回退。
@@ -76,9 +78,13 @@ Conversation: 2026-11-03，研究 Snow Shot 后实现 Marla 普通截图的元�
 
 | 2026-11-03 | Project owner | 120ms 停稳体感拖沓，明确缩短为 50ms | 最终停稳门槛 50ms，85ms 几何过渡不变；重跑时序测试和签名构建 | In progress |
 
+| 2026-11-03 | Project owner | 完成后在 README 记录对 Snow Shot 的借鉴 | 七个语言版本增加对应致谢、具体参考机制、固定源码链接和 TASK-054 记录链接；不改变许可声明或导入外部代码 | Implemented |
+
 ## Current evidence
 
 ### Implementation and review, 2026-11-03
+
+- 按所有者追加要求，七个 README 版本已同步 Snow Shot 致谢，覆盖元素吸附、父子层级滚轮切换、后台查询调度及可中断过渡；链接固定源码版本和本 Task，说明 Swift/AppKit 独立实现与实机调参边界。既有 TASK-053 许可段落保持完整。文档链接与 `git diff --check` 检查通过；本次仅文档修改，不重复完整构建。
 
 - 普通截图默认吸附；AppKit 选择会话拆入独立文件，新建几何候选/层级、精确滚动、后台查询、提供者暴露租约、动画和纯合成验收文件。原位入口继续手动框选，OCR 快捷键与 Space 平移回归保持通过。
 - 对照固定 Snow Shot 源码核对首轮立即调度、单工作请求与最新请求合并、80ms 稳定细化、含点分支分页遍历、按下锁定和中断轨迹；只独立实现机制，未引入其代码或依赖。最终按所有者实机反馈加入 **50ms 指针停稳门槛**，替代先前 120ms 试验。后续矩形变化采用 **85ms cubic ease-out**；实际/显示矩形分离。
@@ -123,6 +129,7 @@ Swift 平台层按窗口/显示器快照确定查询目标，在有界后台执�
 - [ ] 代表性查询记录耗时分布、取消/超时和节点预算；真实操作时序覆盖连续滚轮、快速反向和动画中途确认，不以静态截图代替动效证据。
 - [ ] 浅色、深色、Reduce Motion、Reduce Transparency 和 Increase Contrast 真实 App 检查；真实 App 脱敏截图五维复审每维至少 7/10。
 - [x] `./scripts/check.sh`、稳定签名 Release 构建、源结构门禁和 `git diff --check` 通过；新增测试验证行为/失败边界而非复写实现。
+- [x] 七个 README 版本记录 Snow Shot 借鉴与致谢，固定参考链接和实现边界一致，保留原许可内容。
 - [ ] 功能规格与实现一致，Task 记录真实证据与未完成项；工作树提交干净并达到 `Ready for integration`。`Done` 仅在主线整合、主线验证和全局文档同步后记录。
 
 ## Verification
@@ -187,7 +194,7 @@ None for the agreed scope. 普通截图默认吸附由项目所有者明确决�
 - Integration verification: Pending implementation
 - Automated evidence: 58 Rust + 288 Swift, 51 screenshot targeted tests, Swift/Xcode Debug, stable-signed Release, structure/shell/whitespace/diff gates passed on the 50ms implementation
 - Manual evidence: Owner accepted single-step trackpad, pointer reset and text granularity; 50ms final dwell feel pending. Synthetic light/dark/accessibility HUD screenshots reviewed at 8/8/8/8/7; mixed physical displays and remaining failure matrix remain explicitly unverified
-- Documentation updated: This Task, screenshot feature specification, TASK-054-only verification evidence
+- Documentation updated: This Task, screenshot feature specification, TASK-054-only verification evidence, seven README acknowledgments
 - Mainline documentation updated by: Pending primary integration
 - Remaining work promoted to: None
 - Scope changes closed: Implementation/automated evidence recorded; final 50ms dwell acceptance pending

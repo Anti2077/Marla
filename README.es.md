@@ -116,6 +116,12 @@ Marla continúa en **Incubación / Sin publicar** mientras se preparan sus punto
 - [Página de presentación de Marla](website/)
 - [Notas de implementación del sitio web](website/README.md)
 
+## Agradecimientos e inspiración
+
+Gracias al proyecto de código abierto [Snow Shot](https://github.com/mg-chao/snow-apps). Su ajuste a elementos, la navegación entre niveles padre e hijo con la rueda, la planificación de consultas en segundo plano y las transiciones de selección interrumpibles sirvieron de referencia para la selección de elementos en las capturas de Marla. La fluidez de su interacción fue una referencia importante para esta función.
+
+Estudiamos una [revisión concreta del código de Snow Shot](https://github.com/mg-chao/snow-apps/tree/01753292547704fd0f11c45317d2dd08cdbf03df) e implementamos la función de forma independiente en Swift/AppKit, sin importar su código ni sus dependencias. La espera tras detener el puntero, el cambio de un solo nivel por gesto del trackpad y los tiempos de animación se ajustaron a partir de pruebas de uso de Marla. Véase [TASK-054](docs/tasks/TASK-054-element-selection-motion.md) para los registros de implementación y verificación.
+
 ## Licencia
 
 El código original, los scripts de compilación, la documentación y los recursos originales de Marla se ofrecen bajo **GNU GPL versión 3 únicamente (`GPL-3.0-only`)**, dentro de los derechos del propietario. Véanse [LICENSE](LICENSE), [COPYRIGHT](COPYRIGHT), la [guía bilingüe de licencia y distribución del código fuente](docs/development/LICENSING.md) y los [avisos de terceros](THIRD_PARTY_NOTICES.md). Se permiten modificaciones, redistribución y uso comercial conforme a la GPL, sin restricción no comercial. Los elementos de terceros conservan sus condiciones. Las dependencias GSAP del sitio tienen un conflicto de compatibilidad GPL pendiente; esta licencia no las relicencia ni declara compatible con GPL la compilación combinada del sitio.

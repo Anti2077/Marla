@@ -116,6 +116,12 @@ Marla remains in **Incubation / Unreleased** while its public entry points are b
 - [Marla introduction homepage](website/)
 - [Website implementation notes](website/README.md)
 
+## 致谢与借鉴
+
+感谢开源项目 [Snow Shot](https://github.com/mg-chao/snow-apps)。Marla 的截图元素选择参考了它的元素吸附、滚轮切换父子层级、后台查询调度与可中断选框过渡设计，其流畅的交互体验为本功能提供了重要参考。
+
+我们研究了 [Snow Shot 的固定源码版本](https://github.com/mg-chao/snow-apps/tree/01753292547704fd0f11c45317d2dd08cdbf03df)，并使用 Swift/AppKit 独立实现，未引入其源码或依赖。Marla 的指针停稳切换、触控板单手势单层切换及动效时序结合本项目的实机反馈调整。实现与验证记录见 [TASK-054](docs/tasks/TASK-054-element-selection-motion.md)。
+
 ## License / 许可证
 
 Marla 的原创代码、构建脚本、文档及原创项目资产，在所有者有权授权的范围内采用 **GNU GPL 第 3 版，仅此版本（`GPL-3.0-only`）**。允许按 GPL 条件修改、再分发和商用，没有禁止商用限制。第三方内容保留原许可；官网 GSAP 依赖存在未解决的 GPL 兼容性冲突，不能将组合官网构建宣称为完全 GPL 兼容。详见下列许可证、版权、双语分发指南与第三方通知。

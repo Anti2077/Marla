@@ -116,6 +116,12 @@ Marla bleibt in **Inkubation / Unveröffentlicht**, während die öffentlichen E
 - [Marla-Präsentationsseite](website/)
 - [Hinweise zur Website-Implementierung](website/README.md)
 
+## Dank und Inspiration
+
+Vielen Dank an das Open-Source-Projekt [Snow Shot](https://github.com/mg-chao/snow-apps). Das Einrasten an Elementen, der Wechsel zwischen über- und untergeordneten Ebenen per Mausrad, die Abfragesteuerung im Hintergrund und unterbrechbare Auswahlübergänge dienten als Vorbild für Marlas Elementauswahl bei Bildschirmaufnahmen. Die flüssige Bedienung war eine wichtige Referenz für diese Funktion.
+
+Wir haben einen [festen Quellcode-Stand von Snow Shot](https://github.com/mg-chao/snow-apps/tree/01753292547704fd0f11c45317d2dd08cdbf03df) untersucht und die Funktion eigenständig in Swift/AppKit umgesetzt, ohne dessen Quellcode oder Abhängigkeiten zu übernehmen. Die Wartezeit nach dem Anhalten des Zeigers, der Wechsel um nur eine Ebene pro Trackpad-Geste und die Animationsdauer wurden anhand praktischer Rückmeldungen zu Marla angepasst. Umsetzung und Prüfung sind in [TASK-054](docs/tasks/TASK-054-element-selection-motion.md) dokumentiert.
+
 ## Lizenz
 
 Der ursprüngliche Code, die Build-Skripte, Dokumentation und ursprünglichen Projektressourcen von Marla stehen im Rahmen der Rechte des Eigentümers unter **GNU GPL ausschließlich Version 3 (`GPL-3.0-only`)**. Siehe [LICENSE](LICENSE), [COPYRIGHT](COPYRIGHT), den [zweisprachigen Leitfaden zu Lizenz und Quellcodeweitergabe](docs/development/LICENSING.md) sowie [Drittanbieterhinweise](THIRD_PARTY_NOTICES.md). Änderungen, Weitergabe und kommerzielle Nutzung sind unter den GPL-Bedingungen erlaubt; es gibt keine Beschränkung auf nichtkommerzielle Nutzung. Drittmaterial behält seine Bedingungen. Die GSAP-Abhängigkeiten der Website weisen einen ungelösten GPL-Kompatibilitätskonflikt auf; diese Lizenz lizenziert sie nicht um und erklärt den kombinierten Website-Build nicht für GPL-kompatibel.

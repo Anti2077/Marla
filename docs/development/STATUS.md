@@ -28,6 +28,7 @@ Scope: This document records the locally integrated and verified baseline of tar
 
 ## Recent integrated changes
 
+- [`TASK-055`](../tasks/TASK-055-readme-language-routing.md) restored the default English README, added an independent Simplified Chinese edition, synchronized all seven language routes and current product/privacy facts, and retained the old English URL and section anchors as a compatibility entry.
 - [`TASK-054`](../tasks/TASK-054-element-selection-motion.md) integrated bounded screenshot element selection, hierarchy navigation, frozen-frame cropping and snap transitions; the seven README variants acknowledge Snow Shot’s design reference.
 - [`TASK-046`](../tasks/TASK-046-screenshot-selection-efficiency.md) added ordinary screenshot window targeting, drag-time Space panning, per-session OCR switching, and notch-safe guidance.
 - [`TASK-047`](../tasks/TASK-047-release-homepage-links.md) integrated GitHub Releases and author links across the website and multilingual repository README without claiming a public release.
@@ -62,6 +63,8 @@ Scope: This document records the locally integrated and verified baseline of tar
 There is no single global Active-Task slot. The project owner may complete an existing owner-only acceptance item or select one bounded feature/fix/documentation Task. The primary integration owner assigns its unique Task ID, branch, worktree, ownership, dependencies, and merge order before implementation.
 
 ## Latest verification
+
+- TASK-055 merged through the primary guard as `fa67138`. On 2026-11-03, main README routing, local links/anchors and cross-language facts passed again; all eight README files match the reviewed feature tip. `MARLA_BUILD_CACHE_ROOT=/private/tmp/marla-task-055-main-cache ./scripts/check.sh` passed 58 Rust tests, 288 Swift tests, strict Clippy, Swift/Xcode Debug builds and repository gates. Final integration evidence passed documentation-link/whitespace checks. Existing Swift/AppKit actor warnings remain; no Release App or public release was produced.
 
 - TASK-054 merged locally through the primary guard as `5ce20f1`, followed by the required primary identity check. On 2026-11-03, target-branch `./scripts/check.sh` passed 58 Rust tests, 288 Swift tests, strict Clippy, Swift/Xcode Debug builds and repository gates. The fixed Release App was rebuilt and verified with its existing stable signature and designated requirement. Remaining non-blocking field evidence is recorded separately; no push or public release was performed.
 

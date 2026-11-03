@@ -1,8 +1,8 @@
 # TASK-055：README 默认英文与多语言切换修复
 
-Status: Ready for integration
+Status: Done
 
-Owner: Project owner + Agent in the new TASK-055 conversation
+Owner: Project owner + Agent (feature implementation and primary integration)
 
 Created: 2026-11-03
 
@@ -19,7 +19,7 @@ Conversation: 项目所有者在 TASK-054 对话后要求新开对话和 Task，
 - Base commit: `1d347c0ed6dc05b0060563d9d5f9c7ecd1242ed2`
 - Integration target: `main`
 - Integration owner: primary `/Users/anti/Documents/ChatGPT/Marla`
-- Integration status: Unmerged; implementation and local verification complete
+- Integration status: Integrated; target-branch verification and global documentation synchronization complete
 - Depends on: None; TASK-053 license and TASK-054 acknowledgments are already integrated and must be preserved
 - Expected merge order: Independent of TASK-051; synchronize current main before integration
 - Owned paths: this Task; root `README.md`, `README.en.md`, `README.zh-CN.md` (new Simplified Chinese edition), `README.ja.md`, `README.fr.md`, `README.es.md`, `README.de.md`, `README.ko.md`. No other reference file requires editing: repository-wide reference search found only README navigation and historical Task mentions of `README.en.md`.
@@ -50,7 +50,7 @@ GitHub 默认展示的 README.md 为完整英文；读者可切换到独立、�
 
 - App 源码、SwiftUI、Rust、协议、行为、签名、产品版本或网站设计改动。
 - 变更 GPL-3.0-only 授权、第三方许可结论、删减 GSAP 兼容性说明或移除 Snow Shot 致谢。
-- 发版、部署、自动推送、清理其它分支/工作树。
+- 发版、部署、未经授权的推送、清理其它分支/工作树。后续所有者明确授权的 main 合并/推送见 Scope changes。
 - 直接在 main 修改 README；本 Task 在预留工作树实施，完成后等待整合。
 
 ## Scope changes during the conversation
@@ -59,6 +59,7 @@ GitHub 默认展示的 README.md 为完整英文；读者可切换到独立、�
 | --- | --- | --- | --- | --- |
 | 2026-11-03 | Project owner | 新开对话和 Task 修复默认英文、多语言切换和混排 | 默认页英文、独立中文、七语切换与全文语言一致性检查 | Verified |
 | 2026-11-03 | Necessary support | 七语统一当前四协议、普通截图三种 OCR 与独立原位实验入口说明；修正开发入口误称 STATUS 登记 Active Task | 对照本分支代码、STATUS 与 ADR，避免语言修复继续传播过期事实；不改行为或扩大能力 | Verified |
+| 2026-11-03 | Project owner | “合并推送”：授权 primary 将 TASK-055 合入 main 并推送 origin/main | 受保护合并、主线文档同步、最终仓库检查及远端 SHA 核对；不发布、不清理工作树 | Integration verified; authorized push follows final record commit |
 
 ## Current evidence
 
@@ -67,7 +68,8 @@ GitHub 默认展示的 README.md 为完整英文；读者可切换到独立、�
 - 八个文件共用同一七语映射；七个完整版本均为 10 个二级章节、2 个三级章节，四张表的数据行数依次为 3/5/7/7。语言表和可见徽章采用本版语言，语言栏保留语言自称，API/产品名和代码保持技术原名。
 - `README.en.md` 仅作兼容入口，保留旧英文的 12 个二/三级章节锚点，再指向默认全文；不维护第二份英文产品正文。默认页另外保留原中文致谢与混合许可标题的不可见锚点别名。西语 `por-qué-marla` 与德语 `datenschutz-ohne-ausflüchte` 导航已按 GitHub slug 规则修复。
 - 当前源码与 STATUS 支持四个翻译协议、Vision 默认及云端/本机 GLM-OCR、默认关闭的独立原位实验入口、Keychain 凭据及仅内存截图/最近翻译。原 README 未区分本机 OCR、只写 OpenAI 兼容配置；本轮已七语同步这些现有事实，不增加功能或关闭任何实机验收缺口。
-- TASK-053 许可摘要和 GSAP 兼容性限制、TASK-054 的具体借鉴/独立实现边界及固定源码版本、所有既有入口均保留；TASK-053/054 生命周期及全局文档未修改。
+- 功能工作树阶段保留 TASK-053 许可摘要和 GSAP 兼容性限制、TASK-054 的具体借鉴/独立实现边界及固定源码版本和所有既有入口；未修改全局文档。后续 primary 仅同步本 Task 与 STATUS，TASK-053/054 生命周期不变。
+- 后续整合：primary 与 origin/main 均在 `1d347c0` 且干净；刷新 origin 后左右差异为 0/0。使用 `main-worktree.sh merge` 无冲突合入 `390f6d2`，合并提交为 `fa6713833058a5224b36b770584a2397250bc136`，随后 primary 身份检查通过。主线上重新验证 56 个语言路由、223 个本地路径、40 个片段和 12 个兼容锚点，七语结构/事实一致；八个 README 与功能分支逐字节一致，既有渲染证据仍对应当前正文。
 
 ## Proposed approach
 
@@ -103,6 +105,8 @@ GitHub 默认展示的 README.md 为完整英文；读者可切换到独立、�
 
 临时复核工具与输出位于 `/private/tmp/marla-task-055-review/`：`review.mjs` / `link-report.json`、`browser.mjs` / `browser-report.json` / `browser-final-report.json`、`http-report.json`、本地 `rendered/` 与截图。依赖仅装在该临时目录，npm 缓存使用 `/private/tmp/marla-task-055-npm-cache`；未改变项目或系统配置。临时文件不构成持久交付，以上范围、工具版本、数量、结果和限制保存在本 Task，内容本身由 Git 审查。
 
+2026-11-03 primary 整合验证：受保护合并后先执行身份检查，再对真实 main 重跑文档检查（56 路由、223 本地路径、40 片段、12 兼容锚点）并确认八个 README 与 `390f6d2` 无差异。`MARLA_BUILD_CACHE_ROOT=/private/tmp/marla-task-055-main-cache ./scripts/check.sh` 退出 0：58 Rust / 288 Swift 测试、严格 Clippy、Rust/Swift 构建、Xcode Debug、结构、全部脚本语法、源文件空白和 Git 差异检查通过。保留原有 Swift/AppKit actor 警告、无符号桥接对象及 AppIntents 元数据提示，不由本次文档变更引入。最终 Task/STATUS 仅补充已发生的验证证据及生命周期，重新检查相对链接、路径所有权及差异空白。日志临时保存在 `/private/tmp/marla-task-055-main-check.log`。没有重建固定 Release App、发版、部署或清理工作树。
+
 ### Manual
 
 逐语种阅读首屏、各章节、许可和致谢；检查 GitHub 风格渲染及语言切换。语言名列表、代码命令等例外应人工确认，不能简单用非拉丁字符检测代替全文审查。
@@ -129,7 +133,7 @@ None. 已评估：七语版本共享同一事实、路由及兼容策略，逐�
 - primary 仅预留 ID、分支和工作树；新对话直接在该工作树开始，首轮核对 live Git 后将 Ready 改为 Active，无需重复征求实施许可。
 - 完成后保留清晰 diff、证据和干净提交，标记 Ready for integration。
 - primary 使用 ./scripts/main-worktree.sh merge Anti2077/task-055-readme-language-routing；先 check 再做最终文档、验证和 Done。
-- 用户此轮只授权新对话实施修复，没有延续 TASK-054 的 push 授权到本 Task。
+- 初始实施授权不含合并/推送；项目所有者随后明确要求“合并推送”，本轮据此授权完成 main 整合与 origin/main 推送，不依赖 TASK-054 的授权。
 - 只需在整合时按事实记录默认英文/独立中文与兼容策略；不改 TASK-047/053/054 的历史记录或生命周期。STATUS/索引同步由 primary 判断，功能工作树未越权写入。
 - 完成时 local main 仍为 `1d347c0ed6dc05b0060563d9d5f9c7ecd1242ed2`，为本分支祖先。整合前 primary 仍需重新确认 live Git 与分支新鲜度。
 
@@ -145,15 +149,15 @@ None. 默认英文由用户明确要求。中文采用 `README.zh-CN.md`（文�
 
 ## Completion record
 
-- Worktree verified commit: `774ad03` (implementation and verification; reservation `1b3f9f3`); this final readiness-only commit changes Task evidence/lifecycle only
-- Integration commit: Not integrated
-- Integration verification: Pending
+- Worktree verified commit: `774ad03` (implementation and verification; reservation `1b3f9f3`); feature tip `390f6d2` records Ready for integration
+- Integration commit: `fa6713833058a5224b36b770584a2397250bc136` (guarded no-fast-forward merge)
+- Integration verification: Primary pre/post-merge guard, fresh origin equality, main README equality, targeted document checks and full repository wrapper passed (58 Rust / 288 Swift); final evidence-only documentation checks passed
 - Automated evidence: 56 language routes, 223 local links/images, 40 fragments, 12 old English anchors, seven-edition structure/facts, 71 language samples, 16 browser viewports, 4 external HTTP targets and whitespace checks passed; final wording rechecked in 6 viewports / 21 switches
 - Manual evidence: Seven editions read against common facts; all entry/acknowledgment/license renderings plus desktop English and Chinese build details reviewed; full results and limits above
 - Documentation updated: Eight root README files including the new Simplified Chinese edition and English compatibility entry; this Task
-- Mainline documentation updated by: Not applicable before integration
+- Mainline documentation updated by: Primary integration owner in this conversation; STATUS recent baseline and this Task synchronized
 - Remaining work promoted to: None
-- Scope changes closed: Requested routing/localization and necessary current-fact corrections verified and committed; no blocking feature-worktree acceptance remains. Task is Ready for integration, not Done.
+- Scope changes closed: Feature requirements integrated and verified on main; Task/STATUS synchronized, with no open TASK-055 acceptance. Final delivery includes the separately authorized main push after the integration record commit; it does not publish a release or authorize cleanup.
 - Parallel contributions integrated: None
-- Remote push state: Not authorized; not performed
+- Remote push state: Owner authorized main push after final verification/documentation commit; actual remote ref will be checked and reported after that commit
 - Worktree cleanup state: Not authorized; retained
